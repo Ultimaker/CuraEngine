@@ -28,11 +28,11 @@ constexpr size_t GK_TEST_NUM_MESH_GROUPS = 1;
 class ArcusCommunicationPrivateTest : public testing::Test
 {
 public:
-    ArcusCommunication::Private* instance;
+    ::curaengine::communication::ArcusCommunication::Private* instance;
 
     void SetUp() override
     {
-        instance = new ArcusCommunication::Private();
+        instance = new ::curaengine::communication::ArcusCommunication::Private();
         instance->socket = new MockSocket();
         Application::getInstance().current_slice_ = std::make_shared<Slice>(GK_TEST_NUM_MESH_GROUPS);
     }
@@ -223,18 +223,18 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     // Distances should be the same:
 
     // - First, collect AABBoxes:
-    std::array<coord_t, 3> raw_min_coords = { std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max() };
-    std::array<coord_t, 3> raw_max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
+    std::array<::curaengine::utils::coord_t, 3> raw_min_coords = { std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max() };
+    std::array<::curaengine::utils::coord_t, 3> raw_max_coords = { std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min() };
     const size_t num_vertex = raw_vertices.size();
     for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
     {
-        auto micrometers = static_cast<coord_t>(std::llrintf(raw_vertices[i_coord] * 1000.F));
+        auto micrometers = static_cast<::curaengine::utils::coord_t>(std::llrintf(raw_vertices[i_coord] * 1000.F));
         raw_min_coords[i_coord % 3] = std::min(micrometers, raw_min_coords[i_coord % 3]);
         raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
     }
 
-    std::array<coord_t, 3> min_coords = { std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max() };
-    std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
+    std::array<::curaengine::utils::coord_t, 3> min_coords = { std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max() };
+    std::array<::curaengine::utils::coord_t, 3> max_coords = { std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min() };
     for (const auto& vertex : vertices)
     {
         min_coords[0] = std::min(vertex.p_.x_, min_coords[0]);

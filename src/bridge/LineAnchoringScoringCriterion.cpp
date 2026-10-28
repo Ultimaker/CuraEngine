@@ -9,14 +9,14 @@
 #include "utils/LinearAlg2D.h"
 
 
-namespace curaengine
+namespace curaengine::bridge
 {
 
 LineAnchoringScoringCriterion::LineAnchoringScoringCriterion(
-    const std::vector<AngleDegrees>& candidates,
-    const Shape& skin_outline,
-    const Shape& supported_regions,
-    const coord_t line_width)
+    const std::vector<::curaengine::types::AngleDegrees>& candidates,
+    const ::curaengine::geometry::Shape& skin_outline,
+    const ::curaengine::geometry::Shape& supported_regions,
+    const ::curaengine::utils::coord_t line_width)
     : BridgeAngleScoringCriterion(std::move(candidates), skin_outline, supported_regions)
     , line_width_(line_width)
 {
@@ -36,15 +36,15 @@ double LineAnchoringScoringCriterion::computeScore(const TransformedShape& trans
         return 0.0;
     }
 
-    const coord_t line_min = transformed_skin_area.minY() + line_width_ * 0.5;
+    const ::curaengine::utils::coord_t line_min = transformed_skin_area.minY() + line_width_ * 0.5;
 
     // Evaluated lines that could be properly bridging
-    coord_t total_line_score = 0;
-    coord_t total_line_length = 0;
+    ::curaengine::utils::coord_t total_line_score = 0;
+    ::curaengine::utils::coord_t total_line_length = 0;
     const TransformedShape empty_transformed_shape;
     for (size_t i = 0; i < bridge_lines_count; ++i)
     {
-        const coord_t line_y = line_min + i * line_width_;
+        const ::curaengine::utils::coord_t line_y = line_min + i * line_width_;
         const bool has_supports = line_y >= transformed_supported_area.minY() && line_y <= transformed_supported_area.maxY();
         const auto [line_length, line_score] = evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
         total_line_length += line_length;
@@ -59,11 +59,11 @@ double LineAnchoringScoringCriterion::computeScore(const TransformedShape& trans
     return std::max(static_cast<double>(total_line_score) / total_line_length, 0.0);
 }
 
-std::tuple<coord_t, coord_t>
-    LineAnchoringScoringCriterion::evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area)
+std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t>
+    LineAnchoringScoringCriterion::evaluateBridgeLine(const ::curaengine::utils::coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area)
 {
     // Calculate intersections with skin outline to see which segments should actually be printed
-    std::vector<coord_t> skin_outline_intersections = shapeLineIntersections(line_y, transformed_skin_area);
+    std::vector<::curaengine::utils::coord_t> skin_outline_intersections = shapeLineIntersections(line_y, transformed_skin_area);
     if (skin_outline_intersections.size() < 2)
     {
         // We need to enter the skin at some point to bridge inside
@@ -72,7 +72,7 @@ std::tuple<coord_t, coord_t>
     ranges::stable_sort(skin_outline_intersections);
 
     // Calculate intersections with supported regions to see which segments are anchored
-    std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
+    std::vector<::curaengine::utils::coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
     ranges::stable_sort(supported_regions_intersections);
 
     enum class BridgeStatus
@@ -86,9 +86,9 @@ std::tuple<coord_t, coord_t>
     // Loop through intersections with skin and supported regions to see which parts of the line are hanging/bridging/supported
     bool inside_skin_area = false;
     bool inside_supported_area = false;
-    coord_t last_position;
-    coord_t segment_score = 0;
-    coord_t total_bridge_length = 0;
+    ::curaengine::utils::coord_t last_position;
+    ::curaengine::utils::coord_t segment_score = 0;
+    ::curaengine::utils::coord_t total_bridge_length = 0;
     BridgeStatus bridge_status = BridgeStatus::Outside;
     while (! skin_outline_intersections.empty() || ! supported_regions_intersections.empty())
     {
@@ -108,7 +108,7 @@ std::tuple<coord_t, coord_t>
             const double next_intersection_skin_area = skin_outline_intersections.front();
             const double next_intersection_supported_area = supported_regions_intersections.front();
 
-            if (is_zero(next_intersection_skin_area - next_intersection_supported_area))
+            if (::curaengine::utils::is_zero(next_intersection_skin_area - next_intersection_supported_area))
             {
                 next_intersection_is_skin_area = true;
                 next_intersection_is_supported_area = true;
@@ -136,7 +136,7 @@ std::tuple<coord_t, coord_t>
         // Get new insideness states
         bool next_inside_skin_area = inside_skin_area;
         bool next_inside_supported_area = inside_supported_area;
-        coord_t next_intersection;
+        ::curaengine::utils::coord_t next_intersection;
         if (next_intersection_is_skin_area)
         {
             next_intersection = skin_outline_intersections.front();
@@ -153,7 +153,7 @@ std::tuple<coord_t, coord_t>
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
         double add_segment_score_weight = 0;
-        const coord_t segment_length = next_intersection - last_position;
+        const ::curaengine::utils::coord_t segment_length = next_intersection - last_position;
 
         if (bridge_status != BridgeStatus::Outside)
         {
@@ -204,9 +204,9 @@ std::tuple<coord_t, coord_t>
     return { total_bridge_length, segment_score };
 }
 
-std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const coord_t line_y, const TransformedShape& transformed_shape)
+std::vector<::curaengine::utils::coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const ::curaengine::utils::coord_t line_y, const TransformedShape& transformed_shape)
 {
-    std::vector<coord_t> intersections;
+    std::vector<::curaengine::utils::coord_t> intersections;
 
     for (const TransformedSegment& transformed_segment : transformed_shape.getSegments())
     {
@@ -216,7 +216,7 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
             continue;
         }
 
-        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
+        const std::optional<::curaengine::utils::coord_t> intersection = ::curaengine::utils::LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
         if (intersection.has_value())
         {
             intersections.push_back(intersection.value());
@@ -226,4 +226,4 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
     return intersections;
 }
 
-} // namespace curaengine
+} // namespace curaengine::bridge

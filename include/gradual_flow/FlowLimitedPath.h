@@ -8,17 +8,17 @@
 
 #include <fmt/format.h>
 
-#include "gradual_flow/Direction.h"
-#include "gradual_flow/Utils.h"
-#include "pathPlanning/GCodePath.h"
+#include "gradual_flow/utils/Direction.h"
+#include "gradual_flow/utils/Utils.h"
+#include "path_planning/GCodePath.h"
 
 namespace curaengine::gradual_flow
 {
 
 struct FlowLimitedPath
 {
-    const GCodePath* original_gcode_path_data;
-    std::vector<Point3LL> points{};
+    const ::curaengine::path_planning::GCodePath* original_gcode_path_data;
+    std::vector<::curaengine::geometry::Point3LL> points{};
     double speed{ targetSpeed() }; // um/s
     double flow_{ extrusionVolumePerMm() * speed }; // um/s
     double total_length{ totalLength() }; // um
@@ -171,11 +171,11 @@ struct FlowLimitedPath
         auto current_partition_duration = 0.0;
         auto partition_index = direction == utils::Direction::Forward ? 0 : points.size() - 1;
         auto iteration_direction = direction == utils::Direction::Forward ? 1 : -1;
-        Point3LL prev_point = points[partition_index];
+        ::curaengine::geometry::Point3LL prev_point = points[partition_index];
 
         while (true)
         {
-            const Point3LL next_point = points[partition_index + iteration_direction];
+            const ::curaengine::geometry::Point3LL next_point = points[partition_index + iteration_direction];
             const auto segment_length = std::hypot(next_point.x_ - prev_point.x_, next_point.y_ - prev_point.y_);
             const auto segment_duration = segment_length / partition_speed;
 
@@ -193,7 +193,7 @@ struct FlowLimitedPath
                 const auto partition_x = prev_point.x_ + static_cast<long long>(static_cast<double>(next_point.x_ - prev_point.x_) * segment_ratio);
                 const auto partition_y = prev_point.y_ + static_cast<long long>(static_cast<double>(next_point.y_ - prev_point.y_) * segment_ratio);
                 const auto partition_z = prev_point.z_ + static_cast<long long>(static_cast<double>(next_point.z_ - prev_point.z_) * segment_ratio);
-                const Point3LL partition_point(partition_x, partition_y, partition_z);
+                const ::curaengine::geometry::Point3LL partition_point(partition_x, partition_y, partition_z);
 
                 /*
                  *                       partition point
@@ -220,7 +220,7 @@ struct FlowLimitedPath
                 const auto partition_point_index = direction == utils::Direction::Forward ? partition_index + 1 : partition_index;
 
                 // points left of the partition_index
-                std::vector<Point3LL> left_points;
+                std::vector<::curaengine::geometry::Point3LL> left_points;
                 for (unsigned int i = 0; i < partition_point_index; ++i)
                 {
                     left_points.emplace_back(points[i]);
@@ -228,7 +228,7 @@ struct FlowLimitedPath
                 left_points.emplace_back(partition_point);
 
                 // points right of the partition_index
-                std::vector<Point3LL> right_points;
+                std::vector<::curaengine::geometry::Point3LL> right_points;
                 right_points.emplace_back(partition_point);
                 for (unsigned int i = partition_point_index; i < points.size(); ++i)
                 {
@@ -270,9 +270,9 @@ struct FlowLimitedPath
         }
     }
 
-    GCodePath toClassicPath(const bool include_first_point) const
+    ::curaengine::path_planning::GCodePath toClassicPath(const bool include_first_point) const
     {
-        GCodePath output_path = *original_gcode_path_data;
+        ::curaengine::path_planning::GCodePath output_path = *original_gcode_path_data;
 
         output_path.points.clear();
         for (auto& point : points | ranges::views::drop(include_first_point ? 0 : 1))

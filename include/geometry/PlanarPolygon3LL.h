@@ -10,7 +10,7 @@
 #include "utils/Coord_t.h"
 
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Segment3LL;
@@ -31,14 +31,14 @@ public:
      * @param layer_end_x The X coordinate of the highest YZ plane
      * @return The polygon that is a sub-part of the current polygon with the layer, or nullopt if the intersection is empty
      */
-    std::optional<PlanarPolygon3LL> intersectionWithXLayer(const coord_t layer_start_x, const coord_t layer_end_x) const;
+    std::optional<PlanarPolygon3LL> intersectionWithXLayer(const ::curaengine::utils::coord_t layer_start_x, const ::curaengine::utils::coord_t layer_end_x) const;
 
     /*!
      * Intersects the polygon with a "layer" on the Y plane, e.g. a pair or XZ plans
      * @param layer_start_y The Y coordinate of the lowest XZ plane     * @param layer_end_y The Y coordinate of the highest XZ plane
      * @return The polygon that is a sub-part of the current polygon with the layer, or nullopt if the intersection is empty
      */
-    std::optional<PlanarPolygon3LL> intersectionWithYLayer(const coord_t layer_start_y, const coord_t layer_end_y) const;
+    std::optional<PlanarPolygon3LL> intersectionWithYLayer(const ::curaengine::utils::coord_t layer_start_y, const ::curaengine::utils::coord_t layer_end_y) const;
 
     /*!
      * Intersects the polygon with a "layer" on the Z plane, e.g. a pair or XY plans
@@ -46,16 +46,16 @@ public:
      * @param layer_end_z The Z coordinate of the highest XY plane
      * @return The polygon that is a sub-part of the current polygon with the layer, or nullopt if the intersection is empty
      */
-    std::optional<PlanarPolygon3LL> intersectionWithZLayer(const coord_t layer_start_z, const coord_t layer_end_z) const;
+    std::optional<PlanarPolygon3LL> intersectionWithZLayer(const ::curaengine::utils::coord_t layer_start_z, const ::curaengine::utils::coord_t layer_end_z) const;
 
-    std::tuple<coord_t, coord_t> minmaxX() const;
+    std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> minmaxX() const;
 
-    std::tuple<coord_t, coord_t> minmaxY() const;
+    std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> minmaxY() const;
 
-    std::tuple<coord_t, coord_t> minmaxZ() const;
+    std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> minmaxZ() const;
 
 private:
-    std::tuple<coord_t, coord_t> minmax(const std::function<coord_t(const Segment3LL& segment)>& get_coordinate) const;
+    std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> minmax(const std::function<::curaengine::utils::coord_t(const Segment3LL& segment)>& get_coordinate) const;
 
     /*!
      * Intersects the polygon with a axis-aligned "layer"
@@ -65,12 +65,12 @@ private:
      * @return The polygon that is a sub-part of the current polygon with the layer, or nullopt if the intersection is empty
      */
     std::optional<PlanarPolygon3LL> intersectionWithLayer(
-        const coord_t layer_start,
-        const coord_t layer_end,
-        const std::function<std::optional<Segment3LL>(const Segment3LL&, const coord_t, const coord_t)>& function_intersect_with_layer) const;
+        const ::curaengine::utils::coord_t layer_start,
+        const ::curaengine::utils::coord_t layer_end,
+        const std::function<std::optional<Segment3LL>(const Segment3LL&, const ::curaengine::utils::coord_t, const ::curaengine::utils::coord_t)>& function_intersect_with_layer) const;
 
 private:
     std::vector<Segment3LL> segments_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

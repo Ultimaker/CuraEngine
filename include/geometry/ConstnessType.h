@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 enum class ConstnessType
@@ -12,4 +12,4 @@ enum class ConstnessType
     Modifiable,
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

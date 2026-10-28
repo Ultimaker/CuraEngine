@@ -5,7 +5,7 @@
 
 #include "infill/AbstractLinesInfill.h"
 
-namespace curaengine
+namespace curaengine::infill
 {
 
 /*!
@@ -33,13 +33,13 @@ protected:
      * @param line_width The line width at which the infill will be printed.
      * @return The raw parallel lines to be included.
      */
-    OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const override;
+    ::curaengine::geometry::OpenLinesSet generateParallelLines(const ::curaengine::utils::coord_t line_distance, const ::curaengine::utils::AABB& bounding_box, const ::curaengine::utils::coord_t z, const ::curaengine::utils::coord_t line_width) const override;
 
 private:
     struct SegmentsPattern
     {
-        std::array<Point2LL, 4> segments;
-        coord_t delta_x;
+        std::array<::curaengine::geometry::Point2LL, 4> segments;
+        ::curaengine::utils::coord_t delta_x;
     };
 
     /*!
@@ -57,12 +57,12 @@ private:
      * @param pattern_height The total height of the pattern that will be repeated along the Y axis.
      * @return The raw parallel lines to be included.
      */
-    static OpenLinesSet generateRegularNGonalLines(
-        const AABB& bounding_box,
+    static ::curaengine::geometry::OpenLinesSet generateRegularNGonalLines(
+        const ::curaengine::utils::AABB& bounding_box,
         const std::array<SegmentsPattern, 2>& patterns,
-        const coord_t delta_y,
-        const coord_t pattern_width,
-        const coord_t pattern_height);
+        const ::curaengine::utils::coord_t delta_y,
+        const ::curaengine::utils::coord_t pattern_width,
+        const ::curaengine::utils::coord_t pattern_height);
 
     /*!
      * Generate the base segments pattern given the base coordinates. @sa generateRegularNGonalLines()
@@ -73,10 +73,10 @@ private:
      * @return The segment pattern to be applied repeatedly to generate the N-gonal shape.
      */
     static std::array<SegmentsPattern, 2>
-        generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const coord_t absolute_delta_x);
+        generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const ::curaengine::utils::coord_t absolute_delta_x);
 
 private:
     const RegularNGonType type_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::infill

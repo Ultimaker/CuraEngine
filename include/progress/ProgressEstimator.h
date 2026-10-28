@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine
+namespace curaengine::progress
 {
 /*
  * ProgressEstimator is a finger-tree with ProgressEstimatorLinear as leaves.
@@ -23,4 +23,4 @@ public:
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::progress

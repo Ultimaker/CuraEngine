@@ -104,7 +104,7 @@ void Application::connect()
         }
     }
 
-    auto arcus_communication = std::make_shared<ArcusCommunication>();
+    auto arcus_communication = std::make_shared<::curaengine::communication::ArcusCommunication>();
     arcus_communication->connect(ip, port);
     communication_ = arcus_communication;
 }
@@ -219,9 +219,9 @@ void Application::slice()
         arguments.emplace_back(argv_[argument_index]);
     }
 #ifdef __EMSCRIPTEN__
-    communication_ = std::make_shared<EmscriptenCommunication>(arguments);
+    communication_ = std::make_shared<::curaengine::communication::EmscriptenCommunication>(arguments);
 #else
-    communication_ = std::make_shared<CommandLine>(arguments);
+    communication_ = std::make_shared<::curaengine::communication::CommandLine>(arguments);
 #endif
 }
 
@@ -232,7 +232,7 @@ void Application::run(const size_t argc, char** argv)
 
     printHeader();
     printLicense();
-    Progress::init();
+    ::curaengine::progress::Progress::init();
 
     if (argc < 2)
     {
@@ -241,17 +241,17 @@ void Application::run(const size_t argc, char** argv)
     }
 
 #ifdef ARCUS
-    if (stringcasecompare(argv[1], "connect") == 0)
+    if (::curaengine::utils::stringcasecompare(argv[1], "connect") == 0)
     {
         connect();
     }
     else
 #endif // ARCUS
-        if (stringcasecompare(argv[1], "slice") == 0)
+        if (::curaengine::utils::stringcasecompare(argv[1], "slice") == 0)
         {
             slice();
         }
-        else if (stringcasecompare(argv[1], "help") == 0)
+        else if (::curaengine::utils::stringcasecompare(argv[1], "help") == 0)
         {
             printHelp();
         }
@@ -306,7 +306,7 @@ void Application::startThreadPool(int nworkers)
     }
 
     delete thread_pool_;
-    thread_pool_ = new ThreadPool(nthreads);
+    thread_pool_ = new ::curaengine::utils::ThreadPool(nthreads);
 }
 
 } // namespace curaengine

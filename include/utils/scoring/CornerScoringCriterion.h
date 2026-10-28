@@ -3,13 +3,18 @@
 
 #pragma once
 
-#include "settings/EZSeamCornerPrefType.h"
+#include "types/EZSeamCornerPrefType.h"
 #include "utils/Coord_t.h"
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 class PointsSet;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to whether the point is creating a corner or lies on a flat line.
@@ -18,12 +23,12 @@ class PointsSet;
 class CornerScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const EZSeamCornerPrefType corner_preference_;
+    const ::curaengine::types::EZSeamCornerPrefType corner_preference_;
     std::vector<coord_t> segments_sizes_;
     coord_t total_length_{ 0 };
 
 public:
-    explicit CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference);
+    explicit CornerScoringCriterion(const ::curaengine::geometry::PointsSet& points, const ::curaengine::types::EZSeamCornerPrefType corner_preference);
 
     virtual double computeScore(const size_t candidate_index) const override;
 
@@ -54,7 +59,7 @@ private:
      * or negative to go backward
      * \return The position of the path a the given distance from the reference point
      */
-    Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
+    ::curaengine::geometry::Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

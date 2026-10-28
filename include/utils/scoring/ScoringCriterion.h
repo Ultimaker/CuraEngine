@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace curaengine
+namespace curaengine::utils::scoring
 {
 
 /*!
@@ -28,4 +28,4 @@ public:
     virtual double computeScore(const size_t candidate_index) const = 0;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

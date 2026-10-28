@@ -22,7 +22,7 @@ class DISABLED_ClipperTest : public testing::Test
 public:
     using Paths = ClipperLib::Paths;
     using Path = ClipperLib::Path;
-    using coord_t = ClipperLib::cInt;
+    using ::curaengine::utils::coord_t = ClipperLib::cInt;
     using Point = ClipperLib::IntPoint;
 
     std::vector<Paths> all_outlines;
@@ -79,12 +79,12 @@ public:
 
     static Paths intersectPolylines(const Paths& outlines, const Paths& polylines);
 
-    static coord_t sq(coord_t i)
+    static ::curaengine::utils::coord_t sq(::curaengine::utils::coord_t i)
     {
         return i * i;
     };
 
-    static coord_t calculateLength(const Paths& polylines);
+    static ::curaengine::utils::coord_t calculateLength(const Paths& polylines);
 
     static void outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename);
 };
@@ -103,7 +103,7 @@ DISABLED_ClipperTest::Paths DISABLED_ClipperTest::intersectPolylines(const Paths
 
 DISABLED_ClipperTest::coord_t DISABLED_ClipperTest::calculateLength(const Paths& polylines)
 {
-    coord_t polyline_length = 0;
+    ::curaengine::utils::coord_t polyline_length = 0;
     for (const Path& path : polylines)
     {
         const Point* last = nullptr;
@@ -144,12 +144,12 @@ void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylin
     lines.set(polylines);
     Polygons lines_after;
     lines_after.set(intersected);
-    SVG svg(filename, AABB(outs));
-    svg.writePolygons(outs, SVG::Color::BLACK);
+    ::curaengine::utils::SVG svg(filename, ::curaengine::utils::AABB(outs));
+    svg.writePolygons(outs, ::curaengine::utils::SVG::Color::BLACK);
     svg.nextLayer();
-    svg.writePolylines(lines_after, SVG::Color::RED);
+    svg.writePolylines(lines_after, ::curaengine::utils::SVG::Color::RED);
     svg.nextLayer();
-    svg.writePolylines(lines, SVG::Color::GREEN);
+    svg.writePolylines(lines, ::curaengine::utils::SVG::Color::GREEN);
 #endif // TEST_INFILL_SVG_OUTPUT
 }
 

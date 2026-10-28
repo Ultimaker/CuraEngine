@@ -11,41 +11,41 @@ namespace curaengine::plugins
 {
 infill_generate_response::native_value_type infill_generate_response::operator()(const infill_generate_response::value_type& message) const
 {
-    VariableWidthLines toolpaths;
-    Shape result_polygons;
-    OpenLinesSet result_lines;
+    ::curaengine::utils::VariableWidthLines toolpaths;
+    ::curaengine::geometry::Shape result_polygons;
+    ::curaengine::geometry::OpenLinesSet result_lines;
 
     for (auto& tool_path : message.tool_paths().tool_paths())
     {
-        ExtrusionLine lines;
+        ::curaengine::utils::ExtrusionLine lines;
         for (auto& msg_junction : tool_path.junctions())
         {
             auto& p = msg_junction.point();
-            auto junction = ExtrusionJunction{ p.x(), p.y(), msg_junction.width() };
+            auto junction = ::curaengine::utils::ExtrusionJunction{ p.x(), p.y(), msg_junction.width() };
             lines.emplace_back(junction);
         }
 
         toolpaths.push_back(lines);
     }
 
-    std::vector<VariableWidthLines> toolpaths_;
+    std::vector<::curaengine::utils::VariableWidthLines> toolpaths_;
     toolpaths_.push_back(toolpaths);
 
     for (auto& polygon_msg : message.polygons().polygons())
     {
-        Shape polygon{};
+        ::curaengine::geometry::Shape polygon{};
 
-        Polygon outline{};
+        ::curaengine::geometry::Polygon outline{};
         for (auto& path_msg : polygon_msg.outline().path())
         {
-            outline.push_back(Point2LL{ path_msg.x(), path_msg.y() });
+            outline.push_back(::curaengine::geometry::Point2LL{ path_msg.x(), path_msg.y() });
         }
         polygon.push_back(outline);
 
 
         for (auto& hole_msg : polygon_msg.holes())
         {
-            Polygon hole{};
+            ::curaengine::geometry::Polygon hole{};
             for (auto& path_msg : hole_msg.path())
             {
                 hole.emplace_back(path_msg.x(), path_msg.y());
@@ -58,7 +58,7 @@ infill_generate_response::native_value_type infill_generate_response::operator()
 
     for (auto& polygon : message.poly_lines().paths())
     {
-        OpenPolyline poly_line;
+        ::curaengine::geometry::OpenPolyline poly_line;
         for (auto& p : polygon.path())
         {
             poly_line.emplace_back(p.x(), p.y());

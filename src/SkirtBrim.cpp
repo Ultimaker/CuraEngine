@@ -16,9 +16,9 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
-#include "settings/BrimLocation.h"
-#include "settings/EPlatformAdhesion.h"
-#include "settings/types/Ratio.h"
+#include "types/BrimLocation.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/Ratio.h"
 #include "utils/MixedPolylineStitcher.h"
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
@@ -28,7 +28,7 @@ namespace curaengine
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     : storage_(storage)
-    , adhesion_type_(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type"))
+    , adhesion_type_(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type"))
     , has_ooze_shield_(storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     , has_draft_shield_(storage.draft_protection_shield.size() > 0)
     , extruders_(Application::getInstance().current_slice_->scene.extruders)
@@ -51,7 +51,7 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
 
 
     skirt_brim_extruder_nr_ = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
-    if (skirt_brim_extruder_nr_ == -1 && adhesion_type_ == EPlatformAdhesion::SKIRT)
+    if (skirt_brim_extruder_nr_ == -1 && adhesion_type_ == ::curaengine::types::EPlatformAdhesion::SKIRT)
     { // Skirt is always printed with all extruders in order to satisfy minimum legnth constraint
         // NOTE: the line count will only be satisfied for the first extruder used.
         skirt_brim_extruder_nr_ = first_used_extruder_nr_;
@@ -66,14 +66,14 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
         }
 
         const ExtruderTrain& extruder = extruders_[extruder_nr];
-        const BrimLocation location = extruder.settings_.get<BrimLocation>("brim_location");
+        const ::curaengine::types::BrimLocation location = extruder.settings_.get<::curaengine::types::BrimLocation>("brim_location");
 
-        extruder_config.line_width_ = extruder.settings_.get<coord_t>("skirt_brim_line_width") * extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
-        extruder_config.skirt_brim_minimal_length_ = extruder.settings_.get<coord_t>("skirt_brim_minimal_length");
-        extruder_config.outside_polys_ = adhesion_type_ == EPlatformAdhesion::SKIRT || (location & BrimLocation::OUTSIDE);
-        extruder_config.inside_polys_ = adhesion_type_ == EPlatformAdhesion::BRIM && (location & BrimLocation::INSIDE);
-        extruder_config.line_count_ = extruder.settings_.get<int>(adhesion_type_ == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
-        extruder_config.gap_ = extruder.settings_.get<coord_t>(adhesion_type_ == EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
+        extruder_config.line_width_ = extruder.settings_.get<::curaengine::utils::coord_t>("skirt_brim_line_width") * extruder.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+        extruder_config.skirt_brim_minimal_length_ = extruder.settings_.get<::curaengine::utils::coord_t>("skirt_brim_minimal_length");
+        extruder_config.outside_polys_ = adhesion_type_ == ::curaengine::types::EPlatformAdhesion::SKIRT || (location & ::curaengine::types::BrimLocation::OUTSIDE);
+        extruder_config.inside_polys_ = adhesion_type_ == ::curaengine::types::EPlatformAdhesion::BRIM && (location & ::curaengine::types::BrimLocation::INSIDE);
+        extruder_config.line_count_ = extruder.settings_.get<int>(adhesion_type_ == ::curaengine::types::EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
+        extruder_config.gap_ = extruder.settings_.get<::curaengine::utils::coord_t>(adhesion_type_ == ::curaengine::types::EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
     }
 }
 
@@ -100,7 +100,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
     for (int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
         const ExtruderConfig& extruder_config = extruders_configs_[extruder_nr];
-        const coord_t semi_line_width = extruder_config.line_width_ / 2;
+        const ::curaengine::utils::coord_t semi_line_width = extruder_config.line_width_ / 2;
 
         if (! extruder_config.extruder_is_used_ || (skirt_brim_extruder_nr_ >= 0 && extruder_nr != skirt_brim_extruder_nr_)
             || (starting_outlines[extruder_nr].gapped.empty() && starting_outlines[extruder_nr].touching.empty()))
@@ -111,8 +111,8 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
         for (int line_idx = 0; line_idx < extruder_config.line_count_; line_idx++)
         {
             const bool is_last = line_idx == extruder_config.line_count_ - 1;
-            const coord_t offset_touching = semi_line_width + extruder_config.line_width_ * line_idx;
-            const coord_t offset_gapped = offset_touching + extruder_config.gap_;
+            const ::curaengine::utils::coord_t offset_touching = semi_line_width + extruder_config.line_width_ * line_idx;
+            const ::curaengine::utils::coord_t offset_gapped = offset_touching + extruder_config.gap_;
             if (line_idx == 0)
             {
                 all_brim_offsets.emplace_back(
@@ -150,25 +150,25 @@ void SkirtBrim::generate()
 {
     std::vector<Outline> starting_outlines(extruder_count_);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
-    std::vector<Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines);
+    std::vector<::curaengine::geometry::Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines);
 
     // Apply 'make convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
     // Otherwise, the now expanded convex hull covered areas will mess with that brim. Fortunately this does not mess
     // with the other area calculation above, since they are either itself a simple/convex shape or relevant for brim.
-    constexpr LayerIndex layer_nr = 0;
+    constexpr ::curaengine::types::LayerIndex layer_nr = 0;
     constexpr bool include_support = true;
-    const bool include_prime_tower = adhesion_type_ == EPlatformAdhesion::SKIRT;
+    const bool include_prime_tower = adhesion_type_ == ::curaengine::types::EPlatformAdhesion::SKIRT;
     constexpr bool external_polys_only = false;
-    constexpr coord_t extruder_nr = -1;
+    constexpr ::curaengine::utils::coord_t extruder_nr = -1;
     constexpr bool include_models = true;
     constexpr bool include_support_base = false;
-    Shape covered_area = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models, include_support_base);
-    if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+    ::curaengine::geometry::Shape covered_area = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models, include_support_base);
+    if (adhesion_type_ == ::curaengine::types::EPlatformAdhesion::SKIRT)
     {
         covered_area.makeConvex();
     }
 
-    std::vector<coord_t> total_length = generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
+    std::vector<::curaengine::utils::coord_t> total_length = generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
 
     // ooze/draft shield brim
     generateShieldBrim(covered_area, allowed_areas_per_extruder);
@@ -186,21 +186,21 @@ void SkirtBrim::generate()
 
     // simplify paths to prevent buffer unnerruns in firmware
     const Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const coord_t maximum_resolution = global_settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = global_settings.get<coord_t>("meshfix_maximum_deviation");
-    constexpr coord_t max_area_dev = 0u; // No area deviation applied
+    const ::curaengine::utils::coord_t maximum_resolution = global_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
+    const ::curaengine::utils::coord_t maximum_deviation = global_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
+    constexpr ::curaengine::utils::coord_t max_area_dev = 0u; // No area deviation applied
     for (int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
-        for (MixedLinesSet& lines : storage_.skirt_brim[extruder_nr])
+        for (::curaengine::geometry::MixedLinesSet& lines : storage_.skirt_brim[extruder_nr])
         {
-            lines = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(lines);
+            lines = ::curaengine::utils::Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(lines);
         }
     }
 }
 
-std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder)
+std::vector<::curaengine::utils::coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, ::curaengine::geometry::Shape& covered_area, std::vector<::curaengine::geometry::Shape>& allowed_areas_per_extruder)
 {
-    std::vector<coord_t> total_length(extruder_count_, 0U);
+    std::vector<::curaengine::utils::coord_t> total_length(extruder_count_, 0U);
 
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
@@ -209,8 +209,8 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
         {
             storage_.skirt_brim[offset.extruder_nr_].resize(offset.inset_idx_ + 1);
         }
-        MixedLinesSet& output_location = storage_.skirt_brim[offset.extruder_nr_][offset.inset_idx_];
-        const coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
+        ::curaengine::geometry::MixedLinesSet& output_location = storage_.skirt_brim[offset.extruder_nr_][offset.inset_idx_];
+        const ::curaengine::utils::coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
 
         if (added_length == 0)
         { // no more place for more brim. Trying to satisfy minimum length constraint with generateSecondarySkirtBrim
@@ -243,10 +243,10 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
     return total_length;
 }
 
-coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, MixedLinesSet& result)
+::curaengine::utils::coord_t SkirtBrim::generateOffset(const Offset& offset, ::curaengine::geometry::Shape& covered_area, std::vector<::curaengine::geometry::Shape>& allowed_areas_per_extruder, ::curaengine::geometry::MixedLinesSet& result)
 {
-    coord_t length_added;
-    Shape brim;
+    ::curaengine::utils::coord_t length_added;
+    ::curaengine::geometry::Shape brim;
     const ExtruderConfig& extruder_config = extruders_configs_[offset.extruder_nr_];
 
     if (std::holds_alternative<Outline*>(offset.reference_outline_or_index_))
@@ -255,7 +255,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
         for (const auto& [shape, offset_value] :
              { std::make_tuple(reference_outline->gapped, offset.offset_value_gapped_), std::make_tuple(reference_outline->touching, offset.offset_value_touching_) })
         {
-            for (const Polygon& polygon : shape)
+            for (const ::curaengine::geometry::Polygon& polygon : shape)
             {
                 const double area = polygon.area();
                 if (area > 0 && offset.outside_)
@@ -272,30 +272,30 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
     else
     {
         const int reference_idx = std::get<int>(offset.reference_outline_or_index_);
-        const coord_t offset_dist = extruder_config.line_width_;
+        const ::curaengine::utils::coord_t offset_dist = extruder_config.line_width_;
 
         brim.push_back(storage_.skirt_brim[offset.extruder_nr_][reference_idx].offset(offset_dist, ClipperLib::jtRound));
     }
 
     // limit brim lines to allowed areas, stitch them and store them in the result
-    brim = Simplify(Application::getInstance().current_slice_->scene.extruders[offset.extruder_nr_].settings_).polygon(brim);
+    brim = ::curaengine::utils::Simplify(Application::getInstance().current_slice_->scene.extruders[offset.extruder_nr_].settings_).polygon(brim);
 
-    OpenLinesSet brim_lines = allowed_areas_per_extruder[offset.extruder_nr_].intersection(brim, false);
+    ::curaengine::geometry::OpenLinesSet brim_lines = allowed_areas_per_extruder[offset.extruder_nr_].intersection(brim, false);
     length_added = brim_lines.length();
 
-    Shape newly_covered = brim_lines.offset(extruder_config.line_width_ / 2 + 10, ClipperLib::jtRound);
+    ::curaengine::geometry::Shape newly_covered = brim_lines.offset(extruder_config.line_width_ / 2 + 10, ClipperLib::jtRound);
 
-    const coord_t max_stitch_distance = extruder_config.line_width_;
-    MixedPolylineStitcher::stitch(brim_lines, result, max_stitch_distance);
+    const ::curaengine::utils::coord_t max_stitch_distance = extruder_config.line_width_;
+    ::curaengine::utils::MixedPolylineStitcher::stitch(brim_lines, result, max_stitch_distance);
 
     // clean up too small lines (only open ones, which was done historically but may be a mistake)
     result.erase(
         std::remove_if(
             result.begin(),
             result.end(),
-            [](const PolylinePtr& line)
+            [](const ::curaengine::geometry::PolylinePtr& line)
             {
-                if (const std::shared_ptr<const OpenPolyline> open_line = dynamic_pointer_cast<const OpenPolyline>(line))
+                if (const std::shared_ptr<const ::curaengine::geometry::OpenPolyline> open_line = dynamic_pointer_cast<const ::curaengine::geometry::OpenPolyline>(line))
                 {
                     return open_line->shorterThan(min_brim_line_length);
                 }
@@ -328,8 +328,8 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
     }
     const ExtruderConfig& reference_extruder_config = extruders_configs_[reference_extruder_nr];
     const int primary_line_count = reference_extruder_config.line_count_;
-    const LayerIndex layer_nr = 0;
-    if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+    const ::curaengine::types::LayerIndex layer_nr = 0;
+    if (adhesion_type_ == ::curaengine::types::EPlatformAdhesion::SKIRT)
     {
         int skirt_height = 0;
         for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders)
@@ -348,7 +348,7 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
             first_layer_outline.gapped = first_layer_outline.gapped.unionPolygons(storage_.getLayerOutlines(i_layer, include_support, include_prime_tower, true));
         }
 
-        Shape shields;
+        ::curaengine::geometry::Shape shields;
         if (has_ooze_shield_)
         {
             shields = storage_.ooze_shield[0];
@@ -391,17 +391,17 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
                 //  || ||     ||[]|| > expand to fit an extra brim line
                 //  |+-+|     |+--+|
                 //  +---+     +----+
-                const coord_t primary_extruder_skirt_brim_line_width = reference_extruder_config.line_width_;
-                Shape model_brim_covered_area;
+                const ::curaengine::utils::coord_t primary_extruder_skirt_brim_line_width = reference_extruder_config.line_width_;
+                ::curaengine::geometry::Shape model_brim_covered_area;
 
                 // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
-                const coord_t offset = primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2);
+                const ::curaengine::utils::coord_t offset = primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2);
 
-                for (const Polygon& polygon : first_layer_outline.gapped)
+                for (const ::curaengine::geometry::Polygon& polygon : first_layer_outline.gapped)
                 {
                     // Compute the fringe that the brim is going to cover around the model
-                    Shape outset;
-                    Shape inset;
+                    ::curaengine::geometry::Shape outset;
+                    ::curaengine::geometry::Shape inset;
 
                     double area = polygon.area();
                     if (area > 0 && reference_extruder_config.outside_polys_)
@@ -419,7 +419,7 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
                     model_brim_covered_area = model_brim_covered_area.unionPolygons(outset);
                 }
 
-                AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
+                ::curaengine::utils::AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
                 support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
 
                 // If the gap between the model and the BP is small enough, support starts with the interface instead, so remove it there as well:
@@ -435,18 +435,18 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
         }
     }
 
-    for (Shape& outline : std::array{ first_layer_outline.gapped, first_layer_outline.touching })
+    for (::curaengine::geometry::Shape& outline : std::array{ first_layer_outline.gapped, first_layer_outline.touching })
     {
-        constexpr coord_t join_distance = 20;
+        constexpr ::curaengine::utils::coord_t join_distance = 20;
         outline = outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
-        constexpr coord_t smallest_line_length = 200;
-        constexpr coord_t largest_error_of_removed_point = 50;
-        outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(outline);
+        constexpr ::curaengine::utils::coord_t smallest_line_length = 200;
+        constexpr ::curaengine::utils::coord_t largest_error_of_removed_point = 50;
+        outline = ::curaengine::utils::Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(outline);
     }
     return first_layer_outline;
 }
 
-void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>& allowed_areas_per_extruder)
+void SkirtBrim::generateShieldBrim(::curaengine::geometry::Shape& brim_covered_area, std::vector<::curaengine::geometry::Shape>& allowed_areas_per_extruder)
 {
     int extruder_nr = skirt_brim_extruder_nr_;
     if (extruder_nr < 0)
@@ -457,9 +457,9 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
     const ExtruderConfig& extruder_config = extruders_configs_[extruder_nr];
 
     // generate brim for ooze shield and draft shield
-    if (adhesion_type_ == EPlatformAdhesion::BRIM && (has_ooze_shield_ || has_draft_shield_))
+    if (adhesion_type_ == ::curaengine::types::EPlatformAdhesion::BRIM && (has_ooze_shield_ || has_draft_shield_))
     {
-        const coord_t primary_extruder_skirt_brim_line_width = extruder_config.line_width_;
+        const ::curaengine::utils::coord_t primary_extruder_skirt_brim_line_width = extruder_config.line_width_;
         int primary_line_count = extruder_config.line_count_;
 
         // generate areas where to make extra brim for the shields
@@ -470,10 +470,10 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
         //  || ||     ||[]|| > expand to fit an extra brim line
         //  |+-+|     |+--+|
         //  +---+     +----+
-        const coord_t primary_skirt_brim_width
+        const ::curaengine::utils::coord_t primary_skirt_brim_width
             = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
 
-        Shape shield_brim;
+        ::curaengine::geometry::Shape shield_brim;
         if (has_ooze_shield_)
         {
             shield_brim = storage_.ooze_shield[0].difference(storage_.ooze_shield[0].offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width));
@@ -484,10 +484,10 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
                 storage_.draft_protection_shield.difference(storage_.draft_protection_shield.offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width)));
         }
         shield_brim = shield_brim.intersection(allowed_areas_per_extruder[extruder_nr].offset(primary_extruder_skirt_brim_line_width / 2));
-        const Shape layer_outlines = storage_.getLayerOutlines(/*layer_nr*/ 0, /*include_support*/ false, /*include_prime_tower*/ true);
+        const ::curaengine::geometry::Shape layer_outlines = storage_.getLayerOutlines(/*layer_nr*/ 0, /*include_support*/ false, /*include_prime_tower*/ true);
         shield_brim = shield_brim.difference(layer_outlines.getOutsidePolygons()); // don't generate any shield brim inside holes
 
-        const Shape covered_area = shield_brim.offset(primary_extruder_skirt_brim_line_width / 2);
+        const ::curaengine::geometry::Shape covered_area = shield_brim.offset(primary_extruder_skirt_brim_line_width / 2);
         brim_covered_area = brim_covered_area.unionPolygons(covered_area);
         allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
 
@@ -502,26 +502,26 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
         }
     }
 
-    if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+    if (adhesion_type_ == ::curaengine::types::EPlatformAdhesion::SKIRT)
     {
         if (has_ooze_shield_)
         {
-            const Shape covered_area = storage_.ooze_shield[0].offset(extruder_config.line_width_ / 2);
+            const ::curaengine::geometry::Shape covered_area = storage_.ooze_shield[0].offset(extruder_config.line_width_ / 2);
             brim_covered_area = brim_covered_area.unionPolygons(covered_area);
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
         }
         if (has_draft_shield_)
         {
-            const Shape covered_area = storage_.draft_protection_shield.offset(extruder_config.line_width_ / 2);
+            const ::curaengine::geometry::Shape covered_area = storage_.draft_protection_shield.offset(extruder_config.line_width_ / 2);
             brim_covered_area = brim_covered_area.unionPolygons(covered_area);
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
         }
     }
 }
 
-void SkirtBrim::generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shape>& allowed_areas_per_extruder, std::vector<coord_t>& total_length)
+void SkirtBrim::generateSecondarySkirtBrim(::curaengine::geometry::Shape& covered_area, std::vector<::curaengine::geometry::Shape>& allowed_areas_per_extruder, std::vector<::curaengine::utils::coord_t>& total_length)
 {
-    constexpr coord_t bogus_total_offset = 0u; // Doesn't matter. The offsets won't be sorted here.
+    constexpr ::curaengine::utils::coord_t bogus_total_offset = 0u; // Doesn't matter. The offsets won't be sorted here.
     constexpr bool is_last = false; // Doesn't matter. Isn't used in the algorithm below.
     for (int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
@@ -531,7 +531,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shap
         while (total_length[extruder_nr] < extruder_config.skirt_brim_minimal_length_)
         {
             decltype(Offset::reference_outline_or_index_) ref_polys_or_idx = nullptr;
-            coord_t offset_from_reference;
+            ::curaengine::utils::coord_t offset_from_reference;
             if (first)
             {
                 ref_polys_or_idx = &reference_outline;
@@ -556,8 +556,8 @@ void SkirtBrim::generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shap
                 is_last);
 
             storage_.skirt_brim[extruder_nr].emplace_back();
-            MixedLinesSet& output_location = storage_.skirt_brim[extruder_nr].back();
-            coord_t added_length = generateOffset(extra_offset, covered_area, allowed_areas_per_extruder, output_location);
+            ::curaengine::geometry::MixedLinesSet& output_location = storage_.skirt_brim[extruder_nr].back();
+            ::curaengine::utils::coord_t added_length = generateOffset(extra_offset, covered_area, allowed_areas_per_extruder, output_location);
 
             if (! added_length)
             {
@@ -572,19 +572,19 @@ void SkirtBrim::generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shap
     }
 }
 
-std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& starting_outlines) const
+std::vector<::curaengine::geometry::Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& starting_outlines) const
 {
-    constexpr LayerIndex layer_nr = 0;
+    constexpr ::curaengine::types::LayerIndex layer_nr = 0;
 
     // For each extruder, pre-compute the areas covered by models/supports/prime tower
     struct ExtruderOutlines
     {
-        Shape models_outlines;
-        Shape supports_outlines;
+        ::curaengine::geometry::Shape models_outlines;
+        ::curaengine::geometry::Shape supports_outlines;
     };
 
     std::vector<ExtruderOutlines> covered_area_by_extruder;
-    if (adhesion_type_ == EPlatformAdhesion::BRIM)
+    if (adhesion_type_ == ::curaengine::types::EPlatformAdhesion::BRIM)
     {
         covered_area_by_extruder.resize(extruder_count_);
         for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
@@ -612,7 +612,7 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
         }
     }
 
-    std::vector<Shape> allowed_areas_per_extruder(extruder_count_);
+    std::vector<::curaengine::geometry::Shape> allowed_areas_per_extruder(extruder_count_);
     for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
         const ExtruderConfig& extruder_config = extruders_configs_[extruder_nr];
@@ -623,23 +623,23 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
         }
 
         // Initialize allowed area to full build plate, then remove disallowed areas
-        Shape& allowed_areas = allowed_areas_per_extruder[extruder_nr];
+        ::curaengine::geometry::Shape& allowed_areas = allowed_areas_per_extruder[extruder_nr];
         allowed_areas = storage_.getMachineBorder(extruder_nr);
 
-        if (adhesion_type_ == EPlatformAdhesion::BRIM)
+        if (adhesion_type_ == ::curaengine::types::EPlatformAdhesion::BRIM)
         {
             const Settings& settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
-            const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
+            const ::curaengine::utils::coord_t hole_brim_distance = settings.get<::curaengine::utils::coord_t>("brim_inside_margin");
 
             for (size_t other_extruder_nr = 0; other_extruder_nr < covered_area_by_extruder.size(); ++other_extruder_nr)
             {
                 const ExtruderOutlines& extruder_outlines = covered_area_by_extruder[other_extruder_nr];
-                const coord_t base_offset = extruder_config.line_width_ / 2;
+                const ::curaengine::utils::coord_t base_offset = extruder_config.line_width_ / 2;
 
                 // Remove areas covered by models
-                for (const Polygon& covered_surface : extruder_outlines.models_outlines)
+                for (const ::curaengine::geometry::Polygon& covered_surface : extruder_outlines.models_outlines)
                 {
-                    coord_t offset = base_offset;
+                    ::curaengine::utils::coord_t offset = base_offset;
                     const double covered_area = covered_surface.area();
 
                     if ((other_extruder_nr == extruder_nr || extruder_nr == skirt_brim_extruder_nr_)
@@ -678,18 +678,18 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
     return allowed_areas_per_extruder;
 }
 
-void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const coord_t width, const coord_t line_width)
+void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const ::curaengine::geometry::Shape& support_outline, const ::curaengine::utils::coord_t width, const ::curaengine::utils::coord_t line_width)
 {
-    const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<coord_t>("support_brim_minimum_hole_area"));
+    const ::curaengine::utils::coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<::curaengine::utils::coord_t>("support_brim_minimum_hole_area"));
 
-    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInsetOutset(support_outline, -width, line_width);
-    for (Shape& base_inset : base_insets.walls)
+    ::curaengine::utils::PolygonUtils::InsetOutset base_insets = ::curaengine::utils::PolygonUtils::generateInsetOutset(support_outline, -width, line_width);
+    for (::curaengine::geometry::Shape& base_inset : base_insets.walls)
     {
         // Remove small inner brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
         base_inset.erase(
             ranges::remove_if(
                 base_inset,
-                [support_brim_minimum_hole_area](const Polygon& polygon)
+                [support_brim_minimum_hole_area](const ::curaengine::geometry::Polygon& polygon)
                 {
                     const double area = polygon.area();
                     return area < 0 && area > -support_brim_minimum_hole_area;
@@ -703,21 +703,21 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
     }
 }
 
-void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const coord_t width, const coord_t line_width, const Shape& exclusion_area)
+void SkirtBrim::generateSupportOutsideBrim(const ::curaengine::geometry::Shape& support_outline, const ::curaengine::utils::coord_t width, const ::curaengine::utils::coord_t line_width, const ::curaengine::geometry::Shape& exclusion_area)
 {
-    PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateInsetOutset(support_outline, width, line_width);
+    ::curaengine::utils::PolygonUtils::InsetOutset base_outsets = ::curaengine::utils::PolygonUtils::generateInsetOutset(support_outline, width, line_width);
 
-    ClosedLinesSet closed_base_outset;
-    for (Shape& base_outset : base_outsets.walls)
+    ::curaengine::geometry::ClosedLinesSet closed_base_outset;
+    for (::curaengine::geometry::Shape& base_outset : base_outsets.walls)
     {
         closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
-        for (Polygon& base_outset_polygon : base_outset)
+        for (::curaengine::geometry::Polygon& base_outset_polygon : base_outset)
         {
-            closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
+            closed_base_outset.push_back(::curaengine::geometry::ClosedPolyline(std::move(base_outset_polygon)));
         }
     }
 
-    MixedLinesSet base_lines = closed_base_outset.difference(exclusion_area).intersection(storage_.getMachineBorder());
+    ::curaengine::geometry::MixedLinesSet base_lines = closed_base_outset.difference(exclusion_area).intersection(storage_.getMachineBorder());
     if (base_lines.length() > 0)
     {
         storage_.support_brim.push_back(std::move(base_lines));
@@ -728,16 +728,16 @@ void SkirtBrim::generateSupportBrim()
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& settings = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").settings_;
-    const coord_t brim_line_width = settings.get<coord_t>("skirt_brim_line_width") * settings.get<Ratio>("initial_layer_line_width_factor");
+    const ::curaengine::utils::coord_t brim_line_width = settings.get<::curaengine::utils::coord_t>("skirt_brim_line_width") * settings.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
 
     const size_t inside_brim_line_count = settings.get<bool>("support_brim_enable") ? settings.get<size_t>("support_brim_line_count") : 0;
 
-    const auto layer_height = settings.get<coord_t>("layer_height");
-    const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
-    const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
+    const auto layer_height = settings.get<::curaengine::utils::coord_t>("layer_height");
+    const auto base_outside_width = settings.get<::curaengine::utils::coord_t>("support_base_outside_width");
+    const auto base_outside_height = settings.get<::curaengine::utils::coord_t>("support_outside_base_height");
     const auto support_outer_brim_enable = settings.get<bool>("support_outer_brim_enable");
     const bool has_base_outside = support_outer_brim_enable && base_outside_width > 0 && base_outside_height >= layer_height;
-    const size_t outside_brim_line_count = (adhesion_type_ != EPlatformAdhesion::BRIM && has_base_outside) ? base_outside_width / brim_line_width : 0;
+    const size_t outside_brim_line_count = (adhesion_type_ != ::curaengine::types::EPlatformAdhesion::BRIM && has_base_outside) ? base_outside_width / brim_line_width : 0;
 
     if (! storage_.support.generated || (inside_brim_line_count == 0 && outside_brim_line_count == 0) || storage_.support.supportLayers.empty())
     {
@@ -746,7 +746,7 @@ void SkirtBrim::generateSupportBrim()
 
     SupportLayer& support_layer = storage_.support.supportLayers[0];
 
-    Shape support_outline;
+    ::curaengine::geometry::Shape support_outline;
     for (SupportInfillPart& part : support_layer.support_infill_parts)
     {
         support_outline.push_back(part.outline_);
@@ -754,23 +754,23 @@ void SkirtBrim::generateSupportBrim()
 
     if (inside_brim_line_count > 0)
     {
-        const coord_t inside_brim_width = brim_line_width * inside_brim_line_count;
-        const Shape brim_area = support_outline.difference(support_outline.offset(-inside_brim_width));
-        support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
+        const ::curaengine::utils::coord_t inside_brim_width = brim_line_width * inside_brim_line_count;
+        const ::curaengine::geometry::Shape brim_area = support_outline.difference(support_outline.offset(-inside_brim_width));
+        support_layer.excludeAreasFromSupportInfillAreas(brim_area, ::curaengine::utils::AABB(brim_area));
 
         generateSupportInsideBrim(settings, support_outline, inside_brim_width, brim_line_width);
     }
 
     if (outside_brim_line_count > 0)
     {
-        const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
+        const auto support_xy_distance = settings.get<::curaengine::utils::coord_t>("support_xy_distance");
 
         // Build the exclusion area: model collision only. The build plate adhesion brim/skirt is generated after
         // the support brim, so storage_.skirt_brim is still empty at this point.
         constexpr bool include_support = false;
         constexpr bool include_prime_tower = false;
         constexpr bool external_polys_only = false;
-        const Shape outside_exclusion_area
+        const ::curaengine::geometry::Shape outside_exclusion_area
             = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(support_xy_distance, ClipperLib::jtRound);
 
         generateSupportOutsideBrim(support_outline, base_outside_width, brim_line_width, outside_exclusion_area);

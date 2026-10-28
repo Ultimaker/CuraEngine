@@ -3,14 +3,15 @@
 
 #include "geometry/MendedShape.h"
 
-#include "settings/types/AngleRadians.h"
+#include "types/AngleRadians.h"
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
 #include "utils/actions/smooth_fn.h"
 
-using namespace curaengine;
+namespace curaengine::geometry
+{
 
-MendedShape::MendedShape(const Settings* settings, const SectionType section_type, const Shape* shape)
+MendedShape::MendedShape(const Settings* settings, const ::curaengine::utils::SectionType section_type, const Shape* shape)
     : settings_(settings)
     , section_type_(section_type)
     , shape_(shape)
@@ -28,35 +29,35 @@ const Shape& MendedShape::getShape() const
             // with half the minimum printable feature size or minimum line width, these slivers are removed, while still
             // keeping enough information to not degrade the print quality;
             // These features can't be printed anyhow. See PR CuraEngine#1811 for some screenshots
-            const coord_t allowed_distance = settings_->get<coord_t>("meshfix_maximum_deviation");
-            const coord_t open_close_distance
-                = settings_->get<bool>("fill_outline_gaps") ? settings_->get<coord_t>("min_feature_size") / 2 - 5 : settings_->get<coord_t>("min_wall_line_width") / 2 - 5;
-            const coord_t epsilon_offset = (allowed_distance / 2) - 1;
+            const ::curaengine::utils::coord_t allowed_distance = settings_->get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
+            const ::curaengine::utils::coord_t open_close_distance
+                = settings_->get<bool>("fill_outline_gaps") ? settings_->get<::curaengine::utils::coord_t>("min_feature_size") / 2 - 5 : settings_->get<::curaengine::utils::coord_t>("min_wall_line_width") / 2 - 5;
+            const ::curaengine::utils::coord_t epsilon_offset = (allowed_distance / 2) - 1;
             const double small_area_length = settings_->get<double>("wall_line_width_0") / 2.0;
 
             // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
             // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
             mended_shape = shape_->offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
             mended_shape.removeSmallAreas(small_area_length * small_area_length, false);
-            mended_shape = Simplify(*settings_).polygon(mended_shape);
-            if (settings_->get<bool>("meshfix_fluid_motion_enabled") && section_type_ != SectionType::SUPPORT)
+            mended_shape = ::curaengine::utils::Simplify(*settings_).polygon(mended_shape);
+            if (settings_->get<bool>("meshfix_fluid_motion_enabled") && section_type_ != ::curaengine::utils::SectionType::SUPPORT)
             {
                 // No need to smooth support walls
-                auto smoother = actions::smooth(*settings_);
+                auto smoother = ::curaengine::utils::actions::smooth(*settings_);
                 for (Polygon& polygon : mended_shape)
                 {
                     polygon.setPoints(smoother(polygon.getPoints()));
                 }
             }
 
-            PolygonUtils::fixSelfIntersections(epsilon_offset, mended_shape);
+            ::curaengine::utils::PolygonUtils::fixSelfIntersections(epsilon_offset, mended_shape);
             mended_shape.removeDegenerateVerts();
-            mended_shape.removeColinearEdges(AngleRadians(0.005));
+            mended_shape.removeColinearEdges(::curaengine::types::AngleRadians(0.005));
             // Removing collinear edges may introduce self intersections, so we need to fix them again
-            PolygonUtils::fixSelfIntersections(epsilon_offset, mended_shape);
+            ::curaengine::utils::PolygonUtils::fixSelfIntersections(epsilon_offset, mended_shape);
             mended_shape.removeDegenerateVerts();
             mended_shape = mended_shape.unionPolygons();
-            mended_shape = Simplify(*settings_).polygon(mended_shape).removeNearSelfIntersections();
+            mended_shape = ::curaengine::utils::Simplify(*settings_).polygon(mended_shape).removeNearSelfIntersections();
 
             // NOTE: It's somewhat unclear that 'removeNearSelfIntersections()' (as opposed to 'fixSelfIntersections') is still needed.
             //       Or, if it _is_ needed/useful, that the 'last call' is the best place for it.
@@ -68,3 +69,5 @@ const Shape& MendedShape::getShape() const
 
     return *mended_shape_;
 }
+
+} // namespace curaengine::geometry

@@ -14,7 +14,7 @@ namespace curaengine::utils
 namespace details
 {
 inline constexpr static bool ALLOW_REMOTE_CHANNELS = ENABLE_REMOTE_PLUGINS;
-} // namespace details
+} // namespace curaengine::utils::details
 
 std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& config)
 {

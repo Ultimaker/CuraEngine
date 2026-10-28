@@ -6,9 +6,9 @@
 #include "PolylineStitcher.h"
 #include "utils/ExtrusionLine.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 using ExtrusionLineStitcher = PolylineStitcher<VariableWidthLines, VariableWidthLines, ExtrusionLine, ExtrusionJunction>;
 
-} // namespace curaengine
+} // namespace curaengine::utils

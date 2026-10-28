@@ -8,7 +8,7 @@
 
 #include "geometry/OpenPolyline.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 size_t ClosedPolyline::segmentsCount() const
@@ -90,4 +90,4 @@ void ClosedPolyline::shiftVerticesToStartPoint(const size_t start_index)
     }
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

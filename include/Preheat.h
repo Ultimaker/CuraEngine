@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "settings/types/Duration.h"
-#include "settings/types/Temperature.h"
+#include "types/Duration.h"
+#include "types/Temperature.h"
 
 namespace curaengine
 {
@@ -20,9 +20,9 @@ public:
      */
     struct WarmUpResult
     {
-        Duration total_time_window; //!< The total time in which cooling and heating takes place.
-        Duration heating_time; //!< The total time needed to heat to the required temperature.
-        Temperature lowest_temperature; //!< The lower temperature from which heating starts.
+        ::curaengine::types::Duration total_time_window; //!< The total time in which cooling and heating takes place.
+        ::curaengine::types::Duration heating_time; //!< The total time needed to heat to the required temperature.
+        ::curaengine::types::Temperature lowest_temperature; //!< The lower temperature from which heating starts.
     };
 
     /*!
@@ -30,9 +30,9 @@ public:
      */
     struct CoolDownResult
     {
-        Duration total_time_window; //!< The total time in which heating and cooling takes place.
-        Duration cooling_time; //!< The total time needed to cool down to the required temperature.
-        Temperature highest_temperature; //!< The upper temperature from which cooling starts.
+        ::curaengine::types::Duration total_time_window; //!< The total time in which heating and cooling takes place.
+        ::curaengine::types::Duration cooling_time; //!< The total time needed to cool down to the required temperature.
+        ::curaengine::types::Temperature highest_temperature; //!< The upper temperature from which cooling starts.
     };
 
     /*!
@@ -43,7 +43,7 @@ public:
      * \param is_initial_layer Whether the initial layer temperature should be returned instead of flow-based temperature
      * \return The corresponding optimal temperature
      */
-    Temperature getTemp(const size_t extruder, const bool is_initial_layer);
+    ::curaengine::types::Temperature getTemp(const size_t extruder, const bool is_initial_layer);
 
     /*!
      * Decide when to start warming up again after starting to cool down towards \p temp_mid.
@@ -101,7 +101,7 @@ public:
      * \param during_printing Whether the planned cooldown / warmup occurs during printing or while in standby mode
      * \return The time needed
      */
-    Duration getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing);
+    ::curaengine::types::Duration getTimeToGoFromTempToTemp(const size_t extruder, const ::curaengine::types::Temperature& temp_before, const ::curaengine::types::Temperature& temp_after, const bool during_printing);
 };
 
 } // namespace curaengine

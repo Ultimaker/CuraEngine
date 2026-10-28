@@ -5,12 +5,12 @@
 
 namespace curaengine
 {
-Shape& SliceLayerPart::getOwnInfillArea()
+::curaengine::geometry::Shape& SliceLayerPart::getOwnInfillArea()
 {
-    return const_cast<Shape&>(const_cast<const SliceLayerPart*>(this)->getOwnInfillArea());
+    return const_cast<::curaengine::geometry::Shape&>(const_cast<const SliceLayerPart*>(this)->getOwnInfillArea());
 }
 
-const Shape& SliceLayerPart::getOwnInfillArea() const
+const ::curaengine::geometry::Shape& SliceLayerPart::getOwnInfillArea() const
 {
     if (infill_area_own)
     {
@@ -24,9 +24,9 @@ const Shape& SliceLayerPart::getOwnInfillArea() const
 
 bool SliceLayerPart::hasWallAtInsetIndex(size_t inset_idx) const
 {
-    for (const VariableWidthLines& lines : wall_toolpaths)
+    for (const ::curaengine::utils::VariableWidthLines& lines : wall_toolpaths)
     {
-        for (const ExtrusionLine& line : lines)
+        for (const ::curaengine::utils::ExtrusionLine& line : lines)
         {
             if (line.inset_idx_ == inset_idx)
             {

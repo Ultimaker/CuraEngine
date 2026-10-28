@@ -15,7 +15,7 @@ public:
     /*!
      * A simple isosceles triangle. Base length and height 50.
      */
-    Polygon triangle;
+    ::curaengine::geometry::Polygon triangle;
 
     PathOrderOptimizerTest()
     {
@@ -24,9 +24,9 @@ public:
     void SetUp() override
     {
         triangle.clear();
-        triangle.push_back(Point2LL(0, 0));
-        triangle.push_back(Point2LL(50, 0));
-        triangle.push_back(Point2LL(25, 50));
+        triangle.push_back(::curaengine::geometry::Point2LL(0, 0));
+        triangle.push_back(::curaengine::geometry::Point2LL(50, 0));
+        triangle.push_back(::curaengine::geometry::Point2LL(25, 50));
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -36,7 +36,7 @@ public:
  */
 TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
 {
-    PathOrderOptimizer<const Polygon*> optimizer(Point2LL(0, 0));
+    PathOrderOptimizer<const ::curaengine::geometry::Polygon*> optimizer(::curaengine::geometry::Point2LL(0, 0));
     optimizer.optimize(); // Don't crash.
     EXPECT_EQ(optimizer.paths_.size(), 0) << "Still empty!";
 }
@@ -47,14 +47,14 @@ TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
  */
 TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 {
-    PathOrderOptimizer<const Polygon*> optimizer(Point2LL(0, 0));
+    PathOrderOptimizer<const ::curaengine::geometry::Polygon*> optimizer(::curaengine::geometry::Point2LL(0, 0));
 
-    Polygon near = triangle; // Copy, then translate.
-    near.translate(Point2LL(100, 100));
-    Polygon middle = triangle;
-    middle.translate(Point2LL(500, 500));
-    Polygon far = triangle;
-    far.translate(Point2LL(1000, 1000));
+    ::curaengine::geometry::Polygon near = triangle; // Copy, then translate.
+    near.translate(::curaengine::geometry::Point2LL(100, 100));
+    ::curaengine::geometry::Polygon middle = triangle;
+    middle.translate(::curaengine::geometry::Point2LL(500, 500));
+    ::curaengine::geometry::Polygon far = triangle;
+    far.translate(::curaengine::geometry::Point2LL(1000, 1000));
 
     // Add them out of order so that it's clear that the optimization changes the order.
     optimizer.addPolygon(&middle);
@@ -63,9 +63,9 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 
     optimizer.optimize();
 
-    EXPECT_EQ(optimizer.paths_[0].vertices_->front(), Point2LL(100, 100)) << "Nearest triangle first.";
-    EXPECT_EQ(optimizer.paths_[1].vertices_->front(), Point2LL(500, 500)) << "Middle triangle second.";
-    EXPECT_EQ(optimizer.paths_[2].vertices_->front(), Point2LL(1000, 1000)) << "Far triangle last.";
+    EXPECT_EQ(optimizer.paths_[0].vertices_->front(), ::curaengine::geometry::Point2LL(100, 100)) << "Nearest triangle first.";
+    EXPECT_EQ(optimizer.paths_[1].vertices_->front(), ::curaengine::geometry::Point2LL(500, 500)) << "Middle triangle second.";
+    EXPECT_EQ(optimizer.paths_[2].vertices_->front(), ::curaengine::geometry::Point2LL(1000, 1000)) << "Far triangle last.";
 }
 
 } // namespace curaengine

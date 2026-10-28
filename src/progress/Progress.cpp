@@ -14,11 +14,11 @@
 #include "communication/Communication.h" //To send progress through the communication channel.
 #include "utils/TimeKeeper.h"
 
-namespace curaengine
+namespace curaengine::progress
 {
 std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;
-std::optional<LayerIndex> Progress::first_skipped_layer{};
+std::optional<::curaengine::types::LayerIndex> Progress::first_skipped_layer{};
 
 double Progress::calcOverallProgress(Stage stage, double stage_progress)
 {
@@ -43,7 +43,7 @@ void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int
     Application::getInstance().communication_->sendProgress(percentage);
 }
 
-void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper)
+void Progress::messageProgressStage(Progress::Stage stage, ::curaengine::utils::TimeKeeper* time_keeper)
 {
     if (time_keeper != nullptr)
     {
@@ -63,7 +63,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
     }
 }
 
-void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t total_layers, const TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold)
+void Progress::messageProgressLayer(const ::curaengine::types::LayerIndex layer_nr, const size_t total_layers, const ::curaengine::utils::TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold)
 {
     if (time_keeper.getTotalDuration() < skip_threshold)
     {
@@ -80,10 +80,10 @@ void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t tota
             first_skipped_layer.reset();
         }
 
-        messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
+        messageProgress(Stage::EXPORT, std::max(layer_nr.value, ::curaengine::types::LayerIndex::value_type(0)) + 1, total_layers);
 
         time_keeper.logRegisteredTimes(fmt::format("Layer export [{}]", layer_nr));
     }
 }
 
-} // namespace curaengine
+} // namespace curaengine::progress

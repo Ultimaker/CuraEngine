@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Point3D;
@@ -27,8 +27,8 @@ public:
      * is reduced, all coordinates will go towards this origin. If the scale is
      * increased, all coordinates will go away from this origin.
      */
-    static Matrix4x3D scale(const Ratio scale, const Point3LL origin);
-    static Matrix4x3D scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3LL origin);
+    static Matrix4x3D scale(const ::curaengine::types::Ratio scale, const Point3LL origin);
+    static Matrix4x3D scale(const ::curaengine::types::Ratio scale_x, const ::curaengine::types::Ratio scale_y, const ::curaengine::types::Ratio scale_z, const Point3LL origin);
 
     /*!
      * The matrix data, row-endian.
@@ -60,4 +60,4 @@ public:
     Point3LL apply(const Point3LL& p) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

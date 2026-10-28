@@ -8,62 +8,65 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 
 namespace curaengine
 {
+using ::curaengine::types::operator""_s;
 
-Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)
+
+
+::curaengine::types::Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const ::curaengine::types::Temperature& temp_before, const ::curaengine::types::Temperature& temp_after, const bool during_printing)
 {
     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
-    Duration time;
+    ::curaengine::types::Duration time;
     if (temp_after > temp_before)
     {
-        Temperature heat_up_speed = extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
+        ::curaengine::types::Temperature heat_up_speed = extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_heat_up_speed");
         if (during_printing)
         {
-            heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+            heat_up_speed -= extruder_settings.get<::curaengine::types::Temperature>("material_extrusion_cool_down_speed");
         }
         time = (temp_after - temp_before) / heat_up_speed;
     }
     else
     {
-        Temperature cool_down_speed = extruder_settings.get<Temperature>("machine_nozzle_cool_down_speed");
+        ::curaengine::types::Temperature cool_down_speed = extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_cool_down_speed");
         if (during_printing)
         {
-            cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+            cool_down_speed += extruder_settings.get<::curaengine::types::Temperature>("material_extrusion_cool_down_speed");
         }
         time = (temp_before - temp_after) / cool_down_speed;
     }
     return std::max(0.0_s, time);
 }
 
-Temperature Preheat::getTemp(const size_t extruder, const bool is_initial_layer)
+::curaengine::types::Temperature Preheat::getTemp(const size_t extruder, const bool is_initial_layer)
 {
     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
-    if (is_initial_layer && extruder_settings.get<Temperature>("material_print_temperature_layer_0") != 0)
+    if (is_initial_layer && extruder_settings.get<::curaengine::types::Temperature>("material_print_temperature_layer_0") != 0)
     {
-        return extruder_settings.get<Temperature>("material_print_temperature_layer_0");
+        return extruder_settings.get<::curaengine::types::Temperature>("material_print_temperature_layer_0");
     }
-    return extruder_settings.get<Temperature>("material_print_temperature");
+    return extruder_settings.get<::curaengine::types::Temperature>("material_print_temperature");
 }
 
 Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
 {
     WarmUpResult result;
     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
-    Temperature cool_down_speed = extruder_settings.get<Temperature>("machine_nozzle_cool_down_speed");
+    ::curaengine::types::Temperature cool_down_speed = extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_cool_down_speed");
     if (during_printing)
     {
-        cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+        cool_down_speed += extruder_settings.get<::curaengine::types::Temperature>("material_extrusion_cool_down_speed");
     }
-    const Duration time_to_cooldown_1_degree = 1.0 / cool_down_speed;
-    Temperature heat_up_speed = extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
+    const ::curaengine::types::Duration time_to_cooldown_1_degree = 1.0 / cool_down_speed;
+    ::curaengine::types::Temperature heat_up_speed = extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_heat_up_speed");
     if (during_printing)
     {
-        heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+        heat_up_speed -= extruder_settings.get<::curaengine::types::Temperature>("material_extrusion_cool_down_speed");
     }
-    const Duration time_to_heatup_1_degree = 1.0 / heat_up_speed;
+    const ::curaengine::types::Duration time_to_heatup_1_degree = 1.0 / heat_up_speed;
     result.total_time_window = time_window;
 
     //                    ,temp_end
@@ -122,18 +125,18 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
 {
     CoolDownResult result;
     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
-    Temperature cool_down_speed = extruder_settings.get<Temperature>("machine_nozzle_cool_down_speed");
+    ::curaengine::types::Temperature cool_down_speed = extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_cool_down_speed");
     if (during_printing)
     {
-        cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+        cool_down_speed += extruder_settings.get<::curaengine::types::Temperature>("material_extrusion_cool_down_speed");
     }
-    const Duration time_to_cooldown_1_degree = 1.0 / cool_down_speed;
-    Temperature heat_up_speed = extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
+    const ::curaengine::types::Duration time_to_cooldown_1_degree = 1.0 / cool_down_speed;
+    ::curaengine::types::Temperature heat_up_speed = extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_heat_up_speed");
     if (during_printing)
     {
-        heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
+        heat_up_speed -= extruder_settings.get<::curaengine::types::Temperature>("material_extrusion_cool_down_speed");
     }
-    const Duration time_to_heatup_1_degree = 1.0 / heat_up_speed;
+    const ::curaengine::types::Duration time_to_heatup_1_degree = 1.0 / heat_up_speed;
 
     assert(temp_start != -1 && temp_mid != -1 && temp_end != -1 && "temperatures must be initialized!");
 

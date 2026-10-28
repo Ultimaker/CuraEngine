@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-namespace curaengine
+namespace curaengine::utils::scoring
 {
 class ScoringCriterion;
 
@@ -82,4 +82,4 @@ public:
     [[nodiscard]] std::optional<size_t> findBestElement(const size_t candidates_count);
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

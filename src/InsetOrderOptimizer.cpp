@@ -23,17 +23,20 @@
 #include "FffGcodeWriter.h"
 #include "ForceRetract.h"
 #include "LayerPlan.h"
-#include "settings/EZSeamType.h"
-#include "settings/InsetDirection.h"
-#include "settings/RetractBeforeOuterWall.h"
+#include "types/EZSeamType.h"
+#include "types/InsetDirection.h"
+#include "types/RetractBeforeOuterWall.h"
 #include "utils/LinearAlg2D.h"
-#include "utils/views/dfs.h"
+#include "utils/actions/dfs.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;
 
 namespace curaengine
 {
+using ::curaengine::types::operator""_r;
+
+
 
 InsetOrderOptimizer::InsetOrderOptimizer(
     const SliceDataStorage& storage,
@@ -48,17 +51,17 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const GCodePathConfig& inset_X_flooring_config,
     const GCodePathConfig& inset_0_bridge_config,
     const GCodePathConfig& inset_X_bridge_config,
-    const coord_t wall_0_wipe_dist,
-    const coord_t wall_x_wipe_dist,
+    const ::curaengine::utils::coord_t wall_0_wipe_dist,
+    const ::curaengine::utils::coord_t wall_x_wipe_dist,
     const size_t wall_0_extruder_nr,
     const size_t wall_x_extruder_nr,
-    const ZSeamConfig& z_seam_config,
-    const std::vector<VariableWidthLines>& paths,
-    const Point2LL& model_center_point,
-    const Shape& disallowed_areas_for_seams,
+    const ::curaengine::types::ZSeamConfig& z_seam_config,
+    const std::vector<::curaengine::utils::VariableWidthLines>& paths,
+    const ::curaengine::geometry::Point2LL& model_center_point,
+    const ::curaengine::geometry::Shape& disallowed_areas_for_seams,
     const bool scarf_seam,
     const bool smooth_speed,
-    const Shape& overhang_areas,
+    const ::curaengine::geometry::Shape& overhang_areas,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider,
     const bool start_width_longest_wall)
     : storage_(storage)
@@ -94,9 +97,9 @@ void InsetOrderOptimizer::optimize()
 {
     // Settings & configs:
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
-    const auto inset_direction = settings_.get<InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
+    const auto inset_direction = settings_.get<::curaengine::types::InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
 
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    const bool outer_to_inner = inset_direction == ::curaengine::types::InsetDirection::OUTSIDE_IN;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
@@ -104,15 +107,15 @@ void InsetOrderOptimizer::optimize()
     const bool use_shortest_for_inner_walls = outer_to_inner;
     walls_to_be_added_ = getWallsToBeAdded(reverse, use_one_extruder);
 
-    const std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order
+    const std::unordered_multimap<const ::curaengine::utils::ExtrusionLine*, const ::curaengine::utils::ExtrusionLine*> order
         = pack_by_inset ? getInsetOrder(walls_to_be_added_, outer_to_inner) : getRegionOrder(walls_to_be_added_, outer_to_inner);
 
     constexpr bool detect_loops = false;
-    constexpr Shape* combing_boundary = nullptr;
+    constexpr ::curaengine::geometry::Shape* combing_boundary = nullptr;
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    path_optimizer_ = std::make_shared<PathOrderOptimizer<const ExtrusionLine*>>(
+    path_optimizer_ = std::make_shared<PathOrderOptimizer<const ::curaengine::utils::ExtrusionLine*>>(
         gcode_layer_.getLastPlannedPositionOrStartingPosition(),
         z_seam_config_,
         detect_loops,
@@ -147,7 +150,7 @@ void InsetOrderOptimizer::optimize()
     path_optimizer_->optimize();
 }
 
-bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before_outer_wall, const OverrideAreas& override_areas)
+bool InsetOrderOptimizer::addToLayer(const ::curaengine::types::RetractBeforeOuterWall retract_before_outer_wall, const OverrideAreas& override_areas)
 {
     if (path_optimizer_ == nullptr)
     {
@@ -155,25 +158,25 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
     }
 
     const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
-    constexpr Ratio flow = 1.0_r;
+    constexpr ::curaengine::types::Ratio flow = 1.0_r;
     bool added_something = false;
 
     ForceRetract force_retract = ForceRetract::AUTOMATIC;
     switch (retract_before_outer_wall)
     {
-    case RetractBeforeOuterWall::AUTOMATIC:
+    case ::curaengine::types::RetractBeforeOuterWall::AUTOMATIC:
         force_retract = ForceRetract::AUTOMATIC;
         break;
-    case RetractBeforeOuterWall::RETRACTED:
+    case ::curaengine::types::RetractBeforeOuterWall::RETRACTED:
         force_retract = ForceRetract::RETRACTED;
         break;
-    case RetractBeforeOuterWall::NOT_RETRACTED:
-    case RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
+    case ::curaengine::types::RetractBeforeOuterWall::NOT_RETRACTED:
+    case ::curaengine::types::RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
         force_retract = ForceRetract::NOT_RETRACTED;
         break;
     }
 
-    for (const PathOrdering<const ExtrusionLine*>& path : path_optimizer_->paths_)
+    for (const PathOrdering<const ::curaengine::utils::ExtrusionLine*>& path : path_optimizer_->paths_)
     {
         if (path.vertices_->empty())
         {
@@ -186,7 +189,7 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
         const GCodePathConfig& roofing_config = is_outer_wall ? inset_0_roofing_config_ : inset_X_roofing_config_;
         const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
-        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
+        const ::curaengine::utils::coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
         const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::AUTOMATIC;
         const bool scarf_seam = scarf_seam_ && is_outer_wall;
         const bool smooth_speed = smooth_speed_ && is_outer_wall;
@@ -217,7 +220,7 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
             override_areas);
         added_something = true;
 
-        if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
+        if (retract_before_outer_wall == ::curaengine::types::RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
         {
             // Only the first should be forced, the next ones use auto
             force_retract = ForceRetract::AUTOMATIC;
@@ -227,18 +230,18 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
     return added_something;
 }
 
-std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
+std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(::curaengine::utils::ExtrusionLine& closed_line)
 {
     assert(closed_line.is_closed_);
     assert(closed_line.size() >= 3);
 
-    Point2LL request_point;
+    ::curaengine::geometry::Point2LL request_point;
     switch (z_seam_config_.type_)
     {
-    case EZSeamType::USER_SPECIFIED:
+    case ::curaengine::types::EZSeamType::USER_SPECIFIED:
         request_point = z_seam_config_.pos_;
         break;
-    case EZSeamType::SHORTEST:
+    case ::curaengine::types::EZSeamType::SHORTEST:
         request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
         break;
     default:
@@ -246,18 +249,18 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     }
 
     // Find the 'closest' point on the polygon to the request_point.
-    Point2LL closest_point;
+    ::curaengine::geometry::Point2LL closest_point;
     size_t closest_junction_idx = 0;
-    coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
+    ::curaengine::utils::coord_t closest_distance_sqd = std::numeric_limits<::curaengine::utils::coord_t>::max();
     bool should_recalculate_closest = false;
-    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+    if (z_seam_config_.type_ == ::curaengine::types::EZSeamType::USER_SPECIFIED)
     {
         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
         // since you want the seam-line to be continuous in 3D space.
         // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
         // and project the point along the ray from the center to the request_point.
 
-        const Point2LL ray_origin = model_center_point_;
+        const ::curaengine::geometry::Point2LL ray_origin = model_center_point_;
         request_point = ray_origin + (request_point - ray_origin) * 10;
 
         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
@@ -266,10 +269,10 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
 
             float t, u;
-            if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+            if (::curaengine::utils::LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
             {
-                const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-                const coord_t distance_sqd = vSize2(request_point - intersection);
+                const ::curaengine::geometry::Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+                const ::curaengine::utils::coord_t distance_sqd = ::curaengine::geometry::vSize2(request_point - intersection);
                 if (distance_sqd < closest_distance_sqd)
                 {
                     closest_point = intersection;
@@ -279,7 +282,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             }
         }
     }
-    if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
+    if (closest_distance_sqd >= std::numeric_limits<::curaengine::utils::coord_t>::max())
     {
         // If it the method isn't 'user-defined', or the attempt to do user-defined above failed
         // (since we don't take the center of the polygon, but of the model, there's a chance there's no intersection),
@@ -288,7 +291,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
         {
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-            const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
+            const ::curaengine::utils::coord_t distance_sqd = ::curaengine::utils::LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
             if (distance_sqd < closest_distance_sqd)
             {
                 closest_distance_sqd = distance_sqd;
@@ -304,31 +307,31 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     {
         // In the second case (see above) the closest point hasn't actually been calculated yet,
         // since in that case we'de need the start and end points. So do that here.
-        closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+        closest_point = ::curaengine::utils::LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
-    constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
+    constexpr ::curaengine::utils::coord_t smallest_dist_sqd = 25;
+    if (::curaengine::geometry::vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the start point, just use it instead.
         return closest_junction_idx;
     }
-    if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    if (::curaengine::geometry::vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the end point, just use it instead.
         return (closest_junction_idx + 1) % closed_line.junctions_.size();
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
-    const coord_t start_dist = vSize(closest_point - start_pt.p_);
-    const coord_t end_dist = vSize(closest_point - end_pt.p_);
-    const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
+    const ::curaengine::utils::coord_t total_dist = ::curaengine::geometry::vSize(end_pt.p_ - start_pt.p_);
+    const ::curaengine::utils::coord_t start_dist = ::curaengine::geometry::vSize(closest_point - start_pt.p_);
+    const ::curaengine::utils::coord_t end_dist = ::curaengine::geometry::vSize(closest_point - end_pt.p_);
+    const ::curaengine::utils::coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
 
-    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
+    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ::curaengine::utils::ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
     return closest_junction_idx + 1;
 }
 
-InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<::curaengine::utils::ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
 {
     if (extrusion_lines.empty())
     {
@@ -337,14 +340,14 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     }
 
     // view on the extrusion lines, sorted by area
-    const std::vector<const ExtrusionLine*> sorted_extrusion_lines = [&extrusion_lines]()
+    const std::vector<const ::curaengine::utils::ExtrusionLine*> sorted_extrusion_lines = [&extrusion_lines]()
     {
         auto extrusion_lines_area = extrusion_lines | ranges::views::addressof
                                   | ranges::views::transform(
-                                        [](const ExtrusionLine* line)
+                                        [](const ::curaengine::utils::ExtrusionLine* line)
                                         {
-                                            const Polygon poly = line->toPolygon();
-                                            AABB aabb;
+                                            const ::curaengine::geometry::Polygon poly = line->toPolygon();
+                                            ::curaengine::utils::AABB aabb;
                                             aabb.include(poly);
                                             return std::make_pair(line, aabb.area());
                                         })
@@ -368,15 +371,15 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
 
     // graph will contain the parent-child relationships between the extrusion lines
     // an edge is added for both the parent to child and child to parent relationship
-    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> graph;
+    std::unordered_multimap<const ::curaengine::utils::ExtrusionLine*, const ::curaengine::utils::ExtrusionLine*> graph;
     // during the loop we maintain a list of invariant parents; these are the parents
     // that we have found so far
-    std::unordered_set<const ExtrusionLine*> invariant_outer_parents;
+    std::unordered_set<const ::curaengine::utils::ExtrusionLine*> invariant_outer_parents;
     for (const auto& extrusion_line : sorted_extrusion_lines)
     {
         // Create a polygon representing the inner area of the extrusion line; any
         // point inside this polygon is considered to the child of the extrusion line.
-        Shape hole_polygons;
+        ::curaengine::geometry::Shape hole_polygons;
         if (extrusion_line->is_closed_)
         {
             hole_polygons.push_back(extrusion_line->toPolygon());
@@ -390,8 +393,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
 
         // go through all the invariant parents and see if they are inside the hole polygon
         // if they are, then that means we have found a child for this extrusion line
-        std::vector<const ExtrusionLine*> removed_parent_invariants;
-        for (const ExtrusionLine* invariant_parent : invariant_outer_parents)
+        std::vector<const ::curaengine::utils::ExtrusionLine*> removed_parent_invariants;
+        for (const ::curaengine::utils::ExtrusionLine* invariant_parent : invariant_outer_parents)
         {
             if (hole_polygons.inside(invariant_parent->junctions_[0].p_, false))
             {
@@ -411,15 +414,15 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
         invariant_outer_parents.emplace(extrusion_line);
     }
 
-    const std::vector<const ExtrusionLine*> outer_walls = extrusion_lines | ranges::views::filter(&ExtrusionLine::is_outer_wall) | ranges::views::addressof | ranges::to_vector;
+    const std::vector<const ::curaengine::utils::ExtrusionLine*> outer_walls = extrusion_lines | ranges::views::filter(&::curaengine::utils::ExtrusionLine::is_outer_wall) | ranges::views::addressof | ranges::to_vector;
 
     // find for each line the closest outer line, and store this in closest_outer_wall_line
-    std::unordered_map<const ExtrusionLine*, const ExtrusionLine*> closest_outer_wall_line;
-    std::unordered_map<const ExtrusionLine*, unsigned int> min_depth;
-    for (const ExtrusionLine* outer_wall : outer_walls)
+    std::unordered_map<const ::curaengine::utils::ExtrusionLine*, const ::curaengine::utils::ExtrusionLine*> closest_outer_wall_line;
+    std::unordered_map<const ::curaengine::utils::ExtrusionLine*, unsigned int> min_depth;
+    for (const ::curaengine::utils::ExtrusionLine* outer_wall : outer_walls)
     {
-        const std::function<void(const ExtrusionLine*, const unsigned int)> update_nodes
-            = [&outer_wall, &min_depth, &closest_outer_wall_line](const ExtrusionLine* current_line, const unsigned int depth)
+        const std::function<void(const ::curaengine::utils::ExtrusionLine*, const unsigned int)> update_nodes
+            = [&outer_wall, &min_depth, &closest_outer_wall_line](const ::curaengine::utils::ExtrusionLine* current_line, const unsigned int depth)
         {
             if (min_depth.find(current_line) == min_depth.end() || depth < min_depth[current_line])
             {
@@ -427,17 +430,17 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                 closest_outer_wall_line[current_line] = outer_wall;
             }
         };
-        actions::dfs_depth_state(outer_wall, graph, update_nodes);
+        ::curaengine::utils::actions::dfs_depth_state(outer_wall, graph, update_nodes);
     }
 
     // for each of the outer walls, perform a dfs until we have found an extrusion line that is
     // _not_ closest to the current outer wall, then stop the dfs traversal for that branch. For
     // each extrusion $e$ traversed in the dfs, add an order constraint between to $e$ and the
     // previous line in the dfs traversal of $e$.
-    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
-    for (const ExtrusionLine* outer_wall : outer_walls)
+    std::unordered_multimap<const ::curaengine::utils::ExtrusionLine*, const ::curaengine::utils::ExtrusionLine*> order;
+    for (const ::curaengine::utils::ExtrusionLine* outer_wall : outer_walls)
     {
-        const std::function<void(const ExtrusionLine*, const ExtrusionLine*)> set_order_constraints
+        const std::function<void(const ::curaengine::utils::ExtrusionLine*, const ::curaengine::utils::ExtrusionLine*)> set_order_constraints
             = [&order, &closest_outer_wall_line, &outer_wall, &outer_to_inner](const auto& current_line, const auto& parent_line)
         {
             // if the closest
@@ -455,20 +458,20 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
             }
         };
 
-        actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
+        ::curaengine::utils::actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
     }
 
     return order;
 }
 
-std::optional<Point2LL> InsetOrderOptimizer::getStartPosition() const
+std::optional<::curaengine::geometry::Point2LL> InsetOrderOptimizer::getStartPosition() const
 {
     if (path_optimizer_ == nullptr || path_optimizer_->paths_.empty())
     {
         return std::nullopt;
     }
 
-    PathOrdering<const ExtrusionLine*>& first_path = path_optimizer_->paths_.front();
+    PathOrdering<const ::curaengine::utils::ExtrusionLine*>& first_path = path_optimizer_->paths_.front();
 
     const auto& vert_data = first_path.getVertexData();
     return vert_data.at(first_path.start_vertex_);
@@ -478,8 +481,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& i
 {
     value_type order;
 
-    std::vector<std::vector<const ExtrusionLine*>> walls_by_inset;
-    std::vector<std::vector<const ExtrusionLine*>> fillers_by_inset;
+    std::vector<std::vector<const ::curaengine::utils::ExtrusionLine*>> walls_by_inset;
+    std::vector<std::vector<const ::curaengine::utils::ExtrusionLine*>> fillers_by_inset;
 
     for (const auto& line : input)
     {
@@ -502,12 +505,12 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& i
     }
     for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)
     {
-        for (const ExtrusionLine* line : walls_by_inset[inset_idx])
+        for (const ::curaengine::utils::ExtrusionLine* line : walls_by_inset[inset_idx])
         {
-            for (const ExtrusionLine* inner_line : walls_by_inset[inset_idx + 1])
+            for (const ::curaengine::utils::ExtrusionLine* inner_line : walls_by_inset[inset_idx + 1])
             {
-                const ExtrusionLine* before = inner_line;
-                const ExtrusionLine* after = line;
+                const ::curaengine::utils::ExtrusionLine* before = inner_line;
+                const ::curaengine::utils::ExtrusionLine* after = line;
                 if (outer_to_inner)
                 {
                     std::swap(before, after);
@@ -518,11 +521,11 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& i
     }
     for (size_t inset_idx = 1; inset_idx < fillers_by_inset.size(); inset_idx++)
     {
-        for (const ExtrusionLine* line : fillers_by_inset[inset_idx])
+        for (const ::curaengine::utils::ExtrusionLine* line : fillers_by_inset[inset_idx])
         {
             if (inset_idx - 1 >= walls_by_inset.size())
                 continue;
-            for (const ExtrusionLine* enclosing_wall : walls_by_inset[inset_idx - 1])
+            for (const ::curaengine::utils::ExtrusionLine* enclosing_wall : walls_by_inset[inset_idx - 1])
             {
                 order.emplace(enclosing_wall, line);
             }
@@ -541,13 +544,13 @@ constexpr bool InsetOrderOptimizer::shouldReversePath(const bool use_one_extrude
     return current_extruder_is_wall_x;
 }
 
-std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
+std::vector<::curaengine::utils::ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
 {
     if (paths_.empty())
     {
         return {};
     }
-    rg::any_view<VariableWidthLines> view;
+    rg::any_view<::curaengine::utils::VariableWidthLines> view;
     if (reverse)
     {
         if (use_one_extruder)

@@ -9,10 +9,10 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "settings/types/AngleRadians.h"
+#include "types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 
@@ -22,13 +22,13 @@ AABB::AABB()
 {
 }
 
-AABB::AABB(const Point2LL& min, const Point2LL& max)
+AABB::AABB(const ::curaengine::geometry::Point2LL& min, const ::curaengine::geometry::Point2LL& max)
     : min_(min)
     , max_(max)
 {
 }
 
-AABB::AABB(const std::initializer_list<Point2LL>& points)
+AABB::AABB(const std::initializer_list<::curaengine::geometry::Point2LL>& points)
     : AABB()
 {
     for (const auto& pt : points)
@@ -37,36 +37,36 @@ AABB::AABB(const std::initializer_list<Point2LL>& points)
     }
 }
 
-AABB::AABB(const Shape& shape)
+AABB::AABB(const ::curaengine::geometry::Shape& shape)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
     calculate(shape);
 }
 
-AABB::AABB(const OpenLinesSet& lines)
+AABB::AABB(const ::curaengine::geometry::OpenLinesSet& lines)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
     calculate(lines);
 }
 
-AABB::AABB(const PointsSet& poly)
+AABB::AABB(const ::curaengine::geometry::PointsSet& poly)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
     calculate(poly);
 }
 
-Point2LL AABB::getMiddle() const
+::curaengine::geometry::Point2LL AABB::getMiddle() const
 {
     return (min_ + max_) / 2;
 }
 
-coord_t AABB::distanceSquared(const Point2LL& p) const
+coord_t AABB::distanceSquared(const ::curaengine::geometry::Point2LL& p) const
 {
-    const Point2LL a = Point2LL(max_.X, min_.Y);
-    const Point2LL b = Point2LL(min_.X, max_.Y);
+    const ::curaengine::geometry::Point2LL a = ::curaengine::geometry::Point2LL(max_.X, min_.Y);
+    const ::curaengine::geometry::Point2LL b = ::curaengine::geometry::Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
          * std::min(
                { LinearAlg2D::getDist2FromLineSegment(min_, a, p),
@@ -83,50 +83,50 @@ coord_t AABB::distanceSquared(const AABB& other) const
             other.distanceSquared(min_),
             distanceSquared(other.max_),
             other.distanceSquared(max_),
-            distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
-            other.distanceSquared(Point2LL(max_.X, min_.Y)),
-            distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
-            other.distanceSquared(Point2LL(min_.X, max_.Y)),
+            distanceSquared(::curaengine::geometry::Point2LL(other.max_.X, other.min_.Y)),
+            other.distanceSquared(::curaengine::geometry::Point2LL(max_.X, min_.Y)),
+            distanceSquared(::curaengine::geometry::Point2LL(other.min_.X, other.max_.Y)),
+            other.distanceSquared(::curaengine::geometry::Point2LL(min_.X, max_.Y)),
         });
 }
 
-void AABB::calculate(const Shape& shape)
+void AABB::calculate(const ::curaengine::geometry::Shape& shape)
 {
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (const Polygon& poly : shape)
+    min_ = ::curaengine::geometry::Point2LL(POINT_MAX, POINT_MAX);
+    max_ = ::curaengine::geometry::Point2LL(POINT_MIN, POINT_MIN);
+    for (const ::curaengine::geometry::Polygon& poly : shape)
     {
-        for (const Point2LL& point : poly)
+        for (const ::curaengine::geometry::Point2LL& point : poly)
         {
             include(point);
         }
     }
 }
 
-void AABB::calculate(const OpenLinesSet& lines)
+void AABB::calculate(const ::curaengine::geometry::OpenLinesSet& lines)
 {
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (const OpenPolyline& line : lines)
+    min_ = ::curaengine::geometry::Point2LL(POINT_MAX, POINT_MAX);
+    max_ = ::curaengine::geometry::Point2LL(POINT_MIN, POINT_MIN);
+    for (const ::curaengine::geometry::OpenPolyline& line : lines)
     {
-        for (const Point2LL& point : line)
+        for (const ::curaengine::geometry::Point2LL& point : line)
         {
             include(point);
         }
     }
 }
 
-void AABB::calculate(const PointsSet& poly)
+void AABB::calculate(const ::curaengine::geometry::PointsSet& poly)
 {
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (const Point2LL& p : poly)
+    min_ = ::curaengine::geometry::Point2LL(POINT_MAX, POINT_MAX);
+    max_ = ::curaengine::geometry::Point2LL(POINT_MIN, POINT_MIN);
+    for (const ::curaengine::geometry::Point2LL& p : poly)
     {
         include(p);
     }
 }
 
-bool AABB::contains(const Point2LL& point) const
+bool AABB::contains(const ::curaengine::geometry::Point2LL& point) const
 {
     return point.X >= min_.X && point.X <= max_.X && point.Y >= min_.Y && point.Y <= max_.Y;
 }
@@ -166,7 +166,7 @@ bool AABB::hit(const AABB& other) const
     return true;
 }
 
-void AABB::include(const Point2LL& point)
+void AABB::include(const ::curaengine::geometry::Point2LL& point)
 {
     min_.X = std::min(min_.X, point.X);
     min_.Y = std::min(min_.Y, point.Y);
@@ -174,9 +174,9 @@ void AABB::include(const Point2LL& point)
     max_.Y = std::max(max_.Y, point.Y);
 }
 
-void AABB::include(const PointsSet& polygon)
+void AABB::include(const ::curaengine::geometry::PointsSet& polygon)
 {
-    for (const Point2LL& point : polygon)
+    for (const ::curaengine::geometry::Point2LL& point : polygon)
     {
         include(point);
     }
@@ -193,7 +193,7 @@ void AABB::include(const AABB& other)
 
 void AABB::expand(int dist)
 {
-    if (min_ == Point2LL(POINT_MAX, POINT_MAX) || max_ == Point2LL(POINT_MIN, POINT_MIN))
+    if (min_ == ::curaengine::geometry::Point2LL(POINT_MAX, POINT_MAX) || max_ == ::curaengine::geometry::Point2LL(POINT_MIN, POINT_MIN))
     {
         return;
     }
@@ -203,9 +203,9 @@ void AABB::expand(int dist)
     max_.Y += dist;
 }
 
-Polygon AABB::toPolygon() const
+::curaengine::geometry::Polygon AABB::toPolygon() const
 {
-    return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) }, false);
+    return ::curaengine::geometry::Polygon({ min_, ::curaengine::geometry::Point2LL(max_.X, min_.Y), max_, ::curaengine::geometry::Point2LL(min_.X, max_.Y) }, false);
 }
 
 coord_t AABB::width() const
@@ -218,7 +218,7 @@ coord_t AABB::height() const
     return max_.Y - min_.Y;
 }
 
-std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape& shape)
+std::tuple<AABB, ::curaengine::types::AngleRadians> AABB::minimumAreaOrientedBoundingBox(const ::curaengine::geometry::Shape& shape)
 {
     if (shape[0].size() < 2)
     {
@@ -226,33 +226,33 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
     }
 
     coord_t min_area = std::numeric_limits<coord_t>::max();
-    AngleRadians best_angle = 0.0;
+    ::curaengine::types::AngleRadians best_angle = 0.0;
     AABB best_aabb = { { 0, 0 }, { 0, 0 } };
 
     // Iterate through every edge of the polygon
     for (auto iterator = shape[0].beginSegments(); iterator != shape[0].endSegments(); ++iterator)
     {
-        const Point2LL& p1 = (*iterator).start;
-        const Point2LL& p2 = (*iterator).end;
+        const ::curaengine::geometry::Point2LL& p1 = (*iterator).start;
+        const ::curaengine::geometry::Point2LL& p2 = (*iterator).end;
 
         const auto x_hat = p2 - p1;
-        const auto length = vSize(x_hat);
+        const auto length = ::curaengine::geometry::vSize(x_hat);
 
         if (length < 5)
         {
             continue;
         }
 
-        const auto y_hat = turn90CCW(x_hat);
+        const auto y_hat = ::curaengine::geometry::turn90CCW(x_hat);
 
         AABB aabb;
 
         // Project all points onto the local axes defined by this edge
         for (const auto& p : shape[0])
         {
-            Point2LL local_p = {
-                dot(p, x_hat) / length,
-                dot(p, y_hat) / length,
+            ::curaengine::geometry::Point2LL local_p = {
+                ::curaengine::geometry::dot(p, x_hat) / length,
+                ::curaengine::geometry::dot(p, y_hat) / length,
             };
             aabb.include(local_p);
         }
@@ -261,7 +261,7 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
         if (area < min_area)
         {
             min_area = area;
-            best_angle = angle_rad(x_hat);
+            best_angle = ::curaengine::geometry::angle_rad(x_hat);
             best_aabb = aabb;
         }
     }
@@ -269,4 +269,4 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
     return { best_aabb, best_angle };
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils

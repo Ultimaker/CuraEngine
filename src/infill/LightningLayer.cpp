@@ -11,11 +11,12 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
 
-using namespace curaengine;
-
-coord_t LightningLayer::getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location)
+namespace curaengine::infill
 {
-    return vSize(boundary_loc - unsupported_location);
+
+::curaengine::utils::coord_t LightningLayer::getWeightedDistance(const ::curaengine::geometry::Point2LL& boundary_loc, const ::curaengine::geometry::Point2LL& unsupported_location)
+{
+    return ::curaengine::geometry::vSize(boundary_loc - unsupported_location);
 }
 
 void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
@@ -31,11 +32,11 @@ void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
 }
 
 void LightningLayer::generateNewTrees(
-    const Shape& current_overhang,
-    const Shape& current_outlines,
-    const LocToLineGrid& outlines_locator,
-    const coord_t supporting_radius,
-    const coord_t wall_supporting_radius)
+    const ::curaengine::geometry::Shape& current_overhang,
+    const ::curaengine::geometry::Shape& current_outlines,
+    const ::curaengine::utils::LocToLineGrid& outlines_locator,
+    const ::curaengine::utils::coord_t supporting_radius,
+    const ::curaengine::utils::coord_t wall_supporting_radius)
 {
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
@@ -44,7 +45,7 @@ void LightningLayer::generateNewTrees(
 
     // Until no more points need to be added to support all:
     // Determine next point from tree/outline areas via distance-field
-    Point2LL unsupported_location;
+    ::curaengine::geometry::Point2LL unsupported_location;
     while (distance_field.tryGetNextPoint(&unsupported_location))
     {
         GroundingLocation grounding_loc
@@ -65,22 +66,22 @@ void LightningLayer::generateNewTrees(
 }
 
 GroundingLocation LightningLayer::getBestGroundingLocation(
-    const Point2LL& unsupported_location,
-    const Shape& current_outlines,
-    const LocToLineGrid& outline_locator,
-    const coord_t supporting_radius,
-    const coord_t wall_supporting_radius,
+    const ::curaengine::geometry::Point2LL& unsupported_location,
+    const ::curaengine::geometry::Shape& current_outlines,
+    const ::curaengine::utils::LocToLineGrid& outline_locator,
+    const ::curaengine::utils::coord_t supporting_radius,
+    const ::curaengine::utils::coord_t wall_supporting_radius,
     const SparseLightningTreeNodeGrid& tree_node_locator,
     const LightningTreeNodeSPtr& exclude_tree)
 {
-    ClosestPointPolygon cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
-    Point2LL node_location = cpp.p();
-    const coord_t within_dist = vSize(node_location - unsupported_location);
+    ::curaengine::utils::ClosestPointPolygon cpp = ::curaengine::utils::PolygonUtils::findClosest(unsupported_location, current_outlines);
+    ::curaengine::geometry::Point2LL node_location = cpp.p();
+    const ::curaengine::utils::coord_t within_dist = ::curaengine::geometry::vSize(node_location - unsupported_location);
 
-    PolygonsPointIndex dummy;
+    ::curaengine::utils::PolygonsPointIndex dummy;
 
     LightningTreeNodeSPtr sub_tree{ nullptr };
-    coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
+    ::curaengine::utils::coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
     if (current_dist >= wall_supporting_radius) // Only reconnect tree roots to other trees if they are not already close to the outlines.
     {
         auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, within_dist));
@@ -88,9 +89,9 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
         {
             auto candidate_sub_tree = candidate_wptr.lock();
             if ((candidate_sub_tree && candidate_sub_tree != exclude_tree) && ! (exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree))
-                && ! PolygonUtils::polygonCollidesWithLineSegment(unsupported_location, candidate_sub_tree->getLocation(), outline_locator, &dummy))
+                && ! ::curaengine::utils::PolygonUtils::polygonCollidesWithLineSegment(unsupported_location, candidate_sub_tree->getLocation(), outline_locator, &dummy))
             {
-                const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
+                const ::curaengine::utils::coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
                 if (candidate_dist < current_dist)
                 {
                     current_dist = candidate_dist;
@@ -106,11 +107,11 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
     }
     else
     {
-        return GroundingLocation{ sub_tree, std::optional<ClosestPointPolygon>() };
+        return GroundingLocation{ sub_tree, std::optional<::curaengine::utils::ClosestPointPolygon>() };
     }
 }
 
-bool LightningLayer::attach(const Point2LL& unsupported_location, const GroundingLocation& grounding_loc, LightningTreeNodeSPtr& new_child, LightningTreeNodeSPtr& new_root)
+bool LightningLayer::attach(const ::curaengine::geometry::Point2LL& unsupported_location, const GroundingLocation& grounding_loc, LightningTreeNodeSPtr& new_child, LightningTreeNodeSPtr& new_root)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
@@ -129,28 +130,28 @@ bool LightningLayer::attach(const Point2LL& unsupported_location, const Groundin
 
 void LightningLayer::reconnectRoots(
     std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-    const Shape& current_outlines,
-    const LocToLineGrid& outline_locator,
-    const coord_t supporting_radius,
-    const coord_t wall_supporting_radius)
+    const ::curaengine::geometry::Shape& current_outlines,
+    const ::curaengine::utils::LocToLineGrid& outline_locator,
+    const ::curaengine::utils::coord_t supporting_radius,
+    const ::curaengine::utils::coord_t wall_supporting_radius)
 {
-    constexpr coord_t tree_connecting_ignore_offset = 100;
+    constexpr ::curaengine::utils::coord_t tree_connecting_ignore_offset = 100;
 
     SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
-    const coord_t within_max_dist = outline_locator.getCellSize() * 2;
+    const ::curaengine::utils::coord_t within_max_dist = outline_locator.getCellSize() * 2;
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
 
         if (root_ptr->getLastGroundingLocation())
         {
-            const Point2LL& ground_loc = root_ptr->getLastGroundingLocation().value();
+            const ::curaengine::geometry::Point2LL& ground_loc = root_ptr->getLastGroundingLocation().value();
             if (ground_loc != root_ptr->getLocation())
             {
-                Point2LL new_root_pt;
-                if (PolygonUtils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, within_max_dist))
+                ::curaengine::geometry::Point2LL new_root_pt;
+                if (::curaengine::utils::PolygonUtils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, within_max_dist))
                 {
                     auto new_root = LightningTreeNode::create(new_root_pt, new_root_pt);
                     root_ptr->addChild(new_root);
@@ -163,7 +164,7 @@ void LightningLayer::reconnectRoots(
             }
         }
 
-        const coord_t tree_connecting_ignore_width
+        const ::curaengine::utils::coord_t tree_connecting_ignore_width
             = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
         GroundingLocation ground
             = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, outline_locator, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
@@ -203,9 +204,9 @@ void LightningLayer::reconnectRoots(
 }
 
 // Returns 'added someting'.
-OpenLinesSet LightningLayer::convertToLines(const Shape& limit_to_outline, const coord_t line_width) const
+::curaengine::geometry::OpenLinesSet LightningLayer::convertToLines(const ::curaengine::geometry::Shape& limit_to_outline, const ::curaengine::utils::coord_t line_width) const
 {
-    OpenLinesSet result_lines;
+    ::curaengine::geometry::OpenLinesSet result_lines;
     if (tree_roots.empty())
     {
         return result_lines;
@@ -219,3 +220,5 @@ OpenLinesSet LightningLayer::convertToLines(const Shape& limit_to_outline, const
 
     return result_lines;
 }
+
+} // namespace curaengine::infill

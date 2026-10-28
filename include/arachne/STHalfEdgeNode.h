@@ -6,7 +6,7 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 
-namespace curaengine
+namespace curaengine::arachne
 {
 
 class SkeletalTrapezoidationJoint;
@@ -23,10 +23,10 @@ class STHalfEdgeNode
 
 public:
     node_data_t data_;
-    Point2LL p_;
+    ::curaengine::geometry::Point2LL p_;
     edge_t* incident_edge_ = nullptr;
 
-    STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const Point2LL& p);
+    STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const ::curaengine::geometry::Point2LL& p);
 
     bool isMultiIntersection();
 
@@ -40,4 +40,4 @@ public:
     bool isLocalMaximum(bool strict = false) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::arachne

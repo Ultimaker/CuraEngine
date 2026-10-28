@@ -5,7 +5,7 @@
 
 #include "geometry/Point3D.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 /*
@@ -35,4 +35,4 @@ public:
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

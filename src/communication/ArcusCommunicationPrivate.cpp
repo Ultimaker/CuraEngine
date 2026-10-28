@@ -20,10 +20,10 @@
 #include "Slice.h"
 #include "geometry/Matrix4x3D.h" //To convert vertices to integer-points.
 #include "geometry/Point3F.h" //To accept vertices (which are provided in floating point).
-#include "settings/types/LayerIndex.h"
+#include "types/LayerIndex.h"
 #include "utils/MeshUtils.h"
 
-namespace curaengine
+namespace curaengine::communication
 {
 
 ArcusCommunication::Private::Private()
@@ -35,7 +35,7 @@ ArcusCommunication::Private::Private()
 {
 }
 
-std::shared_ptr<::cura::proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex::value_type layer_nr)
+std::shared_ptr<::cura::proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(::curaengine::types::LayerIndex::value_type layer_nr)
 {
     layer_nr += optimized_layers.current_layer_offset;
     std::unordered_map<int, std::shared_ptr<::cura::proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
@@ -108,11 +108,11 @@ void ArcusCommunication::Private::readMeshGroupMessage(const ::cura::proto::Obje
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
-    Matrix4x3D matrix;
+    ::curaengine::geometry::Matrix4x3D matrix;
     for (const ::cura::proto::Object& object : mesh_group_message.objects())
     {
-        constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
-        constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
+        constexpr size_t bytes_per_face = sizeof(::curaengine::geometry::Point3F) * 3; // 3 vectors per face.
+        constexpr size_t bytes_per_uv = sizeof(::curaengine::geometry::Point2F) * 3; // 3 vectors per face.
         const size_t face_count = object.vertices().size() / bytes_per_face;
 
         if (face_count <= 0)
@@ -135,16 +135,16 @@ void ArcusCommunication::Private::readMeshGroupMessage(const ::cura::proto::Obje
         for (size_t face = 0; face < face_count; face++)
         {
             const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-            const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
+            const ::curaengine::geometry::Point3F* float_vertices = reinterpret_cast<const ::curaengine::geometry::Point3F*>(data.data());
             const std::string uv_coordinates_str = object.uv_coordinates().empty() ? "" : object.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
-            const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
+            const ::curaengine::geometry::Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const ::curaengine::geometry::Point2F*>(uv_coordinates_str.data());
 
-            Point3LL verts[3];
+            ::curaengine::geometry::Point3LL verts[3];
             verts[0] = matrix.apply(float_vertices[0].toPoint3d());
             verts[1] = matrix.apply(float_vertices[1].toPoint3d());
             verts[2] = matrix.apply(float_vertices[2].toPoint3d());
 
-            std::optional<Point2F> uv_coordinates[3];
+            std::optional<::curaengine::geometry::Point2F> uv_coordinates[3];
             if (uv_coordinates_data)
             {
                 uv_coordinates[0] = uv_coordinates_data[0];
@@ -166,9 +166,9 @@ void ArcusCommunication::Private::readMeshGroupMessage(const ::cura::proto::Obje
 
 void ArcusCommunication::Private::loadTextureData(const std::string& texture_str, Mesh& mesh)
 {
-    MeshUtils::loadTextureFromString(texture_str, mesh);
+    ::curaengine::utils::loadTextureFromString(texture_str, mesh);
 }
 
-} // namespace curaengine
+} // namespace curaengine::communication
 
 #endif // ARCUS

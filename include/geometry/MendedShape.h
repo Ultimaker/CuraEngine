@@ -6,10 +6,10 @@
 #include <optional>
 
 #include "geometry/Shape.h"
-#include "settings/Settings.h"
+#include "Settings.h"
 #include "utils/SectionType.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 /*!
  * \brief A MendedShape is a wrapper class for a Shape,
@@ -30,13 +30,13 @@ class MendedShape
 {
 public:
     MendedShape() = default;
-    MendedShape(const Settings* settings, const SectionType section_type, const Shape* shape);
+    MendedShape(const Settings* settings, const ::curaengine::utils::SectionType section_type, const Shape* shape);
     const Shape& getShape() const;
 
 protected:
     const Settings* settings_{ nullptr };
-    const SectionType section_type_{};
+    const ::curaengine::utils::SectionType section_type_{};
     const Shape* shape_{ nullptr };
     std::optional<Shape> mended_shape_;
 };
-} // namespace curaengine
+} // namespace curaengine::geometry

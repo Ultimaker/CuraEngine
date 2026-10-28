@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine
+namespace curaengine::utils
 {
 enum class SectionType : int
 {
@@ -18,4 +18,4 @@ enum class SectionType : int
     DOTS = 8,
     CONCENTRIC_INFILL = 9
 };
-} // namespace curaengine
+} // namespace curaengine::utils

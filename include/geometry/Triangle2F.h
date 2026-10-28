@@ -5,11 +5,11 @@
 
 #include <array>
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Point2F;
 
 using Triangle2F = std::array<Point2F, 3>;
 
-} // namespace curaengine
+} // namespace curaengine::geometry

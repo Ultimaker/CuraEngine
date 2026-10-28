@@ -7,20 +7,36 @@
 #include "utils/Coord_t.h"
 
 
-namespace curaengine
+namespace curaengine::geometry
 {
-
 template<class LineType>
 class LinesSet;
-struct ExtrusionLine;
-struct ExtrusionJunction;
 class MixedLinesSet;
-class Settings;
 class Shape;
 class Polygon;
 class OpenPolyline;
 class ClosedPolyline;
 class Polyline;
+}
+
+namespace curaengine
+{
+class Settings;
+}
+
+namespace curaengine::utils
+{
+
+
+struct ExtrusionLine;
+struct ExtrusionJunction;
+
+
+
+
+
+
+
 
 /*!
  * Utility class to reduce the resolution of polygons and polylines, under
@@ -92,14 +108,14 @@ public:
      * \param polygons The polygons to simplify.
      * \return The simplified polygons.
      */
-    Shape polygon(const Shape& polygons) const;
+    ::curaengine::geometry::Shape polygon(const ::curaengine::geometry::Shape& polygons) const;
 
     /*!
      * Simplify a polygon.
      * \param polygon The polygon to simplify.
      * \return The simplified polygon.
      */
-    Polygon polygon(const Polygon& polygon) const;
+    ::curaengine::geometry::Polygon polygon(const ::curaengine::geometry::Polygon& polygon) const;
 
     /*!
      * Simplify a variable-line-width polygon.
@@ -116,7 +132,7 @@ public:
      * \return The simplified polylines.
      */
     template<class LineType>
-    LinesSet<LineType> polyline(const LinesSet<LineType>& polylines) const;
+    ::curaengine::geometry::LinesSet<LineType> polyline(const ::curaengine::geometry::LinesSet<LineType>& polylines) const;
 
     /*!
      * Simplify a batch of polylines.
@@ -125,7 +141,7 @@ public:
      * \param polylines The polylines to simplify.
      * \return The simplified polylines.
      */
-    MixedLinesSet polyline(const MixedLinesSet& polylines) const;
+    ::curaengine::geometry::MixedLinesSet polyline(const ::curaengine::geometry::MixedLinesSet& polylines) const;
 
     /*!
      * Simplify a polyline.
@@ -134,7 +150,7 @@ public:
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    OpenPolyline polyline(const OpenPolyline& polyline) const;
+    ::curaengine::geometry::OpenPolyline polyline(const ::curaengine::geometry::OpenPolyline& polyline) const;
 
     /*!
      * Simplify a polyline.
@@ -142,7 +158,7 @@ public:
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    ClosedPolyline polyline(const ClosedPolyline& polyline) const;
+    ::curaengine::geometry::ClosedPolyline polyline(const ::curaengine::geometry::ClosedPolyline& polyline) const;
 
     /*!
      * Simplify a variable-line-width polyline.
@@ -194,7 +210,7 @@ protected:
      * \param polygon The polygon to add to.
      * \param vertex The vertex to add.
      */
-    void appendVertex(Polyline& polygon, const Point2LL& vertex) const;
+    void appendVertex(::curaengine::geometry::Polyline& polygon, const ::curaengine::geometry::Point2LL& vertex) const;
 
     /*!
      * Append a vertex to this extrusion line.
@@ -213,7 +229,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    const Point2LL& getPosition(const Point2LL& vertex) const;
+    const ::curaengine::geometry::Point2LL& getPosition(const ::curaengine::geometry::Point2LL& vertex) const;
 
     /*!
      * Get the coordinates of a vertex.
@@ -222,7 +238,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    const Point2LL& getPosition(const ExtrusionJunction& vertex) const;
+    const ::curaengine::geometry::Point2LL& getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
      * Create an intersection vertex that can be placed in a polygon.
@@ -232,7 +248,7 @@ protected:
      * \param after One of the vertices of a removed edge. Unused in this
      * overload.
      */
-    Point2LL createIntersection(const Point2LL& before, const Point2LL intersection, const Point2LL& after) const;
+    ::curaengine::geometry::Point2LL createIntersection(const ::curaengine::geometry::Point2LL& before, const ::curaengine::geometry::Point2LL intersection, const ::curaengine::geometry::Point2LL& after) const;
 
     /*!
      * Create an intersection vertex that can be placed in an ExtrusionLine.
@@ -242,7 +258,7 @@ protected:
      * \param after One of the vertices of the edge that gets replaced by an
      * intersection vertex.
      */
-    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point2LL intersection, const ExtrusionJunction& after) const;
+    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const ::curaengine::geometry::Point2LL intersection, const ExtrusionJunction& after) const;
 
     /*!
      * Get the extrusion area deviation that would be caused by removing this
@@ -255,7 +271,7 @@ protected:
      * \param after The vertex after the one that is to be removed.
      * \return The area deviation that would be caused by removing the vertex.
      */
-    coord_t getAreaDeviation(const Point2LL& before, const Point2LL& vertex, const Point2LL& after) const;
+    coord_t getAreaDeviation(const ::curaengine::geometry::Point2LL& before, const ::curaengine::geometry::Point2LL& vertex, const ::curaengine::geometry::Point2LL& after) const;
 
     /*!
      * Get the extrusion area deviation that would be caused by removing this
@@ -324,4 +340,4 @@ private:
     bool remove(Polygonal& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

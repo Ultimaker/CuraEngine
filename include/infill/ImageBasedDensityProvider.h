@@ -8,25 +8,30 @@
 #include "DensityProvider.h"
 #include "geometry/Point3LL.h"
 
-namespace curaengine
+namespace curaengine::utils
+{
+struct AABB3D;
+}
+
+namespace curaengine::infill
 {
 
-struct AABB3D;
+
 
 class ImageBasedDensityProvider : public DensityProvider
 {
 public:
-    ImageBasedDensityProvider(const std::string filename, const AABB aabb);
+    ImageBasedDensityProvider(const std::string filename, const ::curaengine::utils::AABB aabb);
 
     virtual ~ImageBasedDensityProvider();
 
-    virtual double operator()(const AABB3D& aabb) const;
+    virtual double operator()(const ::curaengine::utils::AABB3D& aabb) const;
 
 protected:
-    Point3LL image_size; //!< dimensions of the image. Third dimension is the amount of channels.
+    ::curaengine::geometry::Point3LL image_size; //!< dimensions of the image. Third dimension is the amount of channels.
     unsigned char* image = nullptr; //!< image data: rows of channel data per pixel.
 
-    AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
+    ::curaengine::utils::AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
 };
 
-} // namespace curaengine
+} // namespace curaengine::infill

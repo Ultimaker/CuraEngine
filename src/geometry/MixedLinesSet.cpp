@@ -11,7 +11,7 @@
 #include "geometry/Shape.h"
 
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 MixedLinesSet::MixedLinesSet(const ClosedLinesSet& lines)
@@ -55,7 +55,7 @@ MixedLinesSet::MixedLinesSet(ClipperLib::PolyTree&& tree)
     }
 }
 
-Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape MixedLinesSet::offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (distance == 0)
     {
@@ -255,16 +255,16 @@ void MixedLinesSet::push_back(LinesSet<Polygon>&& lines_set)
     }
 }
 
-coord_t MixedLinesSet::length() const
+::curaengine::utils::coord_t MixedLinesSet::length() const
 {
     return std::accumulate(
         begin(),
         end(),
         0LL,
-        [](coord_t value, const PolylinePtr& line)
+        [](::curaengine::utils::coord_t value, const PolylinePtr& line)
         {
             return value + line->length();
         });
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

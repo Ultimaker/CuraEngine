@@ -5,18 +5,26 @@
 
 #include "PolylineStitcher.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
-
 class MixedLinesSet;
 class OpenPolyline;
 class OpenLinesSet;
 class ClosedLinesSet;
+}
 
-class MixedPolylineStitcher : public PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>
+namespace curaengine::utils
+{
+
+
+
+
+
+
+class MixedPolylineStitcher : public PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::ClosedLinesSet, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>
 {
 public:
-    static void stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
+    static void stitch(const ::curaengine::geometry::OpenLinesSet& lines, ::curaengine::geometry::MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

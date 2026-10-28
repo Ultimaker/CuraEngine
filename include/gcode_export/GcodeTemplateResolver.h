@@ -23,12 +23,12 @@ namespace env
 {
 class Environment;
 class LocalEnvironment;
-} // namespace env
+} // namespace CuraFormulaeEngine::env
 
 } // namespace CuraFormulaeEngine
 
 
-namespace curaengine
+namespace curaengine::gcode_export
 {
 
 /*!
@@ -116,4 +116,4 @@ private:
     std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::gcode_export

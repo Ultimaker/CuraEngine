@@ -9,10 +9,15 @@
 
 #include "utils/TimeKeeper.h"
 
-namespace curaengine
+namespace curaengine::types
+{
+struct LayerIndex;
+}
+
+namespace curaengine::progress
 {
 
-struct LayerIndex;
+
 
 static constexpr size_t N_PROGRESS_STAGES = 8;
 
@@ -55,7 +60,7 @@ private:
     static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };
     static std::array<double, N_PROGRESS_STAGES> accumulated_times; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
-    static std::optional<LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
+    static std::optional<::curaengine::types::LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
     /*!
      * Give an estimate between 0 and 1 of how far the process is.
      *
@@ -82,7 +87,7 @@ public:
      * \param stage The current stage
      * \param timeKeeper The stapwatch keeping track of the timings for each stage (optional)
      */
-    static void messageProgressStage(Stage stage, TimeKeeper* timeKeeper);
+    static void messageProgressStage(Stage stage, ::curaengine::utils::TimeKeeper* timeKeeper);
 
     /*!
      * Message the layer progress over the command socket and into logging output.
@@ -93,8 +98,8 @@ public:
      * \param skip_threshold The time threshold under which we consider that the full layer time reporting should be skipped
      *                       because it is not relevant
      */
-    static void messageProgressLayer(const LayerIndex layer_nr, const size_t total_layers, const TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold = 100ms);
+    static void messageProgressLayer(const ::curaengine::types::LayerIndex layer_nr, const size_t total_layers, const ::curaengine::utils::TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold = 100ms);
 };
 
 
-} // namespace curaengine
+} // namespace curaengine::progress

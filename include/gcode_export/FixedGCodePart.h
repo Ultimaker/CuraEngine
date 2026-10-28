@@ -7,7 +7,7 @@
 
 #include "gcode_export/GCodePart.h"
 
-namespace curaengine
+namespace curaengine::gcode_export
 {
 
 /*! \brief Contains pieces of GCode that are fixed string */
@@ -26,4 +26,4 @@ private:
     std::ostringstream stream_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::gcode_export

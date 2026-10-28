@@ -5,7 +5,7 @@
 
 #include "geometry/Polyline.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 /*!
@@ -93,4 +93,4 @@ public:
     OpenPolyline& operator=(const OpenPolyline& other) = default;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

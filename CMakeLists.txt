@@ -65,7 +65,7 @@ set(engine_SRCS # Except main.cpp.
         src/LayerPlanBuffer.cpp
         src/Mesh.cpp
         src/MeshGroup.cpp
-        src/MeshMaterialSplitter.cpp
+        src/mesh_material_splitter/MeshMaterialSplitter.cpp
         src/Mold.cpp
         src/MultiVolumes.cpp
         src/PathOrdering.cpp
@@ -73,9 +73,9 @@ set(engine_SRCS # Except main.cpp.
         src/PathOrderMonotonic.cpp
         src/Preheat.cpp
         src/PrintInformation.cpp
-        src/PrimeTower/PrimeTower.cpp
-        src/PrimeTower/PrimeTowerNormal.cpp
-        src/PrimeTower/PrimeTowerInterleaved.cpp
+        src/prime_tower/PrimeTower.cpp
+        src/prime_tower/PrimeTowerNormal.cpp
+        src/prime_tower/PrimeTowerInterleaved.cpp
         src/Raft.cpp
         src/Scene.cpp
         src/SkinInfillAreaComputation.cpp
@@ -107,14 +107,14 @@ set(engine_SRCS # Except main.cpp.
         src/arachne/STHalfEdge.cpp
         src/arachne/STHalfEdgeNode.cpp
 
-        src/BeadingStrategy/BeadingStrategy.cpp
-        src/BeadingStrategy/BeadingStrategyFactory.cpp
-        src/BeadingStrategy/DistributedBeadingStrategy.cpp
-        src/BeadingStrategy/LimitedBeadingStrategy.cpp
-        src/BeadingStrategy/RedistributeBeadingStrategy.cpp
-        src/BeadingStrategy/WideningBeadingStrategy.cpp
-        src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
-        src/BeadingStrategy/InnerWallInsetBeadingStrategy.cpp
+        src/beading_strategy/BeadingStrategy.cpp
+        src/beading_strategy/BeadingStrategyFactory.cpp
+        src/beading_strategy/DistributedBeadingStrategy.cpp
+        src/beading_strategy/LimitedBeadingStrategy.cpp
+        src/beading_strategy/RedistributeBeadingStrategy.cpp
+        src/beading_strategy/WideningBeadingStrategy.cpp
+        src/beading_strategy/OuterWallInsetBeadingStrategy.cpp
+        src/beading_strategy/InnerWallInsetBeadingStrategy.cpp
 
         src/bridge/bridge.cpp
         src/bridge/ExpansionRange.cpp
@@ -151,11 +151,11 @@ set(engine_SRCS # Except main.cpp.
         src/infill/GyroidInfill.cpp
         src/infill/GroundingLocation.cpp
 
-        src/pathPlanning/Comb.cpp
-        src/pathPlanning/GCodePath.cpp
-        src/pathPlanning/LinePolygonsCrossings.cpp
-        src/pathPlanning/NozzleTempInsert.cpp
-        src/pathPlanning/SpeedDerivatives.cpp
+        src/path_planning/Comb.cpp
+        src/path_planning/GCodePath.cpp
+        src/path_planning/LinePolygonsCrossings.cpp
+        src/path_planning/NozzleTempInsert.cpp
+        src/path_planning/SpeedDerivatives.cpp
 
         src/plugins/broadcast_settings_request.cpp
         src/plugins/empty.cpp
@@ -173,13 +173,13 @@ set(engine_SRCS # Except main.cpp.
         src/progress/Progress.cpp
         src/progress/ProgressStageEstimator.cpp
 
-        src/settings/AdaptiveLayer.cpp
-        src/settings/AdaptiveLayerHeights.cpp
-        src/settings/MeshPathConfigs.cpp
-        src/settings/PathConfigStorage.cpp
-        src/settings/SettingContainersEnvironmentAdapter.cpp
-        src/settings/Settings.cpp
-        src/settings/ZSeamConfig.cpp
+        src/types/AdaptiveLayer.cpp
+        src/types/AdaptiveLayerHeights.cpp
+        src/types/MeshPathConfigs.cpp
+        src/types/PathConfigStorage.cpp
+        src/types/SettingContainersEnvironmentAdapter.cpp
+        src/Settings.cpp
+        src/types/ZSeamConfig.cpp
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp

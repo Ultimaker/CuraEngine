@@ -5,7 +5,7 @@
 
 #include "WallToolPathGenerator.h"
 #include "geometry/Polygon.h"
-#include "settings/Settings.h"
+#include "Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/SectionType.h"
 
@@ -29,14 +29,14 @@ public:
      * \param generator Indicates whether to use Arachne to generate variable-line-width walls, or a naive insetting
      */
     WallToolPaths(
-        const Shape& outline,
-        const coord_t nominal_bead_width,
+        const ::curaengine::geometry::Shape& outline,
+        const ::curaengine::utils::coord_t nominal_bead_width,
         const size_t inset_count,
-        const coord_t wall_0_inset,
-        const coord_t wall_x_inset,
+        const ::curaengine::utils::coord_t wall_0_inset,
+        const ::curaengine::utils::coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
-        SectionType section_type,
+        ::curaengine::utils::SectionType section_type,
         WallToolPathGenerator generator);
 
     /*!
@@ -52,33 +52,33 @@ public:
      * \param section_type The type of element being printed
      */
     WallToolPaths(
-        const Shape& outline,
-        const coord_t bead_width_0,
-        const coord_t bead_width_x,
+        const ::curaengine::geometry::Shape& outline,
+        const ::curaengine::utils::coord_t bead_width_0,
+        const ::curaengine::utils::coord_t bead_width_x,
         const size_t inset_count,
-        const coord_t wall_0_inset,
-        const coord_t wall_x_inset,
+        const ::curaengine::utils::coord_t wall_0_inset,
+        const ::curaengine::utils::coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
-        SectionType section_type);
+        ::curaengine::utils::SectionType section_type);
 
     /*!
      * Generates the Toolpaths
      * \return A reference to the newly created ToolPaths. Binned by inset_idx.
      */
-    const std::vector<VariableWidthLines>& generate();
+    const std::vector<::curaengine::utils::VariableWidthLines>& generate();
 
     /*!
      * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
      * \return a reference to the toolpaths. Binned by inset_idx.
      */
-    const std::vector<VariableWidthLines>& getToolPaths();
+    const std::vector<::curaengine::utils::VariableWidthLines>& getToolPaths();
 
     /*!
      * Alternate 'get', for when the vector that'll be inserted in already exists.
      * \param paths The already existing (or empty) paths these new toolpaths are pushed into. Binned by inset_idx.
      */
-    void pushToolPaths(std::vector<VariableWidthLines>& paths);
+    void pushToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& paths);
 
     /*!
      * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
@@ -99,14 +99,14 @@ public:
      * If there are no walls, the outline will be returned.
      * \return The inner contour of the generated walls.
      */
-    const Shape& getInnerContour();
+    const ::curaengine::geometry::Shape& getInnerContour();
 
     /*!
      * Removes empty paths from the toolpaths
      * \param toolpaths the toolpaths binned by inset_idx generated with \p generate()
      * \return true if there are still paths left. If all toolpaths were removed it returns false
      */
-    static bool removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpaths);
+    static bool removeEmptyToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths);
 
 protected:
     /*!
@@ -116,19 +116,19 @@ protected:
      *
      * \param stitch_distance The stitch distance to be used
      */
-    static void stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const coord_t stitch_distance);
+    static void stitchToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths, const ::curaengine::utils::coord_t stitch_distance);
 
     /*!
      * Remove polylines shorter than half the smallest line width along that polyline, if that polyline isn't part of an outer wall.
      */
-    static void removeSmallFillLines(std::vector<VariableWidthLines>& toolpaths);
+    static void removeSmallFillLines(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths);
 
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.
      * \param settings The settings as provided by the user
      */
-    static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
+    static void simplifyToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
     /*! Generates the toolpaths using the Arachne engine, which produces extrusions paths with variable line width */
@@ -138,32 +138,32 @@ private:
     void generateNaiveInset();
 
 private:
-    const Shape& outline_; //<! A reference to the outline polygon that is the designated area
-    coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
-    coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
+    const ::curaengine::geometry::Shape& outline_; //<! A reference to the outline polygon that is the designated area
+    ::curaengine::utils::coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
+    ::curaengine::utils::coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
                            // this is the same as bead_width_0
     size_t inset_count_; //<! The maximum number of walls to generate
-    coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
-    coord_t wall_x_inset_; //<! How far to inset the inner walls
+    ::curaengine::utils::coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
+    ::curaengine::utils::coord_t wall_x_inset_; //<! How far to inset the inner walls
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
-    coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
-    const AngleRadians wall_transition_angle_;
-    const coord_t wall_transition_length_;
+    ::curaengine::utils::coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
+    const ::curaengine::types::AngleRadians wall_transition_angle_;
+    const ::curaengine::utils::coord_t wall_transition_length_;
     const double min_even_wall_line_width_;
     const double wall_line_width_0_;
     const double min_odd_wall_line_width_;
-    coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
+    ::curaengine::utils::coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const double wall_line_width_x_;
     const int wall_distribution_count_;
-    const coord_t wall_transition_filter_distance_;
-    const coord_t wall_transition_filter_deviation_;
-    const coord_t stitch_distance_;
+    const ::curaengine::utils::coord_t wall_transition_filter_distance_;
+    const ::curaengine::utils::coord_t wall_transition_filter_deviation_;
+    const ::curaengine::utils::coord_t stitch_distance_;
     bool toolpaths_generated_; //<! Are the toolpaths generated
-    std::vector<VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
-    Shape inner_contour_; //<! The inner contour of the generated toolpaths
+    std::vector<::curaengine::utils::VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
+    ::curaengine::geometry::Shape inner_contour_; //<! The inner contour of the generated toolpaths
     const Settings& settings_;
     int layer_idx_;
-    SectionType section_type_;
+    ::curaengine::utils::SectionType section_type_;
     const WallToolPathGenerator generator_{ WallToolPathGenerator::Arachne };
 };
 } // namespace curaengine

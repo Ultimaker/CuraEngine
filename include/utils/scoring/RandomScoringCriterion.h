@@ -5,7 +5,7 @@
 
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace curaengine
+namespace curaengine::utils::scoring
 {
 
 /*!
@@ -19,4 +19,4 @@ public:
     virtual double computeScore(const size_t candidate_index) const override;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

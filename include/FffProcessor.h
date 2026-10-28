@@ -13,7 +13,7 @@ namespace curaengine
 {
 
 // FusedFilamentFabrication processor. Singleton class
-class FffProcessor : public NoCopy
+class FffProcessor : public ::curaengine::utils::NoCopy
 {
 private:
     /*!
@@ -44,7 +44,7 @@ public:
     /*!
      * The stop watch used to time how long the different stages take to compute.
      */
-    TimeKeeper time_keeper; // TODO: use singleton time keeper
+    ::curaengine::utils::TimeKeeper time_keeper; // TODO: use singleton time keeper
 
     /*!
      * Add the end gcode and set all temperatures to zero.

@@ -5,7 +5,7 @@
 
 #include "geometry/Shape.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 OpenLinesSet::OpenLinesSet(ClipperLib::Paths&& paths)
@@ -64,4 +64,4 @@ void OpenLinesSet::split(const size_t line_index, const size_t point_index)
     return OpenLinesSet(std::move(result_paths));
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

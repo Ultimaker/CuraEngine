@@ -7,7 +7,7 @@
 #include <string_view>
 
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
-#include "plugins/converter.h"
+#include "plugins/details/converter.h"
 #include "plugins/plugin_metadata.h"
 
 namespace curaengine::plugins

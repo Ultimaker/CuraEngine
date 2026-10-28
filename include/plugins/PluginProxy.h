@@ -24,13 +24,13 @@
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/SlotID.h"
-#include "plugins/RemoteException.h"
-#include "plugins/ValidatorException.h"
-#include "plugins/broadcast_rpc.h"
+#include "plugins/v0/SlotID.h"
+#include "plugins/exceptions/RemoteException.h"
+#include "plugins/exceptions/ValidatorException.h"
+#include "plugins/details/broadcast_rpc.h"
 #include "plugins/handshake_request.h"
 #include "plugins/handshake_response.h"
-#include "utils/types/CharRangeLiteral.h"
+#include "types/CharRangeLiteral.h"
 #if __has_include(<coroutine>)
 #include <coroutine>
 #elif __has_include(<experimental/coroutine>)
@@ -58,7 +58,7 @@ namespace curaengine::plugins
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
-template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, typename RequestTp, typename ResponseTp>
+template<plugins::v0::SlotID SlotID, ::curaengine::types::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, typename RequestTp, typename ResponseTp>
 class PluginProxy
 {
     // type aliases for easy use

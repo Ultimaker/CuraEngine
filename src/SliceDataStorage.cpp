@@ -7,14 +7,14 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "PrimeTower/PrimeTower.h"
+#include "prime_tower/PrimeTower.h"
 #include "Raft.h"
 #include "Slice.h"
 #include "SliceMeshStorage.h"
 #include "geometry/OpenPolyline.h"
-#include "settings/BuildPlateShape.h"
-#include "settings/EPlatformAdhesion.h"
-#include "settings/ESurfaceMode.h"
+#include "types/BuildPlateShape.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/ESurfaceMode.h"
 #include "utils/PolygonUtils.h"
 
 namespace curaengine
@@ -33,8 +33,8 @@ SliceDataStorage::SliceDataStorage()
     , max_print_height_second_to_last_extruder(-1)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    Point3LL machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
-    Point3LL machine_min(0, 0, 0);
+    ::curaengine::geometry::Point3LL machine_max(mesh_group_settings.get<::curaengine::utils::coord_t>("machine_width"), mesh_group_settings.get<::curaengine::utils::coord_t>("machine_depth"), mesh_group_settings.get<::curaengine::utils::coord_t>("machine_height"));
+    ::curaengine::geometry::Point3LL machine_min(0, 0, 0);
     if (mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
         machine_max /= 2;
@@ -49,8 +49,8 @@ SliceDataStorage::~SliceDataStorage()
     delete prime_tower_;
 }
 
-Shape SliceDataStorage::getLayerOutlines(
-    const LayerIndex layer_nr,
+::curaengine::geometry::Shape SliceDataStorage::getLayerOutlines(
+    const ::curaengine::types::LayerIndex layer_nr,
     const bool include_support,
     const bool include_prime_tower,
     const bool external_polys_only,
@@ -67,7 +67,7 @@ Shape SliceDataStorage::getLayerOutlines(
     case Raft::LayerType::RaftInterface:
     case Raft::LayerType::RaftSurface:
     {
-        const Shape* raftOutline;
+        const ::curaengine::geometry::Shape* raftOutline;
         bool use_current_extruder_for_raft = extruder_nr == -1;
 
         switch (layer_type)
@@ -86,16 +86,16 @@ Shape SliceDataStorage::getLayerOutlines(
             break;
         default:
             assert(false && "unreachable due to outer switch statement");
-            return Shape();
+            return ::curaengine::geometry::Shape();
         }
 
         if (include_support && use_current_extruder_for_raft)
         {
             if (external_polys_only)
             {
-                std::vector<SingleShape> parts = raftOutline->splitIntoParts();
-                Shape result;
-                for (SingleShape& part : parts)
+                std::vector<::curaengine::geometry::SingleShape> parts = raftOutline->splitIntoParts();
+                ::curaengine::geometry::Shape result;
+                for (::curaengine::geometry::SingleShape& part : parts)
                 {
                     result.push_back(part.outerPolygon());
                 }
@@ -108,14 +108,14 @@ Shape SliceDataStorage::getLayerOutlines(
         }
         else
         {
-            return Shape();
+            return ::curaengine::geometry::Shape();
         }
         break;
     }
     case Raft::LayerType::Airgap:
     case Raft::LayerType::Model:
     {
-        Shape total;
+        ::curaengine::geometry::Shape total;
         if (include_models && layer_nr >= 0)
         {
             for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
@@ -126,7 +126,7 @@ Shape SliceDataStorage::getLayerOutlines(
                 }
                 const SliceLayer& layer = mesh->layers[layer_nr];
                 layer.getOutlines(total, external_polys_only);
-                if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+                if (mesh->settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.open_polylines.offset(MM2INT(0.1)));
                 }
@@ -136,7 +136,7 @@ Shape SliceDataStorage::getLayerOutlines(
         {
             if (support.generated && ! support.supportLayers.empty())
             {
-                const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
+                const SupportLayer& support_layer = support.supportLayers[std::max(::curaengine::types::LayerIndex(0), layer_nr)];
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
                 {
                     if (include_support_base)
@@ -160,13 +160,13 @@ Shape SliceDataStorage::getLayerOutlines(
     }
     default:
         assert(false && "unreachable as switch statement is exhaustive");
-        return Shape();
+        return ::curaengine::geometry::Shape();
     }
 }
 
-AABB3D SliceDataStorage::getModelBoundingBox() const
+::curaengine::utils::AABB3D SliceDataStorage::getModelBoundingBox() const
 {
-    AABB3D bounding_box;
+    ::curaengine::utils::AABB3D bounding_box;
     for (const auto& mesh : meshes)
     {
         bounding_box.include(mesh->bounding_box);
@@ -187,8 +187,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     const Settings& mesh_group_settings = mesh_group->settings;
-    const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-    if (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)
+    const ::curaengine::types::EPlatformAdhesion adhesion_type = mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type");
+    if (adhesion_type == ::curaengine::types::EPlatformAdhesion::SKIRT || adhesion_type == ::curaengine::types::EPlatformAdhesion::BRIM)
     {
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
         {
@@ -203,7 +203,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
             ret[skirt_brim_extruder_nr] = true;
         }
     }
-    else if (adhesion_type == EPlatformAdhesion::RAFT)
+    else if (adhesion_type == ::curaengine::types::EPlatformAdhesion::RAFT)
     {
         ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_] = true;
         const size_t num_interface_layers = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<size_t>("raft_interface_layers");
@@ -250,13 +250,13 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     return ret;
 }
 
-std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) const
+std::vector<bool> SliceDataStorage::getExtrudersUsed(const ::curaengine::types::LayerIndex layer_nr) const
 {
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
     std::vector<bool> ret;
     ret.resize(extruders.size(), false);
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
+    const ::curaengine::types::EPlatformAdhesion adhesion_type = mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type");
 
     bool include_adhesion = true;
     bool include_helper_parts = true;
@@ -264,12 +264,12 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
     if (layer_nr < 0)
     {
         include_models = false;
-        if (layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
+        if (layer_nr < -static_cast<::curaengine::types::LayerIndex>(Raft::getFillerLayerCount()))
         {
             include_helper_parts = false;
         }
     }
-    else if (layer_nr > 0 || adhesion_type == EPlatformAdhesion::RAFT)
+    else if (layer_nr > 0 || adhesion_type == ::curaengine::types::EPlatformAdhesion::RAFT)
     { // only include adhesion only for layers where platform adhesion actually occurs
         // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
         include_adhesion = false;
@@ -277,7 +277,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
 
     if (include_adhesion)
     {
-        if (layer_nr == 0 && (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM))
+        if (layer_nr == 0 && (adhesion_type == ::curaengine::types::EPlatformAdhesion::SKIRT || adhesion_type == ::curaengine::types::EPlatformAdhesion::BRIM))
         {
             for (size_t extruder_nr = 0; extruder_nr < extruders.size(); ++extruder_nr)
             {
@@ -287,7 +287,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
                 }
             }
         }
-        if (adhesion_type == EPlatformAdhesion::RAFT)
+        if (adhesion_type == ::curaengine::types::EPlatformAdhesion::RAFT)
         {
             const Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
             if (layer_type == Raft::RaftBase)
@@ -321,7 +321,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
         if (layer_nr < int(support.supportLayers.size()))
         {
             const SupportLayer& support_layer
-                = support.supportLayers[std::max(LayerIndex(0), layer_nr)]; // Below layer 0, it's the same as layer 0 (even though it's not stored here).
+                = support.supportLayers[std::max(::curaengine::types::LayerIndex(0), layer_nr)]; // Below layer 0, it's the same as layer 0 (even though it's not stored here).
             if (layer_nr == 0)
             {
                 if (! support_layer.support_infill_parts.empty())
@@ -371,31 +371,31 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings_.get<bool>("prime_blob_enable");
 }
 
-Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
+::curaengine::geometry::Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
-    Shape border = getRawMachineBorder();
+    ::curaengine::geometry::Shape border = getRawMachineBorder();
 
-    Shape disallowed_areas = mesh_group_settings.get<Shape>("machine_disallowed_areas");
+    ::curaengine::geometry::Shape disallowed_areas = mesh_group_settings.get<::curaengine::geometry::Shape>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
 
     // The disallowed areas are expressed in buildplate-centered coordinates, but the models
     // may be expressed in front-left-centered coordinantes, so in this case we need to translate them
     if (! mesh_group_settings.get<bool>("machine_center_is_zero"))
     {
-        for (Polygon& poly : disallowed_areas)
+        for (::curaengine::geometry::Polygon& poly : disallowed_areas)
         {
-            for (Point2LL& p : poly)
+            for (::curaengine::geometry::Point2LL& p : poly)
             {
-                p = Point2LL(machine_size.max_.x_ / 2 + p.X, machine_size.max_.y_ / 2 - p.Y);
+                p = ::curaengine::geometry::Point2LL(machine_size.max_.x_ / 2 + p.X, machine_size.max_.y_ / 2 - p.Y);
             }
         }
     }
 
     std::vector<bool> extruder_is_used = getExtrudersUsed();
 
-    constexpr coord_t prime_clearance = MM2INT(6.5);
+    constexpr ::curaengine::utils::coord_t prime_clearance = MM2INT(6.5);
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
         if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])
@@ -407,18 +407,18 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         {
             continue;
         }
-        Point2LL prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"));
-        if (prime_pos == Point2LL(0, 0))
+        ::curaengine::geometry::Point2LL prime_pos(extruder_settings.get<::curaengine::utils::coord_t>("extruder_prime_pos_x"), extruder_settings.get<::curaengine::utils::coord_t>("extruder_prime_pos_y"));
+        if (prime_pos == ::curaengine::geometry::Point2LL(0, 0))
         {
             continue; // Ignore extruder prime position if it is not set.
         }
-        Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        ::curaengine::geometry::Point2LL translation(extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
-        Polygon prime_polygon = PolygonUtils::makeDisc(prime_pos, prime_clearance, 64);
+        ::curaengine::geometry::Polygon prime_polygon = ::curaengine::utils::PolygonUtils::makeDisc(prime_pos, prime_clearance, 64);
         disallowed_areas = disallowed_areas.unionPolygons(prime_polygon);
     }
 
-    Shape disallowed_all_extruders;
+    ::curaengine::geometry::Shape disallowed_all_extruders;
     bool first = true;
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
@@ -427,8 +427,8 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
             continue;
         }
         Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
-        Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
-        Shape extruder_border = disallowed_areas;
+        ::curaengine::geometry::Point2LL translation(extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
+        ::curaengine::geometry::Shape extruder_border = disallowed_areas;
         extruder_border.translate(translation);
         if (first)
         {
@@ -442,7 +442,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     }
     disallowed_all_extruders = disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
 
-    Shape border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
+    ::curaengine::geometry::Shape border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
     if (mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas") && mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas"))
     {
         for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
@@ -452,7 +452,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
                 continue;
             }
             Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
-            Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+            ::curaengine::geometry::Point2LL translation(extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
             for (size_t other_extruder_nr = 0; other_extruder_nr < extruder_is_used.size(); other_extruder_nr++)
             {
                 // NOTE: the other extruder doesn't have to be used. Since the global border is the union of all extruders borders also unused extruders must be taken into account.
@@ -461,8 +461,8 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
                     continue;
                 }
                 Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[other_extruder_nr].settings_;
-                Point2LL other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
-                Shape translated_border = border;
+                ::curaengine::geometry::Point2LL other_translation(other_extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
+                ::curaengine::geometry::Shape translated_border = border;
                 translated_border.translate(translation - other_translation);
                 border_all_extruders = border_all_extruders.intersection(translated_border);
             }
@@ -473,20 +473,20 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     return border;
 }
 
-Shape SliceDataStorage::getRawMachineBorder() const
+::curaengine::geometry::Shape SliceDataStorage::getRawMachineBorder() const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
-    Shape border;
+    ::curaengine::geometry::Shape border;
     border.emplace_back();
-    Polygon& outline = border.back();
-    switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
+    ::curaengine::geometry::Polygon& outline = border.back();
+    switch (mesh_group_settings.get<::curaengine::types::BuildPlateShape>("machine_shape"))
     {
-    case BuildPlateShape::ELLIPTIC:
+    case ::curaengine::types::BuildPlateShape::ELLIPTIC:
     {
         // Construct an ellipse to approximate the build volume.
-        const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
-        const coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
+        const ::curaengine::utils::coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
+        const ::curaengine::utils::coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
         constexpr unsigned int circle_resolution = 50;
         for (unsigned int i = 0; i < circle_resolution; i++)
         {
@@ -495,7 +495,7 @@ Shape SliceDataStorage::getRawMachineBorder() const
         }
         break;
     }
-    case BuildPlateShape::RECTANGULAR:
+    case ::curaengine::types::BuildPlateShape::RECTANGULAR:
     default:
         outline = machine_size.flatten().toPolygon();
         break;
@@ -506,7 +506,7 @@ Shape SliceDataStorage::getRawMachineBorder() const
 
 void SliceDataStorage::initializePrimeTower()
 {
-    prime_tower_ = PrimeTower::createPrimeTower(*this);
+    prime_tower_ = ::curaengine::prime_tower::PrimeTower::createPrimeTower(*this);
 }
 
 } // namespace curaengine

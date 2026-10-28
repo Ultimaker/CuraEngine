@@ -2,8 +2,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PrintFeatureType.h" //We get time estimates per print feature.
-#include "settings/Settings.h" //To set firmware settings.
-#include "settings/types/Duration.h"
+#include "Settings.h" //To set firmware settings.
+#include "types/Duration.h"
 #include "TimeEstimateCalculator.h" //The unit under test.
 #include <cmath>
 #include <gtest/gtest.h>
@@ -111,27 +111,27 @@ public:
 TEST_F(TimeEstimateCalculatorTest, AddTime)
 {
     calculator.addTime(2);
-    std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(2.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
+    std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(2.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
 
     calculator.addTime(3); // Has to add up, not replace.
     result = calculator.calculate();
-    EXPECT_NEAR(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
+    EXPECT_NEAR(::curaengine::types::Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON);
 
     calculator.addTime(-7);
     result = calculator.calculate();
-    EXPECT_NEAR(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON) << "Due to how Duration works, it can never go lower.";
+    EXPECT_NEAR(::curaengine::types::Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON) << "Due to how Duration works, it can never go lower.";
 }
 
 TEST_F(TimeEstimateCalculatorTest, StartWithZero)
 {
-    const std::vector<Duration> result = calculator.calculate();
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
 
     EXPECT_EQ(static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes), result.size());
 
-    for (const Duration estimate : result)
+    for (const ::curaengine::types::Duration estimate : result)
     {
-        EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "Time estimates must be zero before anything has been planned.";
+        EXPECT_NEAR(::curaengine::types::Duration(0.0), estimate, EPSILON) << "Time estimates must be zero before anything has been planned.";
     }
 }
 
@@ -140,15 +140,15 @@ TEST_F(TimeEstimateCalculatorTest, MoveToCurrentLocation)
     const TimeEstimateCalculator::Position position(1000, 2000, 3000, 4000);
     calculator.setPosition(position);
 
-    std::vector<Duration> result = calculator.calculate();
-    Duration estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
-    EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "setPosition should not add any time to the estimate.";
+    std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    ::curaengine::types::Duration estimate = std::accumulate(result.begin(), result.end(), ::curaengine::types::Duration(0.0));
+    EXPECT_NEAR(::curaengine::types::Duration(0.0), estimate, EPSILON) << "setPosition should not add any time to the estimate.";
 
-    calculator.plan(position, Velocity { 10.0 }, PrintFeatureType::Infill);
+    calculator.plan(position, ::curaengine::types::Velocity { 10.0 }, PrintFeatureType::Infill);
 
     result = calculator.calculate();
-    estimate = std::accumulate(result.begin(), result.end(), Duration(0.0));
-    EXPECT_NEAR(Duration(0.0), estimate, EPSILON) << "Moving to the same location as where you already were should not cost any time.";
+    estimate = std::accumulate(result.begin(), result.end(), ::curaengine::types::Duration(0.0));
+    EXPECT_NEAR(::curaengine::types::Duration(0.0), estimate, EPSILON) << "Moving to the same location as where you already were should not cost any time.";
 }
 
 TEST_F(TimeEstimateCalculatorTest, SingleLineOnlyJerk)
@@ -170,8 +170,8 @@ TEST_F(TimeEstimateCalculatorTest, SingleLineOnlyJerk)
     const double decelerate_distance = 0.5 * 50.0 * t * t + MINIMUM_PLANNER_SPEED * t;
     const double cruise_distance = 1000.0 - decelerate_distance;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(cruise_distance / 50.0 + t), // 1000mm at 50mm/s, then decelerate for almost one second.
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(cruise_distance / 50.0 + t), // 1000mm at 50mm/s, then decelerate for almost one second.
                 result[static_cast<size_t>(PrintFeatureType::Infill)],
                 EPSILON);
 }
@@ -198,8 +198,8 @@ TEST_F(TimeEstimateCalculatorTest, DoubleLineOnlyJerk)
     const double decelerate_distance = 0.5 * 50.0 * t * t + MINIMUM_PLANNER_SPEED * t;
     const double cruise_distance = 2000.0 - decelerate_distance;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(cruise_distance / 50.0 + t), // 2000mm at 50mm/s, then decelerate for almost one second.
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(cruise_distance / 50.0 + t), // 2000mm at 50mm/s, then decelerate for almost one second.
                 result[static_cast<size_t>(PrintFeatureType::Infill)],
                 EPSILON);
 }
@@ -224,8 +224,8 @@ TEST_F(TimeEstimateCalculatorTest, SingleLineNoJerk)
     const double decelerate_distance = 0.5 * 50.0 * decelerate_t * decelerate_t + MINIMUM_PLANNER_SPEED * decelerate_t;
     const double cruise_distance = 1000.0 - accelerate_distance - decelerate_distance;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
                 result[static_cast<size_t>(PrintFeatureType::Infill)],
                 EPSILON);
 }
@@ -259,8 +259,8 @@ TEST_F(TimeEstimateCalculatorTest, ShortLine)
     // Then how long do we decelerate?
     const double decelerate_t = (max_speed - MINIMUM_PLANNER_SPEED) / 50.0;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(t_apex + decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(t_apex + decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, DoubleLineNoJerk)
@@ -286,8 +286,8 @@ TEST_F(TimeEstimateCalculatorTest, DoubleLineNoJerk)
     const double decelerate_distance = 0.5 * 50.0 * decelerate_t * decelerate_t + MINIMUM_PLANNER_SPEED * decelerate_t;
     const double cruise_distance = 2000.0 - accelerate_distance - decelerate_distance;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
                 result[static_cast<size_t>(PrintFeatureType::Infill)],
                 EPSILON);
 }
@@ -313,8 +313,8 @@ TEST_F(TimeEstimateCalculatorTest, DiagonalLineNoJerk)
     const double decelerate_distance = 0.5 * 50.0 * decelerate_t * decelerate_t + MINIMUM_PLANNER_SPEED * decelerate_t;
     const double cruise_distance = std::sqrt(2.0) * 1000.0 - accelerate_distance - decelerate_distance; // Thank you Mr. Pythagoras.
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(1.0 + cruise_distance / 50.0 + decelerate_t), // Accelerate, cruise, decelerate.
                 result[static_cast<size_t>(PrintFeatureType::Infill)],
                 EPSILON);
 }
@@ -347,8 +347,8 @@ TEST_F(TimeEstimateCalculatorTest, StraightAngleOnlyJerk)
     const double cruise_distance = 1000.0 - decelerate_distance;
     const double second_cruise_time = cruise_distance / 50.0;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(first_cruise_time + second_cruise_time + t), // First line, second line cruise, and decelerate at the end.
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(first_cruise_time + second_cruise_time + t), // First line, second line cruise, and decelerate at the end.
                 result[static_cast<size_t>(PrintFeatureType::Infill)],
                 EPSILON);
 }
@@ -383,8 +383,8 @@ TEST_F(TimeEstimateCalculatorTest, StraightAngleNoJerk)
     const double second_decelerate_distance = 0.5 * 50.0 * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t; // This time there is an initial speed: The minimum planner speed.
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
@@ -410,9 +410,9 @@ TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
     const TimeEstimateCalculator::Position destination(1000, 1000, 0, 0);
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
-    const Velocity jerk = um3.get<Velocity>("machine_max_jerk_xy");
-    const Velocity acceleration = um3.get<Velocity>("machine_acceleration");
-    const Velocity junction_speed = std::sqrt(jerk * jerk / 4 + jerk * jerk / 4); // Speed at which we move through the junction. Since it's a 90 degree angle, use
+    const ::curaengine::types::Velocity jerk = um3.get<::curaengine::types::Velocity>("machine_max_jerk_xy");
+    const ::curaengine::types::Velocity acceleration = um3.get<::curaengine::types::Velocity>("machine_acceleration");
+    const ::curaengine::types::Velocity junction_speed = std::sqrt(jerk * jerk / 4 + jerk * jerk / 4); // Speed at which we move through the junction. Since it's a 90 degree angle, use
                                                                                   // Pythagoras. The vector changes exactly with the jerk.
     // Distance needed to accelerate: 1/2 at² + vt. Start at the initial jerk.
     const double first_accelerate_t = (50.0 - jerk / 2) / acceleration;
@@ -426,8 +426,8 @@ TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
     const double second_decelerate_distance = 0.5 * acceleration * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t;
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
-    const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
+    const std::vector<::curaengine::types::Duration> result = calculator.calculate();
+    EXPECT_NEAR(::curaengine::types::Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
 } // namespace curaengine

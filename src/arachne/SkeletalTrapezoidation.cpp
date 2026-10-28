@@ -16,7 +16,7 @@
 #include "BoostInterface.hpp"
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 #include "utils/LinearAlg2D.h"
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
@@ -27,10 +27,13 @@
     1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
          // performance).
 
-namespace curaengine
+namespace curaengine::arachne
 {
+using ::curaengine::types::operator""_r;
 
-SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point2LL p)
+
+
+SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, ::curaengine::geometry::Point2LL p)
 {
     auto he_node_it = vd_node_to_he_node_.find(&vd_node);
     if (he_node_it == vd_node_to_he_node_.end())
@@ -47,13 +50,13 @@ SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_ty
 }
 
 void SkeletalTrapezoidation::transferEdge(
-    Point2LL from,
-    Point2LL to,
+    ::curaengine::geometry::Point2LL from,
+    ::curaengine::geometry::Point2LL to,
     vd_t::edge_type& vd_edge,
     edge_t*& prev_edge,
-    Point2LL& start_source_point,
-    Point2LL& end_source_point,
-    const std::vector<Point2LL>& points,
+    ::curaengine::geometry::Point2LL& start_source_point,
+    ::curaengine::geometry::Point2LL& end_source_point,
+    const std::vector<::curaengine::geometry::Point2LL>& points,
     const std::vector<Segment>& segments)
 {
     auto he_edge_it = vd_edge_to_he_edge_.find(vd_edge.twin());
@@ -108,7 +111,7 @@ void SkeletalTrapezoidation::transferEdge(
     }
     else
     {
-        std::vector<Point2LL> discretized = discretize(vd_edge, points, segments);
+        std::vector<::curaengine::geometry::Point2LL> discretized = discretize(vd_edge, points, segments);
         assert(discretized.size() >= 2);
         if (discretized.size() < 2)
         {
@@ -122,10 +125,10 @@ void SkeletalTrapezoidation::transferEdge(
         }
         node_t* v0
             = (prev_edge) ? prev_edge->to_ : &makeNode(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
-        Point2LL p0 = discretized.front();
+        ::curaengine::geometry::Point2LL p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
-            Point2LL p1 = discretized[p1_idx];
+            ::curaengine::geometry::Point2LL p1 = discretized[p1_idx];
             node_t* v1;
             if (p1_idx < discretized.size() - 1)
             {
@@ -163,7 +166,7 @@ void SkeletalTrapezoidation::transferEdge(
     }
 }
 
-std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+std::vector<::curaengine::geometry::Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments)
 {
     /*Terminology in this function assumes that the edge moves horizontally from
     left to right. This is not necessarily the case; the edge can go in any
@@ -171,49 +174,49 @@ std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& 
 
     const vd_t::cell_type* left_cell = vd_edge.cell();
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
-    Point2LL start = VoronoiUtils::p(vd_edge.vertex0());
-    Point2LL end = VoronoiUtils::p(vd_edge.vertex1());
+    ::curaengine::geometry::Point2LL start = ::curaengine::utils::VoronoiUtils::p(vd_edge.vertex0());
+    ::curaengine::geometry::Point2LL end = ::curaengine::utils::VoronoiUtils::p(vd_edge.vertex1());
 
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
     if ((! point_left && ! point_right) || vd_edge.is_secondary()) // Source vert is directly connected to source segment
     {
-        return std::vector<Point2LL>({ start, end });
+        return std::vector<::curaengine::geometry::Point2LL>({ start, end });
     }
     else if (point_left != point_right) // This is a parabolic edge between a point and a line.
     {
-        Point2LL p = VoronoiUtils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
-        const Segment& s = VoronoiUtils::getSourceSegment(*(point_left ? right_cell : left_cell), points, segments);
-        return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size_, transitioning_angle_);
+        ::curaengine::geometry::Point2LL p = ::curaengine::utils::VoronoiUtils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
+        const Segment& s = ::curaengine::utils::VoronoiUtils::getSourceSegment(*(point_left ? right_cell : left_cell), points, segments);
+        return ::curaengine::utils::VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size_, transitioning_angle_);
     }
     else // This is a straight edge between two points.
     {
         /*While the edge is straight, it is still discretized since the part
         becomes narrower between the two points. As such it may need different
         beadings along the way.*/
-        Point2LL left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
-        Point2LL right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
-        coord_t d = vSize(right_point - left_point);
-        Point2LL middle = (left_point + right_point) / 2;
-        Point2LL x_axis_dir = turn90CCW(right_point - left_point);
-        coord_t x_axis_length = vSize(x_axis_dir);
+        ::curaengine::geometry::Point2LL left_point = ::curaengine::utils::VoronoiUtils::getSourcePoint(*left_cell, points, segments);
+        ::curaengine::geometry::Point2LL right_point = ::curaengine::utils::VoronoiUtils::getSourcePoint(*right_cell, points, segments);
+        ::curaengine::utils::coord_t d = ::curaengine::geometry::vSize(right_point - left_point);
+        ::curaengine::geometry::Point2LL middle = (left_point + right_point) / 2;
+        ::curaengine::geometry::Point2LL x_axis_dir = ::curaengine::geometry::turn90CCW(right_point - left_point);
+        ::curaengine::utils::coord_t x_axis_length = ::curaengine::geometry::vSize(x_axis_dir);
 
-        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point2LL from) // Project a point on the edge.
+        const auto projected_x = [x_axis_dir, x_axis_length, middle](::curaengine::geometry::Point2LL from) // Project a point on the edge.
         {
-            Point2LL vec = from - middle;
-            coord_t x = dot(vec, x_axis_dir) / x_axis_length;
+            ::curaengine::geometry::Point2LL vec = from - middle;
+            ::curaengine::utils::coord_t x = ::curaengine::geometry::dot(vec, x_axis_dir) / x_axis_length;
             return x;
         };
 
-        coord_t start_x = projected_x(start);
-        coord_t end_x = projected_x(end);
+        ::curaengine::utils::coord_t start_x = projected_x(start);
+        ::curaengine::utils::coord_t end_x = projected_x(end);
 
         // Part of the edge will be bound to the markings on the endpoints of the edge. Calculate how far that is.
         double bound = 0.5 / tan((std::numbers::pi - transitioning_angle_) * 0.5);
-        coord_t marking_start_x = -d * bound;
-        coord_t marking_end_x = d * bound;
-        Point2LL marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
-        Point2LL marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
+        ::curaengine::utils::coord_t marking_start_x = -d * bound;
+        ::curaengine::utils::coord_t marking_end_x = d * bound;
+        ::curaengine::geometry::Point2LL marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
+        ::curaengine::geometry::Point2LL marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
         int direction = 1;
 
         if (start_x > end_x) // Oops, the Voronoi edge is the other way around.
@@ -224,9 +227,9 @@ std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& 
         }
 
         // Start generating points along the edge.
-        Point2LL a = start;
-        Point2LL b = end;
-        std::vector<Point2LL> ret;
+        ::curaengine::geometry::Point2LL a = start;
+        ::curaengine::geometry::Point2LL b = end;
+        std::vector<::curaengine::geometry::Point2LL> ret;
         ret.emplace_back(a);
 
         // Introduce an extra edge at the borders of the markings?
@@ -234,17 +237,17 @@ std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& 
         bool add_marking_end = marking_end_x * direction > start_x * direction;
 
         // The edge's length may not be divisible by the step size, so calculate an integer step count and evenly distribute the vertices among those.
-        Point2LL ab = b - a;
-        coord_t ab_size = vSize(ab);
-        coord_t step_count = (ab_size + discretization_step_size_ / 2) / discretization_step_size_;
+        ::curaengine::geometry::Point2LL ab = b - a;
+        ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab);
+        ::curaengine::utils::coord_t step_count = (ab_size + discretization_step_size_ / 2) / discretization_step_size_;
         if (step_count % 2 == 1)
         {
             step_count++; // enforce a discretization point being added in the middle
         }
-        for (coord_t step = 1; step < step_count; step++)
+        for (::curaengine::utils::coord_t step = 1; step < step_count; step++)
         {
-            Point2LL here = a + ab * step / step_count; // Now simply interpolate the coordinates to get the new vertices!
-            coord_t x_here = projected_x(here); // If we've surpassed the position of the extra markings, we may need to insert them first.
+            ::curaengine::geometry::Point2LL here = a + ab * step / step_count; // Now simply interpolate the coordinates to get the new vertices!
+            ::curaengine::utils::coord_t x_here = projected_x(here); // If we've surpassed the position of the extra markings, we may need to insert them first.
             if (add_marking_start && marking_start_x * direction < x_here * direction)
             {
                 ret.emplace_back(marking_start);
@@ -269,13 +272,13 @@ std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& 
 
 bool SkeletalTrapezoidation::computePointCellRange(
     vd_t::cell_type& cell,
-    Point2LL& start_source_point,
-    Point2LL& end_source_point,
+    ::curaengine::geometry::Point2LL& start_source_point,
+    ::curaengine::geometry::Point2LL& end_source_point,
     vd_t::edge_type*& starting_vd_edge,
     vd_t::edge_type*& ending_vd_edge,
-    const std::vector<Point2LL>& points,
+    const std::vector<::curaengine::geometry::Point2LL>& points,
     const std::vector<Segment>& segments,
-    const Shape& polys)
+    const ::curaengine::geometry::Shape& polys)
 {
     if (cell.incident_edge()->is_infinite())
     {
@@ -284,11 +287,11 @@ bool SkeletalTrapezoidation::computePointCellRange(
     // Check if any point of the cell is inside or outside polygon
     // Copy whole cell into graph or not at all
 
-    const Point2LL source_point = VoronoiUtils::getSourcePoint(cell, points, segments);
-    Point2LL some_point = VoronoiUtils::p(cell.incident_edge()->vertex0());
+    const ::curaengine::geometry::Point2LL source_point = ::curaengine::utils::VoronoiUtils::getSourcePoint(cell, points, segments);
+    ::curaengine::geometry::Point2LL some_point = ::curaengine::utils::VoronoiUtils::p(cell.incident_edge()->vertex0());
     if (some_point == source_point)
     {
-        some_point = VoronoiUtils::p(cell.incident_edge()->vertex1());
+        some_point = ::curaengine::utils::VoronoiUtils::p(cell.incident_edge()->vertex1());
     }
 
     // Test if the some_point is even inside the polygon. If not, the whole cell is outside the polygon and must not be considered.
@@ -301,7 +304,7 @@ bool SkeletalTrapezoidation::computePointCellRange(
     do
     {
         assert(vd_edge->is_finite());
-        Point2LL p1 = VoronoiUtils::p(vd_edge->vertex1());
+        ::curaengine::geometry::Point2LL p1 = ::curaengine::utils::VoronoiUtils::p(vd_edge->vertex1());
         if (p1 == source_point)
         {
             start_source_point = source_point;
@@ -312,7 +315,7 @@ bool SkeletalTrapezoidation::computePointCellRange(
         else
         {
             assert(
-                (VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())
+                (::curaengine::utils::VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())
                 && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
     } while (vd_edge = vd_edge->next(), vd_edge != cell.incident_edge());
@@ -323,16 +326,16 @@ bool SkeletalTrapezoidation::computePointCellRange(
 
 void SkeletalTrapezoidation::computeSegmentCellRange(
     vd_t::cell_type& cell,
-    Point2LL& start_source_point,
-    Point2LL& end_source_point,
+    ::curaengine::geometry::Point2LL& start_source_point,
+    ::curaengine::geometry::Point2LL& end_source_point,
     vd_t::edge_type*& starting_vd_edge,
     vd_t::edge_type*& ending_vd_edge,
-    const std::vector<Point2LL>& points,
+    const std::vector<::curaengine::geometry::Point2LL>& points,
     const std::vector<Segment>& segments)
 {
-    const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
-    Point2LL from = source_segment.from();
-    Point2LL to = source_segment.to();
+    const Segment& source_segment = ::curaengine::utils::VoronoiUtils::getSourceSegment(cell, points, segments);
+    ::curaengine::geometry::Point2LL from = source_segment.from();
+    ::curaengine::geometry::Point2LL to = source_segment.to();
 
     // Find starting edge
     // Find end edge
@@ -346,8 +349,8 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
         {
             continue;
         }
-        Point2LL v0 = VoronoiUtils::p(edge->vertex0());
-        Point2LL v1 = VoronoiUtils::p(edge->vertex1());
+        ::curaengine::geometry::Point2LL v0 = ::curaengine::utils::VoronoiUtils::p(edge->vertex0());
+        ::curaengine::geometry::Point2LL v1 = ::curaengine::utils::VoronoiUtils::p(edge->vertex1());
         assert(! (v0 == to && v1 == from));
         if (v0 == to && ! after_start) // Use the last edge which starts in source_segment.to
         {
@@ -374,15 +377,15 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
 }
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(
-    const MendedShape& polys,
-    const BeadingStrategy& beading_strategy,
-    AngleRadians transitioning_angle,
-    coord_t discretization_step_size,
-    coord_t transition_filter_dist,
-    coord_t allowed_filter_deviation,
-    coord_t beading_propagation_transition_dist,
+    const ::curaengine::geometry::MendedShape& polys,
+    const ::curaengine::beading_strategy::BeadingStrategy& beading_strategy,
+    ::curaengine::types::AngleRadians transitioning_angle,
+    ::curaengine::utils::coord_t discretization_step_size,
+    ::curaengine::utils::coord_t transition_filter_dist,
+    ::curaengine::utils::coord_t allowed_filter_deviation,
+    ::curaengine::utils::coord_t beading_propagation_transition_dist,
     int layer_idx,
-    SectionType section_type)
+    ::curaengine::utils::SectionType section_type)
     : transitioning_angle_(transitioning_angle)
     , discretization_step_size_(discretization_step_size)
     , transition_filter_dist_(transition_filter_dist)
@@ -396,17 +399,17 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     constructFromPolygons(polys.getShape());
 }
 
-void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
+void SkeletalTrapezoidation::constructFromPolygons(const ::curaengine::geometry::Shape& polys)
 {
     vd_edge_to_he_edge_.clear();
     vd_node_to_he_node_.clear();
 
-    std::vector<Point2LL> points; // Remains empty
+    std::vector<::curaengine::geometry::Point2LL> points; // Remains empty
 
     std::vector<Segment> segments;
     for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
-        const Polygon& poly = polys[poly_idx];
+        const ::curaengine::geometry::Polygon& poly = polys[poly_idx];
         for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             segments.emplace_back(&polys, poly_idx, point_idx);
@@ -422,8 +425,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
         { // There is no spoon
             continue;
         }
-        Point2LL start_source_point;
-        Point2LL end_source_point;
+        ::curaengine::geometry::Point2LL start_source_point;
+        ::curaengine::geometry::Point2LL end_source_point;
         vd_t::edge_type* starting_vonoroi_edge = nullptr;
         vd_t::edge_type* ending_vonoroi_edge = nullptr;
         // Compute and store result in above variables
@@ -451,7 +454,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
         edge_t* prev_edge = nullptr;
         transferEdge(
             start_source_point,
-            VoronoiUtils::p(starting_vonoroi_edge->vertex1()),
+            ::curaengine::utils::VoronoiUtils::p(starting_vonoroi_edge->vertex1()),
             *starting_vonoroi_edge,
             prev_edge,
             start_source_point,
@@ -465,14 +468,14 @@ void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
         for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
-            Point2LL v1 = VoronoiUtils::p(vd_edge->vertex0());
-            Point2LL v2 = VoronoiUtils::p(vd_edge->vertex1());
+            ::curaengine::geometry::Point2LL v1 = ::curaengine::utils::VoronoiUtils::p(vd_edge->vertex0());
+            ::curaengine::geometry::Point2LL v2 = ::curaengine::utils::VoronoiUtils::p(vd_edge->vertex1());
             transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
             graph_.makeRib(prev_edge, start_source_point, end_source_point);
         }
 
-        transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        transferEdge(::curaengine::utils::VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
         prev_edge->to_->data_.distance_to_boundary_ = 0;
     }
 
@@ -526,7 +529,7 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-void SkeletalTrapezoidation::generateToolpaths(std::vector<VariableWidthLines>& generated_toolpaths, bool filter_outermost_central_edges)
+void SkeletalTrapezoidation::generateToolpaths(std::vector<::curaengine::utils::VariableWidthLines>& generated_toolpaths, bool filter_outermost_central_edges)
 {
     p_generated_toolpaths = &generated_toolpaths;
 
@@ -715,7 +718,7 @@ void SkeletalTrapezoidation::updateIsCentral()
     //              `^'-._                                    corner is obtuse.
     //                             sin a = dR / dD
 
-    coord_t outer_edge_filter_length = beading_strategy_.getTransitionThickness(0) / 2;
+    ::curaengine::utils::coord_t outer_edge_filter_length = beading_strategy_.getTransitionThickness(0) / 2;
 
     double cap = sin(beading_strategy_.getTransitioningAngle() * 0.5); // = cos(bisector_angle / 2)
     for (edge_t& edge : graph_.edges_)
@@ -740,17 +743,17 @@ void SkeletalTrapezoidation::updateIsCentral()
         }
         else
         {
-            Point2LL a = edge.from_->p_;
-            Point2LL b = edge.to_->p_;
-            Point2LL ab = b - a;
-            coord_t dR = std::abs(edge.to_->data_.distance_to_boundary_ - edge.from_->data_.distance_to_boundary_);
-            coord_t dD = vSize(ab);
+            ::curaengine::geometry::Point2LL a = edge.from_->p_;
+            ::curaengine::geometry::Point2LL b = edge.to_->p_;
+            ::curaengine::geometry::Point2LL ab = b - a;
+            ::curaengine::utils::coord_t dR = std::abs(edge.to_->data_.distance_to_boundary_ - edge.from_->data_.distance_to_boundary_);
+            ::curaengine::utils::coord_t dD = ::curaengine::geometry::vSize(ab);
             edge.data_.setIsCentral(dR < dD * cap);
         }
     }
 }
 
-void SkeletalTrapezoidation::filterCentral(coord_t max_length)
+void SkeletalTrapezoidation::filterCentral(::curaengine::utils::coord_t max_length)
 {
     for (edge_t& edge : graph_.edges_)
     {
@@ -761,9 +764,9 @@ void SkeletalTrapezoidation::filterCentral(coord_t max_length)
     }
 }
 
-bool SkeletalTrapezoidation::filterCentral(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
+bool SkeletalTrapezoidation::filterCentral(edge_t* starting_edge, ::curaengine::utils::coord_t traveled_dist, ::curaengine::utils::coord_t max_length)
 {
-    coord_t length = vSize(starting_edge->from_->p_ - starting_edge->to_->p_);
+    ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(starting_edge->from_->p_ - starting_edge->to_->p_);
     if (traveled_dist + length > max_length)
     {
         return false;
@@ -817,14 +820,14 @@ void SkeletalTrapezoidation::updateBeadCount()
             if (node.data_.distance_to_boundary_ < 0)
             {
                 spdlog::warn("Distance to boundary not yet computed for local maximum!");
-                node.data_.distance_to_boundary_ = std::numeric_limits<coord_t>::max();
+                node.data_.distance_to_boundary_ = std::numeric_limits<::curaengine::utils::coord_t>::max();
                 edge_t* edge = node.incident_edge_;
                 do
                 {
-                    node.data_.distance_to_boundary_ = std::min(node.data_.distance_to_boundary_, edge->to_->data_.distance_to_boundary_ + vSize(edge->from_->p_ - edge->to_->p_));
+                    node.data_.distance_to_boundary_ = std::min(node.data_.distance_to_boundary_, edge->to_->data_.distance_to_boundary_ + ::curaengine::geometry::vSize(edge->from_->p_ - edge->to_->p_));
                 } while (edge = edge->twin_->next_, edge != node.incident_edge_);
             }
-            coord_t bead_count = beading_strategy_.getOptimalBeadCount(node.data_.distance_to_boundary_ * 2);
+            ::curaengine::utils::coord_t bead_count = beading_strategy_.getOptimalBeadCount(node.data_.distance_to_boundary_ * 2);
             node.data_.bead_count_ = bead_count;
         }
     }
@@ -843,19 +846,19 @@ void SkeletalTrapezoidation::filterNoncentralRegions()
             spdlog::warn("Encountered an uninitialized bead at the boundary!");
         }
         assert(edge.to_->data_.bead_count_ >= 0 || edge.to_->data_.distance_to_boundary_ == 0);
-        constexpr coord_t max_dist = 400;
+        constexpr ::curaengine::utils::coord_t max_dist = 400;
         filterNoncentralRegions(&edge, edge.to_->data_.bead_count_, 0, max_dist);
     }
 }
 
-bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist)
+bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, ::curaengine::utils::coord_t bead_count, ::curaengine::utils::coord_t traveled_dist, ::curaengine::utils::coord_t max_dist)
 {
-    coord_t r = to_edge->to_->data_.distance_to_boundary_;
+    ::curaengine::utils::coord_t r = to_edge->to_->data_.distance_to_boundary_;
 
     edge_t* next_edge = to_edge->next_;
     for (; next_edge && next_edge != to_edge->twin_; next_edge = next_edge->twin_->next_)
     {
-        if (next_edge->to_->data_.distance_to_boundary_ >= r || shorterThen(next_edge->to_->p_ - next_edge->from_->p_, 10))
+        if (next_edge->to_->data_.distance_to_boundary_ >= r || ::curaengine::geometry::shorterThen(next_edge->to_->p_ - next_edge->from_->p_, 10))
         {
             break; // Only walk upward
         }
@@ -865,7 +868,7 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
         return false;
     }
 
-    const coord_t length = vSize(next_edge->to_->p_ - next_edge->from_->p_);
+    const ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(next_edge->to_->p_ - next_edge->from_->p_);
 
     bool dissolve = false;
     if (next_edge->to_->data_.bead_count_ == bead_count)
@@ -926,8 +929,8 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
         { // Only central regions introduce transitions
             continue;
         }
-        coord_t start_R = edge.from_->data_.distance_to_boundary_;
-        coord_t end_R = edge.to_->data_.distance_to_boundary_;
+        ::curaengine::utils::coord_t start_R = edge.from_->data_.distance_to_boundary_;
+        ::curaengine::utils::coord_t end_R = edge.to_->data_.distance_to_boundary_;
         int start_bead_count = edge.from_->data_.bead_count_;
         int end_bead_count = edge.to_->data_.bead_count_;
 
@@ -959,10 +962,10 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
         {
             spdlog::warn("Transitioning the wrong way around! This function expects to transition from small R to big R, but was transitioning from {} to {}.", start_R, end_R);
         }
-        coord_t edge_size = vSize(edge.from_->p_ - edge.to_->p_);
+        ::curaengine::utils::coord_t edge_size = ::curaengine::geometry::vSize(edge.from_->p_ - edge.to_->p_);
         for (int transition_lower_bead_count = start_bead_count; transition_lower_bead_count < end_bead_count; transition_lower_bead_count++)
         {
-            coord_t mid_R = beading_strategy_.getTransitionThickness(transition_lower_bead_count) / 2;
+            ::curaengine::utils::coord_t mid_R = beading_strategy_.getTransitionThickness(transition_lower_bead_count) / 2;
             if (mid_R > end_R)
             {
                 spdlog::error("transition on segment lies outside of segment!");
@@ -973,7 +976,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
                 spdlog::error("transition on segment lies outside of segment!");
                 mid_R = start_R;
             }
-            coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
+            ::curaengine::utils::coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
             assert(mid_pos >= 0);
             assert(mid_pos <= edge_size);
             if (mid_pos < 0 || mid_pos > edge_size)
@@ -1009,10 +1012,10 @@ void SkeletalTrapezoidation::filterTransitionMids()
         assert(transitions.front().lower_bead_count_ <= transitions.back().lower_bead_count_);
         assert(edge.from_->data_.distance_to_boundary_ <= edge.to_->data_.distance_to_boundary_);
 
-        const Point2LL a = edge.from_->p_;
-        const Point2LL b = edge.to_->p_;
-        Point2LL ab = b - a;
-        coord_t ab_size = vSize(ab);
+        const ::curaengine::geometry::Point2LL a = edge.from_->p_;
+        const ::curaengine::geometry::Point2LL b = edge.to_->p_;
+        ::curaengine::geometry::Point2LL ab = b - a;
+        ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab);
 
         bool going_up = true;
         std::list<TransitionMidRef> to_be_dissolved_back
@@ -1025,8 +1028,8 @@ void SkeletalTrapezoidation::filterTransitionMids()
         }
 
         {
-            coord_t trans_bead_count = transitions.back().lower_bead_count_;
-            coord_t upper_transition_half_length = (1.0 - beading_strategy_.getTransitionAnchorPos(trans_bead_count)) * beading_strategy_.getTransitioningLength(trans_bead_count);
+            ::curaengine::utils::coord_t trans_bead_count = transitions.back().lower_bead_count_;
+            ::curaengine::utils::coord_t upper_transition_half_length = (1.0 - beading_strategy_.getTransitionAnchorPos(trans_bead_count)) * beading_strategy_.getTransitioningLength(trans_bead_count);
             should_dissolve_back |= filterEndOfCentralTransition(&edge, ab_size - transitions.back().pos_, upper_transition_half_length, trans_bead_count);
         }
 
@@ -1049,8 +1052,8 @@ void SkeletalTrapezoidation::filterTransitionMids()
         }
 
         {
-            coord_t trans_bead_count = transitions.front().lower_bead_count_;
-            coord_t lower_transition_half_length = beading_strategy_.getTransitionAnchorPos(trans_bead_count) * beading_strategy_.getTransitioningLength(trans_bead_count);
+            ::curaengine::utils::coord_t trans_bead_count = transitions.front().lower_bead_count_;
+            ::curaengine::utils::coord_t lower_transition_half_length = beading_strategy_.getTransitionAnchorPos(trans_bead_count) * beading_strategy_.getTransitioningLength(trans_bead_count);
             should_dissolve_front |= filterEndOfCentralTransition(edge.twin_, transitions.front().pos_, lower_transition_half_length, trans_bead_count + 1);
         }
 
@@ -1066,7 +1069,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
 }
 
 std::list<SkeletalTrapezoidation::TransitionMidRef>
-    SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up)
+    SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, ::curaengine::utils::coord_t traveled_dist, ::curaengine::utils::coord_t max_dist, bool going_up)
 {
     std::list<TransitionMidRef> to_be_dissolved;
     if (traveled_dist > max_dist)
@@ -1081,19 +1084,19 @@ std::list<SkeletalTrapezoidation::TransitionMidRef>
             continue;
         }
 
-        Point2LL a = edge->from_->p_;
-        Point2LL b = edge->to_->p_;
-        Point2LL ab = b - a;
-        coord_t ab_size = vSize(ab);
+        ::curaengine::geometry::Point2LL a = edge->from_->p_;
+        ::curaengine::geometry::Point2LL b = edge->to_->p_;
+        ::curaengine::geometry::Point2LL ab = b - a;
+        ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab);
         bool is_aligned = edge->isUpward();
         edge_t* aligned_edge = is_aligned ? edge : edge->twin_;
         bool seen_transition_on_this_edge = false;
 
-        const coord_t origin_radius = origin_transition.feature_radius_;
-        const coord_t radius_here = edge->from_->data_.distance_to_boundary_;
+        const ::curaengine::utils::coord_t origin_radius = origin_transition.feature_radius_;
+        const ::curaengine::utils::coord_t radius_here = edge->from_->data_.distance_to_boundary_;
         const bool dissolve_result_is_odd = bool(origin_transition.lower_bead_count_ % 2) == going_up;
-        const coord_t width_deviation = std::abs(origin_radius - radius_here) * 2; // times by two because the deviation happens at both sides of the significant edge
-        const coord_t line_width_deviation = dissolve_result_is_odd
+        const ::curaengine::utils::coord_t width_deviation = std::abs(origin_radius - radius_here) * 2; // times by two because the deviation happens at both sides of the significant edge
+        const ::curaengine::utils::coord_t line_width_deviation = dissolve_result_is_odd
                                                ? width_deviation
                                                : width_deviation / 2; // assume the deviation will be split over either 1 or 2 lines, i.e. assume wall_distribution_count = 1
         if (line_width_deviation > allowed_filter_deviation_)
@@ -1107,7 +1110,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef>
             for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++transition_it)
             { // Note: this is not necessarily iterating in the traveling direction!
                 // Check whether we should dissolve
-                coord_t pos = is_aligned ? transition_it->pos_ : ab_size - transition_it->pos_;
+                ::curaengine::utils::coord_t pos = is_aligned ? transition_it->pos_ : ab_size - transition_it->pos_;
                 if (traveled_dist + pos < max_dist && transition_it->lower_bead_count_ == origin_transition.lower_bead_count_) // Only dissolve local optima
                 {
                     if (traveled_dist + pos < beading_strategy_.getTransitioningLength(transition_it->lower_bead_count_))
@@ -1143,7 +1146,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef>
 }
 
 
-void SkeletalTrapezoidation::dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count)
+void SkeletalTrapezoidation::dissolveBeadCountRegion(edge_t* edge_to_start, ::curaengine::utils::coord_t from_bead_count, ::curaengine::utils::coord_t to_bead_count)
 {
     assert(from_bead_count != to_bead_count);
     if (edge_to_start->to_->data_.bead_count_ != from_bead_count)
@@ -1162,7 +1165,7 @@ void SkeletalTrapezoidation::dissolveBeadCountRegion(edge_t* edge_to_start, coor
     }
 }
 
-bool SkeletalTrapezoidation::filterEndOfCentralTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count)
+bool SkeletalTrapezoidation::filterEndOfCentralTransition(edge_t* edge_to_start, ::curaengine::utils::coord_t traveled_dist, ::curaengine::utils::coord_t max_dist, ::curaengine::utils::coord_t replacing_bead_count)
 {
     if (traveled_dist > max_dist)
     {
@@ -1175,7 +1178,7 @@ bool SkeletalTrapezoidation::filterEndOfCentralTransition(edge_t* edge_to_start,
     {
         if (next_edge->data_.isCentral())
         {
-            coord_t length = vSize(next_edge->to_->p_ - next_edge->from_->p_);
+            ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(next_edge->to_->p_ - next_edge->from_->p_);
             should_dissolve |= filterEndOfCentralTransition(next_edge, traveled_dist + length, max_dist, replacing_bead_count);
             is_end_of_central = false;
         }
@@ -1212,32 +1215,32 @@ void SkeletalTrapezoidation::generateAllTransitionEnds(ptr_vector_t<std::list<Tr
     }
 }
 
-void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
+void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, ::curaengine::utils::coord_t mid_pos, ::curaengine::utils::coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
-    const Point2LL a = edge.from_->p_;
-    const Point2LL b = edge.to_->p_;
-    const Point2LL ab = b - a;
-    const coord_t ab_size = vSize(ab);
+    const ::curaengine::geometry::Point2LL a = edge.from_->p_;
+    const ::curaengine::geometry::Point2LL b = edge.to_->p_;
+    const ::curaengine::geometry::Point2LL ab = b - a;
+    const ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab);
 
-    const coord_t transition_length = beading_strategy_.getTransitioningLength(lower_bead_count);
+    const ::curaengine::utils::coord_t transition_length = beading_strategy_.getTransitioningLength(lower_bead_count);
     const double transition_mid_position = beading_strategy_.getTransitionAnchorPos(lower_bead_count);
     constexpr double inner_bead_width_ratio_after_transition = 1.0;
 
-    constexpr Ratio start_rest{ 0.0 };
+    constexpr ::curaengine::types::Ratio start_rest{ 0.0 };
     const double mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
     constexpr double end_rest = inner_bead_width_ratio_after_transition;
 
     { // Lower bead count transition end
-        const coord_t start_pos = ab_size - mid_pos;
-        const coord_t transition_half_length = transition_mid_position * transition_length;
-        const coord_t end_pos = start_pos + transition_half_length;
+        const ::curaengine::utils::coord_t start_pos = ab_size - mid_pos;
+        const ::curaengine::utils::coord_t transition_half_length = transition_mid_position * transition_length;
+        const ::curaengine::utils::coord_t end_pos = start_pos + transition_half_length;
         generateTransitionEnd(*edge.twin_, start_pos, end_pos, transition_half_length, mid_rest, start_rest, lower_bead_count, edge_transition_ends);
     }
 
     { // Upper bead count transition end
-        const coord_t start_pos = mid_pos;
-        const coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
-        const coord_t end_pos = mid_pos + transition_half_length;
+        const ::curaengine::utils::coord_t start_pos = mid_pos;
+        const ::curaengine::utils::coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
+        const ::curaengine::utils::coord_t end_pos = mid_pos + transition_half_length;
 #ifdef DEBUG
         if (! generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends))
         {
@@ -1251,18 +1254,18 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
 
 bool SkeletalTrapezoidation::generateTransitionEnd(
     edge_t& edge,
-    coord_t start_pos,
-    coord_t end_pos,
-    coord_t transition_half_length,
-    Ratio start_rest,
-    Ratio end_rest,
-    coord_t lower_bead_count,
+    ::curaengine::utils::coord_t start_pos,
+    ::curaengine::utils::coord_t end_pos,
+    ::curaengine::utils::coord_t transition_half_length,
+    ::curaengine::types::Ratio start_rest,
+    ::curaengine::types::Ratio end_rest,
+    ::curaengine::utils::coord_t lower_bead_count,
     ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
-    Point2LL a = edge.from_->p_;
-    Point2LL b = edge.to_->p_;
-    Point2LL ab = b - a;
-    coord_t ab_size = vSize(ab); // TODO: prevent recalculation of these values
+    ::curaengine::geometry::Point2LL a = edge.from_->p_;
+    ::curaengine::geometry::Point2LL b = edge.to_->p_;
+    ::curaengine::geometry::Point2LL ab = b - a;
+    ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab); // TODO: prevent recalculation of these values
 
     assert(start_pos <= ab_size);
     if (start_pos > ab_size)
@@ -1286,7 +1289,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(
         assert(rest <= std::max(end_rest, start_rest));
         assert(rest >= std::min(end_rest, start_rest));
 
-        coord_t central_edge_count = 0;
+        ::curaengine::utils::coord_t central_edge_count = 0;
         for (edge_t* outgoing = edge.next_; outgoing && outgoing != edge.twin_; outgoing = outgoing->twin_->next_)
         {
             if (! outgoing->data_.isCentral())
@@ -1326,7 +1329,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(
     else // end_pos < ab_size
     { // Add transition end point here
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
-        coord_t pos = -1;
+        ::curaengine::utils::coord_t pos = -1;
 
         edge_t* upward_edge = nullptr;
         if (edge.isUpward())
@@ -1349,7 +1352,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(
         auto transitions = upward_edge->data_.getTransitionEnds();
 
         // Add a transition to it (on the correct side).
-        assert(ab_size == vSize(edge.twin_->from_->p_ - edge.twin_->to_->p_));
+        assert(ab_size == ::curaengine::geometry::vSize(edge.twin_->from_->p_ - edge.twin_->to_->p_));
         assert(pos <= ab_size);
         if (transitions->empty() || pos < transitions->front().pos_)
         { // Preorder so that sorting later on is faster
@@ -1364,7 +1367,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(
 }
 
 
-bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count) const
+bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, ::curaengine::utils::coord_t traveled_dist, ::curaengine::utils::coord_t max_dist, ::curaengine::utils::coord_t lower_bead_count) const
 {
     // NOTE: the logic below is not fully thought through.
     // TODO: take transition mids into account
@@ -1383,7 +1386,7 @@ bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
         }
         return false;
     }
-    coord_t length = vSize(outgoing->to_->p_ - outgoing->from_->p_);
+    ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(outgoing->to_->p_ - outgoing->from_->p_);
     if (upward_edge->data_.hasTransitions())
     {
         auto& transition_mids = *upward_edge->data_.getTransitions();
@@ -1423,7 +1426,7 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
     {
         if (edge.twin_->data_.hasTransitionEnds())
         {
-            coord_t length = vSize(edge.from_->p_ - edge.to_->p_);
+            ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(edge.from_->p_ - edge.to_->p_);
             auto& twin_transition_ends = *edge.twin_->data_.getTransitionEnds();
             if (! edge.data_.hasTransitionEnds())
             {
@@ -1457,16 +1460,16 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
 
         node_t* from = edge.from_;
         node_t* to = edge.to_;
-        Point2LL a = from->p_;
-        Point2LL b = to->p_;
-        Point2LL ab = b - a;
-        coord_t ab_size = vSize(ab);
+        ::curaengine::geometry::Point2LL a = from->p_;
+        ::curaengine::geometry::Point2LL b = to->p_;
+        ::curaengine::geometry::Point2LL ab = b - a;
+        ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab);
 
         edge_t* last_edge_replacing_input = &edge;
         for (TransitionEnd& transition_end : transitions)
         {
-            coord_t new_node_bead_count = transition_end.is_lower_end_ ? transition_end.lower_bead_count_ : transition_end.lower_bead_count_ + 1;
-            coord_t end_pos = transition_end.pos_;
+            ::curaengine::utils::coord_t new_node_bead_count = transition_end.is_lower_end_ ? transition_end.lower_bead_count_ : transition_end.lower_bead_count_ + 1;
+            ::curaengine::utils::coord_t end_pos = transition_end.pos_;
             node_t* close_node = (end_pos < ab_size / 2) ? from : to;
             if ((end_pos < snap_dist_ || end_pos > ab_size - snap_dist_) && close_node->data_.bead_count_ == new_node_bead_count)
             {
@@ -1474,7 +1477,7 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
                 close_node->data_.transition_ratio_ = 0;
                 continue;
             }
-            Point2LL mid = a + normal(ab, end_pos);
+            ::curaengine::geometry::Point2LL mid = a + ::curaengine::geometry::normal(ab, end_pos);
 
             assert(last_edge_replacing_input->data_.isCentral());
             assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
@@ -1512,13 +1515,13 @@ void SkeletalTrapezoidation::generateExtraRibs()
     //       The code was equivalent to a full loop over all the edges though, unless there was one edge or less, in which case it would produce undefined behaviour.
     for (auto& edge : graph_.edges_)
     {
-        if (! edge.data_.isCentral() || shorterThen(edge.to_->p_ - edge.from_->p_, discretization_step_size_)
+        if (! edge.data_.isCentral() || ::curaengine::geometry::shorterThen(edge.to_->p_ - edge.from_->p_, discretization_step_size_)
             || edge.from_->data_.distance_to_boundary_ >= edge.to_->data_.distance_to_boundary_)
         {
             continue;
         }
 
-        std::vector<coord_t> rib_thicknesses = beading_strategy_.getNonlinearThicknesses(edge.from_->data_.bead_count_);
+        std::vector<::curaengine::utils::coord_t> rib_thicknesses = beading_strategy_.getNonlinearThicknesses(edge.from_->data_.bead_count_);
 
         if (rib_thicknesses.empty())
         {
@@ -1528,15 +1531,15 @@ void SkeletalTrapezoidation::generateExtraRibs()
         // Preload some variables before [edge] gets changed
         node_t* from = edge.from_;
         node_t* to = edge.to_;
-        Point2LL a = from->p_;
-        Point2LL b = to->p_;
-        Point2LL ab = b - a;
-        coord_t ab_size = vSize(ab);
-        coord_t a_R = edge.from_->data_.distance_to_boundary_;
-        coord_t b_R = edge.to_->data_.distance_to_boundary_;
+        ::curaengine::geometry::Point2LL a = from->p_;
+        ::curaengine::geometry::Point2LL b = to->p_;
+        ::curaengine::geometry::Point2LL ab = b - a;
+        ::curaengine::utils::coord_t ab_size = ::curaengine::geometry::vSize(ab);
+        ::curaengine::utils::coord_t a_R = edge.from_->data_.distance_to_boundary_;
+        ::curaengine::utils::coord_t b_R = edge.to_->data_.distance_to_boundary_;
 
         edge_t* last_edge_replacing_input = &edge;
-        for (coord_t rib_thickness : rib_thicknesses)
+        for (::curaengine::utils::coord_t rib_thickness : rib_thicknesses)
         {
             if (rib_thickness / 2 <= a_R)
             {
@@ -1547,8 +1550,8 @@ void SkeletalTrapezoidation::generateExtraRibs()
                 break;
             }
 
-            coord_t new_node_bead_count = std::min(edge.from_->data_.bead_count_, edge.to_->data_.bead_count_);
-            coord_t end_pos = ab_size * (rib_thickness / 2 - a_R) / (b_R - a_R);
+            ::curaengine::utils::coord_t new_node_bead_count = std::min(edge.from_->data_.bead_count_, edge.to_->data_.bead_count_);
+            ::curaengine::utils::coord_t end_pos = ab_size * (rib_thickness / 2 - a_R) / (b_R - a_R);
             assert(end_pos > 0);
             assert(end_pos < ab_size);
             node_t* close_node = (end_pos < ab_size / 2) ? from : to;
@@ -1558,7 +1561,7 @@ void SkeletalTrapezoidation::generateExtraRibs()
                 close_node->data_.transition_ratio_ = 0;
                 continue;
             }
-            Point2LL mid = a + normal(ab, end_pos);
+            ::curaengine::geometry::Point2LL mid = a + ::curaengine::geometry::normal(ab, end_pos);
 
             assert(last_edge_replacing_input->data_.isCentral());
             assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
@@ -1597,9 +1600,9 @@ void SkeletalTrapezoidation::generateSegments()
             { // PathOrdering between two 'upward' edges of the same distance is important when one of the edges is flat and connected to the other
                 if (a->from_->data_.distance_to_boundary_ == a->to_->data_.distance_to_boundary_ && b->from_->data_.distance_to_boundary_ == b->to_->data_.distance_to_boundary_)
                 {
-                    coord_t max = std::numeric_limits<coord_t>::max();
-                    coord_t a_dist_from_up = std::min(a->distToGoUp().value_or(max), a->twin_->distToGoUp().value_or(max)) - vSize(a->to_->p_ - a->from_->p_);
-                    coord_t b_dist_from_up = std::min(b->distToGoUp().value_or(max), b->twin_->distToGoUp().value_or(max)) - vSize(b->to_->p_ - b->from_->p_);
+                    ::curaengine::utils::coord_t max = std::numeric_limits<::curaengine::utils::coord_t>::max();
+                    ::curaengine::utils::coord_t a_dist_from_up = std::min(a->distToGoUp().value_or(max), a->twin_->distToGoUp().value_or(max)) - ::curaengine::geometry::vSize(a->to_->p_ - a->from_->p_);
+                    ::curaengine::utils::coord_t b_dist_from_up = std::min(b->distToGoUp().value_or(max), b->twin_->distToGoUp().value_or(max)) - ::curaengine::geometry::vSize(b->to_->p_ - b->from_->p_);
                     return a_dist_from_up < b_dist_from_up;
                 }
                 else if (a->from_->data_.distance_to_boundary_ == a->to_->data_.distance_to_boundary_)
@@ -1656,7 +1659,7 @@ void SkeletalTrapezoidation::generateSegments()
 
     propagateBeadingsDownward(upward_quad_mids, node_beadings);
 
-    ptr_vector_t<LineJunctions> edge_junctions; // junctions ordered high R to low R
+    ptr_vector_t<::curaengine::utils::LineJunctions> edge_junctions; // junctions ordered high R to low R
     generateJunctions(node_beadings, edge_junctions);
 
     connectJunctions(edge_junctions);
@@ -1668,11 +1671,11 @@ SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t
 {
     assert(quad_start_edge->prev_ == nullptr);
     assert(quad_start_edge->from_->data_.distance_to_boundary_ == 0);
-    coord_t max_R = -1;
+    ::curaengine::utils::coord_t max_R = -1;
     edge_t* ret = nullptr;
     for (edge_t* edge = quad_start_edge; edge; edge = edge->next_)
     {
-        coord_t r = edge->to_->data_.distance_to_boundary_;
+        ::curaengine::utils::coord_t r = edge->to_->data_.distance_to_boundary_;
         if (r > max_R)
         {
             max_R = r;
@@ -1708,9 +1711,9 @@ void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         }
         assert(
             (upward_edge->from_->data_.distance_to_boundary_ != upward_edge->to_->data_.distance_to_boundary_
-             || shorterThen(upward_edge->to_->p_ - upward_edge->from_->p_, central_filter_dist_))
+             || ::curaengine::geometry::shorterThen(upward_edge->to_->p_ - upward_edge->from_->p_, central_filter_dist_))
             && "zero difference R edges should always be central");
-        coord_t length = vSize(upward_edge->to_->p_ - upward_edge->from_->p_);
+        ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(upward_edge->to_->p_ - upward_edge->from_->p_);
         BeadingPropagation upper_beading = lower_beading;
         upper_beading.dist_to_bottom_source_ += length;
         upper_beading.is_upward_propagated_only_ = true;
@@ -1743,7 +1746,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upw
 
 void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr_vector_t<BeadingPropagation>& node_beadings)
 {
-    coord_t length = vSize(edge_to_peak->to_->p_ - edge_to_peak->from_->p_);
+    ::curaengine::utils::coord_t length = ::curaengine::geometry::vSize(edge_to_peak->to_->p_ - edge_to_peak->from_->p_);
     BeadingPropagation& top_beading = *getOrCreateBeading(edge_to_peak->to_, node_beadings);
     assert(top_beading.beading_.total_thickness >= edge_to_peak->to_->data_.distance_to_boundary_ * 2);
     if (top_beading.beading_.total_thickness < edge_to_peak->to_->data_.distance_to_boundary_ * 2)
@@ -1767,8 +1770,8 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr
     else
     {
         BeadingPropagation& bottom_beading = *edge_to_peak->from_->data_.getBeading();
-        coord_t total_dist = top_beading.dist_from_top_source_ + length + bottom_beading.dist_to_bottom_source_;
-        Ratio ratio_of_top = static_cast<double>(bottom_beading.dist_to_bottom_source_) / std::min(total_dist, beading_propagation_transition_dist_);
+        ::curaengine::utils::coord_t total_dist = top_beading.dist_from_top_source_ + length + bottom_beading.dist_to_bottom_source_;
+        ::curaengine::types::Ratio ratio_of_top = static_cast<double>(bottom_beading.dist_to_bottom_source_) / std::min(total_dist, beading_propagation_transition_dist_);
         ratio_of_top = std::max(0.0_r, ratio_of_top);
         if (ratio_of_top >= 1.0)
         {
@@ -1790,15 +1793,15 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr
 }
 
 
-SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, ::curaengine::types::Ratio ratio_left_to_whole, const Beading& right, ::curaengine::utils::coord_t switching_radius) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     Beading ret = interpolate(left, ratio_left_to_whole, right);
 
     // TODO: don't use toolpath locations past the middle!
     // TODO: stretch bead widths and locations of the higher bead count beading to fit in the left over space
-    coord_t next_inset_idx;
-    for (next_inset_idx = static_cast<coord_t>(left.toolpath_locations.size()) - 1; next_inset_idx >= 0; next_inset_idx--)
+    ::curaengine::utils::coord_t next_inset_idx;
+    for (next_inset_idx = static_cast<::curaengine::utils::coord_t>(left.toolpath_locations.size()) - 1; next_inset_idx >= 0; next_inset_idx--)
     {
         if (switching_radius > left.toolpath_locations[next_inset_idx])
         {
@@ -1810,11 +1813,11 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
         assert(left.toolpath_locations.empty() || left.toolpath_locations.front() >= switching_radius);
         return ret;
     }
-    if (next_inset_idx + 1 == coord_t(left.toolpath_locations.size()))
+    if (next_inset_idx + 1 == ::curaengine::utils::coord_t(left.toolpath_locations.size()))
     { // We cant adjust to fit the next edge because there is no previous one?!
         return ret;
     }
-    assert(next_inset_idx < coord_t(left.toolpath_locations.size()));
+    assert(next_inset_idx < ::curaengine::utils::coord_t(left.toolpath_locations.size()));
     assert(left.toolpath_locations[next_inset_idx] <= switching_radius);
     assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
     if (ret.toolpath_locations[next_inset_idx] > switching_radius)
@@ -1834,7 +1837,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
 }
 
 
-SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, ::curaengine::types::Ratio ratio_left_to_whole, const Beading& right) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     double ratio_right_to_whole = 1.0 - ratio_left_to_whole;
@@ -1855,7 +1858,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     return ret;
 }
 
-void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<LineJunctions>& edge_junctions)
+void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<::curaengine::utils::LineJunctions>& edge_junctions)
 {
     for (edge_t& edge_ : graph_.edges_)
     {
@@ -1865,8 +1868,8 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             continue;
         }
 
-        coord_t start_R = edge->to_->data_.distance_to_boundary_; // higher R
-        coord_t end_R = edge->from_->data_.distance_to_boundary_; // lower R
+        ::curaengine::utils::coord_t start_R = edge->to_->data_.distance_to_boundary_; // higher R
+        ::curaengine::utils::coord_t end_R = edge->from_->data_.distance_to_boundary_; // lower R
 
         if ((edge->from_->data_.bead_count_ == edge->to_->data_.bead_count_ && edge->from_->data_.bead_count_ >= 0) || end_R >= start_R)
         { // No beads to generate
@@ -1874,9 +1877,9 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
         }
 
         Beading* beading = &getOrCreateBeading(edge->to_, node_beadings)->beading_;
-        edge_junctions.emplace_back(std::make_shared<LineJunctions>());
+        edge_junctions.emplace_back(std::make_shared<::curaengine::utils::LineJunctions>());
         edge_.data_.setExtrusionJunctions(edge_junctions.back()); // initialization
-        LineJunctions& ret = *edge_junctions.back();
+        ::curaengine::utils::LineJunctions& ret = *edge_junctions.back();
 
         assert(beading->total_thickness >= edge->to_->data_.distance_to_boundary_ * 2);
         if (beading->total_thickness < edge->to_->data_.distance_to_boundary_ * 2)
@@ -1884,16 +1887,16 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             spdlog::warn("Generated junction is beyond the center of total width.");
         }
 
-        Point2LL a = edge->to_->p_;
-        Point2LL b = edge->from_->p_;
-        Point2LL ab = b - a;
+        ::curaengine::geometry::Point2LL a = edge->to_->p_;
+        ::curaengine::geometry::Point2LL b = edge->from_->p_;
+        ::curaengine::geometry::Point2LL ab = b - a;
 
         const size_t num_junctions = beading->toolpath_locations.size();
         size_t junction_idx;
         // Compute starting junction_idx for this segment
         for (junction_idx = (std::max(size_t(1), beading->toolpath_locations.size()) - 1) / 2; junction_idx < num_junctions; junction_idx--)
         {
-            coord_t bead_R = beading->toolpath_locations[junction_idx];
+            ::curaengine::utils::coord_t bead_R = beading->toolpath_locations[junction_idx];
             // Adding a small epsilon (+1) to resolve an edge-case caused by rounding errors. (Would result in missing middle line.)
             if (bead_R <= start_R + 1)
             { // Junction coinciding with start node is used in this function call
@@ -1910,13 +1913,13 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
 
         for (; junction_idx < num_junctions; junction_idx--) // When junction_idx underflows, it'll be more than num_junctions too.
         {
-            coord_t bead_R = beading->toolpath_locations[junction_idx];
+            ::curaengine::utils::coord_t bead_R = beading->toolpath_locations[junction_idx];
             assert(bead_R >= 0);
             if (bead_R < end_R)
             { // Junction coinciding with a node is handled by the next segment
                 break;
             }
-            Point2LL junction(a + ab * (bead_R - start_R) / (end_R - start_R));
+            ::curaengine::geometry::Point2LL junction(a + ab * (bead_R - start_R) / (end_R - start_R));
             if (bead_R > start_R - 5)
             { // Snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
                 junction = a;
@@ -1932,7 +1935,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     {
         if (node->data_.bead_count_ == -1)
         { // This bug is due to too small central edges
-            constexpr coord_t nearby_dist = 100; // TODO
+            constexpr ::curaengine::utils::coord_t nearby_dist = 100; // TODO
             auto nearest_beading = getNearestBeading(node, nearby_dist);
             if (nearest_beading)
             {
@@ -1942,7 +1945,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
             // Else make a new beading:
             bool has_central_edge = false;
             bool first = true;
-            coord_t dist = std::numeric_limits<coord_t>::max();
+            ::curaengine::utils::coord_t dist = std::numeric_limits<::curaengine::utils::coord_t>::max();
             for (edge_t* edge = node->incident_edge_; edge && (first || edge != node->incident_edge_); edge = edge->twin_->next_)
             {
                 if (edge->data_.isCentral())
@@ -1950,14 +1953,14 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
                     has_central_edge = true;
                 }
                 assert(edge->to_->data_.distance_to_boundary_ >= 0);
-                dist = std::min(dist, edge->to_->data_.distance_to_boundary_ + vSize(edge->to_->p_ - edge->from_->p_));
+                dist = std::min(dist, edge->to_->data_.distance_to_boundary_ + ::curaengine::geometry::vSize(edge->to_->p_ - edge->from_->p_));
                 first = false;
             }
             if (! has_central_edge)
             {
                 spdlog::error("Unknown beading for non-central node!");
             }
-            assert(dist != std::numeric_limits<coord_t>::max());
+            assert(dist != std::numeric_limits<::curaengine::utils::coord_t>::max());
             node->data_.bead_count_ = beading_strategy_.getOptimalBeadCount(dist * 2);
         }
         assert(node->data_.bead_count_ != -1);
@@ -1968,14 +1971,14 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     return node->data_.getBeading();
 }
 
-std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezoidation::getNearestBeading(node_t* node, coord_t max_dist)
+std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezoidation::getNearestBeading(node_t* node, ::curaengine::utils::coord_t max_dist)
 {
     struct DistEdge
     {
         edge_t* edge_to_;
-        coord_t dist_;
+        ::curaengine::utils::coord_t dist_;
 
-        DistEdge(edge_t* edge_to, coord_t dist)
+        DistEdge(edge_t* edge_to, ::curaengine::utils::coord_t dist)
             : edge_to_(edge_to)
             , dist_(dist)
         {
@@ -1990,11 +1993,11 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     bool first = true;
     for (edge_t* outgoing = node->incident_edge_; outgoing && (first || outgoing != node->incident_edge_); outgoing = outgoing->twin_->next_)
     {
-        further_edges.emplace(outgoing, vSize(outgoing->to_->p_ - outgoing->from_->p_));
+        further_edges.emplace(outgoing, ::curaengine::geometry::vSize(outgoing->to_->p_ - outgoing->from_->p_));
         first = false;
     }
 
-    for (coord_t counter = 0; counter < SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX; counter++)
+    for (::curaengine::utils::coord_t counter = 0; counter < SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX; counter++)
     { // Prevent endless recursion
         if (further_edges.empty())
             return nullptr;
@@ -2010,19 +2013,19 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
         { // recurse
             for (edge_t* further_edge = here.edge_to_->next_; further_edge && further_edge != here.edge_to_->twin_; further_edge = further_edge->twin_->next_)
             {
-                further_edges.emplace(further_edge, here.dist_ + vSize(further_edge->to_->p_ - further_edge->from_->p_));
+                further_edges.emplace(further_edge, here.dist_ + ::curaengine::geometry::vSize(further_edge->to_->p_ - further_edge->from_->p_));
             }
         }
     }
     return nullptr;
 }
 
-void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way)
+void SkeletalTrapezoidation::addToolpathSegment(const ::curaengine::utils::ExtrusionJunction& from, const ::curaengine::utils::ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way)
 {
     if (from == to)
         return;
 
-    std::vector<VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
+    std::vector<::curaengine::utils::VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
 
     size_t inset_idx = from.perimeter_index_;
     if (inset_idx >= generated_toolpaths.size())
@@ -2036,14 +2039,14 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     {
         force_new_path = true;
     }
-    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - from.p_, 10)
+    if (! force_new_path && ::curaengine::geometry::shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - from.p_, 10)
         && std::abs(generated_toolpaths[inset_idx].back().junctions_.back().w_ - from.w_) < 10 && ! from_is_3way // force new path at 3way intersection
     )
     {
         generated_toolpaths[inset_idx].back().junctions_.push_back(to);
     }
     else if (
-        ! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - to.p_, 10)
+        ! force_new_path && ::curaengine::geometry::shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - to.p_, 10)
         && std::abs(generated_toolpaths[inset_idx].back().junctions_.back().w_ - to.w_) < 10 && ! to_is_3way // force new path at 3way intersection
     )
     {
@@ -2061,7 +2064,7 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     }
 };
 
-void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_junctions)
+void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<::curaengine::utils::LineJunctions>& edge_junctions)
 {
     std::unordered_set<edge_t*> unprocessed_quad_starts(graph_.edges_.size() * 5 / 2);
     for (edge_t& edge : graph_.edges_)
@@ -2096,21 +2099,21 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
 
             if (! edge_to_peak->data_.hasExtrusionJunctions())
             {
-                edge_junctions.emplace_back(std::make_shared<LineJunctions>());
+                edge_junctions.emplace_back(std::make_shared<::curaengine::utils::LineJunctions>());
                 edge_to_peak->data_.setExtrusionJunctions(edge_junctions.back());
             }
             // The junctions on the edge(s) from the start of the quad to the node with highest R
-            LineJunctions from_junctions = *edge_to_peak->data_.getExtrusionJunctions();
+            ::curaengine::utils::LineJunctions from_junctions = *edge_to_peak->data_.getExtrusionJunctions();
             if (! edge_from_peak->twin_->data_.hasExtrusionJunctions())
             {
-                edge_junctions.emplace_back(std::make_shared<LineJunctions>());
+                edge_junctions.emplace_back(std::make_shared<::curaengine::utils::LineJunctions>());
                 edge_from_peak->twin_->data_.setExtrusionJunctions(edge_junctions.back());
             }
             // The junctions on the edge(s) from the end of the quad to the node with highest R
-            LineJunctions to_junctions = *edge_from_peak->twin_->data_.getExtrusionJunctions();
+            ::curaengine::utils::LineJunctions to_junctions = *edge_from_peak->twin_->data_.getExtrusionJunctions();
             if (edge_to_peak->prev_)
             {
-                LineJunctions from_prev_junctions = *edge_to_peak->prev_->data_.getExtrusionJunctions();
+                ::curaengine::utils::LineJunctions from_prev_junctions = *edge_to_peak->prev_->data_.getExtrusionJunctions();
                 while (! from_junctions.empty() && ! from_prev_junctions.empty() && from_junctions.back().perimeter_index_ <= from_prev_junctions.front().perimeter_index_)
                 {
                     from_junctions.pop_back();
@@ -2125,7 +2128,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             }
             if (edge_from_peak->next_)
             {
-                LineJunctions to_next_junctions = *edge_from_peak->next_->twin_->data_.getExtrusionJunctions();
+                ::curaengine::utils::LineJunctions to_next_junctions = *edge_from_peak->next_->twin_->data_.getExtrusionJunctions();
                 while (! to_junctions.empty() && ! to_next_junctions.empty() && to_junctions.back().perimeter_index_ <= to_next_junctions.front().perimeter_index_)
                 {
                     to_junctions.pop_back();
@@ -2150,8 +2153,8 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
             for (size_t junction_rev_idx = 0; junction_rev_idx < segment_count; junction_rev_idx++)
             {
-                ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
-                ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
+                ::curaengine::utils::ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
+                ::curaengine::utils::ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
                 assert(from.perimeter_index_ == to.perimeter_index_);
                 if (from.perimeter_index_ != to.perimeter_index_)
                 {
@@ -2160,11 +2163,11 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 const bool from_is_odd = quad_start->to_->data_.bead_count_ > 0 && quad_start->to_->data_.bead_count_ % 2 == 1 // quad contains single bead segment
                                       && quad_start->to_->data_.transition_ratio_ == 0 // We're not in a transition
                                       && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                      && shorterThen(from.p_ - quad_start->to_->p_, 5);
+                                      && ::curaengine::geometry::shorterThen(from.p_ - quad_start->to_->p_, 5);
                 const bool to_is_odd = quad_end->from_->data_.bead_count_ > 0 && quad_end->from_->data_.bead_count_ % 2 == 1 // quad contains single bead segment
                                     && quad_end->from_->data_.transition_ratio_ == 0 // We're not in a transition
                                     && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                    && shorterThen(to.p_ - quad_end->from_->p_, 5);
+                                    && ::curaengine::geometry::shorterThen(to.p_ - quad_end->from_->p_, 5);
                 const bool is_odd_segment = from_is_odd && to_is_odd;
 
                 if (is_odd_segment && passed_odd_edges.count(quad_start->next_->twin_) > 0) // Only generate toolpath for odd segments once
@@ -2186,9 +2189,9 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
 
 void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
-    std::vector<VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
+    std::vector<::curaengine::utils::VariableWidthLines>& generated_toolpaths = *p_generated_toolpaths;
 
-    const auto addCircleToToolpath = [&](const Point2LL& center, coord_t width, size_t inset_index)
+    const auto addCircleToToolpath = [&](const ::curaengine::geometry::Point2LL& center, ::curaengine::utils::coord_t width, size_t inset_index)
     {
         if (inset_index >= generated_toolpaths.size())
         {
@@ -2196,24 +2199,24 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
         constexpr bool is_odd = true;
         generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
-        ExtrusionLine& line = generated_toolpaths[inset_index].back();
+        ::curaengine::utils::ExtrusionLine& line = generated_toolpaths[inset_index].back();
         // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
         // Width a constant extrusion width w, that would be a length of pi*w/4
         // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
         // So our circle needs to be such that r=w/8
-        const coord_t r = width / 8;
-        constexpr coord_t n_segments = 6;
-        const auto circle = PolygonUtils::makeCircle<std::vector<ExtrusionJunction>, true>(center, r, n_segments, width, inset_index);
+        const ::curaengine::utils::coord_t r = width / 8;
+        constexpr ::curaengine::utils::coord_t n_segments = 6;
+        const auto circle = ::curaengine::utils::PolygonUtils::makeCircle<std::vector<::curaengine::utils::ExtrusionJunction>, true>(center, r, n_segments, width, inset_index);
         line.junctions_.insert(line.junctions_.end(), circle.begin(), circle.end());
     };
 
     struct LocalMaximaPoint
     {
-        Point2LL p_;
-        coord_t width_;
+        ::curaengine::geometry::Point2LL p_;
+        ::curaengine::utils::coord_t width_;
         size_t accumulator_;
 
-        LocalMaximaPoint(const Point2LL& p, coord_t width)
+        LocalMaximaPoint(const ::curaengine::geometry::Point2LL& p, ::curaengine::utils::coord_t width)
             : p_(p)
             , width_(width)
             , accumulator_(1)
@@ -2227,14 +2230,14 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             accumulator_ += other.accumulator_;
         }
 
-        Point2LL getAveragePoint() const
+        ::curaengine::geometry::Point2LL getAveragePoint() const
         {
-            return p_ / static_cast<coord_t>(accumulator_);
+            return p_ / static_cast<::curaengine::utils::coord_t>(accumulator_);
         }
 
-        coord_t getAverageWidth() const
+        ::curaengine::utils::coord_t getAverageWidth() const
         {
-            return width_ / static_cast<coord_t>(accumulator_);
+            return width_ / static_cast<::curaengine::utils::coord_t>(accumulator_);
         }
     };
 
@@ -2250,7 +2253,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true))
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
-            const coord_t width = beading.bead_widths[inset_index];
+            const ::curaengine::utils::coord_t width = beading.bead_widths[inset_index];
             if (! node.isCentral())
             {
                 addCircleToToolpath(node.p_, width, inset_index);
@@ -2266,7 +2269,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
                     local_maxima_points,
                     [&](const LocalMaximaPoint& local_maxima_point)
                     {
-                        return vSize2(local_maxima_point.p_ - node.p_) < max_local_maxima_dist2;
+                        return ::curaengine::geometry::vSize2(local_maxima_point.p_ - node.p_) < max_local_maxima_dist2;
                     });
 
                 if (it != local_maxima_points.end())
@@ -2282,14 +2285,14 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
     }
 
     bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
-    coord_t total_path_length = 0;
+    ::curaengine::utils::coord_t total_path_length = 0;
     if (! replace_with_local_maxima)
     {
-        coord_t min_width = std::numeric_limits<coord_t>::max();
+        ::curaengine::utils::coord_t min_width = std::numeric_limits<::curaengine::utils::coord_t>::max();
         for (const auto& line : generated_toolpaths[0])
         {
             total_path_length += line.length();
-            for (const ExtrusionJunction& j : line)
+            for (const ::curaengine::utils::ExtrusionJunction& j : line)
             {
                 min_width = std::min(min_width, j.w_);
             }
@@ -2320,4 +2323,4 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 // =====================
 //
 
-} // namespace curaengine
+} // namespace curaengine::arachne

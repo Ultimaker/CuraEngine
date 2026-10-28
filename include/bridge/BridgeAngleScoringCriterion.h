@@ -5,21 +5,31 @@
 
 #include <vector>
 
-#include "settings/types/AngleDegrees.h"
+#include "types/AngleDegrees.h"
 #include "utils/scoring/ScoringCriterion.h"
 
 namespace curaengine
 {
-
 struct AngleCandidate;
-class TransformedShape;
+}
+
+namespace curaengine::geometry
+{
 class Shape;
+}
+
+namespace curaengine::bridge
+{
+
+
+class TransformedShape;
+
 
 /*! Base class for criteria that calculate a score for a candidate bridging angle */
-class BridgeAngleScoringCriterion : public ScoringCriterion
+class BridgeAngleScoringCriterion : public ::curaengine::utils::scoring::ScoringCriterion
 {
 public:
-    explicit BridgeAngleScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions);
+    explicit BridgeAngleScoringCriterion(const std::vector<::curaengine::types::AngleDegrees>& candidates, const ::curaengine::geometry::Shape& skin_outline, const ::curaengine::geometry::Shape& supported_regions);
 
     double computeScore(const size_t candidate_index) const override;
 
@@ -33,9 +43,9 @@ protected:
     virtual double computeScore(const TransformedShape& transformed_skin, const TransformedShape& transformed_supported_regions) const = 0;
 
 private:
-    const std::vector<AngleDegrees>& candidates_;
-    const Shape& skin_outline_;
-    const Shape& supported_regions_;
+    const std::vector<::curaengine::types::AngleDegrees>& candidates_;
+    const ::curaengine::geometry::Shape& skin_outline_;
+    const ::curaengine::geometry::Shape& supported_regions_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::bridge

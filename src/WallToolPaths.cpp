@@ -12,7 +12,7 @@
 #include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
 
-#include "BeadingStrategy/BeadingStrategyFactory.h"
+#include "beading_strategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "utils/ExtrusionLineStitcher.h"
@@ -24,14 +24,14 @@ namespace curaengine
 {
 
 WallToolPaths::WallToolPaths(
-    const Shape& outline,
-    const coord_t nominal_bead_width,
+    const ::curaengine::geometry::Shape& outline,
+    const ::curaengine::utils::coord_t nominal_bead_width,
     const size_t inset_count,
-    const coord_t wall_0_inset,
-    const coord_t wall_x_inset,
+    const ::curaengine::utils::coord_t wall_0_inset,
+    const ::curaengine::utils::coord_t wall_x_inset,
     const Settings& settings,
     const int layer_idx,
-    SectionType section_type,
+    ::curaengine::utils::SectionType section_type,
     WallToolPathGenerator generator)
     : outline_(outline)
     , bead_width_0_(nominal_bead_width)
@@ -41,7 +41,7 @@ WallToolPaths::WallToolPaths(
     , wall_x_inset_(wall_x_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size_(nominal_bead_width / 4)
-    , wall_transition_angle_(AngleDegrees(10))
+    , wall_transition_angle_(::curaengine::types::AngleDegrees(10))
     , wall_transition_length_(nominal_bead_width)
     , min_even_wall_line_width_(std::llrint(nominal_bead_width * 0.85))
     , wall_line_width_0_(nominal_bead_width)
@@ -61,15 +61,15 @@ WallToolPaths::WallToolPaths(
 }
 
 WallToolPaths::WallToolPaths(
-    const Shape& outline,
-    const coord_t bead_width_0,
-    const coord_t bead_width_x,
+    const ::curaengine::geometry::Shape& outline,
+    const ::curaengine::utils::coord_t bead_width_0,
+    const ::curaengine::utils::coord_t bead_width_x,
     const size_t inset_count,
-    const coord_t wall_0_inset,
-    const coord_t wall_x_inset,
+    const ::curaengine::utils::coord_t wall_0_inset,
+    const ::curaengine::utils::coord_t wall_x_inset,
     const Settings& settings,
     const int layer_idx,
-    SectionType section_type)
+    ::curaengine::utils::SectionType section_type)
     : outline_(outline)
     , bead_width_0_(bead_width_0)
     , bead_width_x_(bead_width_x)
@@ -77,18 +77,18 @@ WallToolPaths::WallToolPaths(
     , wall_0_inset_(wall_0_inset)
     , wall_x_inset_(wall_x_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
-    , min_feature_size_(settings.get<coord_t>("min_feature_size"))
-    , min_bead_width_(settings.get<coord_t>("min_bead_width"))
-    , wall_transition_angle_(settings.get<AngleRadians>("wall_transition_angle"))
-    , wall_transition_length_(settings.get<coord_t>("wall_transition_length"))
+    , min_feature_size_(settings.get<::curaengine::utils::coord_t>("min_feature_size"))
+    , min_bead_width_(settings.get<::curaengine::utils::coord_t>("min_bead_width"))
+    , wall_transition_angle_(settings.get<::curaengine::types::AngleRadians>("wall_transition_angle"))
+    , wall_transition_length_(settings.get<::curaengine::utils::coord_t>("wall_transition_length"))
     , min_even_wall_line_width_(settings.get<double>("min_even_wall_line_width"))
     , wall_line_width_0_(settings.get<double>("wall_line_width_0"))
     , min_odd_wall_line_width_(settings.get<double>("min_odd_wall_line_width"))
     , wall_line_width_x_(settings.get<double>("wall_line_width_x"))
     , wall_distribution_count_(settings.get<int>("wall_distribution_count"))
-    , wall_transition_filter_distance_(settings.get<coord_t>("wall_transition_filter_distance"))
-    , wall_transition_filter_deviation_(settings.get<coord_t>("wall_transition_filter_deviation"))
-    , stitch_distance_(settings.get<coord_t>("wall_line_width_x") - 1) // In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
+    , wall_transition_filter_distance_(settings.get<::curaengine::utils::coord_t>("wall_transition_filter_distance"))
+    , wall_transition_filter_deviation_(settings.get<::curaengine::utils::coord_t>("wall_transition_filter_deviation"))
+    , stitch_distance_(settings.get<::curaengine::utils::coord_t>("wall_line_width_x") - 1) // In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
     , toolpaths_generated_(false)
     , settings_(settings)
     , layer_idx_(layer_idx)
@@ -96,7 +96,7 @@ WallToolPaths::WallToolPaths(
 {
 }
 
-const std::vector<VariableWidthLines>& WallToolPaths::generate()
+const std::vector<::curaengine::utils::VariableWidthLines>& WallToolPaths::generate()
 {
     switch (generator_)
     {
@@ -112,18 +112,18 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     return toolpaths_;
 }
 
-void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const coord_t stitch_distance)
+void WallToolPaths::stitchToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths, const ::curaengine::utils::coord_t stitch_distance)
 {
     for (unsigned int wall_idx = 0; wall_idx < toolpaths.size(); wall_idx++)
     {
-        VariableWidthLines& wall_lines = toolpaths[wall_idx];
+        ::curaengine::utils::VariableWidthLines& wall_lines = toolpaths[wall_idx];
 
-        VariableWidthLines stitched_polylines;
-        VariableWidthLines closed_polygons;
-        ExtrusionLineStitcher::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
+        ::curaengine::utils::VariableWidthLines stitched_polylines;
+        ::curaengine::utils::VariableWidthLines closed_polygons;
+        ::curaengine::utils::ExtrusionLineStitcher::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
         wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 
-        for (ExtrusionLine& wall_polygon : closed_polygons)
+        for (::curaengine::utils::ExtrusionLine& wall_polygon : closed_polygons)
         {
             if (wall_polygon.junctions_.empty())
             {
@@ -133,7 +133,7 @@ void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, 
             wall_lines.emplace_back(std::move(wall_polygon)); // add stitched polygons to result
         }
 #ifdef DEBUG
-        for (ExtrusionLine& line : wall_lines)
+        for (::curaengine::utils::ExtrusionLine& line : wall_lines)
         {
             assert(line.inset_idx_ == wall_idx);
         }
@@ -141,19 +141,19 @@ void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, 
     }
 }
 
-void WallToolPaths::removeSmallFillLines(std::vector<VariableWidthLines>& toolpaths)
+void WallToolPaths::removeSmallFillLines(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths)
 {
-    for (VariableWidthLines& inset : toolpaths)
+    for (::curaengine::utils::VariableWidthLines& inset : toolpaths)
     {
         for (size_t line_idx = 0; line_idx < inset.size(); line_idx++)
         {
-            ExtrusionLine& line = inset[line_idx];
+            ::curaengine::utils::ExtrusionLine& line = inset[line_idx];
             if (line.is_outer_wall())
             {
                 continue;
             }
-            coord_t min_width = std::numeric_limits<coord_t>::max();
-            for (const ExtrusionJunction& j : line)
+            ::curaengine::utils::coord_t min_width = std::numeric_limits<::curaengine::utils::coord_t>::max();
+            for (const ::curaengine::utils::ExtrusionJunction& j : line)
             {
                 min_width = std::min(min_width, j.w_);
             }
@@ -167,9 +167,9 @@ void WallToolPaths::removeSmallFillLines(std::vector<VariableWidthLines>& toolpa
     }
 }
 
-void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
+void WallToolPaths::simplifyToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths, const Settings& settings)
 {
-    const Simplify simplifier(settings);
+    const ::curaengine::utils::Simplify simplifier(settings);
     for (auto& toolpath : toolpaths)
     {
         toolpath = toolpath
@@ -195,23 +195,23 @@ void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths
 
 void WallToolPaths::generateArachne()
 {
-    MendedShape prepared_outline(&settings_, section_type_, &outline_);
+    ::curaengine::geometry::MendedShape prepared_outline(&settings_, section_type_, &outline_);
     if (prepared_outline.getShape().area() <= 0)
     {
         assert(toolpaths_.empty());
         return;
     }
 
-    constexpr coord_t discretization_step_size = MM2INT(0.8);
+    constexpr ::curaengine::utils::coord_t discretization_step_size = MM2INT(0.8);
 
     // When to split the middle wall into two:
-    const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width_ - wall_line_width_0_) / wall_line_width_0_)) / 100.0;
+    const ::curaengine::types::Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width_ - wall_line_width_0_) / wall_line_width_0_)) / 100.0;
 
     // When to add a new middle in between the innermost two walls:
-    const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width_ / wall_line_width_x_)) / 100.0;
+    const ::curaengine::types::Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width_ / wall_line_width_x_)) / 100.0;
 
     const size_t max_bead_count = (inset_count_ < std::numeric_limits<size_t>::max() / 2) ? 2 * inset_count_ : std::numeric_limits<size_t>::max();
-    const auto beading_strat = BeadingStrategyFactory::makeStrategy(
+    const auto beading_strat = ::curaengine::beading_strategy::BeadingStrategyFactory::makeStrategy(
         bead_width_0_,
         bead_width_x_,
         wall_transition_length_,
@@ -225,7 +225,7 @@ void WallToolPaths::generateArachne()
         wall_0_inset_,
         wall_x_inset_,
         wall_distribution_count_);
-    SkeletalTrapezoidation wall_maker(
+    ::curaengine::arachne::SkeletalTrapezoidation wall_maker(
         prepared_outline,
         *beading_strat,
         beading_strat->getTransitioningAngle(),
@@ -241,11 +241,11 @@ void WallToolPaths::generateArachne()
         toolpaths_,
         section_type_,
         layer_idx_,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
 
     stitchToolPaths(toolpaths_, stitch_distance_);
     scripta::log(
@@ -253,11 +253,11 @@ void WallToolPaths::generateArachne()
         toolpaths_,
         section_type_,
         layer_idx_,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
 
     removeSmallFillLines(toolpaths_);
     scripta::log(
@@ -265,11 +265,11 @@ void WallToolPaths::generateArachne()
         toolpaths_,
         section_type_,
         layer_idx_,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
 
     simplifyToolPaths(toolpaths_, settings_);
     scripta::log(
@@ -277,11 +277,11 @@ void WallToolPaths::generateArachne()
         toolpaths_,
         section_type_,
         layer_idx_,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
 
     separateOutInnerContour();
 
@@ -291,16 +291,16 @@ void WallToolPaths::generateArachne()
         toolpaths_,
         section_type_,
         layer_idx_,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
     assert(
         std::is_sorted(
             toolpaths_.cbegin(),
             toolpaths_.cend(),
-            [](const VariableWidthLines& l, const VariableWidthLines& r)
+            [](const ::curaengine::utils::VariableWidthLines& l, const ::curaengine::utils::VariableWidthLines& r)
             {
                 return l.front().inset_idx_ < r.front().inset_idx_;
             })
@@ -310,16 +310,16 @@ void WallToolPaths::generateArachne()
         toolpaths_,
         section_type_,
         layer_idx_,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
 }
 
 void WallToolPaths::generateNaiveInset()
 {
-    std::vector<Shape> walls;
+    std::vector<::curaengine::geometry::Shape> walls;
     walls.reserve(inset_count_);
 
     if (inset_count_ > 0)
@@ -334,17 +334,17 @@ void WallToolPaths::generateNaiveInset()
 
     for (const auto& [inset_index, shape] : walls | ranges::views::enumerate)
     {
-        VariableWidthLines lines;
-        const coord_t line_width = inset_index == 0 ? wall_line_width_0_ : wall_line_width_x_;
+        ::curaengine::utils::VariableWidthLines lines;
+        const ::curaengine::utils::coord_t line_width = inset_index == 0 ? wall_line_width_0_ : wall_line_width_x_;
 
-        for (const Polygon& polygon : shape)
+        for (const ::curaengine::geometry::Polygon& polygon : shape)
         {
             if (! polygon.isValid())
             {
                 continue;
             }
 
-            ExtrusionLine extrusion_line(inset_index);
+            ::curaengine::utils::ExtrusionLine extrusion_line(inset_index);
             for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
             {
                 if (iterator == polygon.beginSegments())
@@ -361,7 +361,7 @@ void WallToolPaths::generateNaiveInset()
     }
 }
 
-const std::vector<VariableWidthLines>& WallToolPaths::getToolPaths()
+const std::vector<::curaengine::utils::VariableWidthLines>& WallToolPaths::getToolPaths()
 {
     if (! toolpaths_generated_)
     {
@@ -370,7 +370,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::getToolPaths()
     return toolpaths_;
 }
 
-void WallToolPaths::pushToolPaths(std::vector<VariableWidthLines>& paths)
+void WallToolPaths::pushToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& paths)
 {
     if (! toolpaths_generated_)
     {
@@ -382,21 +382,21 @@ void WallToolPaths::pushToolPaths(std::vector<VariableWidthLines>& paths)
 void WallToolPaths::separateOutInnerContour()
 {
     // We'll remove all 0-width paths from the original toolpaths and store them separately as polygons.
-    std::vector<VariableWidthLines> actual_toolpaths;
+    std::vector<::curaengine::utils::VariableWidthLines> actual_toolpaths;
     actual_toolpaths.reserve(toolpaths_.size()); // A bit too much, but the correct order of magnitude.
-    std::vector<VariableWidthLines> contour_paths;
+    std::vector<::curaengine::utils::VariableWidthLines> contour_paths;
     contour_paths.reserve(toolpaths_.size() / inset_count_);
     inner_contour_.clear();
-    for (const VariableWidthLines& inset : toolpaths_)
+    for (const ::curaengine::utils::VariableWidthLines& inset : toolpaths_)
     {
         if (inset.empty())
         {
             continue;
         }
         bool is_contour = false;
-        for (const ExtrusionLine& line : inset)
+        for (const ::curaengine::utils::ExtrusionLine& line : inset)
         {
-            for (const ExtrusionJunction& j : line)
+            for (const ::curaengine::utils::ExtrusionJunction& j : line)
             {
                 if (j.w_ == 0)
                 {
@@ -414,15 +414,15 @@ void WallToolPaths::separateOutInnerContour()
         if (is_contour)
         {
 #ifdef DEBUG
-            for (const ExtrusionLine& line : inset)
+            for (const ::curaengine::utils::ExtrusionLine& line : inset)
             {
-                for (const ExtrusionJunction& j : line)
+                for (const ::curaengine::utils::ExtrusionJunction& j : line)
                 {
                     assert(j.w_ == 0);
                 }
             }
 #endif // DEBUG
-            for (const ExtrusionLine& line : inset)
+            for (const ::curaengine::utils::ExtrusionLine& line : inset)
             {
                 if (line.is_odd_)
                 {
@@ -456,7 +456,7 @@ void WallToolPaths::separateOutInnerContour()
     inner_contour_ = inner_contour_.processEvenOdd();
 }
 
-const Shape& WallToolPaths::getInnerContour()
+const ::curaengine::geometry::Shape& WallToolPaths::getInnerContour()
 {
     if (! toolpaths_generated_ && inset_count_ > 0)
     {
@@ -469,15 +469,15 @@ const Shape& WallToolPaths::getInnerContour()
     return inner_contour_;
 }
 
-bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpaths)
+bool WallToolPaths::removeEmptyToolPaths(std::vector<::curaengine::utils::VariableWidthLines>& toolpaths)
 {
-    for (VariableWidthLines& toolpath : toolpaths)
+    for (::curaengine::utils::VariableWidthLines& toolpath : toolpaths)
     {
         toolpath.erase(
             std::remove_if(
                 toolpath.begin(),
                 toolpath.end(),
-                [](const ExtrusionLine& line)
+                [](const ::curaengine::utils::ExtrusionLine& line)
                 {
                     return line.junctions_.empty();
                 }),
@@ -488,7 +488,7 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpa
         std::remove_if(
             toolpaths.begin(),
             toolpaths.end(),
-            [](const VariableWidthLines& lines)
+            [](const ::curaengine::utils::VariableWidthLines& lines)
             {
                 return lines.empty();
             }),

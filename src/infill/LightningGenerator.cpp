@@ -34,25 +34,26 @@
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
 
-using namespace curaengine;
+namespace curaengine::infill
+{
 
 LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 {
     const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
-    const auto layer_thickness = infill_extruder.settings_.get<coord_t>(
+    const auto layer_thickness = infill_extruder.settings_.get<::curaengine::utils::coord_t>(
         "layer_height"); // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
-    const auto infill_line_width = infill_extruder.settings_.get<coord_t>("infill_line_width");
-    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
-    const auto line_distance = infill_extruder.settings_.get<coord_t>("infill_line_distance");
-    const auto overhang_angle = infill_extruder.settings_.get<AngleRadians>("lightning_infill_overhang_angle");
-    const auto prune_angle = infill_extruder.settings_.get<AngleRadians>("lightning_infill_prune_angle");
-    const auto straightening_angle = infill_extruder.settings_.get<AngleRadians>("lightning_infill_straightening_angle");
+    const auto infill_line_width = infill_extruder.settings_.get<::curaengine::utils::coord_t>("infill_line_width");
+    const auto infill_wall_line_count = static_cast<::curaengine::utils::coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+    const auto line_distance = infill_extruder.settings_.get<::curaengine::utils::coord_t>("infill_line_distance");
+    const auto overhang_angle = infill_extruder.settings_.get<::curaengine::types::AngleRadians>("lightning_infill_overhang_angle");
+    const auto prune_angle = infill_extruder.settings_.get<::curaengine::types::AngleRadians>("lightning_infill_prune_angle");
+    const auto straightening_angle = infill_extruder.settings_.get<::curaengine::types::AngleRadians>("lightning_infill_straightening_angle");
 
-    std::vector<Shape> areas_per_layer;
+    std::vector<::curaengine::geometry::Shape> areas_per_layer;
     areas_per_layer.reserve(mesh.layers.size());
     for (const SliceLayer& current_layer : mesh.layers)
     {
-        Shape infill_area_here;
+        ::curaengine::geometry::Shape infill_area_here;
         for (auto& part : current_layer.parts)
         {
             infill_area_here.push_back(part.getOwnInfillArea());
@@ -74,19 +75,19 @@ LightningGenerator::LightningGenerator(const SupportStorage& support)
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const auto support_extruder = settings.get<ExtruderTrain&>("support_extruder_nr");
     const Settings& extruder_settings = support_extruder.settings_;
-    const auto layer_thickness = extruder_settings.get<coord_t>("support_infill_sparse_thickness");
-    const auto infill_line_width = extruder_settings.get<coord_t>("support_line_width");
-    const auto infill_wall_thickness = settings.get<coord_t>("support_wall_thickness");
-    const auto line_distance = extruder_settings.get<coord_t>("support_line_distance");
-    const auto overhang_angle = extruder_settings.get<AngleRadians>("support_lightning_overhang_angle");
-    const auto prune_angle = extruder_settings.get<AngleRadians>("support_lightning_prune_angle");
-    const auto straightening_angle = extruder_settings.get<AngleRadians>("support_lightning_straightening_angle");
+    const auto layer_thickness = extruder_settings.get<::curaengine::utils::coord_t>("support_infill_sparse_thickness");
+    const auto infill_line_width = extruder_settings.get<::curaengine::utils::coord_t>("support_line_width");
+    const auto infill_wall_thickness = settings.get<::curaengine::utils::coord_t>("support_wall_thickness");
+    const auto line_distance = extruder_settings.get<::curaengine::utils::coord_t>("support_line_distance");
+    const auto overhang_angle = extruder_settings.get<::curaengine::types::AngleRadians>("support_lightning_overhang_angle");
+    const auto prune_angle = extruder_settings.get<::curaengine::types::AngleRadians>("support_lightning_prune_angle");
+    const auto straightening_angle = extruder_settings.get<::curaengine::types::AngleRadians>("support_lightning_straightening_angle");
 
-    std::vector<Shape> areas_per_layer;
+    std::vector<::curaengine::geometry::Shape> areas_per_layer;
     areas_per_layer.reserve(support.supportLayers.size());
     for (const SupportLayer& support_layer : support.supportLayers)
     {
-        Shape supper_area_here;
+        ::curaengine::geometry::Shape supper_area_here;
         for (const SupportInfillPart& part : support_layer.support_infill_parts)
         {
             supper_area_here.push_back(part.infill_area_per_combine_per_density_.front().front());
@@ -98,19 +99,19 @@ LightningGenerator::LightningGenerator(const SupportStorage& support)
     generate(layer_thickness, infill_line_width, infill_wall_thickness, line_distance, overhang_angle, prune_angle, straightening_angle, areas_per_layer);
 }
 
-void LightningGenerator::generateInitialInternalOverhangs(const coord_t infill_wall_thickness, const std::vector<Shape>& shape_per_layer)
+void LightningGenerator::generateInitialInternalOverhangs(const ::curaengine::utils::coord_t infill_wall_thickness, const std::vector<::curaengine::geometry::Shape>& shape_per_layer)
 {
     overhang_per_layer.resize(shape_per_layer.size());
-    const coord_t infill_wall_offset = -infill_wall_thickness;
+    const ::curaengine::utils::coord_t infill_wall_offset = -infill_wall_thickness;
 
-    Shape infill_area_above;
+    ::curaengine::geometry::Shape infill_area_above;
     // Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
     for (const auto& [layer_nr, layer_shape] : shape_per_layer | ranges::views::enumerate | ranges::views::reverse)
     {
-        Shape infill_area_here = layer_shape.offset(infill_wall_offset);
+        ::curaengine::geometry::Shape infill_area_here = layer_shape.offset(infill_wall_offset);
 
         // Remove the part of the infill area that is already supported by the walls.
-        Shape overhang = infill_area_here.offset(-wall_supporting_radius).difference(infill_area_above);
+        ::curaengine::geometry::Shape overhang = infill_area_here.offset(-wall_supporting_radius).difference(infill_area_above);
 
         overhang_per_layer[layer_nr] = overhang;
         infill_area_above = std::move(infill_area_here);
@@ -124,14 +125,14 @@ const LightningLayer& LightningGenerator::getTreesForLayer(const size_t& layer_i
 }
 
 void LightningGenerator::generate(
-    const coord_t layer_thickness,
-    const coord_t line_width,
-    const coord_t wall_thickness,
-    const coord_t line_distance,
-    const AngleRadians& overhang_angle,
-    const AngleRadians& prune_angle,
-    const AngleRadians& straightening_angle,
-    const std::vector<Shape>& shape_per_layer)
+    const ::curaengine::utils::coord_t layer_thickness,
+    const ::curaengine::utils::coord_t line_width,
+    const ::curaengine::utils::coord_t wall_thickness,
+    const ::curaengine::utils::coord_t line_distance,
+    const ::curaengine::types::AngleRadians& overhang_angle,
+    const ::curaengine::types::AngleRadians& prune_angle,
+    const ::curaengine::types::AngleRadians& straightening_angle,
+    const std::vector<::curaengine::geometry::Shape>& shape_per_layer)
 {
     supporting_radius = std::max(line_distance, line_width) / 2;
     wall_supporting_radius = layer_thickness * std::tan(overhang_angle);
@@ -142,13 +143,13 @@ void LightningGenerator::generate(
     generateTrees(wall_thickness, shape_per_layer);
 }
 
-void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, const std::vector<Shape>& shape_per_layer)
+void LightningGenerator::generateTrees(const ::curaengine::utils::coord_t infill_wall_thickness, const std::vector<::curaengine::geometry::Shape>& shape_per_layer)
 {
     lightning_layers.resize(shape_per_layer.size());
-    const coord_t infill_wall_offset = -infill_wall_thickness;
+    const ::curaengine::utils::coord_t infill_wall_offset = -infill_wall_thickness;
 
-    std::vector<Shape> infill_outlines;
-    infill_outlines.insert(infill_outlines.end(), shape_per_layer.size(), Shape());
+    std::vector<::curaengine::geometry::Shape> infill_outlines;
+    infill_outlines.insert(infill_outlines.end(), shape_per_layer.size(), ::curaengine::geometry::Shape());
 
     // For-each layer from top to bottom:
     for (const auto& [layer_nr, layer_shape] : shape_per_layer | ranges::views::enumerate | ranges::views::reverse)
@@ -158,13 +159,13 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
     const size_t top_layer_id = shape_per_layer.size() - 1;
-    auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
+    auto outlines_locator_ptr = ::curaengine::utils::PolygonUtils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
 
     // For-each layer from top to bottom:
     for (int layer_id = top_layer_id; layer_id >= 0; layer_id--)
     {
         LightningLayer& current_lightning_layer = lightning_layers[layer_id];
-        Shape& current_outlines = infill_outlines[layer_id];
+        ::curaengine::geometry::Shape& current_outlines = infill_outlines[layer_id];
         const auto& outlines_locator = *outlines_locator_ptr;
 
         // register all trees propagated from the previous layer as to-be-reconnected
@@ -179,8 +180,8 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
         {
             return;
         }
-        const Shape& below_outlines = infill_outlines[layer_id - 1];
-        outlines_locator_ptr = PolygonUtils::createLocToLineGrid(below_outlines, locator_cell_size);
+        const ::curaengine::geometry::Shape& below_outlines = infill_outlines[layer_id - 1];
+        outlines_locator_ptr = ::curaengine::utils::PolygonUtils::createLocToLineGrid(below_outlines, locator_cell_size);
         const auto& below_outlines_locator = *outlines_locator_ptr;
 
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
@@ -190,3 +191,5 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
         }
     }
 }
+
+} // namespace curaengine::infill

@@ -5,7 +5,7 @@
 
 #include "PathsPointIndex.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -15,12 +15,12 @@ class PolygonsSegmentIndex : public PolygonsPointIndex
 {
 public:
     PolygonsSegmentIndex();
-    PolygonsSegmentIndex(const Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
+    PolygonsSegmentIndex(const ::curaengine::geometry::Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
 
-    Point2LL from() const;
+    ::curaengine::geometry::Point2LL from() const;
 
-    Point2LL to() const;
+    ::curaengine::geometry::Point2LL to() const;
 };
 
 
-} // namespace curaengine
+} // namespace curaengine::utils

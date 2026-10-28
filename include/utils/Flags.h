@@ -5,7 +5,7 @@
 
 #include <type_traits>
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -64,4 +64,4 @@ private:
     enum_int_type value_{ 0 };
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

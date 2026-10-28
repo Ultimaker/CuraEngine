@@ -9,8 +9,8 @@
 #include <numeric>
 #include <unordered_set>
 
-#include "settings/types/AngleDegrees.h"
-#include "settings/types/AngleRadians.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
 
 #ifdef BUILD_TESTS
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -33,13 +33,16 @@
 #include "geometry/PartsView.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 #include "utils/AABB.h"
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
+using ::curaengine::utils::operator""_mu;
+
+
 
 Shape::Shape(ClipperLib::Paths&& paths, bool explicitely_closed)
 {
@@ -95,12 +98,12 @@ void Shape::makeConvex()
             const auto& current = window[0];
             const auto& after = window[1];
 
-            if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
+            if (::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
             {
                 // Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
                 while (convexified.size() >= 2
-                       && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], current) >= 0
-                           || LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], convexified.front()) > 0))
+                       && (::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], current) >= 0
+                           || ::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], convexified.front()) > 0))
                 {
                     convexified.pop_back();
                 }
@@ -108,7 +111,7 @@ void Shape::makeConvex()
             }
         }
 
-        while (convexified.size() >= 2 && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
+        while (convexified.size() >= 2 && (::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
         {
             convexified.pop_back();
         }
@@ -213,7 +216,7 @@ Shape Shape::intersection(const Shape& other) const
     return Shape{ std::move(ret) };
 }
 
-Shape Shape::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape Shape::offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty())
     {
@@ -264,7 +267,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
         Point2LL p0 = poly.back();
         for (const Point2LL& p1 : poly)
         {
-            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
+            short comp = ::curaengine::utils::LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
             {
                 crossings[poly_idx]++;
@@ -310,7 +313,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 }
 
 template<class LineType>
-OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const
+OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const ::curaengine::utils::coord_t max_stitch_distance, const bool split_into_segments) const
 {
     if (empty() || polylines.empty())
     {
@@ -340,8 +343,8 @@ OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool resti
         OpenLinesSet result_open_lines;
         Shape result_closed_lines;
 
-        const coord_t snap_distance = 10_mu;
-        OpenPolylineStitcher::stitch(result_lines, result_open_lines, result_closed_lines, max_stitch_distance, snap_distance);
+        const ::curaengine::utils::coord_t snap_distance = 10_mu;
+        ::curaengine::utils::OpenPolylineStitcher::stitch(result_lines, result_open_lines, result_closed_lines, max_stitch_distance, snap_distance);
 
         result_lines = std::move(result_open_lines);
         // if open polylines got stitched into closed polylines, split them back up into open polylines again, because the result only admits open polylines
@@ -388,7 +391,7 @@ Shape Shape::execute(ClipperLib::PolyFillType pft) const
     return Shape{ std::move(ret) };
 }
 
-Shape Shape::offsetMulti(const std::vector<coord_t>& offset_dists) const
+Shape Shape::offsetMulti(const std::vector<::curaengine::utils::coord_t>& offset_dists) const
 {
     // we need as many offset-dists as points
     assert(pointCount() == offset_dists.size());
@@ -413,7 +416,7 @@ Shape Shape::offsetMulti(const std::vector<coord_t>& offset_dists) const
 
             auto vec_dir = prev_p - p;
 
-            constexpr coord_t min_vec_len = 10;
+            constexpr ::curaengine::utils::coord_t min_vec_len = 10;
             if (vSize2(vec_dir) > min_vec_len * min_vec_len)
             {
                 auto offset_p1 = turn90CCW(normal(vec_dir, prev_dist));
@@ -558,10 +561,10 @@ Shape Shape::removePolygon(const Shape& to_be_removed, int same_distance) const
 
                 // find closest point, supposing this point aligns the two shapes in the best way
                 size_t closest_point_idx = 0;
-                coord_t smallest_dist2 = -1;
+                ::curaengine::utils::coord_t smallest_dist2 = -1;
                 for (size_t point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                 {
-                    coord_t dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
+                    ::curaengine::utils::coord_t dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                     if (dist2 < smallest_dist2 || smallest_dist2 < 0)
                     {
                         smallest_dist2 = dist2;
@@ -570,14 +573,14 @@ Shape Shape::removePolygon(const Shape& to_be_removed, int same_distance) const
                 }
                 bool poly_rem_is_poly_keep = true;
                 // compare the two polygons on all points
-                if (smallest_dist2 > static_cast<curaengine::coord_t>(same_distance * same_distance))
+                if (smallest_dist2 > static_cast<::curaengine::utils::coord_t>(same_distance * same_distance))
                 {
                     continue;
                 }
                 for (size_t point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                 {
-                    coord_t dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
-                    if (dist2 > static_cast<curaengine::coord_t>(same_distance * same_distance))
+                    ::curaengine::utils::coord_t dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
+                    if (dist2 > static_cast<::curaengine::utils::coord_t>(same_distance * same_distance))
                     {
                         poly_rem_is_poly_keep = false;
                         break;
@@ -607,7 +610,7 @@ Shape Shape::processEvenOdd(ClipperLib::PolyFillType poly_fill_type) const
     return Shape{ std::move(ret) };
 }
 
-Shape Shape::smoothOutward(const AngleDegrees max_angle, int shortcut_length) const
+Shape Shape::smoothOutward(const ::curaengine::types::AngleDegrees max_angle, int shortcut_length) const
 {
     Shape ret;
     for (const Polygon& poly : (*this))
@@ -680,7 +683,7 @@ Shape Shape::smooth2(int remove_length, int min_area) const
     return ret;
 }
 
-void Shape::removeColinearEdges(const AngleRadians max_deviation_angle)
+void Shape::removeColinearEdges(const ::curaengine::types::AngleRadians max_deviation_angle)
 {
     Shape& thiss = *this;
     for (size_t p = 0; p < size(); p++)
@@ -810,14 +813,14 @@ void Shape::splitIntoPartsViewProcessPolyTreeNode(PartsView& partsView, Shape& r
 
 Shape Shape::removeNearSelfIntersections() const
 {
-    using map_pt = mapbox::geometry::point<coord_t>;
-    using map_ring = mapbox::geometry::linear_ring<coord_t>;
-    using map_poly = mapbox::geometry::polygon<coord_t>;
-    using map_mpoly = mapbox::geometry::multi_polygon<coord_t>;
+    using map_pt = mapbox::geometry::point<::curaengine::utils::coord_t>;
+    using map_ring = mapbox::geometry::linear_ring<::curaengine::utils::coord_t>;
+    using map_poly = mapbox::geometry::polygon<::curaengine::utils::coord_t>;
+    using map_mpoly = mapbox::geometry::multi_polygon<::curaengine::utils::coord_t>;
 
     map_mpoly mwpoly;
 
-    mapbox::geometry::wagyu::wagyu<coord_t> wagyu;
+    mapbox::geometry::wagyu::wagyu<::curaengine::utils::coord_t> wagyu;
 
     for (auto& polygon : splitIntoParts())
     {
@@ -825,7 +828,7 @@ Shape Shape::removeNearSelfIntersections() const
         map_poly& wpoly = mwpoly.back();
         for (auto& path : polygon)
         {
-            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<coord_t>>*>(&path.getPoints())));
+            wpoly.push_back(std::move(*reinterpret_cast<std::vector<mapbox::geometry::point<::curaengine::utils::coord_t>>*>(&path.getPoints())));
             for (auto& point : wpoly.back())
             {
                 point.x /= 4;
@@ -889,19 +892,19 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
 {
     std::vector<float> result;
 
-    const AABB lineseg_aabb({ start, end });
+    const ::curaengine::utils::AABB lineseg_aabb({ start, end });
 
     for (const Polygon& polygon : getLines())
     {
         for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
         {
-            if (! AABB({ (*iterator).start, (*iterator).end }).hit(lineseg_aabb))
+            if (! ::curaengine::utils::AABB({ (*iterator).start, (*iterator).end }).hit(lineseg_aabb))
             {
                 continue;
             }
 
             float t, u;
-            if (LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
+            if (::curaengine::utils::LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
             {
                 result.push_back(t);
             }
@@ -911,7 +914,7 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
     return result;
 }
 
-Shape Shape::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+Shape Shape::createTubeShape(const ::curaengine::utils::coord_t inner_offset, const ::curaengine::utils::coord_t outer_offset) const
 {
     return offset(outer_offset).difference(offset(-inner_offset));
 }
@@ -999,8 +1002,8 @@ void Shape::ensureManifold()
 }
 #endif
 
-template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
-template OpenLinesSet Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
-template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const ::curaengine::utils::coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const ::curaengine::utils::coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const ::curaengine::utils::coord_t max_stitch_distance, const bool split_into_segments) const;
 
-} // namespace curaengine
+} // namespace curaengine::geometry

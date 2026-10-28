@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -31,4 +31,4 @@ private:
     NoCopy& operator=(const NoCopy&);
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

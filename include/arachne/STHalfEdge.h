@@ -7,7 +7,7 @@
 
 #include "arachne/SkeletalTrapezoidationEdge.h"
 
-namespace curaengine
+namespace curaengine::arachne
 {
 
 class SkeletalTrapezoidationJoint;
@@ -51,9 +51,9 @@ public:
      *
      * If we can go up then the distance includes the length of the \param edge
      */
-    std::optional<coord_t> distToGoUp() const;
+    std::optional<::curaengine::utils::coord_t> distToGoUp() const;
 
     STHalfEdge* getNextUnconnected();
 };
 
-} // namespace curaengine
+} // namespace curaengine::arachne

@@ -8,7 +8,7 @@
 #include "geometry/Point3LL.h"
 
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 /*!
@@ -40,7 +40,7 @@ public:
      * @param layer_end The X coordinate of the highest YZ plane
      * @return The segment that is a sub-part of the current segment intersected with the layer, or nullopt if the intersection is empty
      */
-    std::optional<Segment3LL> intersectionWithXLayer(const coord_t layer_start, const coord_t layer_end) const;
+    std::optional<Segment3LL> intersectionWithXLayer(const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end) const;
 
     /*!
      * Intersects the segment with a "layer" on the Y plane, e.g. a pair or XZ plans
@@ -48,7 +48,7 @@ public:
      * @param layer_end The Y coordinate of the highest XZ plane
      * @return The segment that is a sub-part of the current segment intersected with the layer, or nullopt if the intersection is empty
      */
-    std::optional<Segment3LL> intersectionWithYLayer(const coord_t layer_start, const coord_t layer_end) const;
+    std::optional<Segment3LL> intersectionWithYLayer(const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end) const;
 
     /*!
      * Intersects the segment with a "layer" on the Z plane, e.g. a pair or XY plans
@@ -56,7 +56,7 @@ public:
      * @param layer_end The Z coordinate of the highest XY plane
      * @return The segment that is a sub-part of the current segment intersected with the layer, or nullopt if the intersection is empty
      */
-    std::optional<Segment3LL> intersectionWithZLayer(const coord_t layer_start, const coord_t layer_end) const;
+    std::optional<Segment3LL> intersectionWithZLayer(const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end) const;
 
 private:
     enum class LayerLocation
@@ -71,21 +71,21 @@ private:
      * will be outside the segment
      * @warning Since this function is private, it does not perform any check and assume the segment is not parallel to the X axis. It will crash otherwise.
      */
-    Point3LL pointAtX(const coord_t x) const;
+    Point3LL pointAtX(const ::curaengine::utils::coord_t x) const;
 
     /*!
      * Get the point on the segment that is at the given Y coordinate. If the Y coordinate doesn't fit in the segment, it is treated as an infinite line and the returned point
      * will be outside the segment
      * @warning Since this function is private, it does not perform any check and assume the segment is not parallel to the Y axis. It will crash otherwise.
      */
-    Point3LL pointAtY(const coord_t y) const;
+    Point3LL pointAtY(const ::curaengine::utils::coord_t y) const;
 
     /*!
      * Get the point on the segment that is at the given Z coordinate. If the Z coordinate doesn't fit in the segment, it is treated as an infinite line and the returned point
      * will be outside the segment
      * @warning Since this function is private, it does not perform any check and assume the segment is not parallel to the Z axis. It will crash otherwise.
      */
-    Point3LL pointAtZ(const coord_t z) const;
+    Point3LL pointAtZ(const ::curaengine::utils::coord_t z) const;
 
     /*!
      * Intersects the segment with a "layer" on an axis-aligned plane
@@ -97,11 +97,11 @@ private:
      * @return The segment that is a sub-part of the current segment intersected with the layer, or nullopt if the intersection is empty
      */
     std::optional<Segment3LL> intersectionWithLayer(
-        const coord_t start_coordinate,
-        const coord_t end_coordinate,
-        const coord_t layer_start,
-        const coord_t layer_end,
-        const std::function<Point3LL(const Point3LL& point, const LayerLocation insideness, const coord_t layer_start, const coord_t layer_end)>& function_crop_point) const;
+        const ::curaengine::utils::coord_t start_coordinate,
+        const ::curaengine::utils::coord_t end_coordinate,
+        const ::curaengine::utils::coord_t layer_start,
+        const ::curaengine::utils::coord_t layer_end,
+        const std::function<Point3LL(const Point3LL& point, const LayerLocation insideness, const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end)>& function_crop_point) const;
 
     /*!
      * Crops an extremity of the segment so that it ends inside the given layer
@@ -115,9 +115,9 @@ private:
     static Point3LL croppedPoint(
         const Point3LL& point,
         const LayerLocation insideness,
-        const coord_t layer_start,
-        const coord_t layer_end,
-        const std::function<Point3LL(const coord_t)>& function_point_at);
+        const ::curaengine::utils::coord_t layer_start,
+        const ::curaengine::utils::coord_t layer_end,
+        const std::function<Point3LL(const ::curaengine::utils::coord_t)>& function_point_at);
 
     /*!
      * Crops an extremity of the segment so that it ends inside the given X-aligned layer
@@ -128,7 +128,7 @@ private:
      * @return A point on the segment that is inside the layer
      * @warning Since this function is private, it does not perform any check and assume the segment is not parallel to the X axis. It will crash otherwise.
      */
-    Point3LL croppedPointX(const Point3LL& point, const LayerLocation insideness, const coord_t layer_start, const coord_t layer_end) const;
+    Point3LL croppedPointX(const Point3LL& point, const LayerLocation insideness, const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end) const;
 
     /*!
      * Crops an extremity of the segment so that it ends inside the given Y-aligned layer
@@ -139,7 +139,7 @@ private:
      * @return A point on the segment that is inside the layer
      * @warning Since this function is private, it does not perform any check and assume the segment is not parallel to the Y axis. It will crash otherwise.
      */
-    Point3LL croppedPointY(const Point3LL& point, const LayerLocation insideness, const coord_t layer_start, const coord_t layer_end) const;
+    Point3LL croppedPointY(const Point3LL& point, const LayerLocation insideness, const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end) const;
 
     /*!
      * Crops an extremity of the segment so that it ends inside the given Z-aligned layer
@@ -150,7 +150,7 @@ private:
      * @return A point on the segment that is inside the layer
      * @warning Since this function is private, it does not perform any check and assume the segment is not parallel to the Z axis. It will crash otherwise.
      */
-    Point3LL croppedPointZ(const Point3LL& point, const LayerLocation insideness, const coord_t layer_start, const coord_t layer_end) const;
+    Point3LL croppedPointZ(const Point3LL& point, const LayerLocation insideness, const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end) const;
 
     /*!
      * Calculates the insideness of a point in regard to an axis-aligned layer
@@ -159,11 +159,11 @@ private:
      * @param layer_end The coordinate of the highest plane
      * @return Whether the point is below, inside or above the layer
      */
-    static LayerLocation pointIsInside(const coord_t point, const coord_t layer_start, const coord_t layer_end);
+    static LayerLocation pointIsInside(const ::curaengine::utils::coord_t point, const ::curaengine::utils::coord_t layer_start, const ::curaengine::utils::coord_t layer_end);
 
 private:
     Point3LL start_;
     Point3LL end_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

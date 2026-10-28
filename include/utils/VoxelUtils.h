@@ -9,7 +9,7 @@
 #include "geometry/Polygon.h"
 #include "utils/DilationKernel.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -22,9 +22,9 @@ class VoxelUtils
 public:
     using grid_coord_t = coord_t;
 
-    Point3LL cell_size_;
+    ::curaengine::geometry::Point3LL cell_size_;
 
-    VoxelUtils(Point3LL cell_size)
+    VoxelUtils(::curaengine::geometry::Point3LL cell_size)
         : cell_size_(cell_size)
     {
     }
@@ -37,7 +37,7 @@ public:
      * \param process_cell_func Function to perform on each cell the line crosses
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkLine(::curaengine::geometry::Point3LL start, ::curaengine::geometry::Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Process voxels which the line segments of a polygon crosses.
@@ -49,7 +49,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkPolygons(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkPolygons(const ::curaengine::geometry::Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Process voxels near the line segments of a polygon.
@@ -62,13 +62,13 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedPolygons(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedPolygons(const ::curaengine::geometry::Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
 private:
     /*!
      * \warning the \p polys is assumed to be translated by half the cell_size in xy already
      */
-    bool _walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool _walkAreas(const ::curaengine::geometry::Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
 public:
     /*!
@@ -81,7 +81,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkAreas(const ::curaengine::geometry::Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Process all voxels inside the area of a polygons object.
@@ -94,7 +94,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedAreas(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedAreas(const ::curaengine::geometry::Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Dilate with a kernel.
@@ -108,7 +108,7 @@ public:
      */
     std::function<bool(GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
-    GridPoint3 toGridPoint(const Point3LL& point) const
+    GridPoint3 toGridPoint(const ::curaengine::geometry::Point3LL& point) const
     {
         return GridPoint3(toGridCoord(point.x_, 0), toGridCoord(point.y_, 1), toGridCoord(point.z_, 2));
     }
@@ -119,9 +119,9 @@ public:
         return coord / cell_size_[dim] - (coord < 0);
     }
 
-    Point3LL toLowerCorner(const GridPoint3& location) const
+    ::curaengine::geometry::Point3LL toLowerCorner(const GridPoint3& location) const
     {
-        return curaengine::Point3LL(toLowerCoord(location.x_, 0), toLowerCoord(location.y_, 1), toLowerCoord(location.z_, 2));
+        return ::curaengine::geometry::Point3LL(toLowerCoord(location.x_, 0), toLowerCoord(location.y_, 1), toLowerCoord(location.z_, 2));
     }
 
     coord_t toLowerCoord(const grid_coord_t& grid_coord, const size_t dim) const
@@ -133,10 +133,10 @@ public:
     /*!
      * Returns a rectangular polygon equal to the cross section of a voxel cell at coordinate \p p
      */
-    Polygon toPolygon(const GridPoint3 p) const
+    ::curaengine::geometry::Polygon toPolygon(const GridPoint3 p) const
     {
-        Polygon ret;
-        Point3LL c = toLowerCorner(p);
+        ::curaengine::geometry::Polygon ret;
+        ::curaengine::geometry::Point3LL c = toLowerCorner(p);
         ret.emplace_back(c.x_, c.y_);
         ret.emplace_back(c.x_ + cell_size_.x_, c.y_);
         ret.emplace_back(c.x_ + cell_size_.x_, c.y_ + cell_size_.y_);
@@ -145,4 +145,4 @@ public:
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

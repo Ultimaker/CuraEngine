@@ -18,7 +18,7 @@ namespace curaengine
 TEST(SmoothTest, TestSmooth)
 {
     // test isSmooth utility function
-    curaengine::actions::smooth_fn smooth;
+    ::curaengine::utils::actions::smooth_fn smooth;
     const auto FLUID_ANGLE = 15.;
     const auto COS_FLUID_ANGLE = std::cos(FLUID_ANGLE * std::numbers::pi / 180.);
 
@@ -31,10 +31,10 @@ TEST(SmoothTest, TestSmooth)
          *
          */
 
-        auto A = curaengine::Point2LL{ 0, 0 };
-        auto B = curaengine::Point2LL{ 0, 100 };
-        auto C = curaengine::Point2LL{ 1, 100 };
-        auto D = curaengine::Point2LL{ 1, 200 };
+        auto A = ::curaengine::geometry::Point2LL{ 0, 0 };
+        auto B = ::curaengine::geometry::Point2LL{ 0, 100 };
+        auto C = ::curaengine::geometry::Point2LL{ 1, 100 };
+        auto D = ::curaengine::geometry::Point2LL{ 1, 200 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
@@ -52,10 +52,10 @@ TEST(SmoothTest, TestSmooth)
          *                  D
          *
          */
-        auto A = curaengine::Point2LL{ 0, 0 };
-        auto B = curaengine::Point2LL{ 100, 0 };
-        auto C = curaengine::Point2LL{ 101, 1 };
-        auto D = curaengine::Point2LL{ 101, 101 };
+        auto A = ::curaengine::geometry::Point2LL{ 0, 0 };
+        auto B = ::curaengine::geometry::Point2LL{ 100, 0 };
+        auto C = ::curaengine::geometry::Point2LL{ 101, 1 };
+        auto D = ::curaengine::geometry::Point2LL{ 101, 101 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -67,10 +67,10 @@ TEST(SmoothTest, TestSmooth)
          *  A ----------- B - C -------------D
          *
          */
-        auto A = curaengine::Point2LL{ 0, 0 };
-        auto B = curaengine::Point2LL{ 100, 0 };
-        auto C = curaengine::Point2LL{ 101, 0 };
-        auto D = curaengine::Point2LL{ 201, 0 };
+        auto A = ::curaengine::geometry::Point2LL{ 0, 0 };
+        auto B = ::curaengine::geometry::Point2LL{ 100, 0 };
+        auto C = ::curaengine::geometry::Point2LL{ 101, 0 };
+        auto D = ::curaengine::geometry::Point2LL{ 201, 0 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -82,10 +82,10 @@ TEST(SmoothTest, TestSmooth)
          *  D ----------- C - B -------------A
          *
          */
-        auto A = curaengine::Point2LL{ 201, 0 };
-        auto B = curaengine::Point2LL{ 101, 0 };
-        auto C = curaengine::Point2LL{ 100, 0 };
-        auto D = curaengine::Point2LL{ 0, 0 };
+        auto A = ::curaengine::geometry::Point2LL{ 201, 0 };
+        auto B = ::curaengine::geometry::Point2LL{ 101, 0 };
+        auto C = ::curaengine::geometry::Point2LL{ 100, 0 };
+        auto D = ::curaengine::geometry::Point2LL{ 0, 0 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -106,10 +106,10 @@ TEST(SmoothTest, TestSmooth)
          *                      D
          *
          */
-        auto A = curaengine::Point2LL{ 0, 0 };
-        auto B = curaengine::Point2LL{ 100, 0 };
-        auto C = curaengine::Point2LL{ 99, -1 };
-        auto D = curaengine::Point2LL{ 199, 99 };
+        auto A = ::curaengine::geometry::Point2LL{ 0, 0 };
+        auto B = ::curaengine::geometry::Point2LL{ 100, 0 };
+        auto C = ::curaengine::geometry::Point2LL{ 99, -1 };
+        auto D = ::curaengine::geometry::Point2LL{ 199, 99 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);
@@ -128,10 +128,10 @@ TEST(SmoothTest, TestSmooth)
          *                       D
          *
          */
-        auto A = curaengine::Point2LL{ 0, 0 };
-        auto B = curaengine::Point2LL{ 100, 0 };
-        auto C = curaengine::Point2LL{ 101, 1 };
-        auto D = curaengine::Point2LL{ 201, 101 };
+        auto A = ::curaengine::geometry::Point2LL{ 0, 0 };
+        auto B = ::curaengine::geometry::Point2LL{ 100, 0 };
+        auto C = ::curaengine::geometry::Point2LL{ 101, 1 };
+        auto D = ::curaengine::geometry::Point2LL{ 201, 101 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -148,10 +148,10 @@ TEST(SmoothTest, TestSmooth)
          *                    D
          *
          */
-        curaengine::Point2LL A = { 0, 0 };
-        curaengine::Point2LL B = { 100, 0 };
-        curaengine::Point2LL C = { 101, 0 };
-        curaengine::Point2LL D = { 101, 100 };
+        ::curaengine::geometry::Point2LL A = { 0, 0 };
+        ::curaengine::geometry::Point2LL B = { 100, 0 };
+        ::curaengine::geometry::Point2LL C = { 101, 0 };
+        ::curaengine::geometry::Point2LL D = { 101, 100 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, true);
@@ -159,10 +159,10 @@ TEST(SmoothTest, TestSmooth)
 
     {
         // real life example of a line that is clearly not smooth
-        auto A = curaengine::Point2LL{ 148451, 162177 };
-        auto B = curaengine::Point2LL{ 148854, 162229 };
-        auto C = curaengine::Point2LL{ 148866, 162244 };
-        auto D = curaengine::Point2LL{ 149772, 162297 };
+        auto A = ::curaengine::geometry::Point2LL{ 148451, 162177 };
+        auto B = ::curaengine::geometry::Point2LL{ 148854, 162229 };
+        auto C = ::curaengine::geometry::Point2LL{ 148866, 162244 };
+        auto D = ::curaengine::geometry::Point2LL{ 149772, 162297 };
 
         const auto is_smooth = smooth.isSmooth(A, B, C, D, COS_FLUID_ANGLE);
         EXPECT_EQ(is_smooth, false);

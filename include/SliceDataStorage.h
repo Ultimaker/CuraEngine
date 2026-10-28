@@ -10,49 +10,54 @@
 #include "SupportStorage.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/Shape.h"
-#include "settings/Settings.h" //For MAX_EXTRUDERS.
-#include "settings/types/LayerIndex.h"
+#include "Settings.h" //For MAX_EXTRUDERS.
+#include "types/LayerIndex.h"
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
 
-namespace curaengine
+namespace curaengine::prime_tower
 {
 class PrimeTower;
+}
+
+namespace curaengine
+{
+
 class SliceMeshStorage;
 
-class SliceDataStorage : public NoCopy
+class SliceDataStorage : public ::curaengine::utils::NoCopy
 {
 public:
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
-    Point3LL model_size, model_min, model_max;
-    AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
+    ::curaengine::geometry::Point3LL model_size, model_min, model_max;
+    ::curaengine::utils::AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
 
     std::vector<RetractionAndWipeConfig> retraction_wipe_config_per_extruder; //!< Config for retractions, extruder switch retractions, and wipes, per extruder.
 
     SupportStorage support;
 
-    std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
+    std::vector<::curaengine::geometry::MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
+    ::curaengine::geometry::MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
-    Shape raft_base_outline;
-    Shape raft_interface_outline;
-    Shape raft_surface_outline;
+    ::curaengine::geometry::Shape raft_base_outline;
+    ::curaengine::geometry::Shape raft_interface_outline;
+    ::curaengine::geometry::Shape raft_surface_outline;
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
     std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
 
     std::vector<int> spiralize_seam_vertex_indices; //!< the index of the seam vertex for each layer
-    std::vector<Shape*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
+    std::vector<::curaengine::geometry::Shape*> spiralize_wall_outlines; //!< the wall outline polygons for each layer
 
     //!< Pointer to primer tower handler object (a null pointer indicates that there is no prime tower)
-    PrimeTower* prime_tower_{ nullptr };
+    ::curaengine::prime_tower::PrimeTower* prime_tower_{ nullptr };
 
-    std::vector<Shape> ooze_shield; // oozeShield per layer
-    Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
+    std::vector<::curaengine::geometry::Shape> ooze_shield; // oozeShield per layer
+    ::curaengine::geometry::Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
@@ -74,8 +79,8 @@ public:
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
      * \param include_support_base (optional) include the support base (requires include_support). If false, only the raw support outline is returned.
      */
-    Shape getLayerOutlines(
-        const LayerIndex layer_nr,
+    ::curaengine::geometry::Shape getLayerOutlines(
+        const ::curaengine::types::LayerIndex layer_nr,
         const bool include_support,
         const bool include_prime_tower,
         const bool external_polys_only = false,
@@ -86,7 +91,7 @@ public:
     /*!
      * Get the axis-aligned bounding-box of the complete model (all meshes).
      */
-    AABB3D getModelBoundingBox() const;
+    ::curaengine::utils::AABB3D getModelBoundingBox() const;
 
     /*!
      * Get the extruders used.
@@ -102,7 +107,7 @@ public:
      * \param layer_nr the layer for which to check
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed(LayerIndex layer_nr) const;
+    std::vector<bool> getExtrudersUsed(::curaengine::types::LayerIndex layer_nr) const;
 
     /*!
      * Gets whether prime blob is enabled for the given extruder number.
@@ -118,12 +123,12 @@ public:
      * \param extruder_nr The extruder for which to return the allowed areas. -1 if the areas allowed for all extruders should be returned.
      * \return the Shape representing the usable area of the print bed.
      */
-    Shape getMachineBorder(int extruder_nr = -1) const;
+    ::curaengine::geometry::Shape getMachineBorder(int extruder_nr = -1) const;
 
     /*!
      * @return The raw outer build plate shape without any disallowed area
      */
-    Shape getRawMachineBorder() const;
+    ::curaengine::geometry::Shape getRawMachineBorder() const;
 
     void initializePrimeTower();
 

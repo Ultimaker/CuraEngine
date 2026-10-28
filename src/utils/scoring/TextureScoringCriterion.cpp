@@ -9,17 +9,17 @@
 #include "TextureDataProvider.h"
 
 
-namespace curaengine
+namespace curaengine::utils::scoring
 {
 
-TextureScoringCriterion::TextureScoringCriterion(const PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name)
+TextureScoringCriterion::TextureScoringCriterion(const ::curaengine::geometry::PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name)
     : PositionBasedScoringCriterion(points)
     , texture_data_provider_(texture_data_provider)
     , feature_name_(feature_name)
 {
 }
 
-double TextureScoringCriterion::computeScore(const Point2LL& candidate_position) const
+double TextureScoringCriterion::computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const
 {
     std::optional<TextureArea> preference = texture_data_provider_->getAreaPreference(candidate_position, feature_name_);
     if (preference.has_value())
@@ -38,4 +38,4 @@ double TextureScoringCriterion::computeScore(const Point2LL& candidate_position)
     return 0.5;
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

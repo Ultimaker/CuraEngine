@@ -21,15 +21,15 @@
 #include "geometry/Point3D.h"
 
 
-namespace curaengine::MeshUtils
+namespace curaengine::utils
 {
 
-std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle)
+std::optional<::curaengine::geometry::Point3D> getBarycentricCoordinates(const ::curaengine::geometry::Point3LL& point, const ::curaengine::geometry::Triangle3LL& triangle)
 {
     // Calculate vectors from p0 to p1 and p0 to p2
-    const Point3LL v0(triangle[1] - triangle[0]);
-    const Point3LL v1(triangle[2] - triangle[0]);
-    const Point3LL v2(point - triangle[0]);
+    const ::curaengine::geometry::Point3LL v0(triangle[1] - triangle[0]);
+    const ::curaengine::geometry::Point3LL v1(triangle[2] - triangle[0]);
+    const ::curaengine::geometry::Point3LL v2(point - triangle[0]);
 
     // Compute dot products
     const coord_t d00 = v0.dot(v0);
@@ -53,12 +53,12 @@ std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Tr
     const double u = 1.0 - v - w;
 
     // Return as a Point3D where x/y/z represent the barycentric coordinates u/v/w
-    return Point3D(u, v, w);
+    return ::curaengine::geometry::Point3D(u, v, w);
 }
 
-Point2F getUVCoordinates(const Point3D& barycentric_coordinates, const Triangle2F& uv_coordinates)
+::curaengine::geometry::Point2F getUVCoordinates(const ::curaengine::geometry::Point3D& barycentric_coordinates, const ::curaengine::geometry::Triangle2F& uv_coordinates)
 {
-    return Point2F(
+    return ::curaengine::geometry::Point2F(
         (uv_coordinates[0].x_ * barycentric_coordinates.x_) + (uv_coordinates[1].x_ * barycentric_coordinates.y_) + (uv_coordinates[2].x_ * barycentric_coordinates.z_),
         (uv_coordinates[0].y_ * barycentric_coordinates.x_) + (uv_coordinates[1].y_ * barycentric_coordinates.y_) + (uv_coordinates[2].y_ * barycentric_coordinates.z_));
 }
@@ -262,4 +262,4 @@ void loadTextureFromString(const std::string& texture_str, Mesh& mesh)
     loadTextureFromPngData(texture_data, mesh, "network data", false);
 }
 
-} // namespace curaengine::MeshUtils
+} // namespace curaengine::utils

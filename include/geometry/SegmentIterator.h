@@ -6,7 +6,7 @@
 #include "geometry/ConstnessType.h"
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 /*! @brief Custom iterator to loop over the segments of a polyline/polygon */
@@ -86,4 +86,4 @@ public:
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

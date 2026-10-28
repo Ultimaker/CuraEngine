@@ -5,11 +5,11 @@
 
 #include <numbers>
 
-#include "settings/types/AngleDegrees.h"
-#include "settings/types/AngleRadians.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
 
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 PointMatrix::PointMatrix(double rotation)
@@ -21,13 +21,13 @@ PointMatrix::PointMatrix(double rotation)
     matrix[3] = matrix[0];
 }
 
-PointMatrix::PointMatrix(const AngleDegrees& rotation)
+PointMatrix::PointMatrix(const ::curaengine::types::AngleDegrees& rotation)
     : PointMatrix(rotation.value_)
 {
 }
 
-PointMatrix::PointMatrix(const AngleRadians& rotation)
-    : PointMatrix(AngleDegrees(rotation))
+PointMatrix::PointMatrix(const ::curaengine::types::AngleRadians& rotation)
+    : PointMatrix(::curaengine::types::AngleDegrees(rotation))
 {
 }
 
@@ -75,4 +75,4 @@ PointMatrix PointMatrix::inverse() const
     return ret;
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

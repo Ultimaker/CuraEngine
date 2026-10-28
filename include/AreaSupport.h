@@ -6,8 +6,14 @@
 #include <cstddef>
 #include <vector>
 
-#include "settings/types/LayerIndex.h"
+#include "types/LayerIndex.h"
 #include "utils/Coord_t.h"
+
+namespace curaengine::geometry
+{
+class Polygon;
+class Shape;
+}
 
 namespace curaengine
 {
@@ -16,8 +22,8 @@ class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;
 class Slicer;
-class Polygon;
-class Shape;
+
+
 
 class AreaSupport
 {
@@ -81,7 +87,7 @@ private:
      * \param global_support_areas_per_layer the global support areas per layer
      * \param total_layer_count total number of layers
      */
-    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
+    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<::curaengine::geometry::Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
@@ -164,7 +170,7 @@ private:
         const Settings& bottom_settings,
         const size_t mesh_idx,
         const size_t layer_count,
-        std::vector<Shape>& support_areas);
+        std::vector<::curaengine::geometry::Shape>& support_areas);
 
     /*!
      * Generate support bottom areas for a given mesh.
@@ -178,7 +184,7 @@ private:
      * \param mesh The mesh to generate support for.
      * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer);
+    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<::curaengine::geometry::Shape>& global_support_areas_per_layer);
 
     /*!
      * Generate support roof areas for a given mesh.
@@ -192,7 +198,7 @@ private:
      * \param mesh The mesh to generate support roof for.
      * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer);
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<::curaengine::geometry::Shape>& global_support_areas_per_layer);
 
     /*!
      * \brief Generate a single layer of support interface.
@@ -212,12 +218,12 @@ private:
      * \param[out] interface_polygons The resulting interface layer. Do not use `interface` in windows!
      */
     static void generateSupportInterfaceLayer(
-        Shape& support_areas,
-        const Shape mesh_outlines,
-        const coord_t safety_offset,
-        const coord_t outline_offset,
+        ::curaengine::geometry::Shape& support_areas,
+        const ::curaengine::geometry::Shape mesh_outlines,
+        const ::curaengine::utils::coord_t safety_offset,
+        const ::curaengine::utils::coord_t outline_offset,
         const double minimum_interface_area,
-        Shape& interface_polygons);
+        ::curaengine::geometry::Shape& interface_polygons);
 
     /*!
      * \brief Join current support layer with the support of the layer above,
@@ -227,7 +233,7 @@ private:
      * \param supportLayer_this The overhang areas of the current layer at hand.
      * \return The joined support areas for this layer.
      */
-    static Shape join(const SliceDataStorage& storage, const Shape& supportLayer_up, Shape& supportLayer_this);
+    static ::curaengine::geometry::Shape join(const SliceDataStorage& storage, const ::curaengine::geometry::Shape& supportLayer_up, ::curaengine::geometry::Shape& supportLayer_this);
 
     /*!
      * Move the support up from model (cut away polygons to ensure bottom z distance)
@@ -245,13 +251,13 @@ private:
      */
     static void moveUpFromModel(
         const SliceDataStorage& storage,
-        Shape& stair_removal,
-        Shape& sloped_areas,
-        Shape& support_areas,
+        ::curaengine::geometry::Shape& stair_removal,
+        ::curaengine::geometry::Shape& sloped_areas,
+        ::curaengine::geometry::Shape& support_areas,
         const size_t layer_idx,
         const size_t bottom_empty_layer_count,
         const size_t bottom_stair_step_layer_count,
-        const coord_t support_bottom_stair_step_width);
+        const ::curaengine::utils::coord_t support_bottom_stair_step_width);
 
     /*!
      * Joins the layer part outlines of all meshes and collects the overhang
@@ -278,7 +284,7 @@ private:
      * \param layer_idx The layer for which to compute the overhang.
      * \return A pair of basic overhang and full overhang.
      */
-    static std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx);
+    static std::pair<::curaengine::geometry::Shape, ::curaengine::geometry::Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const ::curaengine::types::LayerIndex& layer_idx);
 
     /*!
      * \brief Adds tower pieces to the current support layer.
@@ -296,11 +302,11 @@ private:
      */
     static void handleTowers(
         const Settings& settings,
-        const Shape& xy_disallowed_area,
-        Shape& supportLayer_this,
-        std::vector<Shape>& tower_roofs,
-        std::vector<std::vector<Shape>>& overhang_points,
-        LayerIndex layer_idx,
+        const ::curaengine::geometry::Shape& xy_disallowed_area,
+        ::curaengine::geometry::Shape& supportLayer_this,
+        std::vector<::curaengine::geometry::Shape>& tower_roofs,
+        std::vector<std::vector<::curaengine::geometry::Shape>>& overhang_points,
+        ::curaengine::types::LayerIndex layer_idx,
         size_t layer_count);
 
     /*!
@@ -309,7 +315,7 @@ private:
      * \param supportLayer_this The areas of the layer for which to handle the
      * wall struts.
      */
-    static void handleWallStruts(const Settings& settings, Shape& supportLayer_this);
+    static void handleWallStruts(const Settings& settings, ::curaengine::geometry::Shape& supportLayer_this);
 
     /*!
      * Clean up the SupportInfillParts.
@@ -329,7 +335,7 @@ private:
      * \param layer_idx The layer for which the disallowed areas are to be calcualted
      *
      */
-    static Shape generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const LayerIndex layer_idx);
+    static ::curaengine::geometry::Shape generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const ::curaengine::types::LayerIndex layer_idx);
 };
 
 

@@ -7,11 +7,21 @@
 
 #include "Mesh.h"
 
+namespace curaengine::geometry
+{
+class Matrix4x3D;
+}
+
+namespace curaengine::types
+{
+struct Ratio;
+}
+
 namespace curaengine
 {
 
-class Matrix4x3D;
-struct Ratio;
+
+
 
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
@@ -38,8 +48,8 @@ public:
     Settings settings;
     bool has_painted_support = false;
 
-    Point3LL min() const; //! minimal corner of bounding box
-    Point3LL max() const; //! maximal corner of bounding box
+    ::curaengine::geometry::Point3LL min() const; //! minimal corner of bounding box
+    ::curaengine::geometry::Point3LL max() const; //! maximal corner of bounding box
 
     void clear();
 
@@ -52,7 +62,7 @@ public:
      * that's the center in the X and Y directions, but Z=0. This simulates the
      * shrinkage while sticking to the build plate.
      */
-    void scaleFromBottom(const Ratio factor_xy, const Ratio factor_z);
+    void scaleFromBottom(const ::curaengine::types::Ratio factor_xy, const ::curaengine::types::Ratio factor_z);
 };
 
 /*!
@@ -64,8 +74,8 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& filename, const ::curaengine::geometry::Matrix4x3D& transformation, Settings& object_parent_settings);
 
-bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix);
+bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const ::curaengine::geometry::Matrix4x3D& matrix);
 
 } // namespace curaengine

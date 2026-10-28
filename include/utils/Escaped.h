@@ -5,7 +5,7 @@
 
 #include <ostream>
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -65,4 +65,4 @@ struct Escaped
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

@@ -18,10 +18,10 @@ Keeps track of which faces connect to it.
 class MeshVertex
 {
 public:
-    Point3LL p_; //!< location of the vertex
+    ::curaengine::geometry::Point3LL p_; //!< location of the vertex
     std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
 
-    MeshVertex(Point3LL p)
+    MeshVertex(::curaengine::geometry::Point3LL p)
         : p_(p)
     {
         connected_faces_.reserve(8);

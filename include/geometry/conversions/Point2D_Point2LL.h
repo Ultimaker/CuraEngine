@@ -6,11 +6,11 @@
 #include "geometry/Point2D.h"
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::geometry::conversions
 {
 
 Point2LL toPoint2LL(const Point2D& point);
 
 Point2D toPoint2D(const Point2LL& point);
 
-} // namespace curaengine
+} // namespace curaengine::geometry::conversions

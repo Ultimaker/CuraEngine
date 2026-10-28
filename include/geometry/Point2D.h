@@ -8,7 +8,7 @@
 
 #include "utils/math.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Point2D
@@ -45,7 +45,7 @@ public:
     std::optional<Point2D> vNormalized() const
     {
         const double size = vSize();
-        if (is_zero(size))
+        if (::curaengine::utils::is_zero(size))
         {
             return std::nullopt;
         }
@@ -98,4 +98,4 @@ inline Point2D lerp(const Point2D& a, const Point2D& b, const double t)
     return Point2D(std::lerp(a.x(), b.x(), t), std::lerp(a.y(), b.y(), t));
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

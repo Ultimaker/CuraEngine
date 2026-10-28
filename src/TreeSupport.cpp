@@ -31,7 +31,7 @@
 #include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
-#include "settings/ESupportStructure.h"
+#include "types/ESupportStructure.h"
 #include "utils/OBJ.h"
 #include "utils/PolygonUtils.h" //For moveInside.
 #include "utils/SectionType.h"
@@ -50,10 +50,10 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
-        TreeSupportSettings::some_model_contains_thick_roof |= mesh.settings.get<coord_t>("support_roof_height") >= 2 * mesh.settings.get<coord_t>("layer_height");
-        TreeSupportSettings::has_to_rely_on_min_xy_dist_only |= mesh.settings.get<coord_t>("support_top_distance") == 0
-                                                             || mesh.settings.get<coord_t>("support_bottom_distance") == 0
-                                                             || mesh.settings.get<coord_t>("min_feature_size") < (FUDGE_LENGTH * 2);
+        TreeSupportSettings::some_model_contains_thick_roof |= mesh.settings.get<::curaengine::utils::coord_t>("support_roof_height") >= 2 * mesh.settings.get<::curaengine::utils::coord_t>("layer_height");
+        TreeSupportSettings::has_to_rely_on_min_xy_dist_only |= mesh.settings.get<::curaengine::utils::coord_t>("support_top_distance") == 0
+                                                             || mesh.settings.get<::curaengine::utils::coord_t>("support_bottom_distance") == 0
+                                                             || mesh.settings.get<::curaengine::utils::coord_t>("min_feature_size") < (FUDGE_LENGTH * 2);
     }
 
     const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_painted_support;
@@ -64,7 +64,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     {
         SliceMeshStorage& mesh = *mesh_ptr;
         const bool non_supportable_mesh = ! mesh.isModelMesh() || mesh.settings.get<bool>("support_mesh");
-        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
+        if (mesh.settings.get<::curaengine::types::ESupportStructure>("support_structure") != ::curaengine::types::ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
             || non_supportable_mesh)
         {
             continue;
@@ -93,7 +93,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
             largest_printed_mesh_idx = mesh_idx;
         }
     }
-    std::vector<coord_t> known_z(storage.meshes[largest_printed_mesh_idx]->layers.size());
+    std::vector<::curaengine::utils::coord_t> known_z(storage.meshes[largest_printed_mesh_idx]->layers.size());
 
     for (auto [z, layer] : ranges::views::enumerate(storage.meshes[largest_printed_mesh_idx]->layers))
     {
@@ -128,20 +128,20 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             storage.support.supportLayers
                 .size()); // Value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas.
 
-        additional_required_support_area = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
+        additional_required_support_area = std::vector<::curaengine::geometry::Shape>(storage.support.supportLayers.size(), ::curaengine::geometry::Shape());
 
 
         spdlog::info("Processing support tree mesh group {} of {} containing {} meshes.", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
-        std::vector<Shape> exclude(storage.support.supportLayers.size());
-        TimeKeeper time_keeper;
+        std::vector<::curaengine::geometry::Shape> exclude(storage.support.supportLayers.size());
+        ::curaengine::utils::TimeKeeper time_keeper;
 
         // get all already existing support areas and exclude them
-        curaengine::parallel_for<coord_t>(
-            LayerIndex(0),
-            LayerIndex(storage.support.supportLayers.size()),
-            [&](const LayerIndex layer_idx)
+        ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
+            ::curaengine::types::LayerIndex(0),
+            ::curaengine::types::LayerIndex(storage.support.supportLayers.size()),
+            [&](const ::curaengine::types::LayerIndex layer_idx)
             {
-                Shape exlude_at_layer;
+                ::curaengine::geometry::Shape exlude_at_layer;
                 exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].support_bottom);
                 exlude_at_layer.push_back(storage.support.supportLayers[layer_idx].support_roof);
                 for (auto part : storage.support.supportLayers[layer_idx].support_infill_parts)
@@ -149,7 +149,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     exlude_at_layer.push_back(part.outline_);
                 }
                 exclude[layer_idx] = exlude_at_layer.unionPolygons();
-                scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::SUPPORT, layer_idx);
+                scripta::log("tree_support_exclude", exclude[layer_idx], ::curaengine::utils::SectionType::SUPPORT, layer_idx);
             });
         config = processing.first; // This struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generateInitialAreas have knowledge of
                                    // the existence of multiple meshes being processed.
@@ -166,7 +166,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             exclude);
 
         // ### Precalculate avoidances, collision etc.
-        const LayerIndex max_required_layer = precalculate(storage, processing.second, time_keeper);
+        const ::curaengine::types::LayerIndex max_required_layer = precalculate(storage, processing.second, time_keeper);
         if (max_required_layer < 0)
         {
             spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
@@ -208,16 +208,16 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, TimeKeeper& time_keeper)
+::curaengine::types::LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, ::curaengine::utils::TimeKeeper& time_keeper)
 {
     // Calculate top most layer that is relevant for support.
-    LayerIndex max_layer = -1;
+    ::curaengine::types::LayerIndex max_layer = -1;
     for (size_t mesh_idx : currently_processing_meshes)
     {
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-        const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-        const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = round_up_divide(z_distance_top,
+        const ::curaengine::utils::coord_t layer_height = mesh.settings.get<::curaengine::utils::coord_t>("layer_height");
+        const ::curaengine::utils::coord_t z_distance_top = mesh.settings.get<::curaengine::utils::coord_t>("support_top_distance");
+        const size_t z_distance_top_layers = ::curaengine::utils::round_up_divide(z_distance_top,
                                                              layer_height) + 1; // Support must always be 1 layer below overhang.
         if (mesh.overhang_areas.size() <= z_distance_top_layers)
         {
@@ -227,7 +227,7 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
         for (const auto layer_idx : ranges::views::iota(1UL, mesh.overhang_areas.size() - z_distance_top_layers) | ranges::views::reverse)
         {
             // Look for max relevant layer.
-            const Shape& overhang = mesh.overhang_areas[layer_idx + z_distance_top_layers];
+            const ::curaengine::geometry::Shape& overhang = mesh.overhang_areas[layer_idx + z_distance_top_layers];
             if (! overhang.empty())
             {
                 if (layer_idx > max_layer) // iterates over multiple meshes
@@ -255,8 +255,8 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
 }
 
 void TreeSupport::mergeHelper(
-    std::map<TreeSupportElement::Ptr, AABB>& reduced_aabb,
-    std::map<TreeSupportElement::Ptr, AABB>& input_aabb,
+    std::map<TreeSupportElement::Ptr, ::curaengine::utils::AABB>& reduced_aabb,
+    std::map<TreeSupportElement::Ptr, ::curaengine::utils::AABB>& input_aabb,
     const PropertyAreasUnordered& to_bp_areas,
     const PropertyAreas& to_model_areas,
     const PropertyAreas& influence_areas,
@@ -264,22 +264,22 @@ void TreeSupport::mergeHelper(
     PropertyAreasUnordered& insert_model_areas,
     PropertyAreasUnordered& insert_influence,
     std::vector<TreeSupportElement::Ptr>& erase,
-    const LayerIndex layer_idx)
+    const ::curaengine::types::LayerIndex layer_idx)
 {
     const bool first_merge_iteration = reduced_aabb.empty(); // If this is the first iteration, all elements in input have to be merged with each other
-    const std::function<coord_t(size_t, double)> getRadiusFunction = [&](const size_t distance_to_top, const double buildplate_radius_increases)
+    const std::function<::curaengine::utils::coord_t(size_t, double)> getRadiusFunction = [&](const size_t distance_to_top, const double buildplate_radius_increases)
     {
         return config.getRadius(distance_to_top, buildplate_radius_increases);
     };
     for (auto& influence : input_aabb)
     {
         bool merged = false;
-        AABB influence_aabb = influence.second;
+        ::curaengine::utils::AABB influence_aabb = influence.second;
         for (const auto& reduced_check : reduced_aabb)
         {
             // As every area has to be checked for overlaps with other areas, some fast heuristic is needed to abort early if clearly possible
             // This is so performance critical that using a map lookup instead of the direct access of the cached AABBs can have a surprisingly large performance impact
-            AABB aabb = reduced_check.second;
+            ::curaengine::utils::AABB aabb = reduced_check.second;
             if (aabb.hit(influence_aabb))
             {
                 if (! first_merge_iteration && input_aabb.count(reduced_check.first))
@@ -296,13 +296,13 @@ void TreeSupport::mergeHelper(
                 //     But because a different collision may be removed from the in drawArea generated circles, this assumption could be wrong.
                 const bool merging_different_range_limits = reduced_check.first->influence_area_limit_active_ && influence.first->influence_area_limit_active_
                                                          && influence.first->influence_area_limit_range_ != reduced_check.first->influence_area_limit_range_;
-                coord_t increased_to_model_radius = 0;
+                ::curaengine::utils::coord_t increased_to_model_radius = 0;
                 size_t larger_to_model_dtt = 0;
 
                 if (! merging_to_bp)
                 {
-                    const coord_t infl_radius = config.getRadius(influence.first); // Get the real radius increase as the user does not care for the collision model.
-                    const coord_t redu_radius = config.getRadius(reduced_check.first);
+                    const ::curaengine::utils::coord_t infl_radius = config.getRadius(influence.first); // Get the real radius increase as the user does not care for the collision model.
+                    const ::curaengine::utils::coord_t redu_radius = config.getRadius(reduced_check.first);
                     if (reduced_check.first->to_buildplate_ != influence.first->to_buildplate_)
                     {
                         if (reduced_check.first->to_buildplate_)
@@ -332,29 +332,29 @@ void TreeSupport::mergeHelper(
                     continue;
                 }
 
-                Shape relevant_infl;
-                Shape relevant_redu;
+                ::curaengine::geometry::Shape relevant_infl;
+                ::curaengine::geometry::Shape relevant_redu;
                 if (merging_to_bp)
                 {
                     relevant_infl = to_bp_areas.count(influence.first) ? to_bp_areas.at(influence.first)
-                                                                       : Shape(); // influence.first is a new element => not required to check if it was changed
+                                                                       : ::curaengine::geometry::Shape(); // influence.first is a new element => not required to check if it was changed
                     relevant_redu = insert_bp_areas.count(reduced_check.first) ? insert_bp_areas[reduced_check.first]
-                                                                               : (to_bp_areas.count(reduced_check.first) ? to_bp_areas.at(reduced_check.first) : Shape());
+                                                                               : (to_bp_areas.count(reduced_check.first) ? to_bp_areas.at(reduced_check.first) : ::curaengine::geometry::Shape());
                 }
                 else
                 {
-                    relevant_infl = to_model_areas.count(influence.first) ? to_model_areas.at(influence.first) : Shape();
+                    relevant_infl = to_model_areas.count(influence.first) ? to_model_areas.at(influence.first) : ::curaengine::geometry::Shape();
                     relevant_redu = insert_model_areas.count(reduced_check.first) ? insert_model_areas[reduced_check.first]
-                                                                                  : (to_model_areas.count(reduced_check.first) ? to_model_areas.at(reduced_check.first) : Shape());
+                                                                                  : (to_model_areas.count(reduced_check.first) ? to_model_areas.at(reduced_check.first) : ::curaengine::geometry::Shape());
                 }
 
                 const bool red_bigger = config.getCollisionRadius(reduced_check.first) > config.getCollisionRadius(influence.first);
-                std::pair<TreeSupportElement::Ptr, Shape> smaller_rad
+                std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> smaller_rad
                     = red_bigger ? std::make_pair(influence.first, relevant_infl) : std::make_pair(reduced_check.first, relevant_redu);
-                std::pair<TreeSupportElement::Ptr, Shape> bigger_rad
+                std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> bigger_rad
                     = red_bigger ? std::make_pair(reduced_check.first, relevant_redu) : std::make_pair(influence.first, relevant_infl);
-                const coord_t real_radius_delta = std::abs(config.getRadius(bigger_rad.first) - config.getRadius(smaller_rad.first));
-                const coord_t smaller_collision_radius = config.getCollisionRadius(smaller_rad.first);
+                const ::curaengine::utils::coord_t real_radius_delta = std::abs(config.getRadius(bigger_rad.first) - config.getRadius(smaller_rad.first));
+                const ::curaengine::utils::coord_t smaller_collision_radius = config.getCollisionRadius(smaller_rad.first);
 
                 // the area of the bigger radius is used to ensure correct placement regarding the relevant avoidance, so if that would change an invalid area may be created
                 if (! bigger_rad.first->can_use_safe_radius_ && smaller_rad.first->can_use_safe_radius_)
@@ -372,16 +372,16 @@ void TreeSupport::mergeHelper(
                 //   a branch (of the larger collision radius) placed in this intersection, has already engulfed the branch of the smaller collision radius.
                 // Because of this a merge may happen even if the influence areas (that represent possible center points of branches) do not intersect yet.
                 // Remember that collision radius <= real radius as otherwise this assumption would be false.
-                const Shape small_rad_increased_by_big_minus_small = TreeSupportUtils::safeOffsetInc(
+                const ::curaengine::geometry::Shape small_rad_increased_by_big_minus_small = TreeSupportUtils::safeOffsetInc(
                     smaller_rad.second,
                     real_radius_delta,
                     volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
-                    2 * (config.xy_distance + smaller_collision_radius - EPSILON), // Epsilon avoids possible rounding errors
+                    2 * (config.xy_distance + smaller_collision_radius - ::curaengine::utils::EPSILON), // Epsilon avoids possible rounding errors
                     0,
                     0,
                     config.support_line_distance / 2,
                     &config.simplifier);
-                Shape intersect = small_rad_increased_by_big_minus_small.intersection(bigger_rad.second);
+                ::curaengine::geometry::Shape intersect = small_rad_increased_by_big_minus_small.intersection(bigger_rad.second);
 
                 if (intersect.area()
                     > 1) // dont use empty as a line is not empty, but for this use-case it very well may be (and would be one layer down as union does not keep lines)
@@ -398,10 +398,10 @@ void TreeSupport::mergeHelper(
                     // Calculate which point is closest to the point of the last merge (or tip center if no merge above it has happened)
                     // Used at the end to estimate where to best place the branch on the bottom most layer
                     // Could be replaced with a random point inside the new area
-                    Point2LL new_pos = reduced_check.first->next_position_;
+                    ::curaengine::geometry::Point2LL new_pos = reduced_check.first->next_position_;
                     if (! intersect.inside(new_pos, true))
                     {
-                        PolygonUtils::moveInside(intersect, new_pos);
+                        ::curaengine::utils::PolygonUtils::moveInside(intersect, new_pos);
                     }
 
                     if (increased_to_model_radius == 0)
@@ -422,15 +422,15 @@ void TreeSupport::mergeHelper(
 
                     const auto getIntersectInfluence = [&](const PropertyAreasUnordered& insert_infl, const PropertyAreas& infl_areas)
                     {
-                        const Shape infl_small = insert_infl.count(smaller_rad.first) ? insert_infl.at(smaller_rad.first)
-                                                                                      : (infl_areas.count(smaller_rad.first) ? infl_areas.at(smaller_rad.first) : Shape());
-                        const Shape infl_big = insert_infl.count(bigger_rad.first) ? insert_infl.at(bigger_rad.first)
-                                                                                   : (infl_areas.count(bigger_rad.first) ? infl_areas.at(bigger_rad.first) : Shape());
-                        const Shape small_rad_increased_by_big_minus_small_infl = TreeSupportUtils::safeOffsetInc(
+                        const ::curaengine::geometry::Shape infl_small = insert_infl.count(smaller_rad.first) ? insert_infl.at(smaller_rad.first)
+                                                                                      : (infl_areas.count(smaller_rad.first) ? infl_areas.at(smaller_rad.first) : ::curaengine::geometry::Shape());
+                        const ::curaengine::geometry::Shape infl_big = insert_infl.count(bigger_rad.first) ? insert_infl.at(bigger_rad.first)
+                                                                                   : (infl_areas.count(bigger_rad.first) ? infl_areas.at(bigger_rad.first) : ::curaengine::geometry::Shape());
+                        const ::curaengine::geometry::Shape small_rad_increased_by_big_minus_small_infl = TreeSupportUtils::safeOffsetInc(
                             infl_small,
                             real_radius_delta,
                             volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
-                            2 * (config.xy_distance + smaller_collision_radius - EPSILON),
+                            2 * (config.xy_distance + smaller_collision_radius - ::curaengine::utils::EPSILON),
                             0,
                             0,
                             config.support_line_distance / 2,
@@ -439,11 +439,11 @@ void TreeSupport::mergeHelper(
                             infl_big); // If the one with the bigger radius with the lower radius removed overlaps we can merge.
                     };
 
-                    Shape intersect_influence;
+                    ::curaengine::geometry::Shape intersect_influence;
                     intersect_influence
                         = TreeSupportUtils::safeUnion(intersect, getIntersectInfluence(insert_influence, influence_areas)); // Rounding errors again. Do not ask me where or why.
 
-                    Shape intersect_to_model;
+                    ::curaengine::geometry::Shape intersect_to_model;
                     if (merging_to_bp && config.support_rests_on_model)
                     {
                         intersect_to_model = getIntersectInfluence(insert_model_areas, to_model_areas);
@@ -467,14 +467,14 @@ void TreeSupport::mergeHelper(
 
                     erase.emplace_back(reduced_check.first);
                     erase.emplace_back(influence.first);
-                    const Shape merge
+                    const ::curaengine::geometry::Shape merge
                         = intersect.unionPolygons(intersect_to_model).offset(config.getRadius(key), ClipperLib::jtRound).difference(volumes_.getCollision(0, layer_idx - 1));
                     // ^^^ Regular union should be preferable here as Polygons tend to only become smaller through rounding errors (smaller!=has smaller area as holes have a
                     // negative area.).
                     //     And if this area disappears because of rounding errors, the only downside is that it can not merge again on this layer.
 
                     reduced_aabb.erase(reduced_check.first); // This invalidates reduced_check.
-                    reduced_aabb.emplace(key, AABB(merge));
+                    reduced_aabb.emplace(key, ::curaengine::utils::AABB(merge));
 
                     merged = true;
                     break;
@@ -489,7 +489,7 @@ void TreeSupport::mergeHelper(
     }
 }
 
-void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, PropertyAreas& to_model_areas, PropertyAreas& influence_areas, LayerIndex layer_idx)
+void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, PropertyAreas& to_model_areas, PropertyAreas& influence_areas, ::curaengine::types::LayerIndex layer_idx)
 {
     /*
      * Idea behind this is that the calculation of merges can be accelerated a bit using divide and conquer:
@@ -511,7 +511,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
     // The rounding to 2^n is to ensure improved performance, as every iteration two buckets will be merged, halving the amount of buckets.
     // If halving would cause an uneven count, e.g. 3 Then bucket 0 and 1 would have to be merged, and in the next iteration the last remaining buckets. This is assumed to not be
     // optimal performance-wise.
-    const size_t max_bucket_count = std::pow(2, std::floor(std::log(round_up_divide(input_size, min_elements_per_bucket))));
+    const size_t max_bucket_count = std::pow(2, std::floor(std::log(::curaengine::utils::round_up_divide(input_size, min_elements_per_bucket))));
     int bucket_count = std::min(max_bucket_count, num_threads); // do not use more buckets than available threads.
 
     // To achieve that every element in a bucket is already correctly merged with other elements in this bucket
@@ -519,7 +519,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
     // Each thread will then process two buckets by merging all elements in the second bucket into the first one as mergeHelper will disable not trying to merge elements from the
     // same bucket in this case.
     std::vector<PropertyAreas> buckets_area(2 * bucket_count);
-    std::vector<std::map<TreeSupportElement::Ptr, AABB>> buckets_aabb(2 * bucket_count);
+    std::vector<std::map<TreeSupportElement::Ptr, ::curaengine::utils::AABB>> buckets_aabb(2 * bucket_count);
 
 
     size_t position = 0, counter = 0;
@@ -541,15 +541,15 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
     }
 
     // Precalculate the AABBs from the influence areas.
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         buckets_area.size() / 2,
         [&](size_t idx) // +=2 as in the beginning only uneven buckets will be filled
         {
             idx = idx * 2 + 1; // this is eqivalent to a parallel for(size_t idx=1;idx<buckets_area.size(),idx+=2)
-            for (const std::pair<TreeSupportElement::Ptr, Shape>& input_pair : buckets_area[idx])
+            for (const std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>& input_pair : buckets_area[idx])
             {
-                AABB outer_support_wall_aabb = AABB(input_pair.second);
+                ::curaengine::utils::AABB outer_support_wall_aabb = ::curaengine::utils::AABB(input_pair.second);
                 outer_support_wall_aabb.expand(config.getRadius(input_pair.first));
                 buckets_aabb[idx].emplace(input_pair.first, outer_support_wall_aabb);
             }
@@ -563,9 +563,9 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
         std::vector<PropertyAreasUnordered> insert_influence(buckets_area.size() / 2);
         std::vector<std::vector<TreeSupportElement::Ptr>> erase(buckets_area.size() / 2);
 
-        curaengine::parallel_for<size_t>(
+        ::curaengine::utils::parallel_for<size_t>(
             0,
-            (coord_t)buckets_area.size() / 2,
+            (::curaengine::utils::coord_t)buckets_area.size() / 2,
             [&](size_t bucket_pair_idx)
             {
                 bucket_pair_idx *= 2; // this is eqivalent to a parallel for(size_t idx=0;idx<buckets_area.size()-1,idx+=2)
@@ -586,7 +586,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
             });
 
         // Note the division in the limit of the loop!
-        for (const coord_t i : ranges::views::iota(0UL, buckets_area.size() / 2))
+        for (const ::curaengine::utils::coord_t i : ranges::views::iota(0UL, buckets_area.size() / 2))
         {
             for (TreeSupportElement::Ptr& del : erase[i])
             {
@@ -595,16 +595,16 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
                 influence_areas.erase(del);
             }
 
-            for (const std::pair<TreeSupportElement::Ptr, Shape>& tup : insert_main[i])
+            for (const std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>& tup : insert_main[i])
             {
                 to_bp_areas.emplace(tup);
             }
 
-            for (const std::pair<TreeSupportElement::Ptr, Shape>& tup : insert_secondary[i])
+            for (const std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>& tup : insert_secondary[i])
             {
                 to_model_areas.emplace(tup);
             }
-            for (const std::pair<TreeSupportElement::Ptr, Shape>& tup : insert_influence[i])
+            for (const std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>& tup : insert_influence[i])
             {
                 influence_areas.emplace(tup);
             }
@@ -622,7 +622,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
         const auto position_aabb = std::remove_if(
             buckets_aabb.begin(),
             buckets_aabb.end(),
-            [&](const std::map<TreeSupportElement::Ptr, AABB>& x) mutable
+            [&](const std::map<TreeSupportElement::Ptr, ::curaengine::utils::AABB>& x) mutable
             {
                 return x.empty();
             });
@@ -632,29 +632,29 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
 
 TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
     AreaIncreaseSettings settings,
-    LayerIndex layer_idx,
+    ::curaengine::types::LayerIndex layer_idx,
     TreeSupportElement::Ptr parent,
-    const Shape& relevant_offset,
-    Shape& to_bp_data,
-    Shape& to_model_data,
-    Shape& increased,
-    const coord_t overspeed,
+    const ::curaengine::geometry::Shape& relevant_offset,
+    ::curaengine::geometry::Shape& to_bp_data,
+    ::curaengine::geometry::Shape& to_model_data,
+    ::curaengine::geometry::Shape& increased,
+    const ::curaengine::utils::coord_t overspeed,
     const bool mergelayer)
 {
     auto current_elem = TreeSupportElement::makeFromElementAbove(parent); // Also increases DTT by one.
-    Shape check_layer_data;
+    ::curaengine::geometry::Shape check_layer_data;
     if (settings.increase_radius_)
     {
         current_elem->effective_radius_height_ += 1;
     }
-    coord_t radius = config.getCollisionRadius(current_elem);
+    ::curaengine::utils::coord_t radius = config.getCollisionRadius(current_elem);
 
     if (settings.move_)
     {
         increased = relevant_offset;
         if (overspeed > 0)
         {
-            const coord_t safe_movement_distance = (current_elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance)
+            const ::curaengine::utils::coord_t safe_movement_distance = (current_elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance)
                                                  + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
             // The difference to ensure that the result not only conforms to wall_restriction, but collision/avoidance is done later.
             // The higher last_safe_step_movement_distance comes exactly from the fact that the collision will be subtracted later.
@@ -713,20 +713,20 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
 
     if (settings.increase_radius_ && check_layer_data.area() > 1)
     {
-        std::function<bool(coord_t)> validWithRadius = [&](coord_t next_radius)
+        std::function<bool(::curaengine::utils::coord_t)> validWithRadius = [&](::curaengine::utils::coord_t next_radius)
         {
             if (volumes_.ceilRadius(next_radius, settings.use_min_distance_) <= volumes_.ceilRadius(radius, settings.use_min_distance_))
             {
                 return true;
             }
 
-            Shape to_bp_data_2;
+            ::curaengine::geometry::Shape to_bp_data_2;
             if (current_elem->to_buildplate_)
             {
                 // Regular union as output will not be used later => this area should always be a subset of the safeUnion one.
                 to_bp_data_2 = increased.difference(volumes_.getAvoidance(next_radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)).unionPolygons();
             }
-            Shape to_model_data_2;
+            ::curaengine::geometry::Shape to_model_data_2;
             if (config.support_rests_on_model && ! current_elem->to_buildplate_)
             {
                 to_model_data_2 = increased
@@ -738,17 +738,17 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                                           settings.use_min_distance_))
                                       .unionPolygons();
             }
-            Shape check_layer_data_2 = current_elem->to_buildplate_ ? to_bp_data_2 : to_model_data_2;
+            ::curaengine::geometry::Shape check_layer_data_2 = current_elem->to_buildplate_ ? to_bp_data_2 : to_model_data_2;
 
             return check_layer_data_2.area() > 1;
         };
-        coord_t ceil_radius_before = volumes_.ceilRadius(radius, settings.use_min_distance_);
+        ::curaengine::utils::coord_t ceil_radius_before = volumes_.ceilRadius(radius, settings.use_min_distance_);
 
         // If the Collision Radius is smaller than the actual radius, check if it can catch up without violating the avoidance.
         if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
         {
-            coord_t target_radius = std::min(config.getRadius(current_elem), config.increase_radius_until_radius);
-            coord_t current_ceil_radius = volumes_.getRadiusNextCeil(radius, settings.use_min_distance_);
+            ::curaengine::utils::coord_t target_radius = std::min(config.getRadius(current_elem), config.increase_radius_until_radius);
+            ::curaengine::utils::coord_t current_ceil_radius = volumes_.getRadiusNextCeil(radius, settings.use_min_distance_);
 
             while (current_ceil_radius < target_radius && validWithRadius(volumes_.getRadiusNextCeil(current_ceil_radius + 1, settings.use_min_distance_)))
             {
@@ -767,13 +767,13 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
             // wall of the bowl if possible.
             if (config.getCollisionRadius(current_elem) < config.increase_radius_until_radius && config.getCollisionRadius(current_elem) < config.getRadius(current_elem))
             {
-                Shape new_to_bp_data;
-                Shape new_to_model_data;
+                ::curaengine::geometry::Shape new_to_bp_data;
+                ::curaengine::geometry::Shape new_to_model_data;
 
                 if (current_elem->to_buildplate_)
                 {
                     new_to_bp_data = to_bp_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem->use_min_xy_dist_));
-                    if (new_to_bp_data.area() > EPSILON)
+                    if (new_to_bp_data.area() > ::curaengine::utils::EPSILON)
                     {
                         to_bp_data = new_to_bp_data;
                     }
@@ -781,7 +781,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                 if (config.support_rests_on_model && (! current_elem->to_buildplate_ || mergelayer))
                 {
                     new_to_model_data = to_model_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem->use_min_xy_dist_));
-                    if (new_to_model_data.area() > EPSILON)
+                    if (new_to_model_data.area() > ::curaengine::utils::EPSILON)
                     {
                         to_model_data = new_to_model_data;
                     }
@@ -790,7 +790,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
         }
         radius = config.getCollisionRadius(current_elem);
 
-        const coord_t foot_radius_increase = config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0));
+        const ::curaengine::utils::coord_t foot_radius_increase = config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0));
         const double planned_foot_increase = std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1) - config.getRadius(current_elem)) / foot_radius_increase);
         // ^^^ Is nearly all of the time 1, but sometimes an increase of 1 could cause the radius to become bigger than recommendedMinRadius, which could cause the radius to become
         // bigger than precalculated.
@@ -841,9 +841,9 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
     if (current_elem->influence_area_limit_active_ && ! current_elem->use_min_xy_dist_ && check_layer_data.area() > 1
         && (current_elem->to_model_gracious_ || current_elem->distance_to_top_ <= config.min_dtt_to_model))
     {
-        const coord_t max_radius_increase = std::max(
-            static_cast<coord_t>((config.branch_radius - config.min_radius) / config.tip_layers),
-            static_cast<coord_t>(
+        const ::curaengine::utils::coord_t max_radius_increase = std::max(
+            static_cast<::curaengine::utils::coord_t>((config.branch_radius - config.min_radius) / config.tip_layers),
+            static_cast<::curaengine::utils::coord_t>(
                 (config.branch_radius * config.diameter_angle_scale_factor)
                 + config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0))));
         bool limit_range_validated = false;
@@ -854,7 +854,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
         {
             if (current_elem->to_buildplate_)
             {
-                Shape limited_to_bp = to_bp_data.intersection((current_elem->influence_area_limit_area_));
+                ::curaengine::geometry::Shape limited_to_bp = to_bp_data.intersection((current_elem->influence_area_limit_area_));
                 if (limited_to_bp.area() > 1)
                 {
                     to_bp_data = limited_to_bp;
@@ -864,7 +864,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
             }
             else
             {
-                Shape limited_to_model_data = to_model_data.intersection((current_elem->influence_area_limit_area_));
+                ::curaengine::geometry::Shape limited_to_model_data = to_model_data.intersection((current_elem->influence_area_limit_area_));
                 if (limited_to_model_data.area() > 1)
                 {
                     to_bp_data = to_bp_data.intersection((current_elem->influence_area_limit_area_));
@@ -874,7 +874,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
             }
             if (! limit_range_validated)
             {
-                const coord_t reach_increase = std::max(current_elem->influence_area_limit_range_ / 4, (config.maximum_move_distance + max_radius_increase));
+                const ::curaengine::utils::coord_t reach_increase = std::max(current_elem->influence_area_limit_range_ / 4, (config.maximum_move_distance + max_radius_increase));
                 current_elem->influence_area_limit_range_ += reach_increase;
                 current_elem->RecreateInfluenceLimitArea();
             }
@@ -890,11 +890,11 @@ void TreeSupport::increaseAreas(
     PropertyAreas& influence_areas,
     std::vector<TreeSupportElement::Ptr>& bypass_merge_areas,
     const std::vector<TreeSupportElement::Ptr>& last_layer,
-    const LayerIndex layer_idx,
+    const ::curaengine::types::LayerIndex layer_idx,
     const bool mergelayer)
 {
     std::mutex critical_sections;
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         last_layer.size(),
         [&](const size_t idx)
@@ -902,11 +902,11 @@ void TreeSupport::increaseAreas(
             TreeSupportElement::Ptr parent = last_layer[idx];
             auto elem = TreeSupportElement::makeFromElementAbove(parent); // Also increases dtt.
             // Abstract representation of the model outline. If an influence area would move through it, it could teleport through a wall.
-            const Shape wall_restriction = volumes_.getWallRestriction(config.getCollisionRadius(parent), layer_idx, parent->use_min_xy_dist_);
+            const ::curaengine::geometry::Shape wall_restriction = volumes_.getWallRestriction(config.getCollisionRadius(parent), layer_idx, parent->use_min_xy_dist_);
 
-            Shape to_bp_data;
-            Shape to_model_data;
-            coord_t radius = config.getCollisionRadius(elem);
+            ::curaengine::geometry::Shape to_bp_data;
+            ::curaengine::geometry::Shape to_model_data;
+            ::curaengine::utils::coord_t radius = config.getCollisionRadius(elem);
 
             // When the radius increases, the outer "support wall" of the branch will have been moved farther away from the center (as this is the definition of radius).
             // As it is not specified that the support_tree_angle has to be one of the center of the branch,
@@ -914,12 +914,12 @@ void TreeSupport::increaseAreas(
             // As the branch may have become larger the distance between these 2 walls is smaller than the distance of the center points.
             // These extra distance is added to the movement distance possible for this layer.
 
-            coord_t extra_speed = EPSILON; // The extra speed is added to both movement distances. Also move 5 microns faster than allowed to avoid rounding errors, this may cause
+            ::curaengine::utils::coord_t extra_speed = ::curaengine::utils::EPSILON; // The extra speed is added to both movement distances. Also move 5 microns faster than allowed to avoid rounding errors, this may cause
                                            // issues at VERY VERY small layer heights.
-            coord_t extra_slow_speed = 0; // Only added to the slow movement distance.
-            const coord_t ceiled_parent_radius = volumes_.ceilRadius(config.getCollisionRadius(parent), parent->use_min_xy_dist_);
-            const coord_t projected_radius_increased = config.getRadius(parent->effective_radius_height_ + 1, parent->buildplate_radius_increases_);
-            const coord_t projected_radius_delta = projected_radius_increased - config.getCollisionRadius(parent);
+            ::curaengine::utils::coord_t extra_slow_speed = 0; // Only added to the slow movement distance.
+            const ::curaengine::utils::coord_t ceiled_parent_radius = volumes_.ceilRadius(config.getCollisionRadius(parent), parent->use_min_xy_dist_);
+            const ::curaengine::utils::coord_t projected_radius_increased = config.getRadius(parent->effective_radius_height_ + 1, parent->buildplate_radius_increases_);
+            const ::curaengine::utils::coord_t projected_radius_delta = projected_radius_increased - config.getCollisionRadius(parent);
 
             // When z distance is more than one layer up and down the Collision used to calculate the wall restriction will always include the wall (and not just the
             // xy_min_distance) of the layer above and below like this (d = blocked area because of z distance):
@@ -929,7 +929,7 @@ void TreeSupport::increaseAreas(
              *  layer z-1:dddddxxxxxxxxxx
              *  For more detailed visualisation see calculateWallRestrictions
              */
-            const coord_t safe_movement_distance = (elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance)
+            const ::curaengine::utils::coord_t safe_movement_distance = (elem->use_min_xy_dist_ ? config.xy_min_distance : config.xy_distance)
                                                  + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
             if (ceiled_parent_radius == volumes_.ceilRadius(projected_radius_increased, parent->use_min_xy_dist_)
                 || projected_radius_increased < config.increase_radius_until_radius)
@@ -957,16 +957,16 @@ void TreeSupport::increaseAreas(
                 else
                 {
                     extra_slow_speed += std::min(
-                        coord_t(config.branch_radius * config.diameter_scale_bp_radius),
+                        ::curaengine::utils::coord_t(config.branch_radius * config.diameter_scale_bp_radius),
                         config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed));
                 }
             }
 
-            const coord_t fast_speed = config.maximum_move_distance + extra_speed;
-            const coord_t slow_speed = config.maximum_move_distance_slow + extra_speed + extra_slow_speed;
+            const ::curaengine::utils::coord_t fast_speed = config.maximum_move_distance + extra_speed;
+            const ::curaengine::utils::coord_t slow_speed = config.maximum_move_distance_slow + extra_speed + extra_slow_speed;
 
-            Shape offset_slow;
-            Shape offset_fast;
+            ::curaengine::geometry::Shape offset_slow;
+            ::curaengine::geometry::Shape offset_fast;
 
             bool add = false;
             bool bypass_merge = false;
@@ -1028,7 +1028,7 @@ void TreeSupport::increaseAreas(
                 insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true); // Did we go through the hole.
                 // In many cases the definition of hole is overly restrictive, so to avoid unnecessary fast movement in the tip, it is ignored there for a bit.
                 // This CAN cause a branch to go though a hole it otherwise may have avoided.
-                if (elem->distance_to_top_ < round_up_divide(config.tip_layers, 2))
+                if (elem->distance_to_top_ < ::curaengine::utils::round_up_divide(config.tip_layers, 2))
                 {
                     insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true);
                 }
@@ -1086,11 +1086,11 @@ void TreeSupport::increaseAreas(
                     false); // Only do not move when already in a no hole avoidance with the regular xy distance.
             }
 
-            Shape inc_wo_collision;
+            ::curaengine::geometry::Shape inc_wo_collision;
             // Check whether it is faster to calculate the area increased with the fast speed independently from the slow area, or time could be saved by reusing the slow area to
             // calculate the fast one. Calculated by comparing the steps saved when calculating independently with the saved steps when not.
             const bool offset_independent_faster = (radius / safe_movement_distance - (((config.maximum_move_distance + extra_speed) < (radius + safe_movement_distance)) ? 1 : 0))
-                                                 > (round_up_divide((extra_speed + extra_slow_speed + config.maximum_move_distance_slow), safe_movement_distance));
+                                                 > (::curaengine::utils::round_up_divide((extra_speed + extra_slow_speed + config.maximum_move_distance_slow), safe_movement_distance));
             for (AreaIncreaseSettings settings : order)
             {
                 if (settings.move_)
@@ -1127,7 +1127,7 @@ void TreeSupport::increaseAreas(
                         }
                         else
                         {
-                            const coord_t delta_slow_fast = config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed);
+                            const ::curaengine::utils::coord_t delta_slow_fast = config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed);
                             offset_fast = TreeSupportUtils::safeOffsetInc(
                                               offset_slow,
                                               delta_slow_fast,
@@ -1148,8 +1148,8 @@ void TreeSupport::increaseAreas(
                 {
                     // If the area becomes for whatever reason something that clipper sees as a line, offset would stop working, so ensure that even if if wrongly would be a line,
                     // it still actually has an area that can be increased
-                    Shape lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offset(EPSILON);
-                    Shape base_error_area = parent->area_->unionPolygons(lines_offset);
+                    ::curaengine::geometry::Shape lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offset(::curaengine::utils::EPSILON);
+                    ::curaengine::geometry::Shape base_error_area = parent->area_->unionPolygons(lines_offset);
                     result = increaseSingleArea(settings, layer_idx, parent, base_error_area, to_bp_data, to_model_data, inc_wo_collision, settings.increase_speed_, mergelayer);
 
                     if (fast_speed < settings.increase_speed_)
@@ -1193,7 +1193,7 @@ void TreeSupport::increaseAreas(
                         to_bp_data,
                         to_model_data,
                         inc_wo_collision,
-                        std::max(settings.increase_speed_ - fast_speed, coord_t(0)),
+                        std::max(settings.increase_speed_ - fast_speed, ::curaengine::utils::coord_t(0)),
                         mergelayer);
                 }
 
@@ -1236,7 +1236,7 @@ void TreeSupport::increaseAreas(
 
             if (add)
             {
-                Shape max_influence_area = TreeSupportUtils::safeUnion(
+                ::curaengine::geometry::Shape max_influence_area = TreeSupportUtils::safeUnion(
                     inc_wo_collision.difference(volumes_.getCollision(radius, layer_idx - 1, elem->use_min_xy_dist_)),
                     TreeSupportUtils::safeUnion(to_bp_data, to_model_data));
                 // ^^^ Note: union seems useless, but some rounding errors somewhere can cause to_bp_data to be slightly bigger than it should be
@@ -1245,7 +1245,7 @@ void TreeSupport::increaseAreas(
                     std::lock_guard<std::mutex> critical_section_newLayer(critical_sections);
                     if (bypass_merge)
                     {
-                        Shape* new_area = new Shape(max_influence_area);
+                        ::curaengine::geometry::Shape* new_area = new ::curaengine::geometry::Shape(max_influence_area);
                         auto next = TreeSupportElement::makeCopy(elem, new_area);
                         bypass_merge_areas.emplace_back(next);
                     }
@@ -1268,12 +1268,12 @@ void TreeSupport::increaseAreas(
                 // If the bottom most point of a branch is set, later functions will assume that the position is valid, and ignore it.
                 // But as branches connecting with the model that are to small have to be culled, the bottom most point has to be not set.
                 // A point can be set on the top most tip layer (maybe more if it should not move for a few layers).
-                parent->result_on_layer_ = Point2LL(-1, -1);
+                parent->result_on_layer_ = ::curaengine::geometry::Point2LL(-1, -1);
             }
         });
 }
 
-void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TimeKeeper& time_keeper)
+void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, ::curaengine::utils::TimeKeeper& time_keeper)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
@@ -1281,12 +1281,12 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
     auto dur_inc = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
     auto dur_merge = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
 
-    LayerIndex last_merge = move_bounds.size();
+    ::curaengine::types::LayerIndex last_merge = move_bounds.size();
     bool new_element = false;
 
     // Ensure at least one merge operation per 3mm height, 50 layers, 1 mm movement of slow speed or 5mm movement of fast speed (whatever is lowest). Values were guessed.
     size_t max_merge_every_x_layers = std::min(
-        std::min(5000 / (std::max(config.maximum_move_distance, static_cast<coord_t>(100))), 1000 / std::max(config.maximum_move_distance_slow, static_cast<coord_t>(20))),
+        std::min(5000 / (std::max(config.maximum_move_distance, static_cast<::curaengine::utils::coord_t>(100))), 1000 / std::max(config.maximum_move_distance_slow, static_cast<::curaengine::utils::coord_t>(20))),
         3000 / config.layer_height);
 
     size_t merge_every_x_layers = 1;
@@ -1339,10 +1339,10 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
         new_element = ! move_bounds[layer_idx - 1].empty();
 
         // Save calculated elements to output, and allocate Polygons on heap, as they will not be changed again.
-        for (std::pair<TreeSupportElement::Ptr, Shape> tup : influence_areas)
+        for (std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> tup : influence_areas)
         {
             const TreeSupportElement::Ptr elem = tup.first;
-            Shape* new_area = new Shape(TreeSupportUtils::safeUnion(tup.second));
+            ::curaengine::geometry::Shape* new_area = new ::curaengine::geometry::Shape(TreeSupportUtils::safeUnion(tup.second));
             auto next = TreeSupportElement::makeCopy(elem, new_area);
             move_bounds[layer_idx - 1].emplace(next);
 
@@ -1363,7 +1363,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
         }
 
         progress_total += data_size_inverse * TREE_PROGRESS_AREA_CALC;
-        Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+        ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
     time_keeper.registerTime("Creating influence areas: increase", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
@@ -1374,7 +1374,7 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement::Ptr elem)
 {
     // Based on the branch center point of the current layer, the point on the next (further up) layer is calculated.
 
-    if (elem->result_on_layer_ == Point2LL(-1, -1))
+    if (elem->result_on_layer_ == ::curaengine::geometry::Point2LL(-1, -1))
     {
         spdlog::error("Uninitialized support element");
         return;
@@ -1383,15 +1383,15 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement::Ptr elem)
     for (TreeSupportElement::Ptr next_elem : elem->getParents())
     {
         if (next_elem->result_on_layer_
-            != Point2LL(-1, -1)) // If the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
+            != ::curaengine::geometry::Point2LL(-1, -1)) // If the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
         {
             continue;
         }
 
-        Point2LL from = elem->result_on_layer_;
+        ::curaengine::geometry::Point2LL from = elem->result_on_layer_;
         if (! (next_elem->area_->inside(from, true)))
         {
-            PolygonUtils::moveInside(
+            ::curaengine::utils::PolygonUtils::moveInside(
                 *next_elem->area_,
                 from,
                 0); // Move inside has edgecases (see tests) so DONT use Polygons.inside to confirm correct move, Error with distance 0 is <= 1
@@ -1403,14 +1403,14 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement::Ptr elem)
     }
 }
 
-bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TreeSupportElement::Ptr first_elem, const LayerIndex layer_idx)
+bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TreeSupportElement::Ptr first_elem, const ::curaengine::types::LayerIndex layer_idx)
 {
     if (first_elem->to_model_gracious_)
     {
         TreeSupportElement::Ptr check = first_elem;
 
         std::vector<TreeSupportElement::Ptr> checked;
-        LayerIndex last_successfull_layer = layer_idx;
+        ::curaengine::types::LayerIndex last_successfull_layer = layer_idx;
 
         bool set = false;
         if (config.support_rest_preference != RestPreference::BUILDPLATE && layer_idx == 0)
@@ -1418,13 +1418,13 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
             set = true;
         }
 
-        Shape valid_place_area;
+        ::curaengine::geometry::Shape valid_place_area;
 
         // Check for every layer upwards, up to the point where this influence area was created (either by initial insert or merge) if the branch could be placed on it, and highest
         // up layer index.
-        for (LayerIndex layer_check = layer_idx; check->next_height_ >= layer_check; layer_check++)
+        for (::curaengine::types::LayerIndex layer_check = layer_idx; check->next_height_ >= layer_check; layer_check++)
         {
-            Shape check_valid_place_area = check->area_->intersection(volumes_.getPlaceableAreas(config.getCollisionRadius(check), layer_check));
+            ::curaengine::geometry::Shape check_valid_place_area = check->area_->intersection(volumes_.getPlaceableAreas(config.getCollisionRadius(check), layer_check));
 
             if (! check_valid_place_area.empty())
             {
@@ -1449,7 +1449,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
             if (SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL)
             {
                 spdlog::warn("No valid placement found for to model gracious element on layer {}: REMOVING BRANCH", layer_idx);
-                for (LayerIndex layer = layer_idx; layer <= first_elem->next_height_; layer++)
+                for (::curaengine::types::LayerIndex layer = layer_idx; layer <= first_elem->next_height_; layer++)
                 {
                     delete checked[layer - layer_idx]->area_;
                     move_bounds[layer].erase(checked[layer - layer_idx]);
@@ -1464,7 +1464,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
             }
         }
 
-        for (LayerIndex layer = layer_idx + 1; layer < last_successfull_layer - 1;
+        for (::curaengine::types::LayerIndex layer = layer_idx + 1; layer < last_successfull_layer - 1;
              ++layer) // NOTE: Use of 'itoa' will make this crash in the loop, even though the operation should be equivalent.
         {
             delete checked[layer - layer_idx]->area_;
@@ -1478,11 +1478,11 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
         }
 
         // Guess a point inside the influence area, in which the branch will be placed in.
-        Point2LL best = checked[last_successfull_layer - layer_idx]->next_position_;
+        ::curaengine::geometry::Point2LL best = checked[last_successfull_layer - layer_idx]->next_position_;
 
         if (! valid_place_area.inside(best, true))
         {
-            PolygonUtils::moveInside(valid_place_area, best);
+            ::curaengine::utils::PolygonUtils::moveInside(valid_place_area, best);
         }
 
         checked[last_successfull_layer - layer_idx]->result_on_layer_ = best;
@@ -1492,27 +1492,27 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
     }
     else // can not add graceful => just place it here and hope for the best
     {
-        Point2LL best = first_elem->next_position_;
-        Shape valid_place_area
+        ::curaengine::geometry::Point2LL best = first_elem->next_position_;
+        ::curaengine::geometry::Shape valid_place_area
             = first_elem->area_->difference(volumes_.getAvoidance(config.getCollisionRadius(first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist_));
 
         if (! valid_place_area.inside(best, true))
         {
             if (! valid_place_area.empty())
             {
-                PolygonUtils::moveInside(valid_place_area, best);
+                ::curaengine::utils::PolygonUtils::moveInside(valid_place_area, best);
             }
             else
             {
                 bool found_partial_placement;
-                for (coord_t radius_offset : { -config.getCollisionRadius(first_elem),
+                for (::curaengine::utils::coord_t radius_offset : { -config.getCollisionRadius(first_elem),
                                                -config.getCollisionRadius(first_elem) / 2,
-                                               coord_t(0) }) // Interestingly the first radius is working most of the time, even though it seems like it shouldn't.
+                                               ::curaengine::utils::coord_t(0) }) // Interestingly the first radius is working most of the time, even though it seems like it shouldn't.
                 {
                     valid_place_area = first_elem->area_->intersection(volumes_.getAccumulatedPlaceable0(layer_idx).offset(radius_offset));
                     if (! valid_place_area.empty())
                     {
-                        PolygonUtils::moveInside(valid_place_area, best);
+                        ::curaengine::utils::PolygonUtils::moveInside(valid_place_area, best);
                         spdlog::warn(
                             "Not able to place branch fully on non support blocker at layer {} using offset {} for radius {}",
                             layer_idx,
@@ -1524,7 +1524,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
                 }
                 if (! found_partial_placement)
                 {
-                    PolygonUtils::moveInside(*first_elem->area_, best);
+                    ::curaengine::utils::PolygonUtils::moveInside(*first_elem->area_, best);
                     spdlog::warn("Not able to place branch on non support blocker at layer {}", layer_idx);
                 }
             }
@@ -1543,10 +1543,10 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
     std::unordered_set<TreeSupportElement::Ptr> remove;
     for (TreeSupportElement::Ptr init : move_bounds[0])
     {
-        Point2LL p = init->next_position_;
+        ::curaengine::geometry::Point2LL p = init->next_position_;
         if (! (init->area_->inside(p, true)))
         {
-            PolygonUtils::moveInside(*init->area_, p, 0);
+            ::curaengine::utils::PolygonUtils::moveInside(*init->area_, p, 0);
         }
         init->result_on_layer_ = p;
 
@@ -1579,7 +1579,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
         for (TreeSupportElement::Ptr elem : move_bounds[layer_idx])
         {
             bool removed = false;
-            if (elem->result_on_layer_ == Point2LL(-1, -1)) // Check if the resulting center point is not yet set.
+            if (elem->result_on_layer_ == ::curaengine::geometry::Point2LL(-1, -1)) // Check if the resulting center point is not yet set.
             {
                 if (elem->to_buildplate_ || (! elem->to_buildplate_ && elem->distance_to_top_ < config.min_dtt_to_model && ! elem->supports_roof_))
                 {
@@ -1598,7 +1598,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
                     {
                         // When the roof was not able to generate downwards enough, the top elements may have not moved, and have result_on_layer already set. As this branch needs
                         // to be removed => all parents result_on_layer have to be invalidated.
-                        parent->result_on_layer_ = Point2LL(-1, -1);
+                        parent->result_on_layer_ = ::curaengine::geometry::Point2LL(-1, -1);
                     }
                     continue;
                 }
@@ -1630,73 +1630,73 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
 }
 
 void TreeSupport::generateBranchAreas(
-    std::vector<std::pair<LayerIndex, TreeSupportElement::Ptr>>& linear_data,
-    std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons,
+    std::vector<std::pair<::curaengine::types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
+    std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>& layer_tree_polygons,
     const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC;
     constexpr int progress_report_steps = 10;
-    Polygon branch_circle; // Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
+    ::curaengine::geometry::Polygon branch_circle; // Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
 
     {
-        Polygon base_circle = TreeSupportBaseCircle::getBaseCircle();
-        for (Point2LL vertex : base_circle)
+        ::curaengine::geometry::Polygon base_circle = TreeSupportBaseCircle::getBaseCircle();
+        for (::curaengine::geometry::Point2LL vertex : base_circle)
         {
-            vertex = Point2LL(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
+            vertex = ::curaengine::geometry::Point2LL(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
             branch_circle.push_back(vertex);
         }
     }
 
-    std::vector<Shape> linear_inserts(linear_data.size());
+    std::vector<::curaengine::geometry::Shape> linear_inserts(linear_data.size());
     const size_t progress_inserts_check_interval = std::max(linear_data.size() / progress_report_steps, size_t(1));
 
     std::mutex critical_sections;
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         linear_data.size(),
         [&](const size_t idx)
         {
             TreeSupportElement::Ptr elem = linear_data[idx].second;
-            coord_t radius = config.getRadius(elem);
+            ::curaengine::utils::coord_t radius = config.getRadius(elem);
             bool parent_uses_min = false;
             TreeSupportElement::Ptr child_elem = inverse_tree_order.count(elem) ? inverse_tree_order.at(elem) : nullptr;
 
             // Calculate multiple ovalized circles, to connect with every parent and child. Also generate regular circle for the current layer. Merge all these into one area.
-            std::vector<std::pair<Point2LL, coord_t>> movement_directions{ std::pair<Point2LL, coord_t>(Point2LL(0, 0), radius) };
+            std::vector<std::pair<::curaengine::geometry::Point2LL, ::curaengine::utils::coord_t>> movement_directions{ std::pair<::curaengine::geometry::Point2LL, ::curaengine::utils::coord_t>(::curaengine::geometry::Point2LL(0, 0), radius) };
             if (! elem->skip_ovalisation_)
             {
                 if (child_elem != nullptr)
                 {
-                    Point2LL movement = (child_elem->result_on_layer_ - elem->result_on_layer_);
+                    ::curaengine::geometry::Point2LL movement = (child_elem->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, radius);
                 }
                 for (TreeSupportElement::Ptr parent : elem->getParents())
                 {
-                    Point2LL movement = (parent->result_on_layer_ - elem->result_on_layer_);
+                    ::curaengine::geometry::Point2LL movement = (parent->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
                     parent_uses_min |= parent->use_min_xy_dist_;
                 }
 
-                for (Point2LL target : elem->additional_ovalization_targets_)
+                for (::curaengine::geometry::Point2LL target : elem->additional_ovalization_targets_)
                 {
-                    Point2LL movement = (target - elem->result_on_layer_);
+                    ::curaengine::geometry::Point2LL movement = (target - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, std::max(radius, config.support_line_width));
                 }
             }
 
-            coord_t max_speed_sqd = 0;
-            const std::function<Shape(coord_t)> generateArea = [&](coord_t offset)
+            ::curaengine::utils::coord_t max_speed_sqd = 0;
+            const std::function<::curaengine::geometry::Shape(::curaengine::utils::coord_t)> generateArea = [&](::curaengine::utils::coord_t offset)
             {
-                Shape poly;
+                ::curaengine::geometry::Shape poly;
 
-                for (std::pair<Point2LL, coord_t> movement : movement_directions)
+                for (std::pair<::curaengine::geometry::Point2LL, ::curaengine::utils::coord_t> movement : movement_directions)
                 {
-                    max_speed_sqd = std::max(max_speed_sqd, vSize2(movement.first));
+                    max_speed_sqd = std::max(max_speed_sqd, ::curaengine::geometry::vSize2(movement.first));
 
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
                     double used_scale = (movement.second + offset) / (1.0 * config.branch_radius);
-                    Point2LL center_position = elem->result_on_layer_ + movement.first / coord_t{ 2 };
+                    ::curaengine::geometry::Point2LL center_position = elem->result_on_layer_ + movement.first / ::curaengine::utils::coord_t{ 2 };
                     const double moveX = movement.first.X / (used_scale * config.branch_radius);
                     const double moveY = movement.first.Y / (used_scale * config.branch_radius);
                     const double vsize_inv = 0.5 / (0.01 + std::sqrt(moveX * moveX + moveY * moveY));
@@ -1707,17 +1707,17 @@ void TreeSupport::generateBranchAreas(
                         used_scale * (0 + moveX * moveY * vsize_inv),
                         used_scale * (1 + moveY * moveY * vsize_inv),
                     };
-                    Polygon circle;
-                    for (Point2LL vertex : branch_circle)
+                    ::curaengine::geometry::Polygon circle;
+                    for (::curaengine::geometry::Point2LL vertex : branch_circle)
                     {
-                        vertex = Point2LL(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
+                        vertex = ::curaengine::geometry::Point2LL(matrix[0] * vertex.X + matrix[1] * vertex.Y, matrix[2] * vertex.X + matrix[3] * vertex.Y);
                         circle.push_back(center_position + vertex);
                     }
                     poly.push_back(circle.offset(0));
                 }
 
                 poly = poly.unionPolygons()
-                           .offset(std::min(static_cast<coord_t>(FUDGE_LENGTH), config.support_line_width / 4))
+                           .offset(std::min(static_cast<::curaengine::utils::coord_t>(FUDGE_LENGTH), config.support_line_width / 4))
                            .difference(volumes_.getCollision(0, linear_data[idx].first, parent_uses_min || elem->use_min_xy_dist_));
                 // ^^^ There seem to be some rounding errors, causing a branch to be a tiny bit further away from the model that it has to be. This can cause the tip to be slightly
                 // further away front the overhang (x/y wise) than optimal.
@@ -1735,7 +1735,7 @@ void TreeSupport::generateBranchAreas(
             {
                 // Simulate the path the nozzle will take on the outermost wall.
                 // If multiple parts exist, the outer line will not go all around the support part potentially causing support material to be printed mid air.
-                Shape nozzle_path = linear_inserts[idx].offset(-config.support_line_width / 2);
+                ::curaengine::geometry::Shape nozzle_path = linear_inserts[idx].offset(-config.support_line_width / 2);
                 if (nozzle_path.splitIntoParts(false).size() > 1)
                 {
                     // Just try to make the area a tiny bit larger.
@@ -1745,8 +1745,8 @@ void TreeSupport::generateBranchAreas(
                     // if larger area did not fix the problem, all parts off the nozzle path that do not contain the center point are removed, hoping for the best
                     if (nozzle_path.splitIntoParts(false).size() > 1)
                     {
-                        Shape polygons_with_correct_center;
-                        for (SingleShape part : nozzle_path.splitIntoParts(false))
+                        ::curaengine::geometry::Shape polygons_with_correct_center;
+                        for (::curaengine::geometry::SingleShape part : nozzle_path.splitIntoParts(false))
                         {
                             if (part.inside(elem->result_on_layer_, true))
                             {
@@ -1755,9 +1755,9 @@ void TreeSupport::generateBranchAreas(
                             else
                             {
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
-                                Point2LL from = elem->result_on_layer_;
-                                PolygonUtils::moveInside(part, from, 0);
-                                if (vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
+                                ::curaengine::geometry::Point2LL from = elem->result_on_layer_;
+                                ::curaengine::utils::PolygonUtils::moveInside(part, from, 0);
+                                if (::curaengine::geometry::vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
                                 {
                                     polygons_with_correct_center = polygons_with_correct_center.unionPolygons(part);
                                 }
@@ -1776,37 +1776,37 @@ void TreeSupport::generateBranchAreas(
                 {
                     std::lock_guard<std::mutex> critical_section_progress(critical_sections);
                     progress_total += TREE_PROGRESS_GENERATE_BRANCH_AREAS / progress_report_steps;
-                    Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+                    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
                 }
             }
         });
 
     // Single threaded combining all elements to the right layers. Only copies data!
-    for (const coord_t i : ranges::views::iota(0UL, linear_data.size()))
+    for (const ::curaengine::utils::coord_t i : ranges::views::iota(0UL, linear_data.size()))
     {
         layer_tree_polygons[linear_data[i].first].emplace(linear_data[i].second, linear_inserts[i]);
     }
 }
 
-void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons)
+void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>& layer_tree_polygons)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS;
-    const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // This is the upper limit a radius may change per layer. +1 to avoid rounding errors.
+    const ::curaengine::utils::coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // This is the upper limit a radius may change per layer. +1 to avoid rounding errors.
 
     // Smooth upward.
     for (const auto layer_idx : ranges::views::iota(0UL, std::max<size_t>(layer_tree_polygons.size(), 1UL) - 1UL))
     {
-        std::vector<std::pair<TreeSupportElement::Ptr, Shape>> processing;
+        std::vector<std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::vector<std::pair<TreeSupportElement::Ptr, Shape>>> update_next(processing.size()); // With this a lock can be avoided.
-        curaengine::parallel_for<size_t>(
+        std::vector<std::vector<std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>> update_next(processing.size()); // With this a lock can be avoided.
+        ::curaengine::utils::parallel_for<size_t>(
             0,
             processing.size(),
             [&](const size_t processing_idx)
             {
-                std::pair<TreeSupportElement::Ptr, Shape> data_pair = processing[processing_idx];
+                std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> data_pair = processing[processing_idx];
 
-                coord_t max_outer_wall_distance = 0;
+                ::curaengine::utils::coord_t max_outer_wall_distance = 0;
                 bool do_something = false;
                 for (TreeSupportElement::Ptr parent : data_pair.first->getParents())
                 {
@@ -1815,28 +1815,28 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                         do_something = true;
                         max_outer_wall_distance = std::max(
                             max_outer_wall_distance,
-                            vSize(data_pair.first->result_on_layer_ - parent->result_on_layer_) - (config.getRadius(data_pair.first) - config.getRadius(parent)));
+                            ::curaengine::geometry::vSize(data_pair.first->result_on_layer_ - parent->result_on_layer_) - (config.getRadius(data_pair.first) - config.getRadius(parent)));
                     }
                 }
                 max_outer_wall_distance
                     += max_radius_change_per_layer; // As this change is a bit larger than what usually appears, lost radius can be slowly reclaimed over the layers.
                 if (do_something)
                 {
-                    Shape max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
+                    ::curaengine::geometry::Shape max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
                     for (TreeSupportElement::Ptr parent : data_pair.first->getParents())
                     {
                         if (config.getRadius(parent) != config.getCollisionRadius(parent))
                         {
                             update_next[processing_idx].emplace_back(
-                                std::pair<TreeSupportElement::Ptr, Shape>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
+                                std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
                         }
                     }
                 }
             });
 
-        for (std::vector<std::pair<TreeSupportElement::Ptr, Shape>> data_vector : update_next)
+        for (std::vector<std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>> data_vector : update_next)
         {
-            for (std::pair<TreeSupportElement::Ptr, Shape> data_pair : data_vector)
+            for (std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> data_pair : data_vector)
             {
                 layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
             }
@@ -1844,7 +1844,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     }
 
     progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
-    Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     // ^^^ It is just assumed that both smoothing loops together are one third of the time spent in this function. This was guessed.
     //     As the whole function is only 10%, and the smoothing is hard to predict a progress report in the loop may be not useful.
 
@@ -1852,30 +1852,30 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     std::unordered_set<TreeSupportElement::Ptr> updated_last_iteration;
     for (const auto layer_idx : ranges::views::iota(0UL, std::max<size_t>(layer_tree_polygons.size(), 1UL) - 1UL) | ranges::views::reverse)
     {
-        std::vector<std::pair<TreeSupportElement::Ptr, Shape>> processing;
+        std::vector<std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::pair<TreeSupportElement::Ptr, Shape>> update_next(
+        std::vector<std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>> update_next(
             processing.size(),
-            std::pair<TreeSupportElement::Ptr, Shape>(nullptr, Shape())); // With this a lock can be avoided.
+            std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>(nullptr, ::curaengine::geometry::Shape())); // With this a lock can be avoided.
 
-        curaengine::parallel_for<size_t>(
+        ::curaengine::utils::parallel_for<size_t>(
             0,
             processing.size(),
             [&](const size_t processing_idx)
             {
-                std::pair<TreeSupportElement::Ptr, Shape> data_pair = processing[processing_idx];
+                std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> data_pair = processing[processing_idx];
                 bool do_something = false;
-                Shape max_allowed_area;
+                ::curaengine::geometry::Shape max_allowed_area;
                 for (size_t idx = 0; idx < data_pair.first->getParents().size(); idx++)
                 {
                     TreeSupportElement::Ptr parent = data_pair.first->getParents()[idx];
-                    const coord_t max_outer_line_increase = max_radius_change_per_layer;
-                    Shape result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
-                    const Point2LL direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
+                    const ::curaengine::utils::coord_t max_outer_line_increase = max_radius_change_per_layer;
+                    ::curaengine::geometry::Shape result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
+                    const ::curaengine::geometry::Point2LL direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
                     // Move the polygons object.
                     for (auto& outer : result)
                     {
-                        for (Point2LL& p : outer)
+                        for (::curaengine::geometry::Point2LL& p : outer)
                         {
                             p += direction;
                         }
@@ -1886,16 +1886,16 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 
                 if (do_something)
                 {
-                    const Shape result = max_allowed_area.unionPolygons().intersection(data_pair.second);
+                    const ::curaengine::geometry::Shape result = max_allowed_area.unionPolygons().intersection(data_pair.second);
                     if (result.area() < data_pair.second.area())
                     {
-                        update_next[processing_idx] = std::pair<TreeSupportElement::Ptr, Shape>(data_pair.first, result);
+                        update_next[processing_idx] = std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>(data_pair.first, result);
                     }
                 }
             });
 
         updated_last_iteration.clear();
-        for (std::pair<TreeSupportElement::Ptr, Shape> data_pair : update_next)
+        for (std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> data_pair : update_next)
         {
             if (data_pair.first != nullptr)
             {
@@ -1906,7 +1906,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     }
 
     progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
-    Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
 }
 
 void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement::Ptr>>& layer_tree_polygons)
@@ -1918,9 +1918,9 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement:
     }
 
     // First go through every element and calculate their average position i.r.t their chain of children
-    boost::concurrent_flat_map<TreeSupportElement::Ptr, Point2LL> smoothed_positions;
+    boost::concurrent_flat_map<TreeSupportElement::Ptr, ::curaengine::geometry::Point2LL> smoothed_positions;
 
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
         [&layer_tree_polygons, &smooth_window, &smoothed_positions](const size_t layer_index)
@@ -1929,7 +1929,7 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement:
             {
                 const size_t actual_smooth_window = std::min(smooth_window, element->distance_to_top_);
                 TreeSupportElement::Ptr child = element->getChild();
-                Point2LL interlayer_position_sum = element->result_on_layer_;
+                ::curaengine::geometry::Point2LL interlayer_position_sum = element->result_on_layer_;
                 size_t added_layers;
                 for (added_layers = 1; child && child->isResultOnLayerSet() && added_layers < actual_smooth_window; ++added_layers)
                 {
@@ -1953,12 +1953,12 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement:
 }
 
 void TreeSupport::dropNonGraciousAreas(
-    std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons,
-    const std::vector<std::pair<LayerIndex, TreeSupportElement::Ptr>>& linear_data,
-    std::vector<std::vector<std::pair<LayerIndex, Shape>>>& dropped_down_areas,
+    std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>& layer_tree_polygons,
+    const std::vector<std::pair<::curaengine::types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
+    std::vector<std::vector<std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape>>>& dropped_down_areas,
     const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order)
 {
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         linear_data.size(),
         [&](const size_t idx)
@@ -1968,16 +1968,16 @@ void TreeSupport::dropNonGraciousAreas(
                                            && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
-                std::vector<std::pair<LayerIndex, Shape>>& dropped_down_area = dropped_down_areas[idx];
-                Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
-                for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first && ! rest_support.empty(); ++counter)
+                std::vector<std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape>>& dropped_down_area = dropped_down_areas[idx];
+                ::curaengine::geometry::Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
+                for (::curaengine::types::LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first && ! rest_support.empty(); ++counter)
                 {
-                    const LayerIndex layer_index = linear_data[idx].first - counter;
+                    const ::curaengine::types::LayerIndex layer_index = linear_data[idx].first - counter;
                     rest_support = rest_support.difference(volumes_.getCollision(0, layer_index));
-                    for (const Shape& layer_tree_polygon : layer_tree_polygons[layer_index] | ranges::views::values)
+                    for (const ::curaengine::geometry::Shape& layer_tree_polygon : layer_tree_polygons[layer_index] | ranges::views::values)
                     {
                         // Remove parts of the support that are absorbed by the actual trees
-                        rest_support = rest_support.difference(layer_tree_polygon.offset(-EPSILON));
+                        rest_support = rest_support.difference(layer_tree_polygon.offset(-::curaengine::utils::EPSILON));
                     }
                     dropped_down_area.emplace_back(layer_index, rest_support);
                 }
@@ -1985,8 +1985,8 @@ void TreeSupport::dropNonGraciousAreas(
                 if (! rest_support.empty())
                 {
                     // If there is some remainder after dropping the area to the bottom, that means it could not actually reach the model or another branch, so discard the piece
-                    rest_support = rest_support.offset(EPSILON);
-                    for (Shape& dropped_area_on_layer : dropped_down_area | ranges::views::values)
+                    rest_support = rest_support.offset(::curaengine::utils::EPSILON);
+                    for (::curaengine::geometry::Shape& dropped_area_on_layer : dropped_down_area | ranges::views::values)
                     {
                         dropped_area_on_layer = dropped_area_on_layer.difference(rest_support);
                     }
@@ -1996,15 +1996,15 @@ void TreeSupport::dropNonGraciousAreas(
 }
 
 
-void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
+void TreeSupport::filterFloatingLines(std::vector<::curaengine::geometry::Shape>& support_layer_storage)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
 
-    const coord_t closing_dist = config.support_wall_thickness;
-    const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
+    const ::curaengine::utils::coord_t closing_dist = config.support_wall_thickness;
+    const ::curaengine::utils::coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
-    std::function<void(Shape&)> reversePolygon = [&](Shape& poly)
+    std::function<void(::curaengine::geometry::Shape&)> reversePolygon = [&](::curaengine::geometry::Shape& poly)
     {
         for (size_t idx = 0; idx < poly.size(); idx++)
         {
@@ -2013,30 +2013,30 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
     };
 
 
-    std::vector<Shape> support_holes(support_layer_storage.size(), Shape());
+    std::vector<::curaengine::geometry::Shape> support_holes(support_layer_storage.size(), ::curaengine::geometry::Shape());
     // Extract all holes as polygon objects
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         0,
         support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
+            support_layer_storage[layer_idx] = config.simplifier.polygon(::curaengine::utils::PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
                                                    .offset(-open_close_distance)
                                                    .offset(open_close_distance * 2)
                                                    .offset(-open_close_distance);
             support_layer_storage[layer_idx].removeSmallAreas(small_area_length * small_area_length, false);
 
-            std::vector<Shape> parts = support_layer_storage[layer_idx].sortByNesting();
+            std::vector<::curaengine::geometry::Shape> parts = support_layer_storage[layer_idx].sortByNesting();
 
             if (parts.size() <= 1)
             {
                 return;
             }
 
-            Shape holes_original;
+            ::curaengine::geometry::Shape holes_original;
             for (const size_t idx : ranges::views::iota(1UL, parts.size()))
             {
-                Shape area = parts[idx];
+                ::curaengine::geometry::Shape area = parts[idx];
                 reversePolygon(area);
                 holes_original.push_back(area);
             }
@@ -2045,14 +2045,14 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     const auto t_union = std::chrono::high_resolution_clock::now();
 
-    std::vector<std::vector<Shape>> holeparts(support_layer_storage.size());
+    std::vector<std::vector<::curaengine::geometry::Shape>> holeparts(support_layer_storage.size());
     // Split all holes into parts
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         0,
         support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
-            for (Shape hole : support_holes[layer_idx].splitIntoParts())
+            for (::curaengine::geometry::Shape hole : support_holes[layer_idx].splitIntoParts())
             {
                 holeparts[layer_idx].emplace_back(hole);
             }
@@ -2062,20 +2062,20 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
 
     // Figure out which hole rests on which other hole
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         1,
         support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
             if (holeparts[layer_idx].empty())
             {
                 return;
             }
 
-            const Shape& relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
-            Shape outer_walls = support_layer_storage[layer_idx - 1].getOutsidePolygons().createTubeShape(closing_dist, 0);
+            const ::curaengine::geometry::Shape& relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
+            ::curaengine::geometry::Shape outer_walls = support_layer_storage[layer_idx - 1].getOutsidePolygons().createTubeShape(closing_dist, 0);
 
-            Shape holes_below;
+            ::curaengine::geometry::Shape holes_below;
 
             for (auto poly : holeparts[layer_idx - 1])
             {
@@ -2084,8 +2084,8 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
             for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
             {
-                AABB hole_aabb = AABB(hole);
-                hole_aabb.expand(EPSILON);
+                ::curaengine::utils::AABB hole_aabb = ::curaengine::utils::AABB(hole);
+                hole_aabb.expand(::curaengine::utils::EPSILON);
                 if (hole.size() > 1)
                 {
                     // The hole contains other branches! It can not be fully removed.
@@ -2093,11 +2093,11 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                     // larger changes.
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
-                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
+                else if (! hole.intersection(::curaengine::utils::PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
                 {
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
-                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(-config.xy_min_distance / 2).empty())
+                else if (! hole.intersection(::curaengine::utils::PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(-config.xy_min_distance / 2).empty())
                 {
                     // technically not resting outside, also not valid, but the alternative is potentially having lines go through the model
                     holes_resting_outside[layer_idx].emplace(idx);
@@ -2107,7 +2107,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                     for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                     {
                         // TODO should technically be outline: Check if this is fine either way as it would save an offset
-                        if (hole_aabb.hit(AABB(hole2)) && ! hole.intersection(PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
+                        if (hole_aabb.hit(::curaengine::utils::AABB(hole2)) && ! hole.intersection(::curaengine::utils::PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
                         {
                             hole_rest_map[layer_idx][idx].emplace_back(idx2);
                         }
@@ -2119,7 +2119,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
     const auto t_hole_rest_ordering = std::chrono::high_resolution_clock::now();
 
     std::unordered_set<size_t> removed_holes_by_idx;
-    std::vector<Shape> valid_holes(support_holes.size(), Shape());
+    std::vector<::curaengine::geometry::Shape> valid_holes(support_holes.size(), ::curaengine::geometry::Shape());
     // Check which holes have to be removed as they do not rest on anything. Only keep holes that have to be removed
     for (const size_t layer_idx : ranges::views::iota(1UL, support_holes.size()))
     {
@@ -2153,7 +2153,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             else
             {
                 valid_holes[layer_idx].push_back(hole);
-                holeparts[layer_idx][idx] = Shape(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
+                holeparts[layer_idx][idx] = ::curaengine::geometry::Shape(); // all remaining holes will have to be removed later, so removing the hole means it is confirmed valid!
             }
         }
         removed_holes_by_idx = next_removed_holes_by_idx;
@@ -2162,10 +2162,10 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     // Check if holes are so close to each other that two lines will be printed directly next to each other, which is assumed stable (as otherwise the simulated support pattern
     // will not work correctly) and remove all remaining, invalid holes
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         1,
         support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
             if (holeparts[layer_idx].empty())
             {
@@ -2195,9 +2195,9 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 }
 
 void TreeSupport::finalizeInterfaceAndSupportAreas(
-    std::vector<Shape>& support_layer_storage,
-    std::vector<Shape>& support_roof_storage,
-    std::vector<Shape>& support_layer_storage_fractional,
+    std::vector<::curaengine::geometry::Shape>& support_layer_storage,
+    std::vector<::curaengine::geometry::Shape>& support_roof_storage,
+    std::vector<::curaengine::geometry::Shape>& support_layer_storage_fractional,
     const CenterGrid& center_locator_per_layer,
     SliceDataStorage& storage)
 {
@@ -2207,12 +2207,12 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
     std::mutex critical_sections;
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         0,
         support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
-            Shape fake_roof_lines;
+            ::curaengine::geometry::Shape fake_roof_lines;
 
             for (FakeRoofArea& f_roof : fake_roof_areas[layer_idx])
             {
@@ -2241,7 +2241,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 case InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT:
                 {
-                    Shape interface_lines = TreeSupportUtils::generateSupportInfillLines(
+                    ::curaengine::geometry::Shape interface_lines = TreeSupportUtils::generateSupportInfillLines(
                                                 storage.support.supportLayers[layer_idx].support_roof,
                                                 config,
                                                 true,
@@ -2256,7 +2256,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
-                    Shape tree_lines;
+                    ::curaengine::geometry::Shape tree_lines;
                     tree_lines = tree_lines.unionPolygons(
                         TreeSupportUtils::generateSupportInfillLines(
                             support_layer_storage[layer_idx],
@@ -2280,8 +2280,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             // Subtract support floors from the support area and add them to the support floor instead.
             if (config.support_bottom_layers > 0 && ! support_layer_storage[layer_idx].empty())
             {
-                Shape floor_layer = storage.support.supportLayers[layer_idx].support_bottom;
-                Shape layer_outset = support_layer_storage[layer_idx].offset(config.support_bottom_offset).difference(volumes_.getCollision(0, layer_idx, false));
+                ::curaengine::geometry::Shape floor_layer = storage.support.supportLayers[layer_idx].support_bottom;
+                ::curaengine::geometry::Shape layer_outset = support_layer_storage[layer_idx].offset(config.support_bottom_offset).difference(volumes_.getCollision(0, layer_idx, false));
                 size_t layers_below = 0;
                 while (layers_below <= config.support_bottom_layers)
                 {
@@ -2306,20 +2306,20 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             }
         });
 
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         0,
         support_layer_storage.size(),
-        [&](const LayerIndex layer_idx)
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
 
             const auto* center_locator = center_locator_per_layer[layer_idx].get();
-            for (const SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
+            for (const ::curaengine::geometry::SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
             {
                 // For each point L (actually) inside the connected support part, retrieve the wall-width and area that the branch representing point L would have at that point.
-                SparsePointGridInclusive<coord_t>::Elem nearest;
-                const AABB aabb(support_part);
-                const coord_t search_radius = EPSILON + std::max(aabb.width(), aabb.height()) / 2;
+                ::curaengine::utils::SparsePointGridInclusive<::curaengine::utils::coord_t>::Elem nearest;
+                const ::curaengine::utils::AABB aabb(support_part);
+                const ::curaengine::utils::coord_t search_radius = ::curaengine::utils::EPSILON + std::max(aabb.width(), aabb.height()) / 2;
                 const auto located_data = center_locator->getNearby(aabb.getMiddle(), search_radius);
 
                 // Take the weighted average of the wall-widths and areas of all points inside the support part, where the area is weighted by the area of the branch at that point.
@@ -2331,7 +2331,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                     {
                         return support_part.inside(elem.point) ? std::make_pair((elem.val.first * elem.val.second) + res.first, elem.val.second + res.second) : res;
                     });
-                const auto weighted_average = static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second));
+                const auto weighted_average = static_cast<::curaengine::utils::coord_t>(total_area_width.first / std::max(1.f, total_area_width.second));
 
                 // Clamp wall-thickness to configured values, and draw the support part with the calculated wall-thickness.
                 const auto wall_thickness = std::clamp(weighted_average, config.support_wall_thickness, config.support_enlarged_wall_thickness);
@@ -2340,7 +2340,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
             // This only works because fractional support is always just projected upwards regular support or skin.
             // Also technically violates skin height, but there is no good way to prevent that.
-            Shape fractional_support;
+            ::curaengine::geometry::Shape fractional_support;
 
             if (layer_idx > 0)
             {
@@ -2364,7 +2364,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
                 progress_total += TREE_PROGRESS_FINALIZE_BRANCH_AREAS / support_layer_storage.size();
-                Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+                ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
             }
 
             {
@@ -2377,15 +2377,15 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         });
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, ::curaengine::utils::TimeKeeper& time_keeper)
 {
-    std::vector<Shape> support_layer_storage(move_bounds.size());
-    std::vector<Shape> support_layer_storage_fractional(move_bounds.size());
-    std::vector<Shape> support_roof_storage_fractional(move_bounds.size());
-    std::vector<Shape> support_roof_storage(move_bounds.size());
+    std::vector<::curaengine::geometry::Shape> support_layer_storage(move_bounds.size());
+    std::vector<::curaengine::geometry::Shape> support_layer_storage_fractional(move_bounds.size());
+    std::vector<::curaengine::geometry::Shape> support_roof_storage_fractional(move_bounds.size());
+    std::vector<::curaengine::geometry::Shape> support_roof_storage(move_bounds.size());
     std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>
         inverse_tree_order; // In the tree structure only the parents can be accessed. Inverse this to be able to access the children.
-    std::vector<std::pair<LayerIndex, TreeSupportElement::Ptr>>
+    std::vector<std::pair<::curaengine::types::LayerIndex, TreeSupportElement::Ptr>>
         linear_data; // All SupportElements are put into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance
                      // issues. These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
     for (const auto layer_idx : ranges::views::iota(0UL, move_bounds.size()))
@@ -2395,14 +2395,14 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
             // (Check if) We either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure:
             if ((layer_idx > 0
                  && ((! inverse_tree_order.count(elem) && elem->target_height_ == layer_idx && config.min_dtt_to_model > 0 && ! elem->to_buildplate_)
-                     || (inverse_tree_order.count(elem) && inverse_tree_order[elem]->result_on_layer_ == Point2LL(-1, -1)))))
+                     || (inverse_tree_order.count(elem) && inverse_tree_order[elem]->result_on_layer_ == ::curaengine::geometry::Point2LL(-1, -1)))))
             {
                 continue;
             }
 
             for (TreeSupportElement::Ptr par : elem->getParents())
             {
-                if (par->result_on_layer_ == Point2LL(-1, -1))
+                if (par->result_on_layer_ == ::curaengine::geometry::Point2LL(-1, -1))
                 {
                     continue;
                 }
@@ -2413,7 +2413,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
     }
 
     // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
-    std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>> layer_tree_polygons(move_bounds.size());
+    std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>> layer_tree_polygons(move_bounds.size());
     time_keeper.registerTime("drawArea::init");
 
     smoothBranchSkeletons(move_bounds);
@@ -2429,26 +2429,26 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
     time_keeper.registerTime("drawAreas::smoothBranchAreas");
 
     // Drop down all trees that connect non gracefully with the model.
-    std::vector<std::vector<std::pair<LayerIndex, Shape>>> dropped_down_areas(linear_data.size());
+    std::vector<std::vector<std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape>>> dropped_down_areas(linear_data.size());
     dropNonGraciousAreas(layer_tree_polygons, linear_data, dropped_down_areas, inverse_tree_order);
     const auto t_drop = std::chrono::high_resolution_clock::now();
 
     // single threaded combining all dropped down support areas to the right layers. ONLY COPYS DATA!
-    for (const coord_t i : ranges::views::iota(0UL, dropped_down_areas.size()))
+    for (const ::curaengine::utils::coord_t i : ranges::views::iota(0UL, dropped_down_areas.size()))
     {
-        for (std::pair<LayerIndex, Shape> pair : dropped_down_areas[i])
+        for (std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape> pair : dropped_down_areas[i])
         {
             support_layer_storage[pair.first].push_back(pair.second);
         }
     }
 
     CenterGrid center_locator_per_layer(move_bounds.size());
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         center_locator_per_layer.size(),
         [&](const size_t layer_idx)
         {
-            center_locator_per_layer[layer_idx] = std::make_unique<SparsePointGridInclusive<std::pair<coord_t, float>>>(config.branch_radius * 2 + EPSILON);
+            center_locator_per_layer[layer_idx] = std::make_unique<::curaengine::utils::SparsePointGridInclusive<std::pair<::curaengine::utils::coord_t, float>>>(config.branch_radius * 2 + ::curaengine::utils::EPSILON);
             auto* center_locator = center_locator_per_layer[layer_idx].get();
 
             for (const auto& elem : move_bounds[layer_idx])
@@ -2456,11 +2456,11 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
                 const float lerp_mul = static_cast<float>(std::min(
                                            config.support_wall_thickness_layer_smooth,
                                            std::max(
-                                               config.support_wall_thickness_bottom_layers - static_cast<coord_t>(layer_idx),
-                                               config.support_wall_thickness_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
-                                     / std::max(coord_t{ 1 }, config.support_wall_thickness_layer_smooth);
-                const coord_t nominal_wall_width
-                    = std::lerp(config.support_enlarged_wall_thickness, std::max(coord_t{ EPSILON }, config.support_wall_thickness), std::clamp(lerp_mul, 0.f, 1.f));
+                                               config.support_wall_thickness_bottom_layers - static_cast<::curaengine::utils::coord_t>(layer_idx),
+                                               config.support_wall_thickness_top_layers - static_cast<::curaengine::utils::coord_t>(elem->distance_to_top_))))
+                                     / std::max(::curaengine::utils::coord_t{ 1 }, config.support_wall_thickness_layer_smooth);
+                const ::curaengine::utils::coord_t nominal_wall_width
+                    = std::lerp(config.support_enlarged_wall_thickness, std::max(::curaengine::utils::coord_t{ ::curaengine::utils::EPSILON }, config.support_wall_thickness), std::clamp(lerp_mul, 0.f, 1.f));
 
 
                 const auto center = (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ? elem->result_on_layer_ : elem->target_position_;
@@ -2469,12 +2469,12 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
         });
 
     // ensure all branch areas added as roof actually cause a roofline to generate. Else disable turning the branch to roof going down
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
         [&](const size_t layer_idx)
         {
-            for (std::pair<TreeSupportElement::Ptr, Shape> data_pair : layer_tree_polygons[layer_idx])
+            for (std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> data_pair : layer_tree_polygons[layer_idx])
             {
                 if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_
                     && TreeSupportUtils::generateSupportInfillLines(data_pair.second, config, true, layer_idx, config.support_roof_line_distance, nullptr, true).empty())
@@ -2498,12 +2498,12 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
             }
         });
 
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
         [&](const size_t layer_idx)
         {
-            for (std::pair<TreeSupportElement::Ptr, Shape> data_pair : layer_tree_polygons[layer_idx])
+            for (std::pair<TreeSupportElement::Ptr, ::curaengine::geometry::Shape> data_pair : layer_tree_polygons[layer_idx])
             {
                 if (data_pair.first->getParents().empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
                     && config.z_distance_top % config.layer_height > 0)
@@ -2533,7 +2533,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
         {
             support_layer_storage[layer_idx].push_back(additional_required_support_area[layer_idx]);
         }
-        scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
+        scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], ::curaengine::utils::SectionType::SUPPORT, layer_idx);
     }
 
     filterFloatingLines(support_layer_storage);
@@ -2543,15 +2543,15 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
     time_keeper.registerTime("drawAreas::finalizeInterfaceAndSupportAreas");
 }
 
-void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, OBJ& obj) const
+void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, ::curaengine::utils::OBJ& obj) const
 {
     for (const auto [layer_index, elements] : move_bounds | ranges::views::enumerate)
     {
-        const coord_t z = layer_index * config.layer_height;
+        const ::curaengine::utils::coord_t z = layer_index * config.layer_height;
         for (const TreeSupportElement::Ptr element : elements)
         {
             element->saveToObj(obj, z, config.layer_height);
-            obj.writeSphere(Point3D(Point3LL(element->result_on_layer_, z), 1.0), config.layer_height / 2.0, SVG::Color::RED);
+            obj.writeSphere(::curaengine::geometry::Point3D(::curaengine::geometry::Point3LL(element->result_on_layer_, z), 1.0), config.layer_height / 2.0, ::curaengine::utils::SVG::Color::RED);
         }
     }
 }

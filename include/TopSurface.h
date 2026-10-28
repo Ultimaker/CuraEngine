@@ -54,7 +54,7 @@ public:
     /*!
      * \brief The areas of top surface, for each layer.
      */
-    Shape areas;
+    ::curaengine::geometry::Shape areas;
 };
 
 } // namespace curaengine

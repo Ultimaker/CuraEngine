@@ -28,14 +28,14 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "plugins/Slots.h"
-#include "settings/EFillMethod.h"
+#include "types/EFillMethod.h"
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonConnector.h"
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
 
-namespace curaengine
+namespace curaengine::infill
 {
 
 /*!
@@ -59,23 +59,23 @@ static inline int computeScanSegmentIdx(int x, int line_width)
     return x / line_width;
 }
 
-Shape Infill::generateWallToolPaths(
-    std::vector<VariableWidthLines>& toolpaths,
-    const Shape& outer_contour,
-    const coord_t wall_thickness,
-    const coord_t line_width,
+::curaengine::geometry::Shape Infill::generateWallToolPaths(
+    std::vector<::curaengine::utils::VariableWidthLines>& toolpaths,
+    const ::curaengine::geometry::Shape& outer_contour,
+    const ::curaengine::utils::coord_t wall_thickness,
+    const ::curaengine::utils::coord_t line_width,
     const Settings& settings,
     int layer_idx,
-    SectionType section_type,
+    ::curaengine::utils::SectionType section_type,
     WallToolPathGenerator generator)
 {
-    Shape inner_contour;
+    ::curaengine::geometry::Shape inner_contour;
     if (wall_thickness > 0)
     {
-        constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the outer wall.
+        constexpr ::curaengine::utils::coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
+        constexpr ::curaengine::utils::coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the outer wall.
         const size_t wall_line_count = std::llrint(static_cast<double>(wall_thickness) / line_width);
-        const coord_t actual_line_width = wall_thickness / std::max(size_t{ 1 }, wall_line_count);
+        const ::curaengine::utils::coord_t actual_line_width = wall_thickness / std::max(size_t{ 1 }, wall_line_count);
         WallToolPaths wall_toolpaths(outer_contour, actual_line_width, wall_line_count, wall_0_inset, wall_x_inset, settings, layer_idx, section_type, generator);
         wall_toolpaths.pushToolPaths(toolpaths);
         inner_contour = wall_toolpaths.getInnerContour();
@@ -88,17 +88,17 @@ Shape Infill::generateWallToolPaths(
 }
 
 void Infill::generate(
-    std::vector<VariableWidthLines>& toolpaths,
-    Shape& result_polygons,
-    OpenLinesSet& result_lines,
+    std::vector<::curaengine::utils::VariableWidthLines>& toolpaths,
+    ::curaengine::geometry::Shape& result_polygons,
+    ::curaengine::geometry::OpenLinesSet& result_lines,
     const Settings& settings,
     int layer_idx,
-    SectionType section_type,
+    ::curaengine::utils::SectionType section_type,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const Shape& prevent_small_exposed_to_air,
-    const coord_t minimum_line_length,
+    const ::curaengine::geometry::Shape& prevent_small_exposed_to_air,
+    const ::curaengine::utils::coord_t minimum_line_length,
     WallToolPathGenerator wall_generator)
 {
     if (outer_contour_.empty())
@@ -115,17 +115,17 @@ void Infill::generate(
     // is split into a small region that will be filled with walls and the normal region
     // that will be filled with the pattern. This split of regions is not needed if the
     // infill pattern is concentric or if the small_area_width is zero.
-    if (pattern_ != EFillMethod::CONCENTRIC && small_area_width_ > 0)
+    if (pattern_ != ::curaengine::types::EFillMethod::CONCENTRIC && small_area_width_ > 0)
     {
         const auto too_small_length = INT2MM(static_cast<double>(infill_line_width_) / 2.0);
 
         // Split the infill region in a narrow region and the normal region.
-        Shape small_infill = inner_contour_;
+        ::curaengine::geometry::Shape small_infill = inner_contour_;
         inner_contour_ = inner_contour_.offset(-small_area_width_ / 2);
         inner_contour_.removeSmallAreas(too_small_length * too_small_length, true);
         inner_contour_ = inner_contour_.offset(small_area_width_ / 2);
         inner_contour_ = inner_contour_.unionPolygons(prevent_small_exposed_to_air).intersection(small_infill);
-        inner_contour_ = Simplify(max_resolution_, max_deviation_, 0).polygon(inner_contour_);
+        inner_contour_ = ::curaengine::utils::Simplify(max_resolution_, max_deviation_, 0).polygon(inner_contour_);
         small_infill = small_infill.difference(inner_contour_);
 
         // Small corners of a bigger area should not be considered narrow and are therefore added to the bigger area again.
@@ -148,20 +148,20 @@ void Infill::generate(
 
         // Fill narrow area with walls.
         const size_t narrow_wall_count = small_area_width_ / infill_line_width_ + 1;
-        const coord_t inset = 0; // outer/inner wall inset is set to 0
+        const ::curaengine::utils::coord_t inset = 0; // outer/inner wall inset is set to 0
         constexpr auto narrow_wall_generator{ WallToolPathGenerator::Arachne };
         WallToolPaths wall_toolpaths(small_infill, infill_line_width_, narrow_wall_count, inset, inset, settings, layer_idx, section_type, narrow_wall_generator);
-        std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
+        std::vector<::curaengine::utils::VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
         scripta::log(
             "infill_small_infill_paths_0",
             small_infill_paths,
             section_type,
             layer_idx,
-            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-            scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+            scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+            scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+            scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+            scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+            scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
         for (const auto& small_infill_path : small_infill_paths)
         {
             toolpaths.emplace_back(small_infill_path);
@@ -170,22 +170,22 @@ void Infill::generate(
     scripta::log("infill_inner_contour_1", inner_contour_, section_type, layer_idx);
 
     // apply an extra offset in case the pattern prints along the sides of the area.
-    if (pattern_ == EFillMethod::ZIG_ZAG // Zig-zag prints the zags along the walls.
+    if (pattern_ == ::curaengine::types::EFillMethod::ZIG_ZAG // Zig-zag prints the zags along the walls.
         || (zig_zaggify_
-            && (pattern_ == EFillMethod::LINES // Zig-zaggified infill patterns print their zags along the walls.
-                || pattern_ == EFillMethod::TRIANGLES || pattern_ == EFillMethod::GRID || pattern_ == EFillMethod::CUBIC || pattern_ == EFillMethod::TETRAHEDRAL
-                || pattern_ == EFillMethod::QUARTER_CUBIC || pattern_ == EFillMethod::TRIHEXAGON || pattern_ == EFillMethod::GYROID || pattern_ == EFillMethod::HONEYCOMB
-                || pattern_ == EFillMethod::OCTAGON || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D))
+            && (pattern_ == ::curaengine::types::EFillMethod::LINES // Zig-zaggified infill patterns print their zags along the walls.
+                || pattern_ == ::curaengine::types::EFillMethod::TRIANGLES || pattern_ == ::curaengine::types::EFillMethod::GRID || pattern_ == ::curaengine::types::EFillMethod::CUBIC || pattern_ == ::curaengine::types::EFillMethod::TETRAHEDRAL
+                || pattern_ == ::curaengine::types::EFillMethod::QUARTER_CUBIC || pattern_ == ::curaengine::types::EFillMethod::TRIHEXAGON || pattern_ == ::curaengine::types::EFillMethod::GYROID || pattern_ == ::curaengine::types::EFillMethod::HONEYCOMB
+                || pattern_ == ::curaengine::types::EFillMethod::OCTAGON || pattern_ == ::curaengine::types::EFillMethod::CROSS || pattern_ == ::curaengine::types::EFillMethod::CROSS_3D))
         || infill_multiplier_ % 2
                == 0) // Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
         inner_contour_ = inner_contour_.offset(-infill_line_width_ / 2);
-        inner_contour_ = Simplify(max_resolution_, max_deviation_, 0).polygon(inner_contour_);
+        inner_contour_ = ::curaengine::utils::Simplify(max_resolution_, max_deviation_, 0).polygon(inner_contour_);
     }
     scripta::log("infill_inner_contour_2", inner_contour_, section_type, layer_idx);
 
-    Shape generated_result_polygons;
-    OpenLinesSet generated_result_lines;
+    ::curaengine::geometry::Shape generated_result_polygons;
+    ::curaengine::geometry::OpenLinesSet generated_result_lines;
 
     if (infill_multiplier_ > 1)
     {
@@ -217,29 +217,29 @@ void Infill::generate(
         toolpaths,
         section_type,
         layer_idx,
-        scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-        scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-        scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-        scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-        scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+        scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+        scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+        scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+        scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+        scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
     if (connect_polygons_)
     {
         // remove too small polygons
-        coord_t snap_distance = infill_line_width_ * 2; // polygons with a span of max 1 * nozzle_size are too small
+        ::curaengine::utils::coord_t snap_distance = infill_line_width_ * 2; // polygons with a span of max 1 * nozzle_size are too small
         auto it = std::remove_if(
             result_polygons.begin(),
             result_polygons.end(),
-            [snap_distance](const Polygon& poly)
+            [snap_distance](const ::curaengine::geometry::Polygon& poly)
             {
                 return poly.shorterThan(snap_distance);
             });
         result_polygons.erase(it, result_polygons.end());
 
-        PolygonConnector connector(infill_line_width_);
+        ::curaengine::utils::PolygonConnector connector(infill_line_width_);
         connector.add(result_polygons);
         connector.add(toolpaths);
-        Shape connected_polygons;
-        std::vector<VariableWidthLines> connected_paths;
+        ::curaengine::geometry::Shape connected_polygons;
+        std::vector<::curaengine::utils::VariableWidthLines> connected_paths;
         connector.connect(connected_polygons, connected_paths);
         result_polygons = connected_polygons;
         toolpaths = connected_paths;
@@ -250,30 +250,30 @@ void Infill::generate(
             toolpaths,
             section_type,
             layer_idx,
-            scripta::CellVDI{ "is_closed", &ExtrusionLine::is_closed_ },
-            scripta::CellVDI{ "is_odd", &ExtrusionLine::is_odd_ },
-            scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
-            scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
-            scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
+            scripta::CellVDI{ "is_closed", &::curaengine::utils::ExtrusionLine::is_closed_ },
+            scripta::CellVDI{ "is_odd", &::curaengine::utils::ExtrusionLine::is_odd_ },
+            scripta::CellVDI{ "inset_idx", &::curaengine::utils::ExtrusionLine::inset_idx_ },
+            scripta::PointVDI{ "width", &::curaengine::utils::ExtrusionJunction::w_ },
+            scripta::PointVDI{ "perimeter_index", &::curaengine::utils::ExtrusionJunction::perimeter_index_ });
     }
 }
 
 void Infill::_generate(
-    std::vector<VariableWidthLines>& toolpaths,
-    Shape& result_polygons,
-    OpenLinesSet& result_lines,
+    std::vector<::curaengine::utils::VariableWidthLines>& toolpaths,
+    ::curaengine::geometry::Shape& result_polygons,
+    ::curaengine::geometry::OpenLinesSet& result_lines,
     const Settings& settings,
     const int layer_idx,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const coord_t minimum_line_length)
+    const ::curaengine::utils::coord_t minimum_line_length)
 {
-    for (const Shape& island : inner_contour_.splitIntoParts())
+    for (const ::curaengine::geometry::Shape& island : inner_contour_.splitIntoParts())
     {
-        std::vector<VariableWidthLines> island_toolpaths;
-        Shape island_polygons;
-        OpenLinesSet island_lines;
+        std::vector<::curaengine::utils::VariableWidthLines> island_toolpaths;
+        ::curaengine::geometry::Shape island_polygons;
+        ::curaengine::geometry::OpenLinesSet island_lines;
 
         generateForIsland(island, island_toolpaths, island_polygons, island_lines, settings, layer_idx, cross_fill_provider, lightning_trees, mesh);
 
@@ -288,10 +288,10 @@ void Infill::_generate(
 }
 
 void Infill::generateForIsland(
-    const Shape& outline,
-    std::vector<VariableWidthLines>& toolpaths,
-    Shape& result_polygons,
-    OpenLinesSet& result_lines,
+    const ::curaengine::geometry::Shape& outline,
+    std::vector<::curaengine::utils::VariableWidthLines>& toolpaths,
+    ::curaengine::geometry::Shape& result_polygons,
+    ::curaengine::geometry::OpenLinesSet& result_lines,
     const Settings& settings,
     const int layer_idx,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
@@ -308,34 +308,34 @@ void Infill::generateForIsland(
 
     switch (pattern_)
     {
-    case EFillMethod::GRID:
+    case ::curaengine::types::EFillMethod::GRID:
         generateGridInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::LINES:
+    case ::curaengine::types::EFillMethod::LINES:
         generateLineInfill(outline, result_lines, line_distance_, fill_angle_, 0, crossings_on_line);
         break;
-    case EFillMethod::CUBIC:
+    case ::curaengine::types::EFillMethod::CUBIC:
         generateCubicInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::TETRAHEDRAL:
+    case ::curaengine::types::EFillMethod::TETRAHEDRAL:
         generateTetrahedralInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::QUARTER_CUBIC:
+    case ::curaengine::types::EFillMethod::QUARTER_CUBIC:
         generateQuarterCubicInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::TRIANGLES:
+    case ::curaengine::types::EFillMethod::TRIANGLES:
         generateTriangleInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::TRIHEXAGON:
+    case ::curaengine::types::EFillMethod::TRIHEXAGON:
         generateTrihexagonInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::CONCENTRIC:
+    case ::curaengine::types::EFillMethod::CONCENTRIC:
         generateConcentricInfill(outline, toolpaths, settings, layer_idx);
         break;
-    case EFillMethod::ZIG_ZAG:
+    case ::curaengine::types::EFillMethod::ZIG_ZAG:
         generateZigZagInfill(outline, result_lines, line_distance_, fill_angle_, crossings_on_line);
         break;
-    case EFillMethod::CUBICSUBDIV:
+    case ::curaengine::types::EFillMethod::CUBICSUBDIV:
         if (! mesh)
         {
             spdlog::error("Cannot generate Cubic Subdivision infill without a mesh!");
@@ -343,8 +343,8 @@ void Infill::generateForIsland(
         }
         generateCubicSubDivInfill(outline, result_lines, *mesh);
         break;
-    case EFillMethod::CROSS:
-    case EFillMethod::CROSS_3D:
+    case ::curaengine::types::EFillMethod::CROSS:
+    case ::curaengine::types::EFillMethod::CROSS_3D:
         if (! cross_fill_provider)
         {
             spdlog::error("Cannot generate Cross infill without a cross fill provider!\n");
@@ -352,23 +352,23 @@ void Infill::generateForIsland(
         }
         generateCrossInfill(outline, *cross_fill_provider, result_polygons, result_lines);
         break;
-    case EFillMethod::GYROID:
+    case ::curaengine::types::EFillMethod::GYROID:
         generateGyroidInfill(outline, result_lines, result_polygons);
         break;
-    case EFillMethod::LIGHTNING:
+    case ::curaengine::types::EFillMethod::LIGHTNING:
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
         generateLightningInfill(outline, lightning_trees, result_lines);
         break;
-    case EFillMethod::HONEYCOMB:
+    case ::curaengine::types::EFillMethod::HONEYCOMB:
         generateHoneycombInfill(outline, result_lines, result_polygons);
         break;
-    case EFillMethod::OCTAGON:
+    case ::curaengine::types::EFillMethod::OCTAGON:
         generateOctagonInfill(outline, result_lines, result_polygons);
         break;
-    case EFillMethod::PLUGIN:
+    case ::curaengine::types::EFillMethod::PLUGIN:
     {
 #ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
-        auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
+        auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = ::curaengine::plugins::slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
             outline,
             mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
             mesh ? mesh->settings : settings,
@@ -392,38 +392,38 @@ void Infill::generateForIsland(
         connectLines(outline, result_lines, crossings_on_line);
     }
 
-    Simplify simplifier(max_resolution_, max_deviation_, 0);
+    ::curaengine::utils::Simplify simplifier(max_resolution_, max_deviation_, 0);
     result_polygons = simplifier.polygon(result_polygons);
 
     if (! skip_line_stitching_
-        && (zig_zaggify_ || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D || pattern_ == EFillMethod::CUBICSUBDIV || pattern_ == EFillMethod::GYROID
-            || pattern_ == EFillMethod::HONEYCOMB || pattern_ == EFillMethod::OCTAGON || pattern_ == EFillMethod::ZIG_ZAG))
+        && (zig_zaggify_ || pattern_ == ::curaengine::types::EFillMethod::CROSS || pattern_ == ::curaengine::types::EFillMethod::CROSS_3D || pattern_ == ::curaengine::types::EFillMethod::CUBICSUBDIV || pattern_ == ::curaengine::types::EFillMethod::GYROID
+            || pattern_ == ::curaengine::types::EFillMethod::HONEYCOMB || pattern_ == ::curaengine::types::EFillMethod::OCTAGON || pattern_ == ::curaengine::types::EFillMethod::ZIG_ZAG))
     { // don't stitch for non-zig-zagged line infill types
-        OpenLinesSet stitched_lines;
-        OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
+        ::curaengine::geometry::OpenLinesSet stitched_lines;
+        ::curaengine::utils::OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
         result_lines = std::move(stitched_lines);
     }
     result_lines = simplifier.polyline(result_lines);
 }
 
-void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
+void Infill::multiplyInfill(::curaengine::geometry::Shape& result_polygons, ::curaengine::geometry::OpenLinesSet& result_lines)
 {
-    if (pattern_ == EFillMethod::CONCENTRIC)
+    if (pattern_ == ::curaengine::types::EFillMethod::CONCENTRIC)
     {
         result_polygons = result_polygons.processEvenOdd(); // make into areas
     }
 
     bool odd_multiplier = infill_multiplier_ % 2 == 1;
-    coord_t offset = (odd_multiplier) ? infill_line_width_ : infill_line_width_ / 2;
+    ::curaengine::utils::coord_t offset = (odd_multiplier) ? infill_line_width_ : infill_line_width_ / 2;
 
     // Get the first offset these are mirrored from the original center line
-    Shape result;
-    Shape first_offset;
+    ::curaengine::geometry::Shape result;
+    ::curaengine::geometry::Shape first_offset;
     {
-        const Shape first_offset_lines = result_lines.offset(offset); // make lines on both sides of the input lines
-        const Shape first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
-        const Shape first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
-        const Shape first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
+        const ::curaengine::geometry::Shape first_offset_lines = result_lines.offset(offset); // make lines on both sides of the input lines
+        const ::curaengine::geometry::Shape first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
+        const ::curaengine::geometry::Shape first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
+        const ::curaengine::geometry::Shape first_offset_polygons = first_offset_polygons_outward.difference(first_offset_polygons_inward);
         first_offset = first_offset_lines.unionPolygons(
             first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
         if (zig_zaggify_)
@@ -437,13 +437,13 @@ void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
     // depended on whether these lines should be connected or not.
     if (infill_multiplier_ > 3)
     {
-        Shape reference_polygons = first_offset;
+        ::curaengine::geometry::Shape reference_polygons = first_offset;
         const size_t multiplier = infill_multiplier_ / 2;
 
         const int extra_offset = mirror_offset_ ? -infill_line_width_ : infill_line_width_;
         for (size_t infill_line = 1; infill_line < multiplier; ++infill_line)
         {
-            Shape extra_polys = reference_polygons.offset(extra_offset);
+            ::curaengine::geometry::Shape extra_polys = reference_polygons.offset(extra_offset);
             result.push_back(extra_polys);
             reference_polygons = std::move(extra_polys);
         }
@@ -462,30 +462,30 @@ void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
     result_polygons.push_back(result);
     if (! zig_zaggify_)
     {
-        OpenLinesSet polylines = inner_contour_.intersection(static_cast<LinesSet<Polygon>>(result_polygons));
+        ::curaengine::geometry::OpenLinesSet polylines = inner_contour_.intersection(static_cast<::curaengine::geometry::LinesSet<::curaengine::geometry::Polygon>>(result_polygons));
         result_polygons.clear();
-        OpenPolylineStitcher::stitch(polylines, result_lines, result_polygons, infill_line_width_);
+        ::curaengine::utils::OpenPolylineStitcher::stitch(polylines, result_lines, result_polygons, infill_line_width_);
     }
 }
 
-void Infill::generateGyroidInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons)
+void Infill::generateGyroidInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result_polylines, ::curaengine::geometry::Shape& result_polygons)
 {
     GyroidInfill().generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, outline, z_, infill_line_width_, fill_angle_);
 }
 
-void Infill::generateHoneycombInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons)
+void Infill::generateHoneycombInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result_polylines, ::curaengine::geometry::Shape& result_polygons)
 {
     RegularNGonalInfill(RegularNGonalInfill::RegularNGonType::Hexagon)
         .generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, outline, z_, infill_line_width_, fill_angle_);
 }
 
-void Infill::generateOctagonInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons)
+void Infill::generateOctagonInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result_polylines, ::curaengine::geometry::Shape& result_polygons)
 {
     RegularNGonalInfill(RegularNGonalInfill::RegularNGonType::Octagon)
         .generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, outline, z_, infill_line_width_, fill_angle_);
 }
 
-void Infill::generateLightningInfill(const Shape& outline, const std::shared_ptr<LightningLayer>& trees, OpenLinesSet& result_lines)
+void Infill::generateLightningInfill(const ::curaengine::geometry::Shape& outline, const std::shared_ptr<LightningLayer>& trees, ::curaengine::geometry::OpenLinesSet& result_lines)
 {
     // Don't need to support areas smaller than line width, as they are always within radius:
     if (std::abs(outline.area()) < infill_line_width_ || ! trees)
@@ -495,12 +495,12 @@ void Infill::generateLightningInfill(const Shape& outline, const std::shared_ptr
     result_lines.push_back(trees->convertToLines(outline, infill_line_width_));
 }
 
-void Infill::generateConcentricInfill(const Shape& outline, std::vector<VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx)
+void Infill::generateConcentricInfill(const ::curaengine::geometry::Shape& outline, std::vector<::curaengine::utils::VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx)
 {
-    const coord_t min_area = infill_line_width_ * infill_line_width_;
+    const ::curaengine::utils::coord_t min_area = infill_line_width_ * infill_line_width_;
 
-    Shape current_inset = outline;
-    Simplify simplifier(settings);
+    ::curaengine::geometry::Shape current_inset = outline;
+    ::curaengine::utils::Simplify simplifier(settings);
     while (true)
     {
         // If line_distance is 0, start from the same contour as the previous line, except where the previous line closed up the shape.
@@ -513,53 +513,53 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
         }
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
-        constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the inner wall.
+        constexpr ::curaengine::utils::coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
+        constexpr ::curaengine::utils::coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the inner wall.
         constexpr auto wall_generator{ WallToolPathGenerator::Arachne };
         WallToolPaths
-            wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL, wall_generator);
-        const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
+            wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, ::curaengine::utils::SectionType::CONCENTRIC_INFILL, wall_generator);
+        const std::vector<::curaengine::utils::VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
         current_inset = wall_toolpaths.getInnerContour();
     }
 }
 
-void Infill::generateGridInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::generateGridInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     generateLineInfill(outline, result, line_distance_, fill_angle_, 0, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 90, 0, crossings_on_line);
 }
 
-void Infill::generateCubicInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::generateCubicInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    const coord_t shift = one_over_sqrt_2 * z_;
+    const ::curaengine::utils::coord_t shift = one_over_sqrt_2 * z_;
     generateLineInfill(outline, result, line_distance_, fill_angle_, shift, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, shift, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 240, shift, crossings_on_line);
 }
 
-void Infill::generateTetrahedralInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::generateTetrahedralInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     generateHalfTetrahedralInfill(outline, 0.0, 0, result, crossings_on_line);
     generateHalfTetrahedralInfill(outline, 0.0, 90, result, crossings_on_line);
 }
 
-void Infill::generateQuarterCubicInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::generateQuarterCubicInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     generateHalfTetrahedralInfill(outline, 0.0, 0, result, crossings_on_line);
     generateHalfTetrahedralInfill(outline, 0.5, 90, result, crossings_on_line);
 }
 
 void Infill::generateHalfTetrahedralInfill(
-    const Shape& outline,
+    const ::curaengine::geometry::Shape& outline,
     double pattern_z_shift,
     int angle_shift,
-    OpenLinesSet& result,
+    ::curaengine::geometry::OpenLinesSet& result,
     std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    const coord_t period = line_distance_ * 2;
-    coord_t shift = coord_t(one_over_sqrt_2 * (z_ + pattern_z_shift * period * 2)) % period;
+    const ::curaengine::utils::coord_t period = line_distance_ * 2;
+    ::curaengine::utils::coord_t shift = ::curaengine::utils::coord_t(one_over_sqrt_2 * (z_ + pattern_z_shift * period * 2)) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width_ / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width_ / 2); // don't put lines too close to each other
@@ -567,31 +567,31 @@ void Infill::generateHalfTetrahedralInfill(
     generateLineInfill(outline, result, period, fill_angle_ + angle_shift, -shift, crossings_on_line);
 }
 
-void Infill::generateTriangleInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::generateTriangleInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     generateLineInfill(outline, result, line_distance_, fill_angle_, 0, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 60, 0, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, 0, crossings_on_line);
 }
 
-void Infill::generateTrihexagonInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::generateTrihexagonInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     generateLineInfill(outline, result, line_distance_, fill_angle_, 0, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 60, 0, crossings_on_line);
     generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, line_distance_ / 2, crossings_on_line);
 }
 
-void Infill::generateCubicSubDivInfill(const Shape& outline, OpenLinesSet& result, const SliceMeshStorage& mesh)
+void Infill::generateCubicSubDivInfill(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result, const SliceMeshStorage& mesh)
 {
-    OpenLinesSet uncropped;
+    ::curaengine::geometry::OpenLinesSet uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z_, uncropped);
     constexpr bool restitch = false; // cubic subdivision lines are always single line segments - not polylines consisting of multiple segments.
     result = outline.offset(infill_overlap_).intersection(uncropped, restitch);
 }
 
-void Infill::generateCrossInfill(const Shape& outline, const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, OpenLinesSet& result_lines)
+void Infill::generateCrossInfill(const ::curaengine::geometry::Shape& outline, const SierpinskiFillProvider& cross_fill_provider, ::curaengine::geometry::Shape& result_polygons, ::curaengine::geometry::OpenLinesSet& result_lines)
 {
-    Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern_, z_, infill_line_width_, pocket_size_);
+    ::curaengine::geometry::Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern_, z_, infill_line_width_, pocket_size_);
 
     if (cross_pattern_polygon.empty())
     {
@@ -600,39 +600,39 @@ void Infill::generateCrossInfill(const Shape& outline, const SierpinskiFillProvi
 
     if (zig_zaggify_)
     {
-        Shape cross_pattern_polygons;
+        ::curaengine::geometry::Shape cross_pattern_polygons;
         cross_pattern_polygons.push_back(cross_pattern_polygon);
         result_polygons.push_back(outline.intersection(cross_pattern_polygons));
     }
     else
     {
         // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
-        OpenLinesSet cross_pattern_polylines;
+        ::curaengine::geometry::OpenLinesSet cross_pattern_polylines;
         cross_pattern_polylines.push_back(cross_pattern_polygon.toPseudoOpenPolyline());
-        OpenLinesSet poly_lines = outline.intersection(cross_pattern_polylines);
-        OpenPolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width_);
+        ::curaengine::geometry::OpenLinesSet poly_lines = outline.intersection(cross_pattern_polylines);
+        ::curaengine::utils::OpenPolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width_);
     }
 }
 
 void Infill::addLineInfill(
-    OpenLinesSet& result,
-    const PointMatrix& rotation_matrix,
+    ::curaengine::geometry::OpenLinesSet& result,
+    const ::curaengine::geometry::PointMatrix& rotation_matrix,
     const int scanline_min_idx,
     const int line_distance,
-    const AABB boundary,
-    std::vector<std::vector<coord_t>>& cut_list,
-    coord_t shift)
+    const ::curaengine::utils::AABB boundary,
+    std::vector<std::vector<::curaengine::utils::coord_t>>& cut_list,
+    ::curaengine::utils::coord_t shift)
 {
     assert(! connect_lines_ && "connectLines() should add the infill lines, not addLineInfill");
 
     unsigned int scanline_idx = 0;
-    for (coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max_.X; x += line_distance)
+    for (::curaengine::utils::coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max_.X; x += line_distance)
     {
         if (scanline_idx >= cut_list.size())
         {
             break;
         }
-        std::vector<coord_t>& crossings = cut_list[scanline_idx];
+        std::vector<::curaengine::utils::coord_t>& crossings = cut_list[scanline_idx];
         std::stable_sort(crossings.begin(), crossings.end()); // sort by increasing Y coordinates
         for (unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
         {
@@ -640,13 +640,13 @@ void Infill::addLineInfill(
             { // segment is too short to create infill
                 continue;
             }
-            result.addSegment(rotation_matrix.unapply(Point2LL(x, crossings[crossing_idx])), rotation_matrix.unapply(Point2LL(x, crossings[crossing_idx + 1])));
+            result.addSegment(rotation_matrix.unapply(::curaengine::geometry::Point2LL(x, crossings[crossing_idx])), rotation_matrix.unapply(::curaengine::geometry::Point2LL(x, crossings[crossing_idx + 1])));
         }
         scanline_idx += 1;
     }
 }
 
-coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation)
+::curaengine::utils::coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation)
 {
     if (infill_origin_.X != 0 || infill_origin_.Y != 0)
     {
@@ -657,15 +657,15 @@ coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_r
 }
 
 void Infill::generateLineInfill(
-    const Shape& outline,
-    OpenLinesSet& result,
+    const ::curaengine::geometry::Shape& outline,
+    ::curaengine::geometry::OpenLinesSet& result,
     int line_distance,
     const double& infill_rotation,
-    coord_t shift,
+    ::curaengine::utils::coord_t shift,
     std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     shift += getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
-    PointMatrix rotation_matrix(infill_rotation);
+    ::curaengine::geometry::PointMatrix rotation_matrix(infill_rotation);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
     generateLinearBasedInfill(outline, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift, crossings_on_line);
@@ -673,15 +673,15 @@ void Infill::generateLineInfill(
 
 
 void Infill::generateZigZagInfill(
-    const Shape& outline,
-    OpenLinesSet& result,
-    const coord_t line_distance,
+    const ::curaengine::geometry::Shape& outline,
+    ::curaengine::geometry::OpenLinesSet& result,
+    const ::curaengine::utils::coord_t line_distance,
     const double& infill_rotation,
     std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+    const ::curaengine::utils::coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
-    PointMatrix rotation_matrix(infill_rotation);
+    ::curaengine::geometry::PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces_, connected_zigzags_, skip_some_zags_, zag_skip_count_);
     generateLinearBasedInfill(outline, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags_, shift, crossings_on_line);
 }
@@ -710,13 +710,13 @@ void Infill::generateZigZagInfill(
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
 void Infill::generateLinearBasedInfill(
-    const Shape& outline,
-    OpenLinesSet& result,
+    const ::curaengine::geometry::Shape& outline,
+    ::curaengine::geometry::OpenLinesSet& result,
     const int line_distance,
-    const PointMatrix& rotation_matrix,
+    const ::curaengine::geometry::PointMatrix& rotation_matrix,
     ZigzagConnectorProcessor& zigzag_connector_processor,
     const bool connected_zigzags,
-    coord_t extra_shift,
+    ::curaengine::utils::coord_t extra_shift,
     std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     if (line_distance == 0 || outline.empty()) // No infill to generate (0% density) or no area to generate it in.
@@ -724,10 +724,10 @@ void Infill::generateLinearBasedInfill(
         return;
     }
 
-    Shape transformed_outline = outline; // Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
+    ::curaengine::geometry::Shape transformed_outline = outline; // Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
     transformed_outline.applyMatrix(rotation_matrix);
 
-    coord_t shift = extra_shift + this->shift_;
+    ::curaengine::utils::coord_t shift = extra_shift + this->shift_;
     if (shift < 0)
     {
         shift = line_distance - (-shift) % line_distance;
@@ -737,22 +737,22 @@ void Infill::generateLinearBasedInfill(
         shift = shift % line_distance;
     }
 
-    AABB boundary(transformed_outline);
+    ::curaengine::utils::AABB boundary(transformed_outline);
 
     int scanline_min_idx = computeScanSegmentIdx(boundary.min_.X - shift, line_distance);
     int line_count = computeScanSegmentIdx(boundary.max_.X - shift, line_distance) + 1 - scanline_min_idx;
 
-    std::vector<std::vector<coord_t>> cut_list(line_count); // mapping from scanline to all intersections with polygon segments
+    std::vector<std::vector<::curaengine::utils::coord_t>> cut_list(line_count); // mapping from scanline to all intersections with polygon segments
 
     // When we find crossings, keep track of which crossing belongs to which scanline and to which polygon line segment.
     // Then we can later join two crossings together to form lines and still know what polygon line segments that infill line connected to.
     struct Crossing
     {
-        Point2LL coordinate_;
+        ::curaengine::geometry::Point2LL coordinate_;
         size_t polygon_index_;
         size_t vertex_index_;
 
-        Crossing(Point2LL coordinate, size_t polygon_index, size_t vertex_index)
+        Crossing(::curaengine::geometry::Point2LL coordinate, size_t polygon_index, size_t vertex_index)
             : coordinate_(coordinate)
             , polygon_index_(polygon_index)
             , vertex_index_(vertex_index)
@@ -775,17 +775,17 @@ void Infill::generateLinearBasedInfill(
 
     for (size_t poly_idx = 0; poly_idx < transformed_outline.size(); poly_idx++)
     {
-        const Polygon& poly = transformed_outline[poly_idx];
+        const ::curaengine::geometry::Polygon& poly = transformed_outline[poly_idx];
         if (connect_lines_)
         {
             crossings_on_line[poly_idx].resize(poly.size()); // One for each line in this polygon.
         }
-        Point2LL p0 = poly.back();
+        ::curaengine::geometry::Point2LL p0 = poly.back();
         zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
 
         for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point2LL p1 = poly[point_idx];
+            ::curaengine::geometry::Point2LL p1 = poly[point_idx];
             if (p1.X == p0.X)
             {
                 zigzag_connector_processor.registerVertex(p1);
@@ -821,7 +821,7 @@ void Infill::generateLinearBasedInfill(
                 const int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
                 assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
-                Point2LL scanline_linesegment_intersection(x, y);
+                ::curaengine::geometry::Point2LL scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx, line_distance / 4);
                 crossings_per_scanline[scanline_idx - min_scanline_index].emplace_back(scanline_linesegment_intersection, poly_idx, point_idx);
             }
@@ -845,8 +845,8 @@ void Infill::generateLinearBasedInfill(
                 const Crossing& first = crossings[crossing_index];
                 const Crossing& second = crossings[crossing_index + 1];
                 // Avoid creating zero length crossing lines
-                const Point2LL unrotated_first = rotation_matrix.unapply(first.coordinate_);
-                const Point2LL unrotated_second = rotation_matrix.unapply(second.coordinate_);
+                const ::curaengine::geometry::Point2LL unrotated_first = rotation_matrix.unapply(first.coordinate_);
+                const ::curaengine::geometry::Point2LL unrotated_second = rotation_matrix.unapply(second.coordinate_);
                 if (unrotated_first == unrotated_second)
                 {
                     continue;
@@ -875,7 +875,7 @@ void Infill::generateLinearBasedInfill(
     }
 }
 
-void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& intersect, Point2LL& connect_start, Point2LL& connect_end, InfillLineSegment* a, InfillLineSegment* b)
+void Infill::resolveIntersection(const ::curaengine::utils::coord_t at_distance, const ::curaengine::geometry::Point2LL& intersect, ::curaengine::geometry::Point2LL& connect_start, ::curaengine::geometry::Point2LL& connect_end, InfillLineSegment* a, InfillLineSegment* b)
 {
     // Select wich ends of the line need to 'bend'.
     const bool forward_line_a = a->end_ == connect_start;
@@ -893,8 +893,8 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
 
     // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
     constexpr auto large_enough_vec_len = 0xFFFFFFFF;
-    const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
-    const auto offset = ((at_distance / 2) * Point2LL(-bisect.Y, bisect.X)) / large_enough_vec_len;
+    const auto bisect = ::curaengine::utils::LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
+    const auto offset = ((at_distance / 2) * ::curaengine::geometry::Point2LL(-bisect.Y, bisect.X)) / large_enough_vec_len;
     const auto q = intersect + offset;
     const auto r = q + bisect;
     const auto s = intersect - offset;
@@ -904,12 +904,12 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
     bool is_resolved = true;
 
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    is_resolved &= LinearAlg2D::lineLineIntersection(q, r, a->start_, a->end_, bend_a.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_a.value(), a->start_, a->end_) == 0;
-    is_resolved &= LinearAlg2D::lineLineIntersection(s, t, b->start_, b->end_, bend_b.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_b.value(), b->start_, b->end_) == 0;
+    is_resolved &= ::curaengine::utils::LinearAlg2D::lineLineIntersection(q, r, a->start_, a->end_, bend_a.value()) && ::curaengine::utils::LinearAlg2D::pointIsProjectedBeyondLine(bend_a.value(), a->start_, a->end_) == 0;
+    is_resolved &= ::curaengine::utils::LinearAlg2D::lineLineIntersection(s, t, b->start_, b->end_, bend_b.value()) && ::curaengine::utils::LinearAlg2D::pointIsProjectedBeyondLine(bend_b.value(), b->start_, b->end_) == 0;
 
     // Also set the new end-points
-    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a) && LinearAlg2D::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
-    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b) && LinearAlg2D::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
+    is_resolved &= ::curaengine::utils::LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a) && ::curaengine::utils::LinearAlg2D::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
+    is_resolved &= ::curaengine::utils::LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b) && ::curaengine::utils::LinearAlg2D::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
 
     if (is_resolved)
     {
@@ -925,9 +925,9 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
     }
 }
 
-void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
+void Infill::connectLines(const ::curaengine::geometry::Shape& outline, ::curaengine::geometry::OpenLinesSet& result_lines, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    UnionFind<InfillLineSegment*> connected_lines; // Keeps track of which lines are connected to which.
+    ::curaengine::utils::UnionFind<InfillLineSegment*> connected_lines; // Keeps track of which lines are connected to which.
     for (const std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
     {
         for (const std::vector<InfillLineSegment*>& crossings_on_polygon_segment : crossings_on_polygon)
@@ -945,7 +945,7 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
     const auto half_line_distance_squared = (line_distance_ * line_distance_) / 4;
     for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
     {
-        const Polygon& inner_contour_polygon = outline[polygon_index];
+        const ::curaengine::geometry::Polygon& inner_contour_polygon = outline[polygon_index];
         if (inner_contour_polygon.empty())
         {
             continue;
@@ -954,12 +954,12 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
         std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon = crossings_on_line[polygon_index];
         InfillLineSegment* previous_crossing = nullptr; // The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
         InfillLineSegment* previous_segment = nullptr; // The last segment we were connecting while drawing a line along the border.
-        Point2LL vertex_before = inner_contour_polygon.back();
+        ::curaengine::geometry::Point2LL vertex_before = inner_contour_polygon.back();
         for (size_t vertex_index = 0; vertex_index < inner_contour_polygon.size(); vertex_index++)
         {
             assert(crossings_on_polygon.size() > vertex_index && "crossings on line for the current polygon should be bigger then vertex index");
             std::vector<InfillLineSegment*>& crossings_on_polygon_segment = crossings_on_polygon[vertex_index];
-            Point2LL vertex_after = inner_contour_polygon[vertex_index];
+            ::curaengine::geometry::Point2LL vertex_after = inner_contour_polygon[vertex_index];
 
             // Sort crossings on every line by how far they are from their initial point.
             std::stable_sort(
@@ -970,9 +970,9 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
                     // Find the two endpoints that are relevant.
                     const bool choose_left = (left_hand_side->start_segment_ == vertex_index && left_hand_side->start_polygon_ == polygon_index);
                     const bool choose_right = (right_hand_side->start_segment_ == vertex_index && right_hand_side->start_polygon_ == polygon_index);
-                    const Point2LL left_hand_point = choose_left ? left_hand_side->start_ : left_hand_side->end_;
-                    const Point2LL right_hand_point = choose_right ? right_hand_side->start_ : right_hand_side->end_;
-                    return vSize(left_hand_point - vertex_before) < vSize(right_hand_point - vertex_before);
+                    const ::curaengine::geometry::Point2LL left_hand_point = choose_left ? left_hand_side->start_ : left_hand_side->end_;
+                    const ::curaengine::geometry::Point2LL right_hand_point = choose_right ? right_hand_side->start_ : right_hand_side->end_;
+                    return ::curaengine::geometry::vSize(left_hand_point - vertex_before) < ::curaengine::geometry::vSize(right_hand_point - vertex_before);
                 });
 
             for (InfillLineSegment* crossing : crossings_on_polygon_segment)
@@ -998,8 +998,8 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
                     // Here the InfillLineSegments function as a linked list, so that they can easily be joined.
                     const bool previous_forward = (previous_segment->start_segment_ == vertex_index && previous_segment->start_polygon_ == polygon_index);
                     const bool next_forward = (crossing->start_segment_ == vertex_index && crossing->start_polygon_ == polygon_index);
-                    Point2LL& previous_point = previous_forward ? previous_segment->start_ : previous_segment->end_;
-                    Point2LL& next_point = next_forward ? crossing->start_ : crossing->end_;
+                    ::curaengine::geometry::Point2LL& previous_point = previous_forward ? previous_segment->start_ : previous_segment->end_;
+                    ::curaengine::geometry::Point2LL& next_point = next_forward ? crossing->start_ : crossing->end_;
 
                     InfillLineSegment* new_segment;
                     // If the segment is near length, we avoid creating it but still want to connect the crossing with the previous segment.
@@ -1010,15 +1010,15 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
                     }
                     else
                     {
-                        constexpr coord_t epsilon_sqd = 25;
+                        constexpr ::curaengine::utils::coord_t epsilon_sqd = 25;
 
                         // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop'.
-                        Point2LL intersect;
-                        if (vSize2(previous_point - next_point) < half_line_distance_squared
-                            && LinearAlg2D::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
-                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
-                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0 && vSize2(previous_point - intersect) > epsilon_sqd
-                            && vSize2(next_point - intersect) > epsilon_sqd)
+                        ::curaengine::geometry::Point2LL intersect;
+                        if (::curaengine::geometry::vSize2(previous_point - next_point) < half_line_distance_squared
+                            && ::curaengine::utils::LinearAlg2D::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
+                            && ::curaengine::utils::LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
+                            && ::curaengine::utils::LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0 && ::curaengine::geometry::vSize2(previous_point - intersect) > epsilon_sqd
+                            && ::curaengine::geometry::vSize2(next_point - intersect) > epsilon_sqd)
                         {
                             resolveIntersection(infill_line_width_, intersect, previous_point, next_point, previous_segment, crossing);
                         }
@@ -1079,18 +1079,18 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
 
         // Find where the polyline ends by searching through previous and next lines.
         // Note that the "previous" and "next" lines don't necessarily match up though, because the direction while connecting infill lines was not yet known.
-        Point2LL previous_vertex = infill_line->start_; // Take one side arbitrarily to start from. This variable indicates the vertex that connects to the previous line.
+        ::curaengine::geometry::Point2LL previous_vertex = infill_line->start_; // Take one side arbitrarily to start from. This variable indicates the vertex that connects to the previous line.
         InfillLineSegment* current_infill_line = infill_line;
         while (current_infill_line->next_ && current_infill_line->previous_) // Until we reached an endpoint.
         {
             const bool choose_side = (previous_vertex == current_infill_line->start_);
-            const Point2LL next_vertex = choose_side ? current_infill_line->end_ : current_infill_line->start_;
+            const ::curaengine::geometry::Point2LL next_vertex = choose_side ? current_infill_line->end_ : current_infill_line->start_;
             current_infill_line = choose_side ? current_infill_line->next_ : current_infill_line->previous_;
             previous_vertex = next_vertex;
         }
 
         // Now go along the linked list of infill lines and output the infill lines to the actual result.
-        OpenPolyline& result_line = result_lines.newLine();
+        ::curaengine::geometry::OpenPolyline& result_line = result_lines.newLine();
         InfillLineSegment* old_line = current_infill_line;
         if (current_infill_line->previous_)
         {
@@ -1107,7 +1107,7 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
             {
                 current_infill_line->swapDirection();
             }
-            const Point2LL next_vertex = current_infill_line->end_; // Opposite side of the line.
+            const ::curaengine::geometry::Point2LL next_vertex = current_infill_line->end_; // Opposite side of the line.
             constexpr bool polyline_break = false;
             current_infill_line->appendTo(result_line, polyline_break);
             current_infill_line = current_infill_line->next_;
@@ -1118,19 +1118,19 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
         completed_groups.insert(group);
     }
 }
-bool Infill::includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines, const coord_t minimum_line_length)
+bool Infill::includeLines(const std::vector<::curaengine::utils::VariableWidthLines>& toolpaths, const ::curaengine::geometry::Shape& result_polygons, const ::curaengine::geometry::OpenLinesSet& result_lines, const ::curaengine::utils::coord_t minimum_line_length)
 {
-    coord_t total_length = 0;
+    ::curaengine::utils::coord_t total_length = 0;
 
     total_length = ranges::accumulate(
         toolpaths,
         total_length,
-        [](const coord_t total_lines, const VariableWidthLines& lines)
+        [](const ::curaengine::utils::coord_t total_lines, const ::curaengine::utils::VariableWidthLines& lines)
         {
             return ranges::accumulate(
                 lines,
                 total_lines,
-                [](const coord_t total_line, const ExtrusionLine& line)
+                [](const ::curaengine::utils::coord_t total_line, const ::curaengine::utils::ExtrusionLine& line)
                 {
                     return total_line + line.length();
                 });
@@ -1155,7 +1155,7 @@ void Infill::InfillLineSegment::swapDirection()
     std::swap(next_, previous_);
 }
 
-void Infill::InfillLineSegment::appendTo(OpenPolyline& result_polyline, const bool include_start)
+void Infill::InfillLineSegment::appendTo(::curaengine::geometry::OpenPolyline& result_polyline, const bool include_start)
 {
     if (include_start)
     {
@@ -1172,4 +1172,4 @@ void Infill::InfillLineSegment::appendTo(OpenPolyline& result_polyline, const bo
     result_polyline.push_back(altered_end_);
 }
 
-} // namespace curaengine
+} // namespace curaengine::infill

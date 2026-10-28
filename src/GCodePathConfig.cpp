@@ -4,7 +4,7 @@
 #include "GCodePathConfig.h"
 
 #include "geometry/Point2LL.h" // INT2MM
-#include "settings/types/Acceleration.h"
+#include "types/Acceleration.h"
 
 namespace curaengine
 {
@@ -14,27 +14,27 @@ namespace curaengine
     return extrusion_mm3_per_mm;
 }
 
-[[nodiscard]] Velocity GCodePathConfig::getSpeed() const noexcept
+[[nodiscard]] ::curaengine::types::Velocity GCodePathConfig::getSpeed() const noexcept
 {
     return speed_derivatives.speed;
 }
 
-[[nodiscard]] Acceleration GCodePathConfig::getAcceleration() const noexcept
+[[nodiscard]] ::curaengine::types::Acceleration GCodePathConfig::getAcceleration() const noexcept
 {
     return speed_derivatives.acceleration;
 }
 
-[[nodiscard]] Velocity GCodePathConfig::getJerk() const noexcept
+[[nodiscard]] ::curaengine::types::Velocity GCodePathConfig::getJerk() const noexcept
 {
     return speed_derivatives.jerk;
 }
 
-[[nodiscard]] coord_t GCodePathConfig::getLineWidth() const noexcept
+[[nodiscard]] ::curaengine::utils::coord_t GCodePathConfig::getLineWidth() const noexcept
 {
     return line_width;
 }
 
-[[nodiscard]] coord_t GCodePathConfig::getLayerThickness() const noexcept
+[[nodiscard]] ::curaengine::utils::coord_t GCodePathConfig::getLayerThickness() const noexcept
 {
     return layer_thickness;
 }
@@ -44,7 +44,7 @@ namespace curaengine
     return type;
 }
 
-const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
+const ::curaengine::types::Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
 {
     return temperature_delta;
 }
@@ -64,7 +64,7 @@ const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
     return fan_speed;
 }
 
-[[nodiscard]] Ratio GCodePathConfig::getFlowRatio() const noexcept
+[[nodiscard]] ::curaengine::types::Ratio GCodePathConfig::getFlowRatio() const noexcept
 {
     return flow;
 }

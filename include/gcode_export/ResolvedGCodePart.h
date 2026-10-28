@@ -14,7 +14,7 @@ namespace CuraFormulaeEngine::eval
 struct Value;
 }
 
-namespace curaengine
+namespace curaengine::gcode_export
 {
 
 class GcodeTemplateResolver;
@@ -46,4 +46,4 @@ private:
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_settings_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::gcode_export

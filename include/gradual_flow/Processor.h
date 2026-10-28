@@ -12,7 +12,7 @@
 #include "gradual_flow/FlowLimitedPath.h"
 #include "gradual_flow/GCodeState.h"
 
-namespace curaengine::gradual_flow::Processor
+namespace curaengine::gradual_flow
 {
 
 /*!
@@ -22,7 +22,7 @@ namespace curaengine::gradual_flow::Processor
  * \param extruder_nr The used extruder number
  * \param layer_nr The current layer number
  */
-void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_nr, const size_t layer_nr)
+void process(std::vector<::curaengine::path_planning::GCodePath>& extruder_plan_paths, const size_t extruder_nr, const size_t layer_nr)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& extruder_settings = scene.extruders[extruder_nr].settings_;
@@ -33,7 +33,7 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
         std::vector<FlowLimitedPath> gcode_paths;
 
         // Process first path
-        for (const GCodePath& path : extruder_plan_paths | ranges::views::take(1))
+        for (const ::curaengine::path_planning::GCodePath& path : extruder_plan_paths | ranges::views::take(1))
         {
             gcode_paths.push_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = path.points });
         }
@@ -49,7 +49,7 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
          */
         for (const auto& path : extruder_plan_paths | ranges::views::drop(1))
         {
-            std::vector<Point3LL> points{ gcode_paths.back().points.back() };
+            std::vector<::curaengine::geometry::Point3LL> points{ gcode_paths.back().points.back() };
             points.insert(points.end(), path.points.begin(), path.points.end());
 
             gcode_paths.emplace_back(FlowLimitedPath{ .original_gcode_path_data = &path, .points = std::move(points) });
@@ -86,7 +86,7 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
         const auto limited_flow_acceleration_paths = state.processGcodePaths(gcode_paths);
         // Copy newly generated paths to actual plan
 
-        std::vector<GCodePath> new_paths;
+        std::vector<::curaengine::path_planning::GCodePath> new_paths;
         for (const auto& [index, gcode_path] : limited_flow_acceleration_paths | ranges::views::enumerate)
         {
             // since the first point is added from the previous path in the initial conversion,
@@ -99,4 +99,4 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
         extruder_plan_paths = new_paths;
     }
 }
-} // namespace curaengine::gradual_flow::Processor
+} // namespace curaengine::gradual_flow

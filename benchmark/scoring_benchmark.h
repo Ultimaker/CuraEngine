@@ -16,7 +16,7 @@ namespace curaengine
 class ScoringTestFixture : public benchmark::Fixture
 {
 public:
-    PointsSet points;
+    ::curaengine::geometry::PointsSet points;
 
     void SetUp(const ::benchmark::State& state) override
     {
@@ -26,7 +26,7 @@ public:
         for (size_t i = 0; i < points.size(); ++i)
         {
             const double angle = (i * std::numbers::pi * 2.0) / points.size();
-            points[i] = Point2LL(std::cos(angle) * radius, std::sin(angle) * radius);
+            points[i] = ::curaengine::geometry::Point2LL(std::cos(angle) * radius, std::sin(angle) * radius);
         }
     }
 
@@ -39,22 +39,22 @@ BENCHMARK_DEFINE_F(ScoringTestFixture, ScoringTest_WorstCase)(benchmark::State& 
 {
     for (auto _ : st)
     {
-        BestElementFinder best_element_finder;
+        ::curaengine::utils::scoring::BestElementFinder best_element_finder;
 
         // Pass 1 : find corners
-        BestElementFinder::CriteriaPass main_criteria_pass;
+        ::curaengine::utils::scoring::BestElementFinder::CriteriaPass main_criteria_pass;
         main_criteria_pass.outsider_delta_threshold = 0.05;
 
-        BestElementFinder::WeighedCriterion main_criterion;
-        main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED);
+        ::curaengine::utils::scoring::BestElementFinder::WeighedCriterion main_criterion;
+        main_criterion.criterion = std::make_shared<::curaengine::utils::scoring::CornerScoringCriterion>(points, ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED);
         main_criteria_pass.criteria.push_back(main_criterion);
 
         best_element_finder.appendCriteriaPass(main_criteria_pass);
 
         // Pass 2 : fallback to distance calculation
-        BestElementFinder::CriteriaPass fallback_criteria_pass;
-        BestElementFinder::WeighedCriterion fallback_criterion;
-        fallback_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, Point2LL(1000, 0));
+        ::curaengine::utils::scoring::BestElementFinder::CriteriaPass fallback_criteria_pass;
+        ::curaengine::utils::scoring::BestElementFinder::WeighedCriterion fallback_criterion;
+        fallback_criterion.criterion = std::make_shared<::curaengine::utils::scoring::DistanceScoringCriterion>(points, ::curaengine::geometry::Point2LL(1000, 0));
 
         fallback_criteria_pass.criteria.push_back(fallback_criterion);
         best_element_finder.appendCriteriaPass(fallback_criteria_pass);

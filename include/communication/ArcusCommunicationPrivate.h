@@ -8,16 +8,22 @@
 
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
-#include "settings/types/LayerIndex.h"
+#include "types/LayerIndex.h"
 
 namespace curaengine
 {
-
 class Mesh;
+class ArcusCommunicationPrivateTest;
+}
+
+namespace curaengine::communication
+{
+
+
 
 class ArcusCommunication::Private
 {
-    friend class ArcusCommunicationPrivateTest;
+    friend class ::curaengine::ArcusCommunicationPrivateTest;
 
 public:
     Private();
@@ -27,7 +33,7 @@ public:
      * \param layer_nr The layer number to get the optimised layer data for.
      * \return The optimised layer data for that layer.
      */
-    std::shared_ptr<::cura::proto::LayerOptimized> getOptimizedLayerById(LayerIndex::value_type layer_nr);
+    std::shared_ptr<::cura::proto::LayerOptimized> getOptimizedLayerById(::curaengine::types::LayerIndex::value_type layer_nr);
 
     /*
      * Reads the global settings from a Protobuf message.
@@ -77,6 +83,6 @@ private:
     static void loadTextureData(const std::string& texture_str, Mesh& mesh);
 };
 
-} // namespace curaengine
+} // namespace curaengine::communication
 
 #endif // ARCUS

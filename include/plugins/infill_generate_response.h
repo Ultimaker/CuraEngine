@@ -11,12 +11,12 @@
 #include "cura/plugins/slots/infill/v0/generate.pb.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Shape.h"
-#include "plugins/converter.h"
+#include "plugins/details/converter.h"
 
 namespace curaengine::plugins
 {
 struct infill_generate_response
-    : public details::converter<infill_generate_response, ::cura::plugins::slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<ExtrusionLine>>, Shape, OpenLinesSet>>
+    : public details::converter<infill_generate_response, ::cura::plugins::slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<::curaengine::utils::ExtrusionLine>>, ::curaengine::geometry::Shape, ::curaengine::geometry::OpenLinesSet>>
 {
     native_value_type operator()(const value_type& message) const;
 };

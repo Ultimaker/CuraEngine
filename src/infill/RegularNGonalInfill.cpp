@@ -8,7 +8,7 @@
 #include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/AABB.h"
 
-namespace curaengine
+namespace curaengine::infill
 {
 
 RegularNGonalInfill::RegularNGonalInfill(RegularNGonType type)
@@ -16,12 +16,12 @@ RegularNGonalInfill::RegularNGonalInfill(RegularNGonType type)
 {
 }
 
-OpenLinesSet RegularNGonalInfill::generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const
+::curaengine::geometry::OpenLinesSet RegularNGonalInfill::generateParallelLines(const ::curaengine::utils::coord_t line_distance, const ::curaengine::utils::AABB& bounding_box, const ::curaengine::utils::coord_t z, const ::curaengine::utils::coord_t line_width) const
 {
     std::array<SegmentsPattern, 2> patterns;
-    coord_t delta_y = 0;
-    coord_t pattern_width = 0;
-    coord_t pattern_height = 0;
+    ::curaengine::utils::coord_t delta_y = 0;
+    ::curaengine::utils::coord_t pattern_width = 0;
+    ::curaengine::utils::coord_t pattern_height = 0;
 
     const double circumradius = line_distance / (std::cos(std::numbers::pi / 6));
 
@@ -62,12 +62,12 @@ OpenLinesSet RegularNGonalInfill::generateParallelLines(const coord_t line_dista
     return generateRegularNGonalLines(bounding_box, patterns, delta_y, pattern_width, pattern_height);
 }
 
-OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
-    const AABB& bounding_box,
+::curaengine::geometry::OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
+    const ::curaengine::utils::AABB& bounding_box,
     const std::array<SegmentsPattern, 2>& patterns,
-    const coord_t delta_y,
-    const coord_t pattern_width,
-    const coord_t pattern_height)
+    const ::curaengine::utils::coord_t delta_y,
+    const ::curaengine::utils::coord_t pattern_width,
+    const ::curaengine::utils::coord_t pattern_height)
 {
     if (pattern_width <= 0 || pattern_height <= 0)
     {
@@ -79,19 +79,19 @@ OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
     const int start_row = bounding_box.min_.Y / pattern_height - 1;
     const int end_row = (bounding_box.max_.Y / pattern_height) + 1;
 
-    OpenLinesSet raw_lines;
+    ::curaengine::geometry::OpenLinesSet raw_lines;
     for (int col = start_col; col <= end_col; ++col)
     {
         for (const SegmentsPattern& pattern : patterns)
         {
-            OpenPolyline raw_line;
+            ::curaengine::geometry::OpenPolyline raw_line;
 
-            Point2LL current_position(pattern.delta_x + col * pattern_width, delta_y + start_row * pattern_height);
+            ::curaengine::geometry::Point2LL current_position(pattern.delta_x + col * pattern_width, delta_y + start_row * pattern_height);
             raw_line.push_back(current_position);
 
             for (int row = start_row; row <= end_row; ++row)
             {
-                for (const Point2LL& segment : pattern.segments)
+                for (const ::curaengine::geometry::Point2LL& segment : pattern.segments)
                 {
                     current_position += segment;
                     raw_line.push_back(current_position);
@@ -106,14 +106,14 @@ OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
 }
 
 std::array<RegularNGonalInfill::SegmentsPattern, 2>
-    RegularNGonalInfill::generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const coord_t absolute_delta_x)
+    RegularNGonalInfill::generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const ::curaengine::utils::coord_t absolute_delta_x)
 {
-    const Point2LL segment_up = toPoint2LL(Point2D(0, segment_up_length));
-    const Point2LL segment_right = toPoint2LL(Point2D(segment_right_x, segment_right_y));
-    const Point2LL segment_left(-segment_right.X, segment_right.Y);
+    const ::curaengine::geometry::Point2LL segment_up = ::curaengine::geometry::conversions::toPoint2LL(::curaengine::geometry::Point2D(0, segment_up_length));
+    const ::curaengine::geometry::Point2LL segment_right = ::curaengine::geometry::conversions::toPoint2LL(::curaengine::geometry::Point2D(segment_right_x, segment_right_y));
+    const ::curaengine::geometry::Point2LL segment_left(-segment_right.X, segment_right.Y);
 
     return { SegmentsPattern{ .segments = { segment_up, segment_left, segment_up, segment_right }, .delta_x = -absolute_delta_x },
              SegmentsPattern{ .segments = { segment_up, segment_right, segment_up, segment_left }, .delta_x = absolute_delta_x } };
 }
 
-} // namespace curaengine
+} // namespace curaengine::infill

@@ -7,7 +7,7 @@
 #include <string>
 
 #include "cura/plugins/slots/postprocess/v0/modify.pb.h"
-#include "plugins/converter.h"
+#include "plugins/details/converter.h"
 
 namespace curaengine::plugins
 {

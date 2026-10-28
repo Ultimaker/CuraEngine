@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "settings/Settings.h"
-#include "settings/types/Acceleration.h"
+#include "Settings.h"
+#include "types/Acceleration.h"
 #include "utils/math.h"
 
 namespace curaengine
@@ -19,19 +19,19 @@ namespace curaengine
 
 void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
 {
-    max_feedrate[X_AXIS] = settings.get<Velocity>("machine_max_feedrate_x");
-    max_feedrate[Y_AXIS] = settings.get<Velocity>("machine_max_feedrate_y");
-    max_feedrate[Z_AXIS] = settings.get<Velocity>("machine_max_feedrate_z");
-    max_feedrate[E_AXIS] = settings.get<Velocity>("machine_max_feedrate_e");
-    max_acceleration[X_AXIS] = settings.get<Acceleration>("machine_max_acceleration_x");
-    max_acceleration[Y_AXIS] = settings.get<Acceleration>("machine_max_acceleration_y");
-    max_acceleration[Z_AXIS] = settings.get<Acceleration>("machine_max_acceleration_z");
-    max_acceleration[E_AXIS] = settings.get<Acceleration>("machine_max_acceleration_e");
-    max_xy_jerk = settings.get<Velocity>("machine_max_jerk_xy");
-    max_z_jerk = settings.get<Velocity>("machine_max_jerk_z");
-    max_e_jerk = settings.get<Velocity>("machine_max_jerk_e");
-    minimumfeedrate = settings.get<Velocity>("machine_minimum_feedrate");
-    acceleration = settings.get<Acceleration>("machine_acceleration");
+    max_feedrate[X_AXIS] = settings.get<::curaengine::types::Velocity>("machine_max_feedrate_x");
+    max_feedrate[Y_AXIS] = settings.get<::curaengine::types::Velocity>("machine_max_feedrate_y");
+    max_feedrate[Z_AXIS] = settings.get<::curaengine::types::Velocity>("machine_max_feedrate_z");
+    max_feedrate[E_AXIS] = settings.get<::curaengine::types::Velocity>("machine_max_feedrate_e");
+    max_acceleration[X_AXIS] = settings.get<::curaengine::types::Acceleration>("machine_max_acceleration_x");
+    max_acceleration[Y_AXIS] = settings.get<::curaengine::types::Acceleration>("machine_max_acceleration_y");
+    max_acceleration[Z_AXIS] = settings.get<::curaengine::types::Acceleration>("machine_max_acceleration_z");
+    max_acceleration[E_AXIS] = settings.get<::curaengine::types::Acceleration>("machine_max_acceleration_e");
+    max_xy_jerk = settings.get<::curaengine::types::Velocity>("machine_max_jerk_xy");
+    max_z_jerk = settings.get<::curaengine::types::Velocity>("machine_max_jerk_z");
+    max_e_jerk = settings.get<::curaengine::types::Velocity>("machine_max_jerk_e");
+    minimumfeedrate = settings.get<::curaengine::types::Velocity>("machine_minimum_feedrate");
+    acceleration = settings.get<::curaengine::types::Acceleration>("machine_acceleration");
 }
 
 
@@ -40,17 +40,17 @@ void TimeEstimateCalculator::setPosition(Position newPos)
     currentPosition = newPos;
 }
 
-void TimeEstimateCalculator::addTime(const Duration& time)
+void TimeEstimateCalculator::addTime(const ::curaengine::types::Duration& time)
 {
     extra_time += time;
 }
 
-void TimeEstimateCalculator::setAcceleration(const Acceleration& acc)
+void TimeEstimateCalculator::setAcceleration(const ::curaengine::types::Acceleration& acc)
 {
     acceleration = acc;
 }
 
-void TimeEstimateCalculator::setMaxXyJerk(const Velocity& jerk)
+void TimeEstimateCalculator::setMaxXyJerk(const ::curaengine::types::Velocity& jerk)
 {
     max_xy_jerk = jerk;
 }
@@ -63,26 +63,26 @@ void TimeEstimateCalculator::reset()
 
 // Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the
 // acceleration within the allotted distance.
-static inline Velocity maxAllowableSpeed(const Acceleration& acceleration, const Velocity& target_velocity, double distance)
+static inline ::curaengine::types::Velocity maxAllowableSpeed(const ::curaengine::types::Acceleration& acceleration, const ::curaengine::types::Velocity& target_velocity, double distance)
 {
     return sqrt(target_velocity * target_velocity - 2 * acceleration * distance);
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
-static inline double estimateAccelerationDistance(const Velocity& initial_rate, const Velocity& target_rate, const Acceleration& acceleration)
+static inline double estimateAccelerationDistance(const ::curaengine::types::Velocity& initial_rate, const ::curaengine::types::Velocity& target_rate, const ::curaengine::types::Acceleration& acceleration)
 {
     if (acceleration == 0)
     {
         return 0.0;
     }
-    return (square(target_rate) - square(initial_rate)) / (2.0 * acceleration);
+    return (::curaengine::utils::square(target_rate) - ::curaengine::utils::square(initial_rate)) / (2.0 * acceleration);
 }
 
 // This function gives you the point at which you must start braking (at the rate of -acceleration) if
 // you started at speed initial_rate and accelerated until this point and want to end at the final_rate after
 // a total travel of distance. This can be used to compute the intersection point between acceleration and
 // deceleration in the cases where the trapezoid has no plateau (i.e. never reaches maximum speed)
-static inline double intersectionDistance(const Velocity& initial_rate, const Velocity& final_rate, const Acceleration& acceleration, double distance)
+static inline double intersectionDistance(const ::curaengine::types::Velocity& initial_rate, const ::curaengine::types::Velocity& final_rate, const ::curaengine::types::Acceleration& acceleration, double distance)
 {
     if (acceleration == 0.0)
     {
@@ -117,23 +117,23 @@ static inline double intersectionDistance(const Velocity& initial_rate, const Ve
      * 2d = (2aD + v_f² - v_i²) / 2a [+D on both sides, but on the right multiply it by 2a to put it in the brackets]
      * d = (2aD + v_f² - v_i²) / 4a [divide by 2 on both sides]
      */
-    return (2.0 * acceleration * distance - square(initial_rate) + square(final_rate)) / (4.0 * acceleration);
+    return (2.0 * acceleration * distance - ::curaengine::utils::square(initial_rate) + ::curaengine::utils::square(final_rate)) / (4.0 * acceleration);
 }
 
 // This function gives the time it needs to accelerate from an initial speed to reach a final distance.
-static inline double accelerationTimeFromDistance(const Velocity& initial_feedrate, const Velocity& distance, const Acceleration& acceleration)
+static inline double accelerationTimeFromDistance(const ::curaengine::types::Velocity& initial_feedrate, const ::curaengine::types::Velocity& distance, const ::curaengine::types::Acceleration& acceleration)
 {
-    double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
+    double discriminant = ::curaengine::utils::square(initial_feedrate) - 2 * acceleration * -distance;
     // If discriminant is negative, we're moving in the wrong direction.
     // Making the discriminant 0 then gives the extremum of the parabola instead of the intersection.
     discriminant = std::max(0.0, discriminant);
     return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
 
-void TimeEstimateCalculator::calculateTrapezoidForBlock(Block* block, const Ratio entry_factor, const Ratio exit_factor)
+void TimeEstimateCalculator::calculateTrapezoidForBlock(Block* block, const ::curaengine::types::Ratio entry_factor, const ::curaengine::types::Ratio exit_factor)
 {
-    const Velocity initial_feedrate = block->nominal_feedrate * entry_factor;
-    const Velocity final_feedrate = block->nominal_feedrate * exit_factor;
+    const ::curaengine::types::Velocity initial_feedrate = block->nominal_feedrate * entry_factor;
+    const ::curaengine::types::Velocity final_feedrate = block->nominal_feedrate * exit_factor;
 
     double accelerate_distance = estimateAccelerationDistance(initial_feedrate, block->nominal_feedrate, block->acceleration);
     const double decelerate_distance = estimateAccelerationDistance(block->nominal_feedrate, final_feedrate, -block->acceleration);
@@ -158,7 +158,7 @@ void TimeEstimateCalculator::calculateTrapezoidForBlock(Block* block, const Rati
     block->final_feedrate = final_feedrate;
 }
 
-void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatureType feature)
+void TimeEstimateCalculator::plan(Position newPos, ::curaengine::types::Velocity feedrate, PrintFeatureType feature)
 {
     Block block;
     memset(&block, 0, sizeof(block));
@@ -180,7 +180,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     {
         feedrate = minimumfeedrate;
     }
-    block.distance = sqrtf(square(block.absDelta[0]) + square(block.absDelta[1]) + square(block.absDelta[2]));
+    block.distance = sqrtf(::curaengine::utils::square(block.absDelta[0]) + ::curaengine::utils::square(block.absDelta[1]) + ::curaengine::utils::square(block.absDelta[2]));
     if (block.distance == 0.0)
     {
         block.distance = block.absDelta[3];
@@ -189,14 +189,14 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     Position current_feedrate;
     Position current_abs_feedrate;
-    Ratio feedrate_factor = 1.0;
+    ::curaengine::types::Ratio feedrate_factor = 1.0;
     for (size_t n = 0; n < NUM_AXIS; n++)
     {
         current_feedrate[n] = (block.delta[n] * feedrate) / block.distance;
         current_abs_feedrate[n] = std::abs(current_feedrate[n]);
         if (current_abs_feedrate[n] > max_feedrate[n])
         {
-            feedrate_factor = std::min(feedrate_factor, Ratio(max_feedrate[n] / current_abs_feedrate[n]));
+            feedrate_factor = std::min(feedrate_factor, ::curaengine::types::Ratio(max_feedrate[n] / current_abs_feedrate[n]));
         }
     }
     // TODO: XY_FREQUENCY_LIMIT
@@ -220,43 +220,43 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
     }
 
-    Velocity vmax_junction{ max_xy_jerk / 2.0 };
-    Ratio vmax_junction_factor{ 1.0 };
+    ::curaengine::types::Velocity vmax_junction{ max_xy_jerk / 2.0 };
+    ::curaengine::types::Ratio vmax_junction_factor{ 1.0 };
     if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, ::curaengine::types::Velocity{ max_z_jerk / 2.0 });
     }
     if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, ::curaengine::types::Velocity{ max_e_jerk / 2.0 });
     }
     vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
-    const Velocity safe_speed = vmax_junction;
+    const ::curaengine::types::Velocity safe_speed = vmax_junction;
 
     if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
     {
-        const Velocity xy_jerk = sqrt(square(current_feedrate[X_AXIS] - previous_feedrate[X_AXIS]) + square(current_feedrate[Y_AXIS] - previous_feedrate[Y_AXIS]));
+        const ::curaengine::types::Velocity xy_jerk = sqrt(::curaengine::utils::square(current_feedrate[X_AXIS] - previous_feedrate[X_AXIS]) + ::curaengine::utils::square(current_feedrate[Y_AXIS] - previous_feedrate[Y_AXIS]));
         vmax_junction = block.nominal_feedrate;
         if (xy_jerk > max_xy_jerk)
         {
-            vmax_junction_factor = Ratio(max_xy_jerk / xy_jerk);
+            vmax_junction_factor = ::curaengine::types::Ratio(max_xy_jerk / xy_jerk);
         }
         const double z_jerk = std::abs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]);
         if (z_jerk > max_z_jerk)
         {
-            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / z_jerk));
+            vmax_junction_factor = std::min(vmax_junction_factor, ::curaengine::types::Ratio(max_z_jerk / z_jerk));
         }
         const double e_jerk = std::abs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]);
         if (e_jerk > max_e_jerk)
         {
-            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / e_jerk));
+            vmax_junction_factor = std::min(vmax_junction_factor, ::curaengine::types::Ratio(max_e_jerk / e_jerk));
         }
-        vmax_junction = std::min(previous_nominal_feedrate, Velocity{ vmax_junction * vmax_junction_factor }); // Limit speed to max previous speed
+        vmax_junction = std::min(previous_nominal_feedrate, ::curaengine::types::Velocity{ vmax_junction * vmax_junction_factor }); // Limit speed to max previous speed
     }
 
     block.max_entry_speed = vmax_junction;
 
-    const Velocity v_allowable = maxAllowableSpeed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
+    const ::curaengine::types::Velocity v_allowable = maxAllowableSpeed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
     block.entry_speed = std::min(vmax_junction, v_allowable);
     block.nominal_length_flag = block.nominal_feedrate <= v_allowable;
     block.recalculate_flag = true; // Always calculate trapezoid for new block
@@ -266,18 +266,18 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     currentPosition = newPos;
 
-    calculateTrapezoidForBlock(&block, Ratio(block.entry_speed / block.nominal_feedrate), Ratio(safe_speed / block.nominal_feedrate));
+    calculateTrapezoidForBlock(&block, ::curaengine::types::Ratio(block.entry_speed / block.nominal_feedrate), ::curaengine::types::Ratio(safe_speed / block.nominal_feedrate));
 
     blocks.push_back(block);
 }
 
-std::vector<Duration> TimeEstimateCalculator::calculate()
+std::vector<::curaengine::types::Duration> TimeEstimateCalculator::calculate()
 {
     reversePass();
     forwardPass();
     recalculateTrapezoids();
 
-    std::vector<Duration> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    std::vector<::curaengine::types::Duration> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
     totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
     for (unsigned int n = 0; n < blocks.size(); n++)
     {
@@ -346,7 +346,7 @@ void TimeEstimateCalculator::plannerForwardPassKernel(Block* previous, Block* cu
     {
         if (previous->entry_speed < current->entry_speed)
         {
-            const Velocity entry_speed = std::min(current->entry_speed, maxAllowableSpeed(-previous->acceleration, previous->entry_speed, previous->distance));
+            const ::curaengine::types::Velocity entry_speed = std::min(current->entry_speed, maxAllowableSpeed(-previous->acceleration, previous->entry_speed, previous->distance));
 
             // Check for junction speed change
             if (current->entry_speed != entry_speed)
@@ -386,7 +386,7 @@ void TimeEstimateCalculator::recalculateTrapezoids()
             if (current->recalculate_flag || next->recalculate_flag)
             {
                 // NOTE: Entry and exit factors always > 0 by all previous logic operations.
-                calculateTrapezoidForBlock(current, Ratio(current->entry_speed / current->nominal_feedrate), Ratio(next->entry_speed / current->nominal_feedrate));
+                calculateTrapezoidForBlock(current, ::curaengine::types::Ratio(current->entry_speed / current->nominal_feedrate), ::curaengine::types::Ratio(next->entry_speed / current->nominal_feedrate));
                 current->recalculate_flag = false; // Reset current only to ensure next trapezoid is computed
             }
         }
@@ -394,7 +394,7 @@ void TimeEstimateCalculator::recalculateTrapezoids()
     // Last/newest block in buffer. Exit speed is set with MINIMUM_PLANNER_SPEED. Always recalculated.
     if (next != nullptr)
     {
-        calculateTrapezoidForBlock(next, Ratio(next->entry_speed / next->nominal_feedrate), Ratio(MINIMUM_PLANNER_SPEED / next->nominal_feedrate));
+        calculateTrapezoidForBlock(next, ::curaengine::types::Ratio(next->entry_speed / next->nominal_feedrate), ::curaengine::types::Ratio(MINIMUM_PLANNER_SPEED / next->nominal_feedrate));
         next->recalculate_flag = false;
     }
 }

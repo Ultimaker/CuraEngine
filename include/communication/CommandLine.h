@@ -17,6 +17,11 @@
 namespace curaengine
 {
 class Settings;
+}
+
+namespace curaengine::communication
+{
+
 
 using setting_map = std::unordered_map<std::string, std::string>;
 using container_setting_map = std::unordered_map<std::string, setting_map>;
@@ -51,7 +56,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point3LL&) override;
+    void sendCurrentPosition(const ::curaengine::geometry::Point3LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -73,14 +78,14 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&) override;
+    void sendLayerComplete(const ::curaengine::types::LayerIndex::value_type&, const ::curaengine::utils::coord_t&, const ::curaengine::utils::coord_t&) override;
 
     /*
      * \brief Send a line for display.
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&, const PrintSegmentAttributes&) override;
+    void sendLineTo(const PrintFeatureType&, const ::curaengine::geometry::Point3LL&, const ::curaengine::utils::coord_t&, const ::curaengine::utils::coord_t&, const ::curaengine::types::Velocity&, const PrintSegmentAttributes&) override;
 
     /*
      * \brief Complete a layer to show it in layer view.
@@ -94,7 +99,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<::curaengine::types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Show an update of our slicing progress.
@@ -117,7 +122,7 @@ public:
      * This has no effect though because we don't shwo these three functions
      * because the command line doesn't show layer view.
      */
-    void setLayerForSend(const LayerIndex::value_type&) override;
+    void setLayerForSend(const ::curaengine::types::LayerIndex::value_type&) override;
 
     /*
      * \brief Slice the next scene that the command line commands us to slice.
@@ -202,4 +207,4 @@ private:
     static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
-} // namespace curaengine
+} // namespace curaengine::communication

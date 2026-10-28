@@ -7,11 +7,17 @@
 
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::types
 {
-
 class AngleDegrees;
 class AngleRadians;
+}
+
+namespace curaengine::geometry
+{
+
+
+
 
 class PointMatrix
 {
@@ -22,9 +28,9 @@ public:
 
     explicit PointMatrix(double rotation);
 
-    explicit PointMatrix(const AngleDegrees& rotation);
+    explicit PointMatrix(const ::curaengine::types::AngleDegrees& rotation);
 
-    explicit PointMatrix(const AngleRadians& rotation);
+    explicit PointMatrix(const ::curaengine::types::AngleRadians& rotation);
 
     explicit PointMatrix(const Point2LL& p);
 
@@ -40,4 +46,4 @@ public:
     [[nodiscard]] PointMatrix inverse() const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

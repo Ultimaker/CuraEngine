@@ -5,7 +5,7 @@
 
 #include "geometry/Shape.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Polygon;
@@ -38,4 +38,4 @@ public:
     [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

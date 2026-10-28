@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "settings/Settings.h"
+#include "Settings.h"
 
 namespace curaengine
 {

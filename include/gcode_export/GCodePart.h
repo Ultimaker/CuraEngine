@@ -7,7 +7,7 @@
 
 #include "gcode_export/GCodePartType.h"
 
-namespace curaengine
+namespace curaengine::gcode_export
 {
 
 /*! \brief Abstract class that is a container for pieces of GCode */
@@ -34,4 +34,4 @@ private:
     const GCodePartType type_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::gcode_export

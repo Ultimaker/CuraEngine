@@ -7,7 +7,7 @@
 
 #include "utils/PathsPointIndex.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -15,7 +15,7 @@ namespace curaengine
  */
 struct PolygonsPointIndexSegmentLocator
 {
-    std::pair<Point2LL, Point2LL> operator()(const PolygonsPointIndex& val) const;
+    std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> operator()(const PolygonsPointIndex& val) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

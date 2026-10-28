@@ -5,10 +5,16 @@
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 class PointsSet;
 class Shape;
+}
+
+namespace curaengine::utils::scoring
+{
+
+
 
 /*!
  * Criterion that will give a score according to whether the point is located inside or outside of an exclusion area.
@@ -17,12 +23,12 @@ class Shape;
 class ExclusionAreaScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const Shape& exclusion_area_;
+    const ::curaengine::geometry::Shape& exclusion_area_;
 
 public:
-    explicit ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area);
+    explicit ExclusionAreaScoringCriterion(const ::curaengine::geometry::PointsSet& points, const ::curaengine::geometry::Shape& exclusion_area);
 
-    virtual double computeScore(const Point2LL& candidate_position) const override;
+    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const override;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

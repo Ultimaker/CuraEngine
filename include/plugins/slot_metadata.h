@@ -6,7 +6,7 @@
 #include <string_view>
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/SlotID.h"
+#include "plugins/v0/SlotID.h"
 
 namespace curaengine::plugins
 {

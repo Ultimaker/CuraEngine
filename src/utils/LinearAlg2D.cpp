@@ -12,14 +12,14 @@
 #include "geometry/PointMatrix.h"
 #include "utils/math.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c)
+double LinearAlg2D::getAngleLeft(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c)
 {
-    const Point2LL ba = a - b;
-    const Point2LL bc = c - b;
-    const coord_t dott = dot(ba, bc); // dot product
+    const ::curaengine::geometry::Point2LL ba = a - b;
+    const ::curaengine::geometry::Point2LL bc = c - b;
+    const coord_t dott = ::curaengine::geometry::dot(ba, bc); // dot product
     const coord_t det = ba.X * bc.Y - ba.Y * bc.X; // determinant
     if (det == 0)
     {
@@ -44,7 +44,7 @@ double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Poi
 }
 
 
-bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, const Point2LL& b, const coord_t dist, Point2LL& result)
+bool LinearAlg2D::getPointOnLineWithDist(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const coord_t dist, ::curaengine::geometry::Point2LL& result)
 {
     //         result
     //         v
@@ -52,11 +52,11 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, c
     //          '-.        :
     //              '-.    :
     //                  '-.p
-    const Point2LL ab = b - a;
-    const coord_t ab_size = vSize(ab);
-    const Point2LL ap = p - a;
-    const coord_t ax_size = (ab_size < 50) ? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
-    const coord_t ap_size2 = vSize2(ap);
+    const ::curaengine::geometry::Point2LL ab = b - a;
+    const coord_t ab_size = ::curaengine::geometry::vSize(ab);
+    const ::curaengine::geometry::Point2LL ap = p - a;
+    const coord_t ax_size = (ab_size < 50) ? ::curaengine::geometry::dot(::curaengine::geometry::normal(ab, 1000), ap) / 1000 : ::curaengine::geometry::dot(ab, ap) / ab_size;
+    const coord_t ap_size2 = ::curaengine::geometry::vSize2(ap);
     const coord_t px_size = sqrt(std::max(coord_t(0), ap_size2 - ax_size * ax_size));
     if (px_size > dist)
     {
@@ -72,7 +72,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, c
         }
         else
         {
-            result = a + normal(ab, ar_size);
+            result = a + ::curaengine::geometry::normal(ab, ar_size);
             return true;
         }
     }
@@ -91,7 +91,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, c
         }
         else
         {
-            result = a + normal(ab, ar_size);
+            result = a + ::curaengine::geometry::normal(ab, ar_size);
             return true;
         }
     }
@@ -113,13 +113,13 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, c
         const coord_t ar1_size = ax_size - xr_size;
         if (ar1_size >= 0)
         {
-            result = a + normal(ab, ar1_size);
+            result = a + ::curaengine::geometry::normal(ab, ar1_size);
             return true;
         }
         const coord_t ar2_size = ax_size + xr_size;
         if (ar2_size < ab_size)
         {
-            result = a + normal(ab, ar2_size);
+            result = a + ::curaengine::geometry::normal(ab, ar2_size);
             return true;
         }
         return false;
@@ -127,16 +127,16 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, c
 }
 
 
-std::pair<Point2LL, Point2LL> LinearAlg2D::getClosestConnection(Point2LL a1, Point2LL a2, Point2LL b1, Point2LL b2)
+std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> LinearAlg2D::getClosestConnection(::curaengine::geometry::Point2LL a1, ::curaengine::geometry::Point2LL a2, ::curaengine::geometry::Point2LL b1, ::curaengine::geometry::Point2LL b2)
 {
-    Point2LL b1_on_a = getClosestOnLineSegment(b1, a1, a2);
-    coord_t b1_on_a_dist2 = vSize2(b1_on_a - b1);
-    Point2LL b2_on_a = getClosestOnLineSegment(b2, a1, a2);
-    coord_t b2_on_a_dist2 = vSize2(b2_on_a - b2);
-    Point2LL a1_on_b = getClosestOnLineSegment(a1, b1, b2);
-    coord_t a1_on_b_dist2 = vSize2(a1_on_b - a1);
-    Point2LL a2_on_b = getClosestOnLineSegment(a1, b1, b2);
-    coord_t a2_on_b_dist2 = vSize2(a2_on_b - a2);
+    ::curaengine::geometry::Point2LL b1_on_a = getClosestOnLineSegment(b1, a1, a2);
+    coord_t b1_on_a_dist2 = ::curaengine::geometry::vSize2(b1_on_a - b1);
+    ::curaengine::geometry::Point2LL b2_on_a = getClosestOnLineSegment(b2, a1, a2);
+    coord_t b2_on_a_dist2 = ::curaengine::geometry::vSize2(b2_on_a - b2);
+    ::curaengine::geometry::Point2LL a1_on_b = getClosestOnLineSegment(a1, b1, b2);
+    coord_t a1_on_b_dist2 = ::curaengine::geometry::vSize2(a1_on_b - a1);
+    ::curaengine::geometry::Point2LL a2_on_b = getClosestOnLineSegment(a1, b1, b2);
+    coord_t a2_on_b_dist2 = ::curaengine::geometry::vSize2(a2_on_b - a2);
     if (b1_on_a_dist2 < b2_on_a_dist2 && b1_on_a_dist2 < a1_on_b_dist2 && b1_on_a_dist2 < a2_on_b_dist2)
     {
         return std::make_pair(b1_on_a, b1);
@@ -155,7 +155,7 @@ std::pair<Point2LL, Point2LL> LinearAlg2D::getClosestConnection(Point2LL a1, Poi
     }
 }
 
-bool LinearAlg2D::lineSegmentsCollide(const Point2LL& a_from_transformed, const Point2LL& a_to_transformed, Point2LL b_from_transformed, Point2LL b_to_transformed)
+bool LinearAlg2D::lineSegmentsCollide(const ::curaengine::geometry::Point2LL& a_from_transformed, const ::curaengine::geometry::Point2LL& a_to_transformed, ::curaengine::geometry::Point2LL b_from_transformed, ::curaengine::geometry::Point2LL b_to_transformed)
 {
     assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
     assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
@@ -191,7 +191,7 @@ bool LinearAlg2D::lineSegmentsCollide(const Point2LL& a_from_transformed, const 
     return false;
 }
 
-coord_t LinearAlg2D::getDist2FromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
+coord_t LinearAlg2D::getDist2FromLine(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b)
 {
     // NOTE: The version that tried to do a faster calulation wasn't actually that much faster, and introduced errors.
     //       Use this for now, should we need this, we can reimplement later.
@@ -199,7 +199,7 @@ coord_t LinearAlg2D::getDist2FromLine(const Point2LL& p, const Point2LL& a, cons
     return dist * dist;
 }
 
-bool LinearAlg2D::isInsideCorner(const Point2LL a, const Point2LL b, const Point2LL c, const Point2LL query_point)
+bool LinearAlg2D::isInsideCorner(const ::curaengine::geometry::Point2LL a, const ::curaengine::geometry::Point2LL b, const ::curaengine::geometry::Point2LL c, const ::curaengine::geometry::Point2LL query_point)
 {
     /*
      Visualisation for the algorithm below:
@@ -217,20 +217,20 @@ bool LinearAlg2D::isInsideCorner(const Point2LL a, const Point2LL b, const Point
 
 
     constexpr coord_t normal_length = 10000; // Create a normal vector of reasonable length in order to reduce rounding error.
-    const Point2LL ba = normal(a - b, normal_length);
-    const Point2LL bc = normal(c - b, normal_length);
-    const Point2LL bq = query_point - b;
-    const Point2LL perpendicular = turn90CCW(bq); // The query projects to this perpendicular to coordinate 0.
-    const coord_t project_a_perpendicular = dot(ba, perpendicular); // Project vertex A on the perpendicular line.
-    const coord_t project_c_perpendicular = dot(bc, perpendicular); // Project vertex C on the perpendicular line.
+    const ::curaengine::geometry::Point2LL ba = ::curaengine::geometry::normal(a - b, normal_length);
+    const ::curaengine::geometry::Point2LL bc = ::curaengine::geometry::normal(c - b, normal_length);
+    const ::curaengine::geometry::Point2LL bq = query_point - b;
+    const ::curaengine::geometry::Point2LL perpendicular = ::curaengine::geometry::turn90CCW(bq); // The query projects to this perpendicular to coordinate 0.
+    const coord_t project_a_perpendicular = ::curaengine::geometry::dot(ba, perpendicular); // Project vertex A on the perpendicular line.
+    const coord_t project_c_perpendicular = ::curaengine::geometry::dot(bc, perpendicular); // Project vertex C on the perpendicular line.
     if ((project_a_perpendicular > 0) != (project_c_perpendicular > 0)) // Query is between A and C on the projection.
     {
         return project_a_perpendicular > 0; // Due to the winding order of corner ABC, this means that the query is inside.
     }
     else // Beyond either A or C, but it could still be inside of the polygon.
     {
-        const coord_t project_a_parallel = dot(ba, bq); // Project not on the perpendicular, but on the original.
-        const coord_t project_c_parallel = dot(bc, bq);
+        const coord_t project_a_parallel = ::curaengine::geometry::dot(ba, bq); // Project not on the perpendicular, but on the original.
+        const coord_t project_c_parallel = ::curaengine::geometry::dot(bc, bq);
 
         // Either:
         //  * A is to the right of B (project_a_perpendicular > 0) and C is below A (project_c_parallel < project_a_parallel), or
@@ -239,40 +239,40 @@ bool LinearAlg2D::isInsideCorner(const Point2LL a, const Point2LL b, const Point
     }
 }
 
-coord_t LinearAlg2D::getDistFromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
+coord_t LinearAlg2D::getDistFromLine(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b)
 {
     //  x.......a------------b
     //  :
     //  :
     //  p
     // return px_size
-    const Point2LL vab = b - a;
-    const Point2LL vap = p - a;
-    const coord_t ab_size = vSize(vab);
+    const ::curaengine::geometry::Point2LL vab = b - a;
+    const ::curaengine::geometry::Point2LL vap = p - a;
+    const coord_t ab_size = ::curaengine::geometry::vSize(vab);
     if (ab_size == 0) // Line of 0 length. Assume it's a line perpendicular to the direction to p.
     {
-        return vSize(vap);
+        return ::curaengine::geometry::vSize(vap);
     }
     const coord_t area_times_two = std::abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
     const coord_t px_size = area_times_two / ab_size;
     return px_size;
 }
 
-Point2LL LinearAlg2D::getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len)
+::curaengine::geometry::Point2LL LinearAlg2D::getBisectorVector(const ::curaengine::geometry::Point2LL& intersect, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const coord_t vec_len)
 {
     const auto a0 = a - intersect;
     const auto b0 = b - intersect;
-    return (((a0 * vec_len) / std::max(1LL, vSize(a0))) + ((b0 * vec_len) / std::max(1LL, vSize(b0)))) / 2;
+    return (((a0 * vec_len) / std::max(1LL, ::curaengine::geometry::vSize(a0))) + ((b0 * vec_len) / std::max(1LL, ::curaengine::geometry::vSize(b0)))) / 2;
 }
 
-Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
+::curaengine::geometry::Point3Matrix LinearAlg2D::rotateAround(const ::curaengine::geometry::Point2LL& middle, double rotation)
 {
-    PointMatrix rotation_matrix(rotation);
-    Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
-    return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
+    ::curaengine::geometry::PointMatrix rotation_matrix(rotation);
+    ::curaengine::geometry::Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
+    return ::curaengine::geometry::Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(::curaengine::geometry::Point3Matrix::translate(-middle));
 }
 
-bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+bool LinearAlg2D::lineLineIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const ::curaengine::geometry::Point2LL& p3, const ::curaengine::geometry::Point2LL& p4, float& t, float& u)
 {
     const float x1mx2 = p1.X - p2.X;
     const float x1mx3 = p1.X - p3.X;
@@ -296,19 +296,19 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, c
     return true;
 }
 
-bool LinearAlg2D::segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+bool LinearAlg2D::segmentSegmentIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const ::curaengine::geometry::Point2LL& p3, const ::curaengine::geometry::Point2LL& p4, float& t, float& u)
 {
     return lineLineIntersection(p1, p2, p3, p4, t, u) && t >= 0.0f && u >= 0.0f && t <= 1.0f && u <= 1.0f;
 }
 
-bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
+bool LinearAlg2D::lineLineIntersection(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c, const ::curaengine::geometry::Point2LL& d, ::curaengine::geometry::Point2LL& output)
 {
     float t, u;
     if (! lineLineIntersection(a, b, c, d, t, u))
     {
         return false;
     }
-    const Point2LL result = a + (b - a) * t;
+    const ::curaengine::geometry::Point2LL result = a + (b - a) * t;
     if (std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
     {
         // Intersection is so far away that it could lead to integer overflows.
@@ -319,7 +319,7 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, con
     return true;
 }
 
-std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
+std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const coord_t line_y)
 {
     if (p1.Y == p2.Y)
     {
@@ -347,7 +347,7 @@ std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2L
     return std::llrint((line_y - coeff_b) / coeff_a);
 }
 
-std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
+std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const coord_t line_y)
 {
     const auto [min_y, max_y] = std::minmax(p1.Y, p2.Y);
 
@@ -371,4 +371,4 @@ coord_t LinearAlg2D::getSlopedWidth(const coord_t base_width, const coord_t base
     return std::llrint(static_cast<double>(base_width) * factor);
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils

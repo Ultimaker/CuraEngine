@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 enum class CheckNonEmptyParam
@@ -13,4 +13,4 @@ enum class CheckNonEmptyParam
     EvenIfEmpty
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

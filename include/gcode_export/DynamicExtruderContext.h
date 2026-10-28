@@ -5,7 +5,7 @@
 
 #include <variant>
 
-namespace curaengine
+namespace curaengine::gcode_export
 {
 
 enum class DynamicExtruderContext
@@ -17,4 +17,4 @@ enum class DynamicExtruderContext
 // Contains either a dynamic extruder context, or a fixed extruder number that we know in advance
 using ResolvingExtruderContext = std::variant<DynamicExtruderContext, size_t>;
 
-} // namespace curaengine
+} // namespace curaengine::gcode_export

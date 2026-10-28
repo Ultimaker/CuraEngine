@@ -12,10 +12,21 @@
 #include "PolygonUtils.h"
 #include "geometry/Point2LL.h"
 #include "geometry/Polygon.h"
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 #include "utils/math.h"
 
+#ifdef BUILD_TESTS
 namespace curaengine
+{
+class PolygonConnectorTest_getBridgeNestedSquares_Test;
+class PolygonConnectorTest_getBridgeAdjacentSquares_Test;
+class PolygonConnectorTest_getBridgeClosest_Test;
+class PolygonConnectorTest_getBridgeTooFar_Test;
+class PolygonConnectorTest_getBridgeTooNarrow_Test;
+}
+#endif
+
+namespace curaengine::utils
 {
 
 /*!
@@ -58,11 +69,11 @@ namespace curaengine
 class PolygonConnector
 {
 #ifdef BUILD_TESTS
-    FRIEND_TEST(PolygonConnectorTest, getBridgeNestedSquares);
-    FRIEND_TEST(PolygonConnectorTest, getBridgeAdjacentSquares);
-    FRIEND_TEST(PolygonConnectorTest, getBridgeClosest);
-    FRIEND_TEST(PolygonConnectorTest, getBridgeTooFar);
-    FRIEND_TEST(PolygonConnectorTest, getBridgeTooNarrow);
+    friend class ::curaengine::PolygonConnectorTest_getBridgeNestedSquares_Test;
+    friend class ::curaengine::PolygonConnectorTest_getBridgeAdjacentSquares_Test;
+    friend class ::curaengine::PolygonConnectorTest_getBridgeClosest_Test;
+    friend class ::curaengine::PolygonConnectorTest_getBridgeTooFar_Test;
+    friend class ::curaengine::PolygonConnectorTest_getBridgeTooNarrow_Test;
 #endif
 public:
     /*!
@@ -76,7 +87,7 @@ public:
     /*!
      * Add polygons to be connected by a future call to \ref PolygonConnector::connect()
      */
-    void add(const Shape& input);
+    void add(const ::curaengine::geometry::Shape& input);
 
     /*!
      * Add variable-width paths to be connected by a future call to
@@ -99,14 +110,14 @@ public:
      * \param output_paths Paths that were connected as much as possible. These
      * are expected to be empty to start with.
      */
-    void connect(Shape& output_polygons, std::vector<VariableWidthLines>& output_paths);
+    void connect(::curaengine::geometry::Shape& output_polygons, std::vector<VariableWidthLines>& output_paths);
 
 protected:
     coord_t line_width_; //!< The distance between the line segments which connect two polygons.
-    std::vector<Polygon> input_polygons_; //!< The polygons assembled by calls to \ref PolygonConnector::add.
+    std::vector<::curaengine::geometry::Polygon> input_polygons_; //!< The polygons assembled by calls to \ref PolygonConnector::add.
     std::vector<ExtrusionLine> input_paths_; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
-    constexpr static Ratio max_gap_ = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside corners
+    constexpr static ::curaengine::types::Ratio max_gap_ = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside corners
                                            //!< where the endpoints are slightly apart.
 
     /*!
@@ -135,7 +146,7 @@ protected:
         /*!
          * The precise location of the source of the connection.
          */
-        Point2LL from_point_;
+        ::curaengine::geometry::Point2LL from_point_;
 
         /*!
          * The polygon at the destination of the connection.
@@ -152,7 +163,7 @@ protected:
         /*!
          * The precise location of the destination of the connection.
          */
-        Point2LL to_point_;
+        ::curaengine::geometry::Point2LL to_point_;
 
         /*!
          * Create a new connection.
@@ -167,7 +178,7 @@ protected:
          * \param to_point The precise location at the destination of the
          * connection.
          */
-        PolygonConnection(Polygonal* from_poly, const size_t from_segment, const Point2LL from_point, Polygonal* to_poly, const size_t to_segment, const Point2LL to_point)
+        PolygonConnection(Polygonal* from_poly, const size_t from_segment, const ::curaengine::geometry::Point2LL from_point, Polygonal* to_poly, const size_t to_segment, const ::curaengine::geometry::Point2LL to_point)
             : from_poly_(from_poly)
             , from_segment_(from_segment)
             , from_point_(from_point)
@@ -185,7 +196,7 @@ protected:
          */
         coord_t getDistance2() const
         {
-            return vSize2(from_point_ - to_point_);
+            return ::curaengine::geometry::vSize2(from_point_ - to_point_);
         }
     };
 
@@ -264,7 +275,7 @@ protected:
      * \param vertex The vertex to get the position of.
      * \return The position of that vertex.
      */
-    Point2LL getPosition(const Point2LL& vertex) const;
+    ::curaengine::geometry::Point2LL getPosition(const ::curaengine::geometry::Point2LL& vertex) const;
 
     /*!
      * Get the position of a vertex, if the vertex is a junction.
@@ -273,7 +284,7 @@ protected:
      * \param vertex The vertex to get the position of.
      * \return The position of that vertex.
      */
-    Point2LL getPosition(const ExtrusionJunction& vertex) const;
+    ::curaengine::geometry::Point2LL getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
      * Get the width at a certain vertex.
@@ -283,7 +294,7 @@ protected:
      * \param vertex The vertex to get the width of.
      * \return The line width of the polygon.
      */
-    coord_t getWidth(const Point2LL& vertex) const;
+    coord_t getWidth(const ::curaengine::geometry::Point2LL& vertex) const;
 
     /*!
      * Get the width at a certain junction.
@@ -303,7 +314,7 @@ protected:
      * \param position The position of the vertex to add.
      * \param width The width of the vertex to add, ignored in this overload.
      */
-    void addVertex(Polygon& polygonal, const Point2LL& position, const coord_t width) const;
+    void addVertex(::curaengine::geometry::Polygon& polygonal, const ::curaengine::geometry::Point2LL& position, const coord_t width) const;
 
     /*!
      * Add a vertex at the end of the polygonal object.
@@ -312,7 +323,7 @@ protected:
      * \param polygonal The polygon to add a vertex to.
      * \param vertex The vertex to add.
      */
-    void addVertex(Polygon& polygonal, const Point2LL& vertex) const;
+    void addVertex(::curaengine::geometry::Polygon& polygonal, const ::curaengine::geometry::Point2LL& vertex) const;
 
     /*!
      * Add a vertex at the end of the polygonal object.
@@ -322,7 +333,7 @@ protected:
      * \param position The position of the vertex to add.
      * \param width The width of the vertex to add.
      */
-    void addVertex(ExtrusionLine& polygonal, const Point2LL& position, const coord_t width) const;
+    void addVertex(ExtrusionLine& polygonal, const ::curaengine::geometry::Point2LL& position, const coord_t width) const;
 
     /*!
      * Add a vertex at the end of the polygonal object.
@@ -340,7 +351,7 @@ protected:
      * \param polygonal The polygonal object to check.
      * \return ``true``, indicating that this polygon is closed.
      */
-    bool isClosed(Polygon& polygonal) const;
+    bool isClosed(::curaengine::geometry::Polygon& polygonal) const;
 
     /*!
      * Tests whether this is a closed polygonal object, rather than a polyline.
@@ -383,7 +394,7 @@ protected:
             connection.to_point_,
             (*connection.to_poly_)[connection.to_segment_],
             (*connection.to_poly_)[(connection.to_segment_ + 1) % connection.to_poly_->size()]);
-        return vSize(connection.to_point_ - connection.from_point_) - from_width / 2 - to_width / 2;
+        return ::curaengine::geometry::vSize(connection.to_point_ - connection.from_point_) - from_width / 2 - to_width / 2;
     }
 
     /*!
@@ -397,14 +408,14 @@ protected:
      * \param b The other vertex between which to interpolate.
      */
     template<typename Vertex>
-    coord_t interpolateWidth(const Point2LL position, Vertex a, Vertex b) const
+    coord_t interpolateWidth(const ::curaengine::geometry::Point2LL position, Vertex a, Vertex b) const
     {
-        const coord_t total_length = vSize(getPosition(a) - getPosition(b));
+        const coord_t total_length = ::curaengine::geometry::vSize(getPosition(a) - getPosition(b));
         if (total_length == 0) // Prevent division by 0 when the vertices are on top of each other.
         {
             return getWidth(a); // Just return one of them. They are on top of each other anyway.
         }
-        const coord_t position_along_length = vSize(position - getPosition(a));
+        const coord_t position_along_length = ::curaengine::geometry::vSize(position - getPosition(a));
         return round_divide(getWidth(b) * position_along_length, total_length) + round_divide(getWidth(a) * (total_length - position_along_length), total_length);
     }
 
@@ -429,17 +440,17 @@ protected:
             }
             for (size_t to_index = 0; to_index < to_polygons[poly_index].size(); ++to_index)
             {
-                const Point2LL to_pos1 = getPosition(to_polygons[poly_index][to_index]);
+                const ::curaengine::geometry::Point2LL to_pos1 = getPosition(to_polygons[poly_index][to_index]);
                 const coord_t to_width1 = getWidth(to_polygons[poly_index][to_index]);
-                const Point2LL to_pos2 = getPosition(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
+                const ::curaengine::geometry::Point2LL to_pos2 = getPosition(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
                 const coord_t to_width2 = getWidth(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
                 const coord_t smallest_to_width = std::min(to_width1, to_width2);
 
                 for (size_t from_index = 0; from_index < from_poly.size(); ++from_index)
                 {
-                    const Point2LL from_pos1 = getPosition(from_poly[from_index]);
+                    const ::curaengine::geometry::Point2LL from_pos1 = getPosition(from_poly[from_index]);
                     const coord_t from_width1 = getWidth(from_poly[from_index]);
-                    const Point2LL from_pos2 = getPosition(from_poly[(from_index + 1) % from_poly.size()]);
+                    const ::curaengine::geometry::Point2LL from_pos2 = getPosition(from_poly[(from_index + 1) % from_poly.size()]);
                     const coord_t from_width2 = getWidth(from_poly[(from_index + 1) % from_poly.size()]);
                     const coord_t smallest_from_width = std::min(from_width1, from_width2);
 
@@ -447,14 +458,14 @@ protected:
                     coord_t naive_dist = LinearAlg2D::getDistFromLine(from_pos1, to_pos1, to_pos2);
                     if (naive_dist - from_width1 - smallest_to_width < line_width_ * max_gap_)
                     {
-                        const Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
+                        const ::curaengine::geometry::Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
                         if (closest_point == to_pos2) // The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
                         {
                             continue;
                         }
                         const coord_t width_at_closest
                             = interpolateWidth(closest_point, to_polygons[poly_index][to_index], to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
-                        const coord_t distance = vSize(closest_point - from_pos1) - from_width1 - width_at_closest; // Actual, accurate distance to the other polygon.
+                        const coord_t distance = ::curaengine::geometry::vSize(closest_point - from_pos1) - from_width1 - width_at_closest; // Actual, accurate distance to the other polygon.
                         if (distance < best_distance)
                         {
                             PolygonConnection<Polygonal> first_connection
@@ -473,13 +484,13 @@ protected:
                     naive_dist = LinearAlg2D::getDistFromLine(to_pos1, from_pos1, from_pos2);
                     if (naive_dist - smallest_from_width - to_width1 < line_width_ * max_gap_)
                     {
-                        const Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
+                        const ::curaengine::geometry::Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
                         if (closest_point == from_pos2) // The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
                         {
                             continue;
                         }
                         const coord_t width_at_closest = interpolateWidth(closest_point, from_poly[from_index], from_poly[(from_index + 1) % from_poly.size()]);
-                        const coord_t distance = vSize(closest_point - to_pos1) - width_at_closest - to_width1; // Actual, accurate distance.
+                        const coord_t distance = ::curaengine::geometry::vSize(closest_point - to_pos1) - width_at_closest - to_width1; // Actual, accurate distance.
                         if (distance < best_distance)
                         {
                             PolygonConnection<Polygonal> first_connection
@@ -559,11 +570,11 @@ protected:
      * ``std::nullopt``.
      */
     template<typename Polygonal>
-    std::optional<std::pair<Point2LL, size_t>>
-        walkUntilDistanceFromLine(const Polygonal& poly, const size_t start_index, const coord_t distance, const Point2LL& line_a, const Point2LL& line_b, const short direction)
+    std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>>
+        walkUntilDistanceFromLine(const Polygonal& poly, const size_t start_index, const coord_t distance, const ::curaengine::geometry::Point2LL& line_a, const ::curaengine::geometry::Point2LL& line_b, const short direction)
     {
         const size_t poly_size = poly.size();
-        const coord_t line_magnitude = vSize(line_b - line_a); // Pre-compute, used for line distance calculation.
+        const coord_t line_magnitude = ::curaengine::geometry::vSize(line_b - line_a); // Pre-compute, used for line distance calculation.
         if (line_magnitude == 0)
         {
             return std::nullopt; // Line doesn't have a direction, so we can't be on any one side of it.
@@ -571,14 +582,14 @@ protected:
 
         for (size_t index = (start_index + direction + poly_size) % poly_size; index != start_index; index = (index + direction + poly_size) % poly_size)
         {
-            const Point2LL vertex_pos = getPosition(poly[index]);
-            const coord_t vertex_distance = cross(line_a - line_b, line_a - vertex_pos) / line_magnitude; // Signed distance!
+            const ::curaengine::geometry::Point2LL vertex_pos = getPosition(poly[index]);
+            const coord_t vertex_distance = ::curaengine::geometry::cross(line_a - line_b, line_a - vertex_pos) / line_magnitude; // Signed distance!
             if (std::abs(vertex_distance) >= distance) // Further away from the line than the threshold.
             {
                 // Interpolate over that last line segment to find the point at exactly the right distance.
                 const size_t previous_index = (index - direction + poly_size) % poly_size;
-                const Point2LL previous_pos = getPosition(poly[previous_index]);
-                const coord_t previous_distance = cross(line_a - line_b, line_a - previous_pos) / line_magnitude;
+                const ::curaengine::geometry::Point2LL previous_pos = getPosition(poly[previous_index]);
+                const coord_t previous_distance = ::curaengine::geometry::cross(line_a - line_b, line_a - previous_pos) / line_magnitude;
                 if (previous_distance == vertex_distance) // 0-length line segment, or parallel to line.
                 {
                     continue;
@@ -598,7 +609,7 @@ protected:
                 {
                     continue;
                 }
-                const Point2LL interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
+                const ::curaengine::geometry::Point2LL interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
                 return std::make_pair(interpolated_point, (direction == +1) ? previous_index : index); // Choose the "earlier" index of the two, regardless of direction.
             }
         }
@@ -623,16 +634,16 @@ protected:
         coord_t best_connection_length = std::numeric_limits<coord_t>::max();
 
         // Find the four intersections, on both sides of the initial connection, and on both polygons.
-        std::optional<std::pair<Point2LL, size_t>> from_forward_intersection
+        std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>> from_forward_intersection
             = walkUntilDistanceFromLine(*first.from_poly_, first.from_segment_, adjacent_distance, first.from_point_, first.to_point_, +1);
-        std::optional<std::pair<Point2LL, size_t>> from_backward_intersection
+        std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>> from_backward_intersection
             = walkUntilDistanceFromLine(*first.from_poly_, first.from_segment_, adjacent_distance, first.from_point_, first.to_point_, -1);
-        std::optional<std::pair<Point2LL, size_t>> to_forward_intersection
+        std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>> to_forward_intersection
             = walkUntilDistanceFromLine(*first.to_poly_, first.to_segment_, adjacent_distance, first.from_point_, first.to_point_, +1);
-        std::optional<std::pair<Point2LL, size_t>> to_backward_intersection
+        std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>> to_backward_intersection
             = walkUntilDistanceFromLine(*first.to_poly_, first.to_segment_, adjacent_distance, first.from_point_, first.to_point_, -1);
 
-        for (const std::optional<std::pair<Point2LL, size_t>>& from_intersection : { from_forward_intersection, from_backward_intersection })
+        for (const std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>>& from_intersection : { from_forward_intersection, from_backward_intersection })
         {
             if (! from_intersection)
             {
@@ -640,7 +651,7 @@ protected:
             }
             // Find the shortest of the connections in the to_poly.
             const bool original_side = LinearAlg2D::pointIsLeftOfLine(first.to_point_, first.from_point_, from_intersection->first) > 0;
-            for (const std::optional<std::pair<Point2LL, size_t>>& to_intersection : { to_forward_intersection, to_backward_intersection })
+            for (const std::optional<std::pair<::curaengine::geometry::Point2LL, size_t>>& to_intersection : { to_forward_intersection, to_backward_intersection })
             {
                 if (! to_intersection)
                 {
@@ -690,11 +701,11 @@ protected:
         short forwards;
         if (bridge.a_.from_segment_ == bridge.b_.from_segment_) // If we start and end on the same segment, iterate in the direction from A to B.
         {
-            const Point2LL vertex = getPosition((*bridge.b_.from_poly_)[bridge.b_.from_segment_]); // Same vertex for A and B.
-            const Point2LL next_vertex = getPosition((*bridge.b_.from_poly_)[(bridge.b_.from_segment_ + 1) % from_size]);
-            const Point2LL direction = next_vertex - vertex; // Direction we'd go into when forward iterating.
-            const Point2LL a_to_b = bridge.b_.from_point_ - bridge.a_.from_point_;
-            forwards = vSize2(direction - a_to_b) < vSize2(-direction - a_to_b);
+            const ::curaengine::geometry::Point2LL vertex = getPosition((*bridge.b_.from_poly_)[bridge.b_.from_segment_]); // Same vertex for A and B.
+            const ::curaengine::geometry::Point2LL next_vertex = getPosition((*bridge.b_.from_poly_)[(bridge.b_.from_segment_ + 1) % from_size]);
+            const ::curaengine::geometry::Point2LL direction = next_vertex - vertex; // Direction we'd go into when forward iterating.
+            const ::curaengine::geometry::Point2LL a_to_b = bridge.b_.from_point_ - bridge.a_.from_point_;
+            forwards = ::curaengine::geometry::vSize2(direction - a_to_b) < ::curaengine::geometry::vSize2(-direction - a_to_b);
         }
         else
         {
@@ -727,11 +738,11 @@ protected:
         // Add the to_polygonal from A to B.
         if (bridge.a_.to_segment_ == bridge.b_.to_segment_)
         {
-            const Point2LL vertex = getPosition((*bridge.b_.to_poly_)[bridge.b_.to_segment_]); // Same vertex for A and B.
-            const Point2LL next_vertex = getPosition((*bridge.b_.to_poly_)[(bridge.b_.to_segment_ + 1) % to_size]);
-            const Point2LL direction = next_vertex - vertex;
-            const Point2LL a_to_b = bridge.b_.to_point_ - bridge.a_.to_point_;
-            forwards = vSize2(direction - a_to_b) > vSize2(-direction - a_to_b);
+            const ::curaengine::geometry::Point2LL vertex = getPosition((*bridge.b_.to_poly_)[bridge.b_.to_segment_]); // Same vertex for A and B.
+            const ::curaengine::geometry::Point2LL next_vertex = getPosition((*bridge.b_.to_poly_)[(bridge.b_.to_segment_ + 1) % to_size]);
+            const ::curaengine::geometry::Point2LL direction = next_vertex - vertex;
+            const ::curaengine::geometry::Point2LL a_to_b = bridge.b_.to_point_ - bridge.a_.to_point_;
+            forwards = ::curaengine::geometry::vSize2(direction - a_to_b) > ::curaengine::geometry::vSize2(-direction - a_to_b);
         }
         else
         {
@@ -761,4 +772,4 @@ protected:
 };
 
 
-} // namespace curaengine
+} // namespace curaengine::utils

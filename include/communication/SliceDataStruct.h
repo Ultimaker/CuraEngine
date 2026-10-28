@@ -7,7 +7,7 @@
 #include <memory> //To store pointers to slice data.
 #include <unordered_map> //To store the slice data by layer.
 
-namespace curaengine
+namespace curaengine::communication
 {
 
 /*!
@@ -42,6 +42,6 @@ public:
     std::unordered_map<int, std::shared_ptr<T>> slice_data;
 };
 
-} // namespace curaengine
+} // namespace curaengine::communication
 
 #endif // ARCUS

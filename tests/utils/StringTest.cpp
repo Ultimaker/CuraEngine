@@ -25,7 +25,7 @@ TEST_P(WriteInt2mmTest, WriteInt2mm)
     const int in = GetParam();
 
     std::ostringstream ss;
-    writeInt2mm(in, ss);
+    ::curaengine::utils::writeInt2mm(in, ss);
 
     ss.flush();
     const std::string str = ss.str();
@@ -53,7 +53,7 @@ TEST_P(WriteDoubleToStreamTest, WriteDoubleToStream)
     constexpr unsigned int precision = 4;
 
     std::ostringstream ss;
-    writeDoubleToStream(precision, in, ss);
+    ::curaengine::utils::writeDoubleToStream(precision, in, ss);
     ss.flush();
     const std::string str = ss.str();
 

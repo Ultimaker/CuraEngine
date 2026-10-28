@@ -11,12 +11,15 @@
 
 namespace curaengine
 {
+using ::curaengine::types::operator""_r;
+
+
 
 struct RetractionBaseConfig
 {
-    Ratio during_travel;
+    ::curaengine::types::Ratio during_travel;
     bool spread_over_travel{ false };
-    Velocity speed;
+    ::curaengine::types::Velocity speed;
 };
 
 struct AntiOozeAmountsTestDataSet
@@ -24,19 +27,19 @@ struct AntiOozeAmountsTestDataSet
     struct
     {
         bool firmware_retract;
-        EGCodeFlavor flavor;
+        ::curaengine::types::EGCodeFlavor flavor;
     } printer_capacities;
 
     struct
     {
         int speed;
-        coord_t height;
+        ::curaengine::utils::coord_t height;
     } z_hop;
 
     struct
     {
-        std::vector<Point3LL> path;
-        Velocity speed;
+        std::vector<::curaengine::geometry::Point3LL> path;
+        ::curaengine::types::Velocity speed;
     } travel;
 
     struct
@@ -101,9 +104,9 @@ public:
     }
 
 protected:
-    GCodeExport gcode_;
+    ::curaengine::gcode_export::GCodeExport gcode_;
     ExtruderTrain extruder_{ 0, nullptr };
-    GCodePath path_;
+    ::curaengine::path_planning::GCodePath path_;
     RetractionAndWipeConfig retraction_config_;
 };
 
@@ -149,17 +152,17 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
 {
     std::vector<AntiOozeAmountsTestCase> data_sets;
 
-    const std::vector path_simple = { Point3LL(0, 0, 0), Point3LL(100000, 0, 0) }; // Straight 10cm path on X
+    const std::vector path_simple = { ::curaengine::geometry::Point3LL(0, 0, 0), ::curaengine::geometry::Point3LL(100000, 0, 0) }; // Straight 10cm path on X
 
     // 10cm corner path, split by 1cm segments
     const std::vector path_corner
-        = { Point3LL(0, 0, 0),         Point3LL(10000, 0, 0),     Point3LL(20000, 0, 0),     Point3LL(30000, 0, 0),     Point3LL(40000, 0, 0),    Point3LL(50000, 0, 0),
-            Point3LL(50000, 10000, 0), Point3LL(50000, 20000, 0), Point3LL(50000, 30000, 0), Point3LL(50000, 40000, 0), Point3LL(50000, 50000, 0) };
+        = { ::curaengine::geometry::Point3LL(0, 0, 0),         ::curaengine::geometry::Point3LL(10000, 0, 0),     ::curaengine::geometry::Point3LL(20000, 0, 0),     ::curaengine::geometry::Point3LL(30000, 0, 0),     ::curaengine::geometry::Point3LL(40000, 0, 0),    ::curaengine::geometry::Point3LL(50000, 0, 0),
+            ::curaengine::geometry::Point3LL(50000, 10000, 0), ::curaengine::geometry::Point3LL(50000, 20000, 0), ::curaengine::geometry::Point3LL(50000, 30000, 0), ::curaengine::geometry::Point3LL(50000, 40000, 0), ::curaengine::geometry::Point3LL(50000, 50000, 0) };
 
     // Single segment, all retraction/prime during stationary
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_simple, .speed = 150.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 50.0 }, .distance = 5.0 },
@@ -167,18 +170,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 5.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 5.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 5.0,
-                                                                                                      .segment_split_position = Point2LL(0, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(0, 0),
                                                                                                       .amount_by_segment = { 5.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 5.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 5.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 5.0,
-                                                                                                   .segment_split_position = Point2LL(100000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(100000, 0),
                                                                                                    .amount_by_segment = { 5.0 } } } });
 
     // Single segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -186,18 +189,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(20000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(20000, 0),
                                                                                                       .amount_by_segment = { 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(80000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(80000, 0),
                                                                                                    .amount_by_segment = { 0.0 } } } });
 
     // Single segment, all retraction during stationary and all prime during travel, but not enough time to prime everything
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -205,18 +208,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 1.0,
-                                                                                                      .segment_split_position = Point2LL(0, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(0, 0),
                                                                                                       .amount_by_segment = { 1.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 1.0,
-                                                                                                   .segment_split_position = Point2LL(0, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(0, 0),
                                                                                                    .amount_by_segment = { 0.0 } } } });
 
     // Single segment, all retraction during travel and all prime during stationary, but not enough time to retract everything
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 1.0 }, .distance = 2.0 },
@@ -224,18 +227,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 1.0,
-                                                                                                      .segment_split_position = Point2LL(100000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(100000, 0),
                                                                                                       .amount_by_segment = { 1.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 1.0,
-                                                                                                   .segment_split_position = Point2LL(100000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(100000, 0),
                                                                                                    .amount_by_segment = { 1.0 } } } });
 
     // Single segment, all retraction/prime during travel, no z-hop, extra prime volume
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -243,18 +246,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(20000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(20000, 0),
                                                                                                       .amount_by_segment = { 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = -1.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = -1.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(70000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(70000, 0),
                                                                                                    .amount_by_segment = { -1.0 } } } });
 
     // Single segment, retraction/prime 50% during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.5_r, .speed = 10.0 }, .distance = 2.0 },
@@ -262,19 +265,19 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(10000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(10000, 0),
                                                                                                       .amount_by_segment = { 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(90000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(90000, 0),
                                                                                                    .amount_by_segment = { 1.0 } } } });
 
     // Single segment, retraction/prime 50% during travel, no z-hop, keep retracting during whole travel
     data_sets.push_back(
         AntiOozeAmountsTestCase{
             .data
-            = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+            = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                           .z_hop = { .speed = 50, .height = 0 },
                                           .travel = { .path = path_simple, .speed = 100.0 },
                                           .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.5_r, .spread_over_travel = true, .speed = 10.0 }, .distance = 2.0 },
@@ -282,18 +285,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
             .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                  .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
                                                                                  .amount_while_travel = 2.0,
-                                                                                 .segment_split_position = Point2LL(90000, 0),
+                                                                                 .segment_split_position = ::curaengine::geometry::Point2LL(90000, 0),
                                                                                  .amount_by_segment = { 2.0 } },
                                                  .priming = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                               .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
                                                                               .amount_while_travel = 2.0,
-                                                                              .segment_split_position = Point2LL(90000, 0),
+                                                                              .segment_split_position = ::curaengine::geometry::Point2LL(90000, 0),
                                                                               .amount_by_segment = { 1.0 } } } });
 
     // Single segment, retraction 50% during travel, prime 100 %during stationary, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.5_r, .speed = 10.0 }, .distance = 2.0 },
@@ -301,17 +304,17 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 1.2, .ratio = 1.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(8000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(8000, 0),
                                                                                                       .amount_by_segment = { 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 2.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 2.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(100000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(100000, 0),
                                                                                                    .amount_by_segment = { 2.0 } } } });
     // Single segment, retraction 100% during stationary, prime 50 %during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -319,17 +322,17 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 2.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 2.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(0, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(0, 0),
                                                                                                       .amount_by_segment = { 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 1.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 1.2, .ratio = 1.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(92000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(92000, 0),
                                                                                                    .amount_by_segment = { 1.2 } } } });
     // Multi segment, all retraction/prime during stationary
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_corner, .speed = 150.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 50.0 }, .distance = 5.0 },
@@ -337,17 +340,17 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 5.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 5.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 5.0,
-                                                                                                      .segment_split_position = Point2LL(0, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(0, 0),
                                                                                                       .amount_by_segment = { 5.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 5.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 5.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 5.0,
-                                                                                                   .segment_split_position = Point2LL(50000, 50000),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(50000, 50000),
                                                                                                    .amount_by_segment = { 5.0 } } } });
     // Multi segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -355,18 +358,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(20000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(20000, 0),
                                                                                                       .amount_by_segment = { 1.0, 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(50000, 30000),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(50000, 30000),
                                                                                                    .amount_by_segment = { 0.0, 1.0 } } } });
 
     // Multi segment, all retraction/prime during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -374,18 +377,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
                                                                                                       .amount_while_travel = 2.0,
-                                                                                                      .segment_split_position = Point2LL(18000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(18000, 0),
                                                                                                       .amount_by_segment = { 1.2, 2.0 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
                                                                                                    .amount_while_travel = 2.0,
-                                                                                                   .segment_split_position = Point2LL(50000, 32000),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(50000, 32000),
                                                                                                    .amount_by_segment = { 0.2, 1.2 } } } });
 
     // Multi segment, partial retraction/prime during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
@@ -393,18 +396,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                  .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                       .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
                                                                                                       .amount_while_travel = 5.2,
-                                                                                                      .segment_split_position = Point2LL(50000, 0),
+                                                                                                      .segment_split_position = ::curaengine::geometry::Point2LL(50000, 0),
                                                                                                       .amount_by_segment = { 1.2, 2.2, 3.2, 4.2, 5.2 } },
                                                                       .priming = TravelAntiOozing{ .amount_while_still = 0.0,
                                                                                                    .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
                                                                                                    .amount_while_travel = 5.2,
-                                                                                                   .segment_split_position = Point2LL(50000, 0),
+                                                                                                   .segment_split_position = ::curaengine::geometry::Point2LL(50000, 0),
                                                                                                    .amount_by_segment = { 0.2, 1.2, 2.2, 3.2, 4.2 } } } });
 
     // Worst-case scenario: multi segment, partial retraction/prime during travel, with z-hop, with extra prime volume
     data_sets.push_back(
         AntiOozeAmountsTestCase{
-            .data = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+            .data = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = ::curaengine::types::EGCodeFlavor::MARLIN },
                                                 .z_hop = { .speed = 50, .height = 1000 },
                                                 .travel = { .path = path_corner, .speed = 100.0 },
                                                 .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
@@ -412,12 +415,12 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
             .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = -0.0396,
                                                                                  .z_hop = ZHopAntiOozing{ .amount = 0.16, .ratio = 1.0_r },
                                                                                  .amount_while_travel = 4.144,
-                                                                                 .segment_split_position = Point2LL(39837, 0),
+                                                                                 .segment_split_position = ::curaengine::geometry::Point2LL(39837, 0),
                                                                                  .amount_by_segment = { 1.16, 2.16, 3.16, 4.144 } },
                                                  .priming = TravelAntiOozing{ .amount_while_still = -2.072,
                                                                               .z_hop = ZHopAntiOozing{ .amount = -1.872, .ratio = 1.0_r },
                                                                               .amount_while_travel = 4.144,
-                                                                              .segment_split_position = Point2LL(39837, 0),
+                                                                              .segment_split_position = ::curaengine::geometry::Point2LL(39837, 0),
                                                                               .amount_by_segment = { -1.872, -0.872, 0.128, 1.128, 2.128, 3.128, 4.128 } } } });
 
     return data_sets;

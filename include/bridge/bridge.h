@@ -9,21 +9,48 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
+namespace curaengine::utils
+{
+class AABB;
+struct ExtrusionLine;
+}
+
+namespace curaengine::geometry
+{
+class Shape;
+}
+
 namespace curaengine
 {
-
-class AABB;
-class Shape;
 class SliceMeshStorage;
 class SliceDataStorage;
 class SupportLayer;
-class AngleDegrees;
 class LayerPlan;
 template<class PathType>
 class PathAdapter;
-struct ExtrusionLine;
-struct MeshPathConfigs;
 class Settings;
+}
+
+namespace curaengine::types
+{
+class AngleDegrees;
+struct MeshPathConfigs;
+}
+
+namespace curaengine::bridge
+{
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape
@@ -40,14 +67,14 @@ class Settings;
  * \param supported_regions Pre-computed regions that the support layer would
  * support.
  */
-std::optional<AngleDegrees> bridgeAngle(
+std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
     const SliceMeshStorage& mesh,
-    const Shape& skin_outline,
+    const ::curaengine::geometry::Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Shape& bridging_area);
+    ::curaengine::geometry::Shape& bridging_area);
 
 /*!
  * @brief Make sure the bridging above infill (below skin) is properly printable by expanding the area below the skin so that the bridging would always provide anchoring points
@@ -59,11 +86,11 @@ std::optional<AngleDegrees> bridgeAngle(
  * @param layer_nr The current layer number
  * @return A new shape containing the expanded infill below skin area, and the angle to be used to generate bridging in this area
  */
-std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
-    const Shape& infill_contour,
-    const Shape& infill_below_skin_area,
+std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> makeBridgeOverInfillPrintable(
+    const ::curaengine::geometry::Shape& infill_contour,
+    const ::curaengine::geometry::Shape& infill_below_skin_area,
     const SliceMeshStorage& mesh,
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr);
 
-} // namespace curaengine
+} // namespace curaengine::bridge

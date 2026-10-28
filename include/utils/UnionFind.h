@@ -7,7 +7,7 @@
 #include <unordered_map> //To map the data type to indices for user's convenience.
 #include <vector> //Holds the main data.
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -207,4 +207,4 @@ private:
     std::vector<size_t> rank;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

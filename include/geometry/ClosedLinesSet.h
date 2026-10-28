@@ -6,7 +6,7 @@
 #include "geometry/ClosedPolyline.h"
 #include "geometry/LinesSet.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class MixedLinesSet;
@@ -40,4 +40,4 @@ public:
     [[nodiscard]] MixedLinesSet difference(const Shape& shape) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

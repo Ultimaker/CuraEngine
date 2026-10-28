@@ -18,7 +18,7 @@ const int vertex_meld_distance = MM2INT(0.03);
  * returns a hash for the location, but first divides by the vertex_meld_distance,
  * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
  */
-static inline uint32_t pointHash(const Point3LL& p)
+static inline uint32_t pointHash(const ::curaengine::geometry::Point3LL& p)
 {
     return ((p.x_ + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y_ + vertex_meld_distance / 2) / vertex_meld_distance) << 10)
          ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
@@ -35,12 +35,12 @@ Mesh::Mesh(Settings&& parent)
 }
 
 void Mesh::addFace(
-    const Point3LL& v0,
-    const Point3LL& v1,
-    const Point3LL& v2,
-    const std::optional<Point2F>& uv0,
-    const std::optional<Point2F>& uv1,
-    const std::optional<Point2F>& uv2)
+    const ::curaengine::geometry::Point3LL& v0,
+    const ::curaengine::geometry::Point3LL& v1,
+    const ::curaengine::geometry::Point3LL& v2,
+    const std::optional<::curaengine::geometry::Point2F>& uv0,
+    const std::optional<::curaengine::geometry::Point2F>& uv1,
+    const std::optional<::curaengine::geometry::Point2F>& uv2)
 {
     int vi0 = findIndexOfVertex(v0);
     int vi1 = findIndexOfVertex(v1);
@@ -85,15 +85,15 @@ void Mesh::finish()
     }
 }
 
-Point3LL Mesh::min() const
+::curaengine::geometry::Point3LL Mesh::min() const
 {
     return aabb_.min_;
 }
-Point3LL Mesh::max() const
+::curaengine::geometry::Point3LL Mesh::max() const
 {
     return aabb_.max_;
 }
-AABB3D Mesh::getAABB() const
+::curaengine::utils::AABB3D Mesh::getAABB() const
 {
     return aabb_;
 }
@@ -105,7 +105,7 @@ void Mesh::expandXY(int64_t offset)
     }
 }
 
-void Mesh::transform(const Matrix4x3D& transformation)
+void Mesh::transform(const ::curaengine::geometry::Matrix4x3D& transformation)
 {
     for (MeshVertex& v : vertices_)
     {
@@ -127,7 +127,7 @@ bool Mesh::isModelMesh() const
     return isPrinted() && ! settings_.get<bool>("infill_mesh");
 }
 
-int Mesh::findIndexOfVertex(const Point3LL& v)
+int Mesh::findIndexOfVertex(const ::curaengine::geometry::Point3LL& v)
 {
     uint32_t hash = pointHash(v);
 
@@ -212,12 +212,12 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         has_disconnected_faces = true;
     }
 
-    Point3D vn(vertices_[idx1].p_ - vertices_[idx0].p_);
-    Point3D n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
-    Point3D v0(vertices_[idx1].p_ - vertices_[idx0].p_);
+    ::curaengine::geometry::Point3D vn(vertices_[idx1].p_ - vertices_[idx0].p_);
+    ::curaengine::geometry::Point3D n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
+    ::curaengine::geometry::Point3D v0(vertices_[idx1].p_ - vertices_[idx0].p_);
 
     // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
-    Point3D n0 = Point3D(vertices_[notFaceVertexIdx].p_ - vertices_[idx0].p_).cross(v0);
+    ::curaengine::geometry::Point3D n0 = ::curaengine::geometry::Point3D(vertices_[notFaceVertexIdx].p_ - vertices_[idx0].p_).cross(v0);
 
     if (n0.vSize() <= 0)
     {
@@ -236,8 +236,8 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
                     break;
         }
 
-        Point3D v1(vertices_[faces_[candidateFace].vertex_index_[candidateVertex]].p_ - vertices_[idx0].p_);
-        Point3D n1 = v0.cross(v1);
+        ::curaengine::geometry::Point3D v1(vertices_[faces_[candidateFace].vertex_index_[candidateVertex]].p_ - vertices_[idx0].p_);
+        ::curaengine::geometry::Point3D n1 = v0.cross(v1);
 
         double dot = n0 * n1;
         double det = n * n0.cross(n1);

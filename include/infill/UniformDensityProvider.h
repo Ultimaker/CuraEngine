@@ -5,10 +5,15 @@
 
 #include "DensityProvider.h"
 
-namespace curaengine
+namespace curaengine::utils
+{
+struct AABB3D;
+}
+
+namespace curaengine::infill
 {
 
-struct AABB3D;
+
 
 class UniformDensityProvider : public DensityProvider
 {
@@ -22,7 +27,7 @@ public:
     {
     }
 
-    virtual double operator()(const AABB3D&) const
+    virtual double operator()(const ::curaengine::utils::AABB3D&) const
     {
         return density_;
     }
@@ -31,4 +36,4 @@ protected:
     double density_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::infill

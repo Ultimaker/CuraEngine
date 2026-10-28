@@ -4,10 +4,15 @@
 
 #pragma once
 
-namespace curaengine
+namespace curaengine::utils
+{
+struct AABB3D;
+}
+
+namespace curaengine::infill
 {
 
-struct AABB3D;
+
 
 /*!
  * Parent class of function objects which return the density required for a given region.
@@ -20,10 +25,10 @@ public:
     /*!
      * \return the approximate required density of a cube
      */
-    virtual double operator()(const AABB3D& aabb) const = 0;
+    virtual double operator()(const ::curaengine::utils::AABB3D& aabb) const = 0;
     virtual ~DensityProvider()
     {
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::infill

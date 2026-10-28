@@ -10,13 +10,13 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
-#include "settings/types/AngleRadians.h"
+#include "types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
-void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
+void Polyline::removeColinearEdges(const ::curaengine::types::AngleRadians max_deviation_angle)
 {
     // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
 
@@ -64,7 +64,7 @@ void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
                 const Point2LL& pt = rpath[point_idx];
                 const Point2LL& next = rpath[(point_idx + 1) % pathlen];
 
-                double angle = LinearAlg2D::getAngleLeft(prev, pt, next); // [0 : 2 * pi]
+                double angle = ::curaengine::utils::LinearAlg2D::getAngleLeft(prev, pt, next); // [0 : 2 * pi]
                 if (angle >= std::numbers::pi)
                 {
                     angle -= std::numbers::pi;
@@ -132,21 +132,21 @@ Polyline::segments_iterator Polyline::endSegments()
     return segments_iterator(size() > 1 ? std::prev(end()) : end(), begin(), end());
 }
 
-coord_t Polyline::length() const
+::curaengine::utils::coord_t Polyline::length() const
 {
     return std::accumulate(
         beginSegments(),
         endSegments(),
         0,
-        [](coord_t total, const const_segments_iterator::value_type& segment)
+        [](::curaengine::utils::coord_t total, const const_segments_iterator::value_type& segment)
         {
             return total + vSize(segment.end - segment.start);
         });
 }
 
-bool Polyline::shorterThan(const coord_t check_length) const
+bool Polyline::shorterThan(const ::curaengine::utils::coord_t check_length) const
 {
-    coord_t length = 0;
+    ::curaengine::utils::coord_t length = 0;
     auto iterator_segment = std::find_if(
         beginSegments(),
         endSegments(),
@@ -174,4 +174,4 @@ OpenLinesSet Polyline::splitIntoSegments() const
     return result;
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

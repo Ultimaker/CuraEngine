@@ -14,9 +14,9 @@
 namespace boost::polygon
 {
 template<>
-struct voronoi_diagram_traits<curaengine::coord_t>
+struct voronoi_diagram_traits<::curaengine::utils::coord_t>
 {
-    typedef curaengine::coord_t coordinate_type;
+    typedef ::curaengine::utils::coord_t coordinate_type;
     typedef voronoi_cell<coordinate_type> cell_type;
     typedef voronoi_vertex<coordinate_type> vertex_type;
     typedef voronoi_edge<coordinate_type> edge_type;
@@ -32,7 +32,7 @@ struct voronoi_diagram_traits<curaengine::coord_t>
 };
 } // namespace boost::polygon
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -44,22 +44,22 @@ public:
     using voronoi_data_t = coord_t;
     using vd_t = boost::polygon::voronoi_diagram<voronoi_data_t>;
 
-    static Point2LL getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
-    static const Segment& getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
-    static PolygonsPointIndex getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
+    static ::curaengine::geometry::Point2LL getSourcePoint(const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments);
+    static const Segment& getSourceSegment(const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments);
+    static PolygonsPointIndex getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments);
 
-    static Point2LL p(const vd_t::vertex_type* node);
+    static ::curaengine::geometry::Point2LL p(const vd_t::vertex_type* node);
 
-    static bool isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist = 10);
+    static bool isSourcePoint(const ::curaengine::geometry::Point2LL& p, const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist = 10);
 
-    static coord_t getDistance(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
+    static coord_t getDistance(const ::curaengine::geometry::Point2LL& p, const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments);
 
     /*!
      * Discretize a parabola based on (approximate) step size.
      * The \p approximate_step_size is measured parallel to the \p source_segment, not along the parabola.
      */
-    static std::vector<Point2LL>
-        discretizeParabola(const Point2LL& source_point, const Segment& source_segment, Point2LL start, Point2LL end, coord_t approximate_step_size, double transitioning_angle);
+    static std::vector<::curaengine::geometry::Point2LL>
+        discretizeParabola(const ::curaengine::geometry::Point2LL& source_point, const Segment& source_segment, ::curaengine::geometry::Point2LL start, ::curaengine::geometry::Point2LL end, coord_t approximate_step_size, double transitioning_angle);
 
 protected:
     /*!
@@ -85,7 +85,7 @@ protected:
      * Important:
      * discretization should contain both edge endpoints initially.
      */
-    static void discretize(const Point2LL& point, const Segment& segment, const coord_t max_dist, std::vector<Point2LL>* discretization);
+    static void discretize(const ::curaengine::geometry::Point2LL& point, const Segment& segment, const coord_t max_dist, std::vector<::curaengine::geometry::Point2LL>* discretization);
 
     /*!
      * adapted from boost::polygon::voronoi_visual_utils.cpp
@@ -103,7 +103,7 @@ protected:
      * transformed one and vice versa. The assumption is made that projection of
      * the point lies between the start-point and endpoint of the segment.
      */
-    static double getPointProjection(const Point2LL& point, const Segment& segment);
+    static double getPointProjection(const ::curaengine::geometry::Point2LL& point, const Segment& segment);
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

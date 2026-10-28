@@ -8,16 +8,29 @@
 #include <vector>
 
 #include "Preheat.h"
-#include "settings/Settings.h"
-#include "settings/types/Duration.h"
+#include "Settings.h"
+#include "types/Duration.h"
+
+namespace curaengine::gcode_export
+{
+
+class GCodeExport;
+}
+
+namespace curaengine::types
+{
+struct LayerIndex;
+}
 
 namespace curaengine
 {
+using ::curaengine::types::operator""_s;
+
 
 class LayerPlan;
 class ExtruderPlan;
-class GCodeExport;
-struct LayerIndex;
+
+
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -36,7 +49,7 @@ class LayerPlanBuffer
 {
     friend class LayerPlan;
 
-    GCodeExport& gcode_;
+    ::curaengine::gcode_export::GCodeExport& gcode_;
 
     Preheat preheat_config_; //!< the nozzle and material temperature settings for each extruder train.
 
@@ -44,7 +57,7 @@ class LayerPlanBuffer
         = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
 
-    static constexpr Duration extra_preheat_time_
+    static constexpr ::curaengine::types::Duration extra_preheat_time_
         = 1.0_s; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
     std::vector<bool> extruder_used_in_meshgroup_; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to
@@ -62,7 +75,7 @@ class LayerPlanBuffer
     std::condition_variable buffer_condition_variable_;
 
 public:
-    LayerPlanBuffer(GCodeExport& gcode)
+    LayerPlanBuffer(::curaengine::gcode_export::GCodeExport& gcode)
         : gcode_(gcode)
         , extruder_used_in_meshgroup_(MAX_EXTRUDERS, false)
     {
@@ -77,7 +90,7 @@ public:
      * \param layer_plan The layer to handle
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
-    void handle(LayerPlan& layer_plan, GCodeExport& gcode);
+    void handle(LayerPlan& layer_plan, ::curaengine::gcode_export::GCodeExport& gcode);
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
@@ -91,7 +104,7 @@ public:
      * @warning Make sure you always ask for a layer plan below the one that is being processed. Since the layers processing is started bottom to top and the engine can be run
      *          mono-threaded, asking for a layer above could lead to a deadlock because the processing of this layer will never start.
      */
-    const LayerPlan* getCompletedLayerPlan(const LayerIndex& layer_nr) const;
+    const LayerPlan* getCompletedLayerPlan(const ::curaengine::types::LayerIndex& layer_nr) const;
 
 private:
     /*!
@@ -126,7 +139,7 @@ private:
      * \param extruder_nr The extruder for which to set the temperature
      * \param temp The temperature of the preheat command
      */
-    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp);
+    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, const ::curaengine::types::Duration time_before_extruder_plan_end, const size_t extruder_nr, const ::curaengine::types::Temperature temp);
 
     /*!
      * Compute the time needed to preheat from standby to required (initial) printing temperature at the start of an extruder plan,
@@ -150,7 +163,7 @@ private:
      * \param extruder_nr The extruder for which too set the temperature
      * \param required_temp The required temperature for the second extruder plan
      */
-    void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const Temperature required_temp);
+    void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const ::curaengine::types::Temperature required_temp);
 
     /*!
      * Insert the preheat command for an extruder plan which is preceded by an extruder plan with a different extruder.

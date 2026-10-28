@@ -6,7 +6,7 @@
 
 #include <Arcus/SocketListener.h> //The class we're extending from.
 
-namespace curaengine
+namespace curaengine::communication
 {
 
 /*
@@ -32,6 +32,6 @@ public:
     void error(const Arcus::Error& error) override;
 };
 
-} // namespace curaengine
+} // namespace curaengine::communication
 
 #endif // ARCUS

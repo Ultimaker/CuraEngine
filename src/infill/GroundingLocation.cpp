@@ -5,9 +5,10 @@
 
 #include <cassert>
 
-using namespace curaengine;
+namespace curaengine::infill
+{
 
-Point2LL GroundingLocation::p() const
+::curaengine::geometry::Point2LL GroundingLocation::p() const
 {
     if (tree_node != nullptr)
     {
@@ -19,3 +20,5 @@ Point2LL GroundingLocation::p() const
         return boundary_location->p();
     }
 }
+
+} // namespace curaengine::infill

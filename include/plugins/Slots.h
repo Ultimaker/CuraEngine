@@ -15,23 +15,23 @@
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/SlotID.h"
-#include "plugins/Holder.h"
-#include "plugins/SingletonRegistry.h"
+#include "plugins/v0/SlotID.h"
+#include "plugins/details/Holder.h"
+#include "plugins/details/SingletonRegistry.h"
 #include "plugins/SlotProxy.h"
-#include "plugins/Typelist.h"
+#include "plugins/details/Typelist.h"
 #include "plugins/Validator.h"
 #include "plugins/broadcast_settings_request.h"
-#include "plugins/default_process.h"
+#include "plugins/details/default_process.h"
 #include "plugins/empty.h"
 #include "plugins/gcode_paths_modify_request.h"
 #include "plugins/gcode_paths_modify_response.h"
-#include "plugins/infill_generate_default.h"
+#include "plugins/details/infill_generate_default.h"
 #include "plugins/infill_generate_request.h"
 #include "plugins/infill_generate_response.h"
 #include "plugins/postprocess_request.h"
 #include "plugins/postprocess_response.h"
-#include "plugins/simplify_default.h"
+#include "plugins/details/simplify_default.h"
 #include "plugins/simplify_request.h"
 #include "plugins/simplify_response.h"
 #include "plugins/types.h"
@@ -94,7 +94,7 @@ using slot_gcode_paths_modify_ = SlotProxy<
     gcode_paths_modify_response,
     Default>;
 
-} // namespace details
+} // namespace curaengine::plugins::details
 
 using slot_gcode_paths_modify = details::slot_gcode_paths_modify_<>;
 using slot_infill_generate = details::slot_infill_generate_<details::infill_generate_default>;
@@ -104,17 +104,18 @@ using slot_simplify = details::slot_simplify_<details::simplify_default>;
 
 using SlotTypes = details::Typelist<slot_gcode_paths_modify, slot_infill_generate, slot_postprocess, slot_settings_broadcast, slot_simplify>;
 
-} // namespace plugins
-using slots = plugins::details::SingletonRegistry<plugins::SlotTypes, plugins::details::Holder>;
+using slots = details::SingletonRegistry<SlotTypes, details::Holder>;
+
+} // namespace curaengine::plugins
 
 } // namespace curaengine
 
 #else // No Engine plugin support
 #include <utility>
 
-#include "plugins/SlotID.h"
+#include "plugins/v0/SlotID.h"
 
-namespace curaengine::slots
+namespace curaengine::plugins::slots
 {
 namespace details
 {
@@ -135,11 +136,11 @@ struct Slots
     {
     }
 };
-} // namespace details
+} // namespace curaengine::plugins::slots::details
 
 constexpr details::Slots instance() noexcept
 {
     return {};
 }
-} // namespace curaengine::slots
+} // namespace curaengine::plugins::slots
 #endif // ENABLE_PLUGINS

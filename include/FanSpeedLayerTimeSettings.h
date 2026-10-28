@@ -5,9 +5,9 @@
 
 #include <utils/Coord_t.h>
 
-#include "settings/types/Duration.h"
-#include "settings/types/LayerIndex.h"
-#include "settings/types/Velocity.h"
+#include "types/Duration.h"
+#include "types/LayerIndex.h"
+#include "types/Velocity.h"
 
 namespace curaengine
 {
@@ -27,24 +27,24 @@ public:
      * Minimum layer time. How long should the layer get to cool down before the
      * next layer is allowed to begin printing on it?
      */
-    Duration cool_min_layer_time;
+    ::curaengine::types::Duration cool_min_layer_time;
 
     /*!
      * Similar to Minimum layer time, but to be applied for layers that contain overhanging extrusion.
      */
-    Duration cool_min_layer_time_overhang;
+    ::curaengine::types::Duration cool_min_layer_time_overhang;
 
     /*!
      * The specific minimum layer time for overhanging will be applied only if there is at least one overhanging segment longer that this threshold
      */
-    coord_t cool_min_layer_time_overhang_min_segment_length;
+    ::curaengine::utils::coord_t cool_min_layer_time_overhang_min_segment_length;
 
     /*!
      * "Regular/Maximum Fan Speed Threshold". If the layers take longer to print
      * than this, they'll use the regular fan speed. If they take shorter, we'll
      * interpolate between regular and maximum fan speed.
      */
-    Duration cool_min_layer_time_fan_speed_max;
+    ::curaengine::types::Duration cool_min_layer_time_fan_speed_max;
 
     /*!
      * Fan speed on the initial layer.
@@ -71,14 +71,14 @@ public:
      * layer time, but only up to a point. If it needs to be slowed down too
      * much, it would degrade the filament. So don't slow down below this value.
      */
-    Velocity cool_min_speed;
+    ::curaengine::types::Velocity cool_min_speed;
 
     /*!
      * For the initial layer fan speed we'll gradually increase the fan speed to
      * the regular fan speed across a number of layers. This is that number of
      * layers.
      */
-    LayerIndex cool_fan_full_layer;
+    ::curaengine::types::LayerIndex cool_fan_full_layer;
 };
 
 } // namespace curaengine

@@ -11,7 +11,7 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
-#include "settings/EPlatformAdhesion.h" //For EPlatformAdhesion.
+#include "types/EPlatformAdhesion.h" //For EPlatformAdhesion.
 #include "utils/math.h"
 
 namespace curaengine
@@ -25,20 +25,20 @@ void Raft::generate(SliceDataStorage& storage)
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false; // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
-    const auto raft_base_margin = settings.get<coord_t>("raft_base_margin");
-    const auto raft_interface_margin = settings.get<coord_t>("raft_interface_margin");
-    const auto raft_surface_margin = settings.get<coord_t>("raft_surface_margin");
+    const auto raft_base_margin = settings.get<::curaengine::utils::coord_t>("raft_base_margin");
+    const auto raft_interface_margin = settings.get<::curaengine::utils::coord_t>("raft_interface_margin");
+    const auto raft_surface_margin = settings.get<::curaengine::utils::coord_t>("raft_surface_margin");
 
     storage.raft_base_outline = storage.raft_surface_outline = storage.raft_interface_outline = storage.getLayerOutlines(0, include_support, dont_include_prime_tower);
     storage.raft_base_outline = storage.raft_base_outline.offset(raft_base_margin, ClipperLib::jtRound);
     storage.raft_interface_outline = storage.raft_interface_outline.offset(raft_interface_margin, ClipperLib::jtRound);
     storage.raft_surface_outline = storage.raft_surface_outline.offset(raft_surface_margin, ClipperLib::jtRound);
 
-    const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
-    const coord_t max_raft_distance = std::max(std::max(raft_base_margin, raft_interface_margin), raft_surface_margin);
+    const ::curaengine::utils::coord_t shield_line_width_layer0 = settings.get<::curaengine::utils::coord_t>("skirt_brim_line_width");
+    const ::curaengine::utils::coord_t max_raft_distance = std::max(std::max(raft_base_margin, raft_interface_margin), raft_surface_margin);
     if (storage.draft_protection_shield.size() > 0)
     {
-        Shape draft_shield_raft
+        ::curaengine::geometry::Shape draft_shield_raft
             = storage.draft_protection_shield
                   .offset(shield_line_width_layer0) // start half a line width outside shield
                   .difference(storage.draft_protection_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
@@ -48,8 +48,8 @@ void Raft::generate(SliceDataStorage& storage)
     }
     if (storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     {
-        const Shape& ooze_shield = storage.ooze_shield[0];
-        Shape ooze_shield_raft = ooze_shield
+        const ::curaengine::geometry::Shape& ooze_shield = storage.ooze_shield[0];
+        ::curaengine::geometry::Shape ooze_shield_raft = ooze_shield
                                      .offset(shield_line_width_layer0) // start half a line width outside shield
                                      .difference(ooze_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raft_base_outline = storage.raft_base_outline.unionPolygons(ooze_shield_raft);
@@ -57,7 +57,7 @@ void Raft::generate(SliceDataStorage& storage)
         storage.raft_interface_outline = storage.raft_interface_outline.unionPolygons(ooze_shield_raft);
     }
 
-    const auto remove_inside_corners = [](Shape& outline, bool remove_inside_corners, coord_t smoothing, coord_t line_width)
+    const auto remove_inside_corners = [](::curaengine::geometry::Shape& outline, bool remove_inside_corners, ::curaengine::utils::coord_t smoothing, ::curaengine::utils::coord_t line_width)
     {
         if (remove_inside_corners)
         {
@@ -113,59 +113,59 @@ void Raft::generate(SliceDataStorage& storage)
             outline = outline.offset(-line_width, ClipperLib::jtRound).offset(line_width, ClipperLib::jtRound);
         }
     };
-    const auto nominal_raft_line_width = settings.get<coord_t>("skirt_brim_line_width");
-    remove_inside_corners(storage.raft_base_outline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<coord_t>("raft_base_smoothing"), nominal_raft_line_width);
+    const auto nominal_raft_line_width = settings.get<::curaengine::utils::coord_t>("skirt_brim_line_width");
+    remove_inside_corners(storage.raft_base_outline, settings.get<bool>("raft_base_remove_inside_corners"), settings.get<::curaengine::utils::coord_t>("raft_base_smoothing"), nominal_raft_line_width);
     remove_inside_corners(
         storage.raft_interface_outline,
         settings.get<bool>("raft_interface_remove_inside_corners"),
-        settings.get<coord_t>("raft_interface_smoothing"),
+        settings.get<::curaengine::utils::coord_t>("raft_interface_smoothing"),
         nominal_raft_line_width);
     remove_inside_corners(
         storage.raft_surface_outline,
         settings.get<bool>("raft_surface_remove_inside_corners"),
-        settings.get<coord_t>("raft_surface_smoothing"),
+        settings.get<::curaengine::utils::coord_t>("raft_surface_smoothing"),
         nominal_raft_line_width);
 }
 
-coord_t Raft::getTotalThickness()
+::curaengine::utils::coord_t Raft::getTotalThickness()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const Settings& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     const Settings& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const Settings& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
-    return base_train.get<coord_t>("raft_base_thickness") + interface_train.get<size_t>("raft_interface_layers") * interface_train.get<coord_t>("raft_interface_thickness")
-         + interface_train.get<coord_t>("raft_interface_z_offset") + surface_train.get<size_t>("raft_surface_layers") * surface_train.get<coord_t>("raft_surface_thickness")
-         + interface_train.get<coord_t>("raft_surface_z_offset");
+    return base_train.get<::curaengine::utils::coord_t>("raft_base_thickness") + interface_train.get<size_t>("raft_interface_layers") * interface_train.get<::curaengine::utils::coord_t>("raft_interface_thickness")
+         + interface_train.get<::curaengine::utils::coord_t>("raft_interface_z_offset") + surface_train.get<size_t>("raft_surface_layers") * surface_train.get<::curaengine::utils::coord_t>("raft_surface_thickness")
+         + interface_train.get<::curaengine::utils::coord_t>("raft_surface_z_offset");
 }
 
-coord_t Raft::getZdiffBetweenRaftAndLayer0()
+::curaengine::utils::coord_t Raft::getZdiffBetweenRaftAndLayer0()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") != ::curaengine::types::EPlatformAdhesion::RAFT)
     {
         return 0;
     }
-    const coord_t airgap = std::max(coord_t(0), train.settings_.get<coord_t>("raft_airgap"));
+    const ::curaengine::utils::coord_t airgap = std::max(::curaengine::utils::coord_t(0), train.settings_.get<::curaengine::utils::coord_t>("raft_airgap"));
     return airgap;
 }
 
 size_t Raft::getFillerLayerCount()
 {
-    const coord_t normal_layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    return round_divide(getZdiffBetweenRaftAndLayer0(), normal_layer_height);
+    const ::curaengine::utils::coord_t normal_layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::utils::coord_t>("layer_height");
+    return ::curaengine::utils::round_divide(getZdiffBetweenRaftAndLayer0(), normal_layer_height);
 }
 
-coord_t Raft::getFillerLayerHeight()
+::curaengine::utils::coord_t Raft::getFillerLayerHeight()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") != ::curaengine::types::EPlatformAdhesion::RAFT)
     {
-        const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
+        const ::curaengine::utils::coord_t normal_layer_height = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
         return normal_layer_height;
     }
 
-    return round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
+    return ::curaengine::utils::round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
 }
 
 size_t Raft::getTotalExtraLayers()
@@ -176,7 +176,7 @@ size_t Raft::getTotalExtraLayers()
 size_t Raft::getBaseLayers()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") != ::curaengine::types::EPlatformAdhesion::RAFT)
     {
         return 0;
     }
@@ -193,25 +193,25 @@ size_t Raft::getSurfaceLayers()
     return getLayersAmount("raft_surface_extruder_nr", "raft_surface_layers");
 }
 
-Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
+Raft::LayerType Raft::getLayerType(::curaengine::types::LayerIndex layer_index)
 {
     const auto airgap = Raft::getFillerLayerCount();
     const auto interface_layers = Raft::getInterfaceLayers();
     const auto surface_layers = Raft::getSurfaceLayers();
 
-    if (layer_index < -LayerIndex(airgap + surface_layers + interface_layers))
+    if (layer_index < -::curaengine::types::LayerIndex(airgap + surface_layers + interface_layers))
     {
         return LayerType::RaftBase;
     }
-    if (layer_index < -LayerIndex(airgap + surface_layers))
+    if (layer_index < -::curaengine::types::LayerIndex(airgap + surface_layers))
     {
         return LayerType::RaftInterface;
     }
-    if (layer_index < -LayerIndex(airgap))
+    if (layer_index < -::curaengine::types::LayerIndex(airgap))
     {
         return LayerType::RaftSurface;
     }
-    if (layer_index < LayerIndex(0))
+    if (layer_index < ::curaengine::types::LayerIndex(0))
     {
         return LayerType::Airgap;
     }
@@ -221,7 +221,7 @@ Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
 size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") != ::curaengine::types::EPlatformAdhesion::RAFT)
     {
         return 0;
     }

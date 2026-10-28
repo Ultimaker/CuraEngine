@@ -7,7 +7,7 @@
 
 #include "utils/AABB.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 AABB3D::AABB3D()
@@ -16,20 +16,20 @@ AABB3D::AABB3D()
 {
 }
 
-AABB3D::AABB3D(Point3LL min, Point3LL max)
+AABB3D::AABB3D(::curaengine::geometry::Point3LL min, ::curaengine::geometry::Point3LL max)
     : min_(min)
     , max_(max)
 {
 }
 
-Point3LL AABB3D::getMiddle() const
+::curaengine::geometry::Point3LL AABB3D::getMiddle() const
 {
     return (min_ + max_) / 2;
 }
 
 AABB AABB3D::flatten() const
 {
-    return AABB(Point2LL(min_.x_, min_.y_), Point2LL(max_.x_, max_.y_));
+    return AABB(::curaengine::geometry::Point2LL(min_.x_, min_.y_), ::curaengine::geometry::Point2LL(max_.x_, max_.y_));
 }
 
 
@@ -42,7 +42,7 @@ bool AABB3D::hit(const AABB3D& other) const
     return true;
 }
 
-AABB3D AABB3D::include(const Point3LL& p)
+AABB3D AABB3D::include(const ::curaengine::geometry::Point3LL& p)
 {
     min_.x_ = std::min(min_.x_, p.x_);
     min_.y_ = std::min(min_.y_, p.y_);
@@ -72,14 +72,14 @@ AABB3D AABB3D::includeZ(coord_t z)
     return *this;
 }
 
-AABB3D AABB3D::translate(const Point3LL& offset)
+AABB3D AABB3D::translate(const ::curaengine::geometry::Point3LL& offset)
 {
     min_ += offset;
     max_ += offset;
     return *this;
 }
 
-AABB3D AABB3D::translate(const Point2LL& offset)
+AABB3D AABB3D::translate(const ::curaengine::geometry::Point2LL& offset)
 {
     min_ += offset;
     max_ += offset;
@@ -88,8 +88,8 @@ AABB3D AABB3D::translate(const Point2LL& offset)
 
 AABB3D AABB3D::expand(coord_t outset)
 {
-    min_ -= Point3LL(outset, outset, outset);
-    max_ += Point3LL(outset, outset, outset);
+    min_ -= ::curaengine::geometry::Point3LL(outset, outset, outset);
+    max_ += ::curaengine::geometry::Point3LL(outset, outset, outset);
     if (min_.x_ > max_.x_ || min_.y_ > max_.y_ || min_.z_ > max_.z_)
     { // make this AABB3D invalid
         *this = AABB3D();
@@ -99,8 +99,8 @@ AABB3D AABB3D::expand(coord_t outset)
 
 AABB3D AABB3D::expandXY(coord_t outset)
 {
-    min_ -= Point3LL(outset, outset, 0);
-    max_ += Point3LL(outset, outset, 0);
+    min_ -= ::curaengine::geometry::Point3LL(outset, outset, 0);
+    max_ += ::curaengine::geometry::Point3LL(outset, outset, 0);
     if (min_.x_ > max_.x_ || min_.y_ > max_.y_)
     { // make this AABB3D invalid
         *this = AABB3D();
@@ -123,4 +123,4 @@ coord_t AABB3D::spanZ() const
     return max_.z_ - min_.z_;
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils

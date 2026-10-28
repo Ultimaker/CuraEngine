@@ -8,22 +8,27 @@
 #include "bridge/BridgeAngleScoringCriterion.h"
 #include "utils/Coord_t.h"
 
-namespace curaengine
+namespace curaengine::geometry
+{
+class Shape;
+}
+
+namespace curaengine::bridge
 {
 
-class Shape;
+
 
 /*! Scoring criterion for bridge angle candidate that bases the score on whether the angle is aligned with the shape of the surrounding area */
 class AlignShapeScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
-    explicit AlignShapeScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions);
+    explicit AlignShapeScoringCriterion(const std::vector<::curaengine::types::AngleDegrees>& candidates, const ::curaengine::geometry::Shape& skin_outline, const ::curaengine::geometry::Shape& supported_regions);
 
 protected:
     double computeScore(const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area) const override;
 
 private:
-    std::optional<coord_t> total_segments_length_;
+    std::optional<::curaengine::utils::coord_t> total_segments_length_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::bridge

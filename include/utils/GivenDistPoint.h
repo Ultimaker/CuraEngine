@@ -5,7 +5,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -13,8 +13,8 @@ namespace curaengine
  */
 struct GivenDistPoint
 {
-    Point2LL location; //!< Result location
+    ::curaengine::geometry::Point2LL location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

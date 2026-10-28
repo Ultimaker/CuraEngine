@@ -5,7 +5,7 @@
 
 #include "infill/AbstractLinesInfill.h"
 
-namespace curaengine
+namespace curaengine::infill
 {
 
 class GyroidInfill : public AbstractLinesInfill
@@ -33,7 +33,7 @@ protected:
      * \param line_width Unused in this context.
      * \return The list of raw gyroid lines.
      */
-    OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const override;
+    ::curaengine::geometry::OpenLinesSet generateParallelLines(const ::curaengine::utils::coord_t line_distance, const ::curaengine::utils::AABB& bounding_box, const ::curaengine::utils::coord_t z, const ::curaengine::utils::coord_t line_width) const override;
 };
 
-} // namespace curaengine
+} // namespace curaengine::infill

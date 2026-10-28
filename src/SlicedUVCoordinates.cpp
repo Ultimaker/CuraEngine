@@ -5,7 +5,7 @@
 
 #include "Slicer.h"
 #include "SlicerSegment.h"
-#include "utils/SparsePointGridInclusiveElem.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
 namespace curaengine
 {
@@ -27,10 +27,10 @@ SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segme
     }
 }
 
-std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2LL& position) const
+std::optional<::curaengine::geometry::Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const ::curaengine::geometry::Point2LL& position) const
 {
     // First try the quick method, which will work in 99% cases
-    SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Point2F> nearest_uv_coordinates;
+    ::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<::curaengine::geometry::Point2F> nearest_uv_coordinates;
     if (located_uv_coordinates_.getNearest(position, search_radius, nearest_uv_coordinates))
     {
         return nearest_uv_coordinates.val;
@@ -38,41 +38,41 @@ std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2
 
     // We couldn't find a close point with UV coordinates, so try to find the closest segment and project the point to it
     double closest_distance = std::numeric_limits<double>::max();
-    std::optional<Point2F> closest_uv_coordinates;
+    std::optional<::curaengine::geometry::Point2F> closest_uv_coordinates;
 
     for (const Segment& segment : segments_)
     {
-        const double segment_length = vSizef(segment.end - segment.start);
+        const double segment_length = ::curaengine::geometry::vSizef(segment.end - segment.start);
         if (std::abs(segment_length) < 0.001)
         {
             continue;
         }
 
-        const double dot_product = dot((position - segment.start), (segment.end - segment.start)) / segment_length;
+        const double dot_product = ::curaengine::geometry::dot((position - segment.start), (segment.end - segment.start)) / segment_length;
         double distance_to_segment;
         double interpolate_factor;
 
         if (dot_product > segment_length)
         {
             interpolate_factor = 1.0;
-            distance_to_segment = vSizef(position - segment.end);
+            distance_to_segment = ::curaengine::geometry::vSizef(position - segment.end);
         }
         else if (dot_product < 0.0)
         {
             interpolate_factor = 0.0;
-            distance_to_segment = vSizef(position - segment.start);
+            distance_to_segment = ::curaengine::geometry::vSizef(position - segment.start);
         }
         else
         {
             interpolate_factor = dot_product / segment_length;
-            const Point2LL projected_position = curaengine::lerp(segment.start, segment.end, interpolate_factor);
-            distance_to_segment = vSizef(position - projected_position);
+            const ::curaengine::geometry::Point2LL projected_position = ::curaengine::geometry::lerp(segment.start, segment.end, interpolate_factor);
+            distance_to_segment = ::curaengine::geometry::vSizef(position - projected_position);
         }
 
         if (distance_to_segment < closest_distance)
         {
             closest_distance = distance_to_segment;
-            closest_uv_coordinates = curaengine::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
+            closest_uv_coordinates = ::curaengine::geometry::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
         }
     }
 

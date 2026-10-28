@@ -12,19 +12,29 @@
 #include "AvoidanceType.h"
 #include "RestPreference.h"
 #include "geometry/Shape.h"
-#include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
+#include "types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "utils/PairHash.h"
 #include "utils/Simplify.h"
 
+namespace curaengine::types
+{
+class LayerIndex;
+}
+
+namespace curaengine::utils
+{
+class TimeKeeper;
+}
+
 namespace curaengine
 {
-constexpr coord_t FUDGE_LENGTH = 50;
+constexpr ::curaengine::utils::coord_t FUDGE_LENGTH = 50;
 
 class SliceDataStorage;
 class SliceMeshStorage;
-class LayerIndex;
+
 class Settings;
-class TimeKeeper;
+
 
 /*!
  * \brief Lazily generates tree guidance volumes.
@@ -36,13 +46,13 @@ public:
     TreeModelVolumes() = default;
     TreeModelVolumes(
         const SliceDataStorage& storage,
-        coord_t max_move,
-        coord_t max_move_slow,
-        coord_t min_offset_per_step,
+        ::curaengine::utils::coord_t max_move,
+        ::curaengine::utils::coord_t max_move_slow,
+        ::curaengine::utils::coord_t min_offset_per_step,
         size_t current_mesh_idx,
         double progress_multiplier,
         double progress_offset,
-        const std::vector<Shape>& additional_excluded_areas = std::vector<Shape>());
+        const std::vector<::curaengine::geometry::Shape>& additional_excluded_areas = std::vector<::curaengine::geometry::Shape>());
     TreeModelVolumes(TreeModelVolumes&&) = default;
     TreeModelVolumes& operator=(TreeModelVolumes&&) = default;
 
@@ -57,7 +67,7 @@ public:
      * Not calling this will cause the class to lazily calculate avoidances and collisions as needed, which will be a lot slower on systems with more then one or two cores!
      *
      */
-    void precalculate(coord_t max_layer, TimeKeeper& time_keeper);
+    void precalculate(::curaengine::utils::coord_t max_layer, ::curaengine::utils::TimeKeeper& time_keeper);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
@@ -70,7 +80,7 @@ public:
      * \param min_xy_dist Is the minimum xy distance used.
      * \return Shape object
      */
-    const Shape& getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
+    const ::curaengine::geometry::Shape& getCollision(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, bool min_xy_dist = false);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer. Holes are removed.
@@ -83,7 +93,7 @@ public:
      * \param min_xy_dist Is the minimum xy distance used.
      * \return Shape object
      */
-    const Shape& getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
+    const ::curaengine::geometry::Shape& getCollisionHolefree(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, bool min_xy_dist = false);
 
 
     /*!
@@ -93,7 +103,7 @@ public:
      * \param layer_idx The layer of interest
      * \return Shape object
      */
-    const Shape& getAccumulatedPlaceable0(LayerIndex layer_idx);
+    const ::curaengine::geometry::Shape& getAccumulatedPlaceable0(::curaengine::types::LayerIndex layer_idx);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches
@@ -112,7 +122,7 @@ public:
      * \param min_xy_dist is the minimum xy distance used.
      * \return Shape object
      */
-    const Shape& getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model = false, bool min_xy_dist = false);
+    const ::curaengine::geometry::Shape& getAvoidance(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, AvoidanceType type, bool to_model = false, bool min_xy_dist = false);
 
     /*!
      * \brief Provides the area represents all areas on the model where the branch does completely fit on the given layer.
@@ -120,14 +130,14 @@ public:
      * \param layer_idx The layer of interest
      * \return Shape object
      */
-    const Shape& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
+    const ::curaengine::geometry::Shape& getPlaceableAreas(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx);
 
     /*!
      * \brief Provides the area that represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See
      * calculateWallRestrictions for better description. \param radius The radius of the node of interest. \param layer_idx The layer of interest. \param min_xy_dist is the minimum
      * xy distance used. \return Shape object
      */
-    const Shape& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
+    const ::curaengine::geometry::Shape& getWallRestriction(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, bool min_xy_dist);
 
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
@@ -138,7 +148,7 @@ public:
      * \param min_xy_dist is the minimum xy distance used.
      * \return The rounded radius
      */
-    coord_t ceilRadius(coord_t radius, bool min_xy_dist) const;
+    ::curaengine::utils::coord_t ceilRadius(::curaengine::utils::coord_t radius, bool min_xy_dist) const;
 
     /*!
      * \brief Round \p radius upwards to the maximum that would still round up to the same value as the provided one.
@@ -147,21 +157,21 @@ public:
      * \param min_xy_dist is the minimum xy distance used.
      * \return The maximum radius, resulting in the same rounding.
      */
-    coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
+    ::curaengine::utils::coord_t getRadiusNextCeil(::curaengine::utils::coord_t radius, bool min_xy_dist) const;
 
 
 private:
     /*!
      * \brief Convenience typedef for the keys to the caches
      */
-    using RadiusLayerPair = std::pair<coord_t, LayerIndex>;
+    using RadiusLayerPair = std::pair<::curaengine::utils::coord_t, ::curaengine::types::LayerIndex>;
 
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
      *
      * \param radius The radius of the node of interest
      */
-    coord_t ceilRadius(coord_t radius) const;
+    ::curaengine::utils::coord_t ceilRadius(::curaengine::utils::coord_t radius) const;
 
     /*!
      * \brief Extracts the relevant outline from a mesh
@@ -169,7 +179,7 @@ private:
      * \param layer_idx The layer which should be extracted from the mesh
      * \return Shape object representing the outline
      */
-    Shape extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
+    ::curaengine::geometry::Shape extractOutlineFromMesh(const SliceMeshStorage& mesh, ::curaengine::types::LayerIndex layer_idx) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
@@ -198,7 +208,7 @@ private:
      * The result is a 2D area that represents where if support were to be placed in and just dropped down it would not rest on support blocker. Result is saved in the cache.
      * \param max_layer The layer up to which the area will be calculated.
      */
-    void calculateAccumulatedPlaceable0(const LayerIndex max_layer);
+    void calculateAccumulatedPlaceable0(const ::curaengine::types::LayerIndex max_layer);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer and not rest on support blocker.
@@ -244,7 +254,7 @@ private:
         calculateCollisionHolefree(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
 
-    Shape safeOffset(const Shape& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Shape& collision) const;
+    ::curaengine::geometry::Shape safeOffset(const ::curaengine::geometry::Shape& me, ::curaengine::utils::coord_t distance, ClipperLib::JoinType jt, ::curaengine::utils::coord_t max_safe_step_distance, const ::curaengine::geometry::Shape& collision) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.
@@ -338,7 +348,7 @@ private:
      * \return A wrapped optional reference of the requested area (if it was found, an empty optional if nothing was found)
      */
     template<typename KEY>
-    const std::optional<std::reference_wrapper<const Shape>> getArea(const std::unordered_map<KEY, Shape>& cache, const KEY key) const;
+    const std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> getArea(const std::unordered_map<KEY, ::curaengine::geometry::Shape>& cache, const KEY key) const;
 
     bool checkSettingsEquality(const Settings& me, const Settings& other) const;
 
@@ -349,26 +359,26 @@ private:
      *
      * \return A wrapped optional reference of the requested area (if it was found, an empty optional if nothing was found)
      */
-    LayerIndex getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Shape>& map) const;
+    ::curaengine::types::LayerIndex getMaxCalculatedLayer(::curaengine::utils::coord_t radius, const std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape>& map) const;
 
-    static Shape calculateMachineBorderCollision(const Shape&& machine_border);
+    static ::curaengine::geometry::Shape calculateMachineBorderCollision(const ::curaengine::geometry::Shape&& machine_border);
 
     /*!
      * \brief The maximum distance that the center point of a tree branch may move in consecutive layers if it has to avoid the model.
      */
-    coord_t max_move_;
+    ::curaengine::utils::coord_t max_move_;
 
     /*!
      * \brief The maximum distance that the centre-point of a tree branch may
      * move in consecutive layers if it does not have to avoid the model
      */
-    coord_t max_move_slow_;
+    ::curaengine::utils::coord_t max_move_slow_;
 
     /*!
      * \brief For use in 'safeOffset' functions. How many steps at a minimum, to do the offset in.
      * Too high may produce artifacts, too low will take forever.
      */
-    coord_t min_offset_per_step_;
+    ::curaengine::utils::coord_t min_offset_per_step_;
 
     /*!
      * \brief Whether the precalculate was called, meaning every required value should be cached.
@@ -388,17 +398,17 @@ private:
     /*!
      * \brief The minimum required clearance between the model and the tree branches
      */
-    coord_t current_min_xy_dist_;
+    ::curaengine::utils::coord_t current_min_xy_dist_;
 
     /*!
      * \brief The difference between the minimum required clearance between the model and the tree branches and the regular one.
      */
-    coord_t current_min_xy_dist_delta_;
+    ::curaengine::utils::coord_t current_min_xy_dist_delta_;
 
     /*!
      * \brief The top most layer where there is no anti_overhang on any layer below
      */
-    LayerIndex max_layer_idx_without_blocker_;
+    ::curaengine::types::LayerIndex max_layer_idx_without_blocker_;
 
     /*!
      * \brief Does at least one mesh allow support to rest on a model.
@@ -408,7 +418,7 @@ private:
     /*!
      * \brief The progress of the precalculate function for communicating it to the progress bar.
      */
-    coord_t precalculation_progress_ = 0;
+    ::curaengine::utils::coord_t precalculation_progress_ = 0;
 
     /*!
      * \brief The progress multiplier of all values added progress bar.
@@ -425,38 +435,38 @@ private:
     /*!
      * \brief Increase radius in the resulting drawn branches, even if the avoidance does not allow it. Will be cut later to still fit.
      */
-    coord_t increase_until_radius_;
+    ::curaengine::utils::coord_t increase_until_radius_;
 
     /*!
      * \brief Shape representing the limits of the printable area of the
      * machine
      */
-    Shape machine_border_;
+    ::curaengine::geometry::Shape machine_border_;
 
     /*!
      * \brief Shape representing the printable area of the machine
      */
-    Shape machine_area_;
+    ::curaengine::geometry::Shape machine_area_;
 
     /*!
      * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
      */
-    std::vector<std::pair<Settings, std::vector<Shape>>> layer_outlines_;
+    std::vector<std::pair<Settings, std::vector<::curaengine::geometry::Shape>>> layer_outlines_;
 
     /*!
      * \brief Storage for areas that should be avoided, like support blocker or previous generated trees.
      */
-    std::vector<Shape> anti_overhang_;
+    std::vector<::curaengine::geometry::Shape> anti_overhang_;
 
     /*!
      * \brief Radii that can be ignored by ceilRadius as they will never be requested.
      */
-    std::unordered_set<coord_t> ignorable_radii_;
+    std::unordered_set<::curaengine::utils::coord_t> ignorable_radii_;
 
     /*!
      * \brief Smallest radius a branch can have. This is the radius of a SupportElement with DTT=0.
      */
-    coord_t radius_0_;
+    ::curaengine::utils::coord_t radius_0_;
 
     /*!
      * \brief Does the main model require regular avoidance, or only avoidance to model.
@@ -472,57 +482,57 @@ private:
      * (ie there is no difference in behaviour for the user between
      * calculating the values each time vs caching the results).
      */
-    mutable std::unordered_map<RadiusLayerPair, Shape> collision_cache_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> collision_cache_;
     std::unique_ptr<std::mutex> critical_collision_cache_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> collision_cache_holefree_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> collision_cache_holefree_;
     std::unique_ptr<std::mutex> critical_collision_cache_holefree_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<LayerIndex, Shape> accumulated_placeables_cache_radius_0_;
+    mutable std::unordered_map<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape> accumulated_placeables_cache_radius_0_;
     std::unique_ptr<std::mutex> critical_accumulated_placeables_cache_radius_0_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_collision_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_collision_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_collision_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_slow_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_slow_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_slow_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_to_model_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_to_model_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_to_model_slow_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_to_model_slow_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_to_model_slow_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> placeable_areas_cache_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> placeable_areas_cache_;
     std::unique_ptr<std::mutex> critical_placeable_areas_cache_ = std::make_unique<std::mutex>();
 
     /*!
      * \brief Caches to avoid holes smaller than the radius until which the radius is always increased, as they are free of holes. Also called safe avoidances, as they are safe
      * regarding not running into holes.
      */
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_hole_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_hole_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_holefree_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Shape> avoidance_cache_hole_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> avoidance_cache_hole_to_model_;
     std::unique_ptr<std::mutex> critical_avoidance_cache_holefree_to_model_ = std::make_unique<std::mutex>();
 
     /*!
      * \brief Caches to represent walls not allowed to be passed over.
      */
-    mutable std::unordered_map<RadiusLayerPair, Shape> wall_restrictions_cache_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> wall_restrictions_cache_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_ = std::make_unique<std::mutex>();
 
     // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when
     // min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
-    mutable std::unordered_map<RadiusLayerPair, Shape> wall_restrictions_cache_min_;
+    mutable std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
     std::unique_ptr<std::mutex> critical_progress_ = std::make_unique<std::mutex>();
 
-    Simplify simplifier_ = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
+    ::curaengine::utils::Simplify simplifier_ = ::curaengine::utils::Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 };
 
 } // namespace curaengine

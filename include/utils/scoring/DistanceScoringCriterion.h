@@ -5,9 +5,14 @@
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 class PointsSet;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to the distance from the point to a target point. Closer points will get
@@ -24,7 +29,7 @@ public:
     };
 
 private:
-    const Point2LL& target_pos_;
+    const ::curaengine::geometry::Point2LL& target_pos_;
     const DistanceType distance_type_;
 
     /*!
@@ -35,12 +40,12 @@ private:
 
 public:
     explicit DistanceScoringCriterion(
-        const PointsSet& points,
-        const Point2LL& target_pos,
+        const ::curaengine::geometry::PointsSet& points,
+        const ::curaengine::geometry::Point2LL& target_pos,
         DistanceType distance_type = DistanceType::Euclidian,
         const double distance_divider = 20.0);
 
-    virtual double computeScore(const Point2LL& candidate_position) const override;
+    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const override;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

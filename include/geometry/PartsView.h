@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Shape;
@@ -62,4 +62,4 @@ public:
     [[nodiscard]] SingleShape assemblePart(size_t part_idx) const;
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

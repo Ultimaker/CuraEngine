@@ -5,7 +5,7 @@
 
 #include "utils/PathsPointIndex.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -14,10 +14,11 @@ namespace curaengine
 template<typename Paths>
 struct PathsPointIndexLocator
 {
-    Point2LL operator()(const PathsPointIndex<Paths>& val) const
+    ::curaengine::geometry::Point2LL operator()(const PathsPointIndex<Paths>& val) const
     {
+        using ::curaengine::geometry::make_point;
         return make_point(val.p());
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

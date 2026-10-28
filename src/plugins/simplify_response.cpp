@@ -14,19 +14,19 @@ simplify_response::native_value_type
     native_value_type poly{};
     for (const auto& paths : message.polygons().polygons())
     {
-        Polygon o{};
+        ::curaengine::geometry::Polygon o{};
         for (const auto& point : paths.outline().path())
         {
-            o.push_back(Point2LL{ point.x(), point.y() });
+            o.push_back(::curaengine::geometry::Point2LL{ point.x(), point.y() });
         }
         poly.push_back(o);
 
         for (const auto& hole : paths.holes())
         {
-            Polygon h{};
+            ::curaengine::geometry::Polygon h{};
             for (const auto& point : hole.path())
             {
-                h.push_back(Point2LL{ point.x(), point.y() });
+                h.push_back(::curaengine::geometry::Point2LL{ point.x(), point.y() });
             }
             poly.push_back(h);
         }

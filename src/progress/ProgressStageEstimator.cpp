@@ -4,7 +4,7 @@
 #include "progress/ProgressStageEstimator.h"
 
 
-namespace curaengine
+namespace curaengine::progress
 {
 
 
@@ -51,4 +51,4 @@ void ProgressStageEstimator::nextStage(ProgressEstimator* stage)
 }
 
 
-} // namespace curaengine
+} // namespace curaengine::progress

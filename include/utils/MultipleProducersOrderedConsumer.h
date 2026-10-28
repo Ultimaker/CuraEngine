@@ -8,7 +8,7 @@
 
 #include "utils/ThreadPool.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 template<typename Producer, typename Consumer>
@@ -169,4 +169,4 @@ protected:
 template<typename P, typename C>
 MultipleProducersOrderedConsumer(ptrdiff_t, ptrdiff_t, P, C, size_t) -> MultipleProducersOrderedConsumer<P, C>;
 
-} // namespace curaengine
+} // namespace curaengine::utils

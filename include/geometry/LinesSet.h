@@ -10,7 +10,7 @@
 #include "geometry/CheckNonEmptyParam.h"
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Shape;
@@ -234,7 +234,7 @@ public:
     void removeAt(size_t index);
 
     /*! \brief Get the total length of all the lines */
-    [[nodiscard]] coord_t length() const;
+    [[nodiscard]] ::curaengine::utils::coord_t length() const;
 
     void splitIntoSegments(OpenLinesSet& result) const;
     [[nodiscard]] OpenLinesSet splitIntoSegments() const;
@@ -242,7 +242,7 @@ public:
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
 
-    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     void translate(const Point2LL& delta);
 
@@ -289,4 +289,4 @@ private:
     bool checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty);
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

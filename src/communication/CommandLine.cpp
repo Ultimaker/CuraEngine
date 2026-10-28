@@ -37,7 +37,7 @@
 
 namespace fs = std::filesystem;
 
-namespace curaengine
+namespace curaengine::communication
 {
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
@@ -47,7 +47,7 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
 {
     if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
     {
-        search_directories_ = search_paths | views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
+        search_directories_ = search_paths | ::curaengine::utils::views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
     };
 }
 
@@ -56,16 +56,16 @@ void CommandLine::sendGCodePart(const std::string& gcode_part)
     *output_stream_ << gcode_part;
 }
 
-void CommandLine::sendCurrentPosition(const Point3LL&)
+void CommandLine::sendCurrentPosition(const ::curaengine::geometry::Point3LL&)
 {
 }
 void CommandLine::sendFinishedSlicing() const
 {
 }
-void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
+void CommandLine::sendLayerComplete(const ::curaengine::types::LayerIndex::value_type&, const ::curaengine::utils::coord_t&, const ::curaengine::utils::coord_t&)
 {
 }
-void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&, const PrintSegmentAttributes&)
+void CommandLine::sendLineTo(const PrintFeatureType&, const ::curaengine::geometry::Point3LL&, const ::curaengine::utils::coord_t&, const ::curaengine::utils::coord_t&, const ::curaengine::types::Velocity&, const PrintSegmentAttributes&)
 {
 }
 void CommandLine::sendOptimizedLayerData()
@@ -74,7 +74,7 @@ void CommandLine::sendOptimizedLayerData()
 void CommandLine::setExtruderForSend(const ExtruderTrain&)
 {
 }
-void CommandLine::setLayerForSend(const LayerIndex::value_type&)
+void CommandLine::setLayerForSend(const ::curaengine::types::LayerIndex::value_type&)
 {
 }
 
@@ -88,7 +88,7 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
     // pass
 }
 
-void CommandLine::sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const
+void CommandLine::sendPrintInformation(const std::vector<::curaengine::types::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);
@@ -216,7 +216,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    search_directories_ = argument | views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
+                    search_directories_ = argument | ::curaengine::utils::views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
                     break;
                 }
                 case 'j':
@@ -272,7 +272,7 @@ void CommandLine::sliceNext()
                     }
                     argument = arguments_[argument_index];
 
-                    const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
+                    const auto transformation = last_settings->get<::curaengine::geometry::Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
                     if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument, transformation, last_extruder->settings_))
                     {
@@ -433,7 +433,7 @@ void CommandLine::sliceNext()
                             slice->scene.mesh_groups[mesh_group_index].settings.add(setting_key, setting_value);
                         }
 
-                        const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
+                        const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<::curaengine::geometry::Matrix4x3D>("mesh_rotation_matrix");
                         const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
                         if (! loadMeshIntoMeshGroup(
@@ -748,4 +748,4 @@ std::string CommandLine::findDefinitionFile(const std::string& definition_id, co
     return {};
 }
 
-} // namespace curaengine
+} // namespace curaengine::communication

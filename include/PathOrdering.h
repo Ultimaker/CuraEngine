@@ -5,7 +5,7 @@
 
 #include <optional>
 
-#include "settings/ZSeamConfig.h" //To get the seam settings.
+#include "types/ZSeamConfig.h" //To get the seam settings.
 #include "utils/PolygonUtils.h"
 
 namespace curaengine
@@ -49,7 +49,7 @@ struct PathOrdering
      * Vertex data, converted into a Polygon so that the orderer knows how
      * to deal with this data.
      */
-    const Polyline* converted_{ nullptr };
+    const ::curaengine::geometry::Polyline* converted_{ nullptr };
 
     /*!
      * Which vertex along the path to start printing with.
@@ -84,7 +84,7 @@ struct PathOrdering
     /*!
      * The start point calculation strategy to be used for this path
      */
-    ZSeamConfig seam_config_;
+    ::curaengine::types::ZSeamConfig seam_config_;
 
     /*!
      * Indicates whether this path is an outer (or inner) wall
@@ -103,7 +103,7 @@ struct PathOrdering
      * for each different type that this class is used with. See the .cpp file
      * for examples and where to add a new specialization.
      */
-    const Polyline& getVertexData();
+    const ::curaengine::geometry::Polyline& getVertexData();
 
 protected:
     /*!
@@ -114,7 +114,7 @@ protected:
      * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
      * this will store the coordinates of those junctions.
      */
-    std::optional<Polygon> cached_vertices_;
+    std::optional<::curaengine::geometry::Polygon> cached_vertices_;
 };
 
 } // namespace curaengine

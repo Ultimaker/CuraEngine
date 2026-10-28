@@ -10,19 +10,19 @@
 #include "geometry/Shape.h"
 
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-void MixedPolylineStitcher::stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
+void MixedPolylineStitcher::stitch(const ::curaengine::geometry::OpenLinesSet& lines, ::curaengine::geometry::MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
 {
-    OpenLinesSet open_lines;
-    ClosedLinesSet closed_lines;
+    ::curaengine::geometry::OpenLinesSet open_lines;
+    ::curaengine::geometry::ClosedLinesSet closed_lines;
 
     PolylineStitcher::stitch(lines, open_lines, closed_lines, max_stitch_distance, snap_distance);
 
     result.push_back(std::move(open_lines));
 
-    for (ClosedPolyline& closed_line : closed_lines)
+    for (::curaengine::geometry::ClosedPolyline& closed_line : closed_lines)
     {
         // Base stitch method will create explicitly closed polylines, but won't tag them as such
         // because it is a generic algorithm. Tag them now.
@@ -32,4 +32,4 @@ void MixedPolylineStitcher::stitch(const OpenLinesSet& lines, MixedLinesSet& res
     result.push_back(std::move(closed_lines));
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils

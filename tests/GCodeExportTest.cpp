@@ -28,7 +28,7 @@ public:
     /*
      * An export class to test with.
      */
-    GCodeExport gcode;
+    ::curaengine::gcode_export::GCodeExport gcode;
 
     /*
      * Mock away the communication channel where layer data is output by this
@@ -44,21 +44,21 @@ public:
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.current_position_ = ::curaengine::geometry::Point3LL(0, 0, MM2INT(20));
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_e_offset_ = 0;
         gcode.current_extruder_ = 0;
-        gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+        gcode.total_print_times_ = std::vector<::curaengine::types::Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
         gcode.current_speed_ = 1.0;
         gcode.current_print_acceleration_ = -1.0;
         gcode.current_travel_acceleration_ = -1.0;
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
-        gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.setFlavor(::curaengine::types::EGCodeFlavor::MARLIN);
         gcode.bed_temperature_ = 0;
         gcode.initial_bed_temp_ = 0;
-        gcode.total_bounding_box_ = AABB3D();
+        gcode.total_bounding_box_ = ::curaengine::utils::AABB3D();
         gcode.current_layer_z_ = 0;
         gcode.relative_extrusion_ = false;
 
@@ -78,7 +78,7 @@ public:
 
     std::stringstream& output()
     {
-        for (const std::shared_ptr<GCodePart>& gcode_part : gcode.gcode_parts_)
+        for (const std::shared_ptr<::curaengine::gcode_export::GCodePart>& gcode_part : gcode.gcode_parts_)
         {
             output_ << gcode_part->str();
         }
@@ -202,25 +202,25 @@ public:
     /*
      * An export class to test with.
      */
-    GCodeExport gcode;
+    ::curaengine::gcode_export::GCodeExport gcode;
 
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.current_position_ = ::curaengine::geometry::Point3LL(0, 0, MM2INT(20));
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_extruder_ = 0;
-        gcode.total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+        gcode.total_print_times_ = std::vector<::curaengine::types::Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
         gcode.current_speed_ = 1.0;
         gcode.current_print_acceleration_ = -1.0;
         gcode.current_travel_acceleration_ = -1.0;
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
-        gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.setFlavor(::curaengine::types::EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp_ = 0;
         gcode.bed_temperature_ = 0;
-        gcode.total_bounding_box_ = AABB3D();
+        gcode.total_bounding_box_ = ::curaengine::utils::AABB3D();
 
         gcode.new_line_ = "\n"; // Not BFB flavour by default.
         gcode.machine_name_ = "Your favourite 3D printer";
@@ -234,7 +234,7 @@ public:
 TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
-    gcode.flavor_ = EGCodeFlavor::GRIFFIN;
+    gcode.flavor_ = ::curaengine::types::EGCodeFlavor::GRIFFIN;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
         Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
@@ -260,7 +260,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     EXPECT_EQ(std::string(CURA_ENGINE_VERSION), token.substr(19));
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";GENERATOR.BUILD_DATE:"), token.substr(0, 22));
-    EXPECT_EQ(Date::getDate().toStringDashed(), token.substr(22));
+    EXPECT_EQ(::curaengine::utils::Date::getDate().toStringDashed(), token.substr(22));
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";TARGET_MACHINE.NAME:"), token.substr(0, 21));
     EXPECT_EQ(gcode.machine_name_, token.substr(21));
@@ -312,7 +312,7 @@ INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, test
  */
 TEST_F(GCodeExportTest, HeaderUltiGCode)
 {
-    gcode.flavor_ = EGCodeFlavor::ULTIGCODE;
+    gcode.flavor_ = ::curaengine::types::EGCodeFlavor::ULTIGCODE;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
@@ -322,7 +322,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
         ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders.back();
         train.settings_.add("machine_nozzle_size", "0.4");
     }
-    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
+    gcode.total_bounding_box_ = ::curaengine::utils::AABB3D(::curaengine::geometry::Point3LL(0, 0, 0), ::curaengine::geometry::Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
@@ -335,13 +335,13 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 TEST_F(GCodeExportTest, HeaderRepRap)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::REPRAP;
+    gcode.flavor_ = ::curaengine::types::EGCodeFlavor::REPRAP;
     gcode.extruder_attr_[0].filament_area_ = 5.0;
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
+    gcode.total_bounding_box_ = ::curaengine::utils::AABB3D(::curaengine::geometry::Point3LL(0, 0, 0), ::curaengine::geometry::Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
@@ -354,13 +354,13 @@ TEST_F(GCodeExportTest, HeaderRepRap)
 TEST_F(GCodeExportTest, HeaderMarlin)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::MARLIN;
+    gcode.flavor_ = ::curaengine::types::EGCodeFlavor::MARLIN;
     gcode.extruder_attr_[0].filament_area_ = 5.0;
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
+    gcode.total_bounding_box_ = ::curaengine::utils::AABB3D(::curaengine::geometry::Point3LL(0, 0, 0), ::curaengine::geometry::Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
@@ -373,11 +373,11 @@ TEST_F(GCodeExportTest, HeaderMarlin)
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::MARLIN_VOLUMATRIC;
+    gcode.flavor_ = ::curaengine::types::EGCodeFlavor::MARLIN_VOLUMATRIC;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
+    gcode.total_bounding_box_ = ::curaengine::utils::AABB3D(::curaengine::geometry::Point3LL(0, 0, 0), ::curaengine::geometry::Point3LL(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
@@ -494,7 +494,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
-    constexpr coord_t hop_height = 3000;
+    constexpr ::curaengine::utils::coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
     EXPECT_EQ(std::string("G1 Z5\n"), output().str());
 }
@@ -505,8 +505,8 @@ TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
-    constexpr coord_t hop_height = 3000;
-    constexpr Velocity speed{ 4.0 }; // 240 mm/min.
+    constexpr ::curaengine::utils::coord_t hop_height = 3000;
+    constexpr ::curaengine::types::Velocity speed{ 4.0 }; // 240 mm/min.
     gcode.writeZhopStart(hop_height, speed);
     EXPECT_EQ(std::string("G1 F240 Z5\n"), output().str()) << "Custom provided speed should be used.";
 }
@@ -536,14 +536,14 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
-    constexpr Velocity speed{ 4.0 }; // 240 mm/min.
+    constexpr ::curaengine::types::Velocity speed{ 4.0 }; // 240 mm/min.
     gcode.writeZhopEnd(speed);
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output().str()) << "Custom provided speed should be used.";
 }
 
 TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 {
-    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_position_ = ::curaengine::geometry::Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
@@ -575,7 +575,7 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 
 TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 {
-    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_position_ = ::curaengine::geometry::Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
@@ -613,7 +613,7 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 
 TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 {
-    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_position_ = ::curaengine::geometry::Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
@@ -644,7 +644,7 @@ TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 
 TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 {
-    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_position_ = ::curaengine::geometry::Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.current_e_value_ = 100;
     gcode.use_extruder_offset_to_offset_coords_ = false;
@@ -691,7 +691,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 
 TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
 {
-    gcode.current_position_ = Point3LL(1000, 1000, 1000);
+    gcode.current_position_ = ::curaengine::geometry::Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
     gcode.current_speed_ = 1.0;

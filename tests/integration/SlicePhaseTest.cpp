@@ -16,10 +16,15 @@
 #include "geometry/Matrix4x3D.h" // To load STL files.
 #include "utils/PolygonUtils.h" // Comparing similarity of polygons_.
 
+namespace curaengine::types
+{
+class AdaptiveLayer;
+}
+
 namespace curaengine
 {
 
-class AdaptiveLayer;
+
 
 /*
  * Integration test on the slicing phase of CuraEngine. This tests if the
@@ -75,23 +80,23 @@ TEST_F(SlicePhaseTest, Cube)
     Scene& scene = Application::getInstance().current_slice_->scene;
     MeshGroup& mesh_group = scene.mesh_groups.back();
 
-    const Matrix4x3D transformation;
+    const ::curaengine::geometry::Matrix4x3D transformation;
     // Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
     ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").string().c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cube_mesh = mesh_group.meshes[0];
 
-    const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
-    const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
+    const auto layer_thickness = scene.settings.get<::curaengine::utils::coord_t>("layer_height");
+    const auto initial_layer_thickness = scene.settings.get<::curaengine::utils::coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
-    constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
+    constexpr std::vector<::curaengine::types::AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cube_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
-    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, ::curaengine::types::SlicingTolerance::MIDDLE, initial_layer_thickness);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
     // Since a cube has the same slice at all heights, every layer must be the same square.
-    Polygon square;
+    ::curaengine::geometry::Polygon square;
     square.emplace_back(0, 0);
     square.emplace_back(10000, 0); // 10mm cube.
     square.emplace_back(10000, 10000);
@@ -103,7 +108,7 @@ TEST_F(SlicePhaseTest, Cube)
         EXPECT_EQ(layer.polygons_.size(), 1);
         if (layer.polygons_.size() == 1)
         {
-            Polygon sliced_polygon = layer.polygons_[0];
+            ::curaengine::geometry::Polygon sliced_polygon = layer.polygons_[0];
             EXPECT_EQ(sliced_polygon.size(), square.size());
             if (sliced_polygon.size() == square.size())
             {
@@ -135,34 +140,34 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     Scene& scene = Application::getInstance().current_slice_->scene;
     MeshGroup& mesh_group = scene.mesh_groups.back();
 
-    const Matrix4x3D transformation;
+    const ::curaengine::geometry::Matrix4x3D transformation;
     // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
     ASSERT_TRUE(
         loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
 
-    const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
-    const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
+    const auto layer_thickness = scene.settings.get<::curaengine::utils::coord_t>("layer_height");
+    const auto initial_layer_thickness = scene.settings.get<::curaengine::utils::coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
-    constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
+    constexpr std::vector<::curaengine::types::AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cylinder_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
-    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, ::curaengine::types::SlicingTolerance::MIDDLE, initial_layer_thickness);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
     // Since a cylinder has the same slice at all heights, every layer must be the same circle.
     constexpr size_t num_vertices = 1000; // Create a circle with this number of vertices (first vertex is in the +X direction).
-    constexpr coord_t radius = 10000; // 10mm radius.
-    Polygon circle;
+    constexpr ::curaengine::utils::coord_t radius = 10000; // 10mm radius.
+    ::curaengine::geometry::Polygon circle;
     circle.reserve(num_vertices);
     for (size_t i = 0; i < 1000; i++)
     {
-        const coord_t x = std::cos(std::numbers::pi * 2 / num_vertices * i) * radius;
-        const coord_t y = std::sin(std::numbers::pi * 2 / num_vertices * i) * radius;
+        const ::curaengine::utils::coord_t x = std::cos(std::numbers::pi * 2 / num_vertices * i) * radius;
+        const ::curaengine::utils::coord_t y = std::sin(std::numbers::pi * 2 / num_vertices * i) * radius;
         circle.emplace_back(x, y);
     }
-    Shape circles;
+    ::curaengine::geometry::Shape circles;
     circles.push_back(circle);
 
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
@@ -171,10 +176,10 @@ TEST_F(SlicePhaseTest, Cylinder1000)
         EXPECT_EQ(layer.polygons_.size(), 1);
         if (layer.polygons_.size() == 1)
         {
-            Polygon sliced_polygon = layer.polygons_[0];
+            ::curaengine::geometry::Polygon sliced_polygon = layer.polygons_[0];
             // Due to the reduction in resolution, the final slice will not have the same vertices as the input.
             // Let's say that are allowed to be up to 1/500th of the surface area off.
-            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons_, circles), 0.002);
+            EXPECT_LE(::curaengine::utils::PolygonUtils::relativeHammingDistance(layer.polygons_, circles), 0.002);
         }
     }
 }

@@ -5,7 +5,7 @@
 
 #include "geometry/Polygon.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -14,12 +14,12 @@ namespace curaengine
 template<class LineType>
 struct ClosestPoint
 {
-    Point2LL location_; //!< Result location
+    ::curaengine::geometry::Point2LL location_; //!< Result location
     const LineType* poly_{ nullptr }; //!< Line in which the result was found (or nullptr if no result was found)
     size_t poly_idx_; //!< The index of the polygon in some Polygons where ClosestPoint::poly can be found
     size_t point_idx_; //!< Index to the first point in the polygon of the line segment on which the result was found
 
-    ClosestPoint(Point2LL p, size_t pos, const LineType* poly)
+    ClosestPoint(::curaengine::geometry::Point2LL p, size_t pos, const LineType* poly)
         : location_(p)
         , poly_(poly)
         , poly_idx_(NO_INDEX)
@@ -27,7 +27,7 @@ struct ClosestPoint
     {
     }
 
-    ClosestPoint(Point2LL p, size_t pos, const LineType* poly, size_t poly_idx)
+    ClosestPoint(::curaengine::geometry::Point2LL p, size_t pos, const LineType* poly, size_t poly_idx)
         : location_(p)
         , poly_(poly)
         , poly_idx_(poly_idx)
@@ -48,7 +48,7 @@ struct ClosestPoint
     {
     }
 
-    Point2LL p() const
+    ::curaengine::geometry::Point2LL p() const
     { // conformity with other classes
         return location_;
     }
@@ -66,19 +66,19 @@ struct ClosestPoint
     }
 };
 
-using ClosestPointPolygon = ClosestPoint<Polygon>;
+using ClosestPointPolygon = ClosestPoint<::curaengine::geometry::Polygon>;
 
-} // namespace curaengine
+} // namespace curaengine::utils
 
 namespace std
 {
 
 template<>
-struct hash<curaengine::ClosestPointPolygon>
+struct hash<::curaengine::utils::ClosestPointPolygon>
 {
-    size_t operator()(const curaengine::ClosestPointPolygon& cpp) const
+    size_t operator()(const ::curaengine::utils::ClosestPointPolygon& cpp) const
     {
-        return std::hash<curaengine::Point2LL>()(cpp.p());
+        return std::hash<::curaengine::geometry::Point2LL>()(cpp.p());
     }
 };
 

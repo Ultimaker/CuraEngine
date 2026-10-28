@@ -10,7 +10,7 @@ namespace curaengine
 {
 struct FakeRoofArea
 {
-    FakeRoofArea(Shape area, coord_t line_distance, bool fractional)
+    FakeRoofArea(::curaengine::geometry::Shape area, ::curaengine::utils::coord_t line_distance, bool fractional)
         : area_(area)
         , line_distance_(line_distance)
         , fractional_(fractional)
@@ -19,12 +19,12 @@ struct FakeRoofArea
     /*!
      * \brief Area that should be a fake roof.
      */
-    Shape area_;
+    ::curaengine::geometry::Shape area_;
 
     /*!
      * \brief Distance between support lines
      */
-    coord_t line_distance_;
+    ::curaengine::utils::coord_t line_distance_;
 
     /*!
      * \brief If the area should be added as a fractional support area.

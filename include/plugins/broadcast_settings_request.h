@@ -6,7 +6,7 @@
 #ifdef ENABLE_PLUGINS
 #include "Cura.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
-#include "plugins/converter.h"
+#include "plugins/details/converter.h"
 
 namespace curaengine::plugins
 {

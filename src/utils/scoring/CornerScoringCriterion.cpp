@@ -8,10 +8,10 @@
 #include "utils/math.h"
 
 
-namespace curaengine
+namespace curaengine::utils::scoring
 {
 
-CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
+CornerScoringCriterion::CornerScoringCriterion(const ::curaengine::geometry::PointsSet& points, const ::curaengine::types::EZSeamCornerPrefType corner_preference)
     : PositionBasedScoringCriterion(points)
     , corner_preference_(corner_preference)
     , segments_sizes_(points.size())
@@ -19,9 +19,9 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
     // Pre-calculate the segments lengths because we are going to need them multiple times
     for (size_t i = 0; i < points.size(); ++i)
     {
-        const Point2LL& here = getPoints().at(i);
-        const Point2LL& next = getPoints().at((i + 1) % getPoints().size());
-        const coord_t segment_size = vSize(next - here);
+        const ::curaengine::geometry::Point2LL& here = getPoints().at(i);
+        const ::curaengine::geometry::Point2LL& next = getPoints().at((i + 1) % getPoints().size());
+        const coord_t segment_size = ::curaengine::geometry::vSize(next - here);
         segments_sizes_[i] = segment_size;
         total_length_ += segment_size;
     }
@@ -37,19 +37,19 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 
     switch (corner_preference_)
     {
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+    case ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
         // Give advantage to concave corners. More advantage for sharper corners.
-        score = curaengine::inverse_lerp(1.0, -1.0, corner_angle);
+        score = ::curaengine::utils::inverse_lerp(1.0, -1.0, corner_angle);
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+    case ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
         // Give advantage to convex corners. More advantage for sharper corners.
-        score = curaengine::inverse_lerp(-1.0, 1.0, corner_angle);
+        score = ::curaengine::utils::inverse_lerp(-1.0, 1.0, corner_angle);
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+    case ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
         // Still give sharper corners more advantage.
         score = std::abs(corner_angle);
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+    case ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
         // Give sharper corners some advantage, but sharper concave corners even more.
         if (corner_angle < 0)
         {
@@ -60,7 +60,7 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
             score = corner_angle / 2.0;
         }
         break;
-    case EZSeamCornerPrefType::PLUGIN:
+    case ::curaengine::types::EZSeamCornerPrefType::PLUGIN:
         break;
     }
 
@@ -70,16 +70,16 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 double CornerScoringCriterion::cornerAngle(size_t vertex_index, const coord_t angle_query_distance) const
 {
     const coord_t bounded_distance = std::min(angle_query_distance, total_length_ / 2);
-    const Point2LL& here = getPoints().at(vertex_index);
-    const Point2LL next = findNeighbourPoint(vertex_index, bounded_distance);
-    const Point2LL previous = findNeighbourPoint(vertex_index, -bounded_distance);
+    const ::curaengine::geometry::Point2LL& here = getPoints().at(vertex_index);
+    const ::curaengine::geometry::Point2LL next = findNeighbourPoint(vertex_index, bounded_distance);
+    const ::curaengine::geometry::Point2LL previous = findNeighbourPoint(vertex_index, -bounded_distance);
 
-    double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
+    double angle = ::curaengine::utils::LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
 
     return angle / std::numbers::pi;
 }
 
-Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t distance) const
+::curaengine::geometry::Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t distance) const
 {
     const int direction = distance > 0 ? 1 : -1;
     const int size_delta = distance > 0 ? -1 : 0;
@@ -96,17 +96,17 @@ Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t
         travelled_distance += segment_size;
     }
 
-    const Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + getPoints().size()) % getPoints().size());
+    const ::curaengine::geometry::Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + getPoints().size()) % getPoints().size());
 
     if (travelled_distance > distance) [[likely]]
     {
         // We have overtaken the required distance, go backward on the last segment
         int prev = (vertex_index + actual_delta - direction + getPoints().size()) % getPoints().size();
-        const Point2LL& prev_pos = getPoints().at(prev);
+        const ::curaengine::geometry::Point2LL& prev_pos = getPoints().at(prev);
 
-        const Point2LL vector = next_pos - prev_pos;
-        const Point2LL unit_vector = (vector * 1000) / segment_size;
-        const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
+        const ::curaengine::geometry::Point2LL vector = next_pos - prev_pos;
+        const ::curaengine::geometry::Point2LL unit_vector = (vector * 1000) / segment_size;
+        const ::curaengine::geometry::Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
         return prev_pos + vector_delta / 1000;
     }
     else
@@ -116,4 +116,4 @@ Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t
     }
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

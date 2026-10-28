@@ -9,14 +9,14 @@ SliceLayer::~SliceLayer()
 {
 }
 
-Shape SliceLayer::getOutlines(bool external_polys_only) const
+::curaengine::geometry::Shape SliceLayer::getOutlines(bool external_polys_only) const
 {
-    Shape ret;
+    ::curaengine::geometry::Shape ret;
     getOutlines(ret, external_polys_only);
     return ret;
 }
 
-void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
+void SliceLayer::getOutlines(::curaengine::geometry::Shape& result, bool external_polys_only) const
 {
     for (const SliceLayerPart& part : parts)
     {

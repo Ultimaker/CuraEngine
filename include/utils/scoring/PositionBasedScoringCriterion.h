@@ -6,9 +6,14 @@
 #include "geometry/Point2LL.h"
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 class PointsSet;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Abstract criterion that will give a score according to the position of the point
@@ -16,20 +21,20 @@ class PointsSet;
 class PositionBasedScoringCriterion : public ScoringCriterion
 {
 private:
-    const PointsSet& points_;
+    const ::curaengine::geometry::PointsSet& points_;
 
 public:
-    explicit PositionBasedScoringCriterion(const PointsSet& points);
+    explicit PositionBasedScoringCriterion(const ::curaengine::geometry::PointsSet& points);
 
     virtual double computeScore(const size_t candidate_index) const override;
 
-    virtual double computeScore(const Point2LL& candidate_position) const;
+    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const;
 
 protected:
-    const PointsSet& getPoints() const
+    const ::curaengine::geometry::PointsSet& getPoints() const
     {
         return points_;
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

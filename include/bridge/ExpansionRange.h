@@ -7,7 +7,7 @@
 
 #include "bridge/TransformedSegment.h"
 
-namespace curaengine
+namespace curaengine::bridge
 {
 
 struct SegmentOverlapping;
@@ -34,19 +34,19 @@ public:
      * @param max_y The range maximum Y coordinate
      * @param expanded_segment The segment being expanded
      */
-    ExpansionRange(const coord_t min_y, const coord_t max_y, const TransformedSegment* expanded_segment)
+    ExpansionRange(const ::curaengine::utils::coord_t min_y, const ::curaengine::utils::coord_t max_y, const TransformedSegment* expanded_segment)
         : data_{ .range = { .min_y = min_y, .max_y = max_y } }
         , supporting_segment_(expanded_segment)
         , is_projected_(false)
     {
     }
 
-    coord_t minY() const
+    ::curaengine::utils::coord_t minY() const
     {
         return is_projected_ ? data_.segment.minY() : data_.range.min_y;
     }
 
-    coord_t maxY() const
+    ::curaengine::utils::coord_t maxY() const
     {
         return is_projected_ ? data_.segment.maxY() : data_.range.max_y;
     }
@@ -61,7 +61,7 @@ public:
     std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const;
 
     /*! Move the range maximum Y coordinate down, actually cropping it */
-    void cropTop(const coord_t new_max_y)
+    void cropTop(const ::curaengine::utils::coord_t new_max_y)
     {
         if (is_projected_)
         {
@@ -74,7 +74,7 @@ public:
     }
 
     /*! Move the segment minimum Y coordinate up, actually cropping it */
-    void cropBottom(const coord_t new_min_y)
+    void cropBottom(const ::curaengine::utils::coord_t new_min_y)
     {
         if (is_projected_)
         {
@@ -89,10 +89,10 @@ public:
     /*! Indicates if the range is still valid, e.g. doesn't have a (almost) null height */
     bool isValid() const
     {
-        return fuzzy_not_equal(maxY(), minY());
+        return ::curaengine::utils::fuzzy_not_equal(maxY(), minY());
     }
 
-    void setProjectedEnd(const Point2LL& end)
+    void setProjectedEnd(const ::curaengine::geometry::Point2LL& end)
     {
         data_.segment.setEnd(end);
     }
@@ -120,8 +120,8 @@ private:
         // The range that has not been projected
         struct
         {
-            coord_t min_y;
-            coord_t max_y;
+            ::curaengine::utils::coord_t min_y;
+            ::curaengine::utils::coord_t max_y;
         } range;
     } data_;
 
@@ -133,4 +133,4 @@ private:
     bool is_projected_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::bridge

@@ -12,11 +12,21 @@
 #include "utils/NoCopy.h"
 
 
-namespace curaengine
+namespace curaengine::communication
 {
 class Communication;
-class Slice;
+}
+
+namespace curaengine::utils
+{
 class ThreadPool;
+}
+
+namespace curaengine
+{
+
+class Slice;
+
 
 struct PluginSetupConfiguration;
 
@@ -27,7 +37,7 @@ struct PluginSetupConfiguration;
  * maintains communication with other applications and uses that to schedule
  * slices.
  */
-class Application : NoCopy
+class Application : ::curaengine::utils::NoCopy
 {
 public:
     /*
@@ -39,7 +49,7 @@ public:
      * can assume that it is safe to access this without checking whether it is
      * initialised.
      */
-    std::shared_ptr<Communication> communication_;
+    std::shared_ptr<::curaengine::communication::Communication> communication_;
 
     /*
      * \brief The slice that is currently ongoing.
@@ -51,7 +61,7 @@ public:
     /*!
      * \brief ThreadPool with lifetime tied to Application
      */
-    ThreadPool* thread_pool_ = nullptr;
+    ::curaengine::utils::ThreadPool* thread_pool_ = nullptr;
 
     /*! Controller used to set the maximum number of threads used by the OneTBB library */
 #ifndef __EMSCRIPTEN__

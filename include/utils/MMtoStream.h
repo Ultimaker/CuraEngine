@@ -5,7 +5,7 @@
 
 #include "utils/string.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -22,4 +22,4 @@ struct MMtoStream
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

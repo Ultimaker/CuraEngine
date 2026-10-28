@@ -7,9 +7,9 @@
 #include "geometry/LinesSet.h"
 #include "geometry/Shape.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-using OpenPolylineStitcher = PolylineStitcher<OpenLinesSet, Shape, OpenPolyline, Point2LL>;
+using OpenPolylineStitcher = PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::Shape, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>;
 
-} // namespace curaengine
+} // namespace curaengine::utils

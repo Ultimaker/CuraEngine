@@ -10,7 +10,7 @@
 
 #include "utils/OccupiedPosition.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 class VoxelGrid;
@@ -27,7 +27,7 @@ public:
     SpatialLookup() = default;
 
     /*! Find the occupation that is closest to the given position */
-    std::optional<OccupiedPosition> findClosestOccupation(const Point3D& position) const;
+    std::optional<OccupiedPosition> findClosestOccupation(const ::curaengine::geometry::Point3D& position) const;
 
     /*!
      * Make a spatial lookup based on the data stored in the given voxels grid
@@ -41,4 +41,4 @@ private:
     LookupTree lookup_tree_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

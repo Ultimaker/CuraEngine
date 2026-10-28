@@ -16,7 +16,7 @@
 #include "geometry/PointMatrix.h"
 #include "geometry/SingleShape.h"
 #include "infill/Infill.h"
-#include "settings/types/AngleRadians.h"
+#include "types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
 
@@ -26,33 +26,33 @@
 #include "utils/AABB.h"
 #endif
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-const std::function<int(Point2LL)> PolygonUtils::no_penalty_function = [](Point2LL)
+const std::function<int(::curaengine::geometry::Point2LL)> PolygonUtils::no_penalty_function = [](::curaengine::geometry::Point2LL)
 {
     return 0;
 };
 
-std::vector<Point2LL> PolygonUtils::spreadDotsArea(const Shape& polygons, coord_t grid_size)
+std::vector<::curaengine::geometry::Point2LL> PolygonUtils::spreadDotsArea(const ::curaengine::geometry::Shape& polygons, coord_t grid_size)
 {
-    return spreadDotsArea(polygons, Point2LL(grid_size, grid_size));
+    return spreadDotsArea(polygons, ::curaengine::geometry::Point2LL(grid_size, grid_size));
 }
 
-std::vector<Point2LL> PolygonUtils::spreadDotsArea(const Shape& polygons, Point2LL grid_size)
+std::vector<::curaengine::geometry::Point2LL> PolygonUtils::spreadDotsArea(const ::curaengine::geometry::Shape& polygons, ::curaengine::geometry::Point2LL grid_size)
 {
     std::vector<VariableWidthLines> dummy_toolpaths;
     Settings dummy_settings;
-    Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size.X, 0, 1, 0, 0, 0, 0, 0);
-    Shape result_polygons;
-    OpenLinesSet result_lines;
+    ::curaengine::infill::Infill infill_gen(::curaengine::types::EFillMethod::LINES, false, false, polygons, 0, grid_size.X, 0, 1, 0, 0, 0, 0, 0);
+    ::curaengine::geometry::Shape result_polygons;
+    ::curaengine::geometry::OpenLinesSet result_lines;
     infill_gen.generate(dummy_toolpaths, result_polygons, result_lines, dummy_settings, 0, SectionType::DOTS); // FIXME: @jellespijker make sure the propper layer nr is used
-    std::vector<Point2LL> result;
-    for (const OpenPolyline& line : result_lines)
+    std::vector<::curaengine::geometry::Point2LL> result;
+    for (const ::curaengine::geometry::OpenPolyline& line : result_lines)
     {
         assert(line.size() == 2);
-        Point2LL a = line[0];
-        Point2LL b = line[1];
+        ::curaengine::geometry::Point2LL a = line[0];
+        ::curaengine::geometry::Point2LL b = line[1];
         assert(a.X == b.X);
         if (a.Y > b.Y)
         {
@@ -69,24 +69,24 @@ std::vector<Point2LL> PolygonUtils::spreadDotsArea(const Shape& polygons, Point2
 }
 
 bool PolygonUtils::lineSegmentPolygonsIntersection(
-    const Point2LL& a,
-    const Point2LL& b,
-    const Shape& current_outlines,
+    const ::curaengine::geometry::Point2LL& a,
+    const ::curaengine::geometry::Point2LL& b,
+    const ::curaengine::geometry::Shape& current_outlines,
     const LocToLineGrid& outline_locator,
-    Point2LL& result,
+    ::curaengine::geometry::Point2LL& result,
     const coord_t within_max_dist)
 {
     const coord_t within_max_dist2 = within_max_dist * within_max_dist;
 
-    Point2LL coll;
+    ::curaengine::geometry::Point2LL coll;
     coord_t closest_dist2 = within_max_dist2;
 
-    const auto processOnIntersect = [&result, &closest_dist2, &a, &b, &coll](const Point2LL& p_start, const Point2LL& p_end)
+    const auto processOnIntersect = [&result, &closest_dist2, &a, &b, &coll](const ::curaengine::geometry::Point2LL& p_start, const ::curaengine::geometry::Point2LL& p_end)
     {
         if (LinearAlg2D::lineLineIntersection(a, b, p_start, p_end, coll) && LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) == 0
             && LinearAlg2D::pointIsProjectedBeyondLine(coll, a, b) == 0)
         {
-            const coord_t dist2 = vSize2(b - coll);
+            const coord_t dist2 = ::curaengine::geometry::vSize2(b - coll);
             if (dist2 < closest_dist2)
             {
                 closest_dist2 = dist2;
@@ -121,9 +121,9 @@ bool PolygonUtils::lineSegmentPolygonsIntersection(
     return closest_dist2 < within_max_dist2;
 }
 
-Point2LL PolygonUtils::getVertexInwardNormal(const Polyline& poly, unsigned int point_idx)
+::curaengine::geometry::Point2LL PolygonUtils::getVertexInwardNormal(const ::curaengine::geometry::Polyline& poly, unsigned int point_idx)
 {
-    Point2LL p1 = poly[point_idx];
+    ::curaengine::geometry::Point2LL p1 = poly[point_idx];
 
     int p0_idx;
     for (p0_idx = int(point_idx) - 1; (unsigned int)p0_idx != point_idx; p0_idx = p0_idx - 1)
@@ -137,7 +137,7 @@ Point2LL PolygonUtils::getVertexInwardNormal(const Polyline& poly, unsigned int 
             break;
         }
     }
-    Point2LL p0 = poly[p0_idx];
+    ::curaengine::geometry::Point2LL p0 = poly[p0_idx];
 
     unsigned int p2_idx;
     for (p2_idx = point_idx + 1; p2_idx != point_idx; p2_idx = p2_idx + 1)
@@ -151,32 +151,32 @@ Point2LL PolygonUtils::getVertexInwardNormal(const Polyline& poly, unsigned int 
             break;
         }
     }
-    const Point2LL& p2 = poly[p2_idx];
+    const ::curaengine::geometry::Point2LL& p2 = poly[p2_idx];
 
-    Point2LL off0 = turn90CCW(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
-    Point2LL off1 = turn90CCW(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
-    Point2LL n = off0 + off1;
+    ::curaengine::geometry::Point2LL off0 = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
+    ::curaengine::geometry::Point2LL off1 = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
+    ::curaengine::geometry::Point2LL n = off0 + off1;
     return n;
 }
 
-Point2LL PolygonUtils::getBoundaryPointWithOffset(const Polyline& poly, unsigned int point_idx, int64_t offset)
+::curaengine::geometry::Point2LL PolygonUtils::getBoundaryPointWithOffset(const ::curaengine::geometry::Polyline& poly, unsigned int point_idx, int64_t offset)
 {
-    return poly[point_idx] + normal(getVertexInwardNormal(poly, point_idx), -offset);
+    return poly[point_idx] + ::curaengine::geometry::normal(getVertexInwardNormal(poly, point_idx), -offset);
 }
 
-unsigned int PolygonUtils::moveOutside(const Shape& polygons, Point2LL& from, int distance, int64_t maxDist2)
+unsigned int PolygonUtils::moveOutside(const ::curaengine::geometry::Shape& polygons, ::curaengine::geometry::Point2LL& from, int distance, int64_t maxDist2)
 {
     return moveInside(polygons, from, -distance, maxDist2);
 }
 
 ClosestPointPolygon PolygonUtils::moveInside2(
-    const Shape& polygons,
-    Point2LL& from,
+    const ::curaengine::geometry::Shape& polygons,
+    ::curaengine::geometry::Point2LL& from,
     const int distance,
     const int64_t max_dist2,
-    const Shape* loc_to_line_polygons,
+    const ::curaengine::geometry::Shape* loc_to_line_polygons,
     const LocToLineGrid* loc_to_line_grid,
-    const std::function<int(Point2LL)>& penalty_function)
+    const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     std::optional<ClosestPointPolygon> closest_polygon_point;
     if (loc_to_line_grid)
@@ -191,13 +191,13 @@ ClosestPointPolygon PolygonUtils::moveInside2(
 }
 
 ClosestPointPolygon PolygonUtils::moveInside2(
-    const Shape& loc_to_line_polygons,
-    const Polygon& polygon,
-    Point2LL& from,
+    const ::curaengine::geometry::Shape& loc_to_line_polygons,
+    const ::curaengine::geometry::Polygon& polygon,
+    ::curaengine::geometry::Point2LL& from,
     const int distance,
     const int64_t max_dist2,
     const LocToLineGrid* loc_to_line_grid,
-    const std::function<int(Point2LL)>& penalty_function)
+    const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     std::optional<ClosestPointPolygon> closest_polygon_point;
     if (loc_to_line_grid)
@@ -211,18 +211,18 @@ ClosestPointPolygon PolygonUtils::moveInside2(
     return _moveInside2(*closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPointPolygon PolygonUtils::_moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2)
+ClosestPointPolygon PolygonUtils::_moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, ::curaengine::geometry::Point2LL& from, const int64_t max_dist2)
 {
     if (! closest_polygon_point.isValid())
     {
         return ClosestPointPolygon(); // stub with invalid indices to signify we haven't found any
     }
-    const Point2LL v_boundary_from = from - closest_polygon_point.location_;
-    Point2LL result = moveInside(closest_polygon_point, distance);
-    const Point2LL v_boundary_result = result - closest_polygon_point.location_;
-    if (dot(v_boundary_result, v_boundary_from) > 0)
+    const ::curaengine::geometry::Point2LL v_boundary_from = from - closest_polygon_point.location_;
+    ::curaengine::geometry::Point2LL result = moveInside(closest_polygon_point, distance);
+    const ::curaengine::geometry::Point2LL v_boundary_result = result - closest_polygon_point.location_;
+    if (::curaengine::geometry::dot(v_boundary_result, v_boundary_from) > 0)
     { // point was already on the correct side of the polygon
-        if (vSize2(v_boundary_from) > distance * distance)
+        if (::curaengine::geometry::vSize2(v_boundary_from) > distance * distance)
         { // [from] was already on the correct side of the boudary by enough distance
             // don't change [from]
             return closest_polygon_point;
@@ -235,7 +235,7 @@ ClosestPointPolygon PolygonUtils::_moveInside2(const ClosestPointPolygon& closes
     }
     else
     {
-        if (vSize2(v_boundary_from) > max_dist2)
+        if (::curaengine::geometry::vSize2(v_boundary_from) > max_dist2)
         {
             return ClosestPointPolygon(closest_polygon_point.poly_); // stub with invalid indices to signify we haven't found any
         }
@@ -250,47 +250,47 @@ ClosestPointPolygon PolygonUtils::_moveInside2(const ClosestPointPolygon& closes
 /*
  * Implementation assumes moving inside, but moving outside should just as well be possible.
  */
-size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int distance, int64_t maxDist2)
+size_t PolygonUtils::moveInside(const ::curaengine::geometry::Shape& polygons, ::curaengine::geometry::Point2LL& from, int distance, int64_t maxDist2)
 {
-    Point2LL ret = from;
+    ::curaengine::geometry::Point2LL ret = from;
     int64_t bestDist2 = std::numeric_limits<int64_t>::max();
     size_t bestPoly = NO_INDEX;
     bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
-        const Polygon& poly = polygons[poly_idx];
+        const ::curaengine::geometry::Polygon& poly = polygons[poly_idx];
         if (poly.size() < 2)
             continue;
-        Point2LL p0 = poly[poly.size() - 2];
-        Point2LL p1 = poly.back();
+        ::curaengine::geometry::Point2LL p0 = poly[poly.size() - 2];
+        ::curaengine::geometry::Point2LL p1 = poly.back();
         // because we compare with vSize2 here (no division by zero), we also need to compare by vSize2 inside the loop
         // to avoid integer rounding edge cases
-        bool projected_p_beyond_prev_segment = dot(p1 - p0, from - p0) >= vSize2(p1 - p0);
-        for (const Point2LL& p2 : poly)
+        bool projected_p_beyond_prev_segment = ::curaengine::geometry::dot(p1 - p0, from - p0) >= ::curaengine::geometry::vSize2(p1 - p0);
+        for (const ::curaengine::geometry::Point2LL& p2 : poly)
         {
             // X = A + Normal(B-A) * (((B-A) dot (P-A)) / VSize(B-A));
             //   = A +       (B-A) *  ((B-A) dot (P-A)) / VSize2(B-A);
             // X = P projected on AB
-            const Point2LL& a = p1;
-            const Point2LL& b = p2;
-            const Point2LL& p = from;
-            Point2LL ab = b - a;
-            Point2LL ap = p - a;
-            int64_t ab_length2 = vSize2(ab);
+            const ::curaengine::geometry::Point2LL& a = p1;
+            const ::curaengine::geometry::Point2LL& b = p2;
+            const ::curaengine::geometry::Point2LL& p = from;
+            ::curaengine::geometry::Point2LL ab = b - a;
+            ::curaengine::geometry::Point2LL ap = p - a;
+            int64_t ab_length2 = ::curaengine::geometry::vSize2(ab);
             if (ab_length2 <= 0) // A = B, i.e. the input polygon had two adjacent points on top of each other.
             {
                 p1 = p2; // Skip only one of the points.
                 continue;
             }
-            int64_t dot_prod = dot(ab, ap);
+            int64_t dot_prod = ::curaengine::geometry::dot(ab, ap);
             if (dot_prod <= 0) // x is projected to before ab
             {
                 if (projected_p_beyond_prev_segment)
                 { //  case which looks like:   > .
                     projected_p_beyond_prev_segment = false;
-                    Point2LL& x = p1;
+                    ::curaengine::geometry::Point2LL& x = p1;
 
-                    int64_t dist2 = vSize2(x - p);
+                    int64_t dist2 = ::curaengine::geometry::vSize2(x - p);
                     if (dist2 < bestDist2)
                     {
                         bestDist2 = dist2;
@@ -301,10 +301,10 @@ size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int dista
                         }
                         else
                         {
-                            Point2LL inward_dir = turn90CCW(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                            ::curaengine::geometry::Point2LL inward_dir = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(ab, MM2INT(10.0)) + ::curaengine::geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
                             // MM2INT(10.0) to retain precision for the eventual normalization
-                            ret = x + normal(inward_dir, distance);
-                            is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
+                            ret = x + ::curaengine::geometry::normal(inward_dir, distance);
+                            is_already_on_correct_side_of_boundary = ::curaengine::geometry::dot(inward_dir, p - x) * distance >= 0;
                         }
                     }
                 }
@@ -326,9 +326,9 @@ size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int dista
             else
             { // x is projected to a point properly on the line segment (not onto a vertex). The case which looks like | .
                 projected_p_beyond_prev_segment = false;
-                Point2LL x = a + ab * dot_prod / ab_length2;
+                ::curaengine::geometry::Point2LL x = a + ab * dot_prod / ab_length2;
 
-                int64_t dist2 = vSize2(p - x);
+                int64_t dist2 = ::curaengine::geometry::vSize2(p - x);
                 if (dist2 < bestDist2)
                 {
                     bestDist2 = dist2;
@@ -339,9 +339,9 @@ size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int dista
                     }
                     else
                     {
-                        Point2LL inward_dir = turn90CCW(normal(ab, distance)); // inward or outward depending on the sign of [distance]
+                        ::curaengine::geometry::Point2LL inward_dir = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(ab, distance)); // inward or outward depending on the sign of [distance]
                         ret = x + inward_dir;
-                        is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) >= 0;
+                        is_already_on_correct_side_of_boundary = ::curaengine::geometry::dot(inward_dir, p - x) >= 0;
                     }
                 }
             }
@@ -370,7 +370,7 @@ size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int dista
 }
 
 // Version that works on single PolygonRef.
-unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& from, int distance, int64_t maxDist2)
+unsigned int PolygonUtils::moveInside(const ::curaengine::geometry::ClosedPolyline& polygon, ::curaengine::geometry::Point2LL& from, int distance, int64_t maxDist2)
 {
     // TODO: This is copied from the moveInside of Polygons.
     /*
@@ -379,7 +379,7 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
     is expensive. Or we need to return the distance. We need the distance there
     to compare with the distance to other polygons.
     */
-    Point2LL ret = from;
+    ::curaengine::geometry::Point2LL ret = from;
     int64_t bestDist2 = std::numeric_limits<int64_t>::max();
     bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
 
@@ -387,36 +387,36 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
     {
         return 0;
     }
-    Point2LL p0 = polygon[polygon.size() - 2];
-    Point2LL p1 = polygon.back();
+    ::curaengine::geometry::Point2LL p0 = polygon[polygon.size() - 2];
+    ::curaengine::geometry::Point2LL p1 = polygon.back();
     // because we compare with vSize2 here (no division by zero), we also need to compare by vSize2 inside the loop
     // to avoid integer rounding edge cases
-    bool projected_p_beyond_prev_segment = dot(p1 - p0, from - p0) >= vSize2(p1 - p0);
-    for (const Point2LL& p2 : polygon)
+    bool projected_p_beyond_prev_segment = ::curaengine::geometry::dot(p1 - p0, from - p0) >= ::curaengine::geometry::vSize2(p1 - p0);
+    for (const ::curaengine::geometry::Point2LL& p2 : polygon)
     {
         // X = A + Normal(B-A) * (((B-A) dot (P-A)) / VSize(B-A));
         //   = A +       (B-A) *  ((B-A) dot (P-A)) / VSize2(B-A);
         // X = P projected on AB
-        const Point2LL& a = p1;
-        const Point2LL& b = p2;
-        const Point2LL& p = from;
-        Point2LL ab = b - a;
-        Point2LL ap = p - a;
-        int64_t ab_length2 = vSize2(ab);
+        const ::curaengine::geometry::Point2LL& a = p1;
+        const ::curaengine::geometry::Point2LL& b = p2;
+        const ::curaengine::geometry::Point2LL& p = from;
+        ::curaengine::geometry::Point2LL ab = b - a;
+        ::curaengine::geometry::Point2LL ap = p - a;
+        int64_t ab_length2 = ::curaengine::geometry::vSize2(ab);
         if (ab_length2 <= 0) // A = B, i.e. the input polygon had two adjacent points on top of each other.
         {
             p1 = p2; // Skip only one of the points.
             continue;
         }
-        int64_t dot_prod = dot(ab, ap);
+        int64_t dot_prod = ::curaengine::geometry::dot(ab, ap);
         if (dot_prod <= 0) // x is projected to before ab
         {
             if (projected_p_beyond_prev_segment)
             { //  case which looks like:   > .
                 projected_p_beyond_prev_segment = false;
-                Point2LL& x = p1;
+                ::curaengine::geometry::Point2LL& x = p1;
 
-                int64_t dist2 = vSize2(x - p);
+                int64_t dist2 = ::curaengine::geometry::vSize2(x - p);
                 if (dist2 < bestDist2)
                 {
                     bestDist2 = dist2;
@@ -426,10 +426,10 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
                     }
                     else
                     {
-                        Point2LL inward_dir = turn90CCW(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                        ::curaengine::geometry::Point2LL inward_dir = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(ab, MM2INT(10.0)) + ::curaengine::geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
                         // MM2INT(10.0) to retain precision for the eventual normalization
-                        ret = x + normal(inward_dir, distance);
-                        is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
+                        ret = x + ::curaengine::geometry::normal(inward_dir, distance);
+                        is_already_on_correct_side_of_boundary = ::curaengine::geometry::dot(inward_dir, p - x) * distance >= 0;
                     }
                 }
             }
@@ -451,9 +451,9 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
         else
         { // x is projected to a point properly on the line segment (not onto a vertex). The case which looks like | .
             projected_p_beyond_prev_segment = false;
-            Point2LL x = a + ab * dot_prod / ab_length2;
+            ::curaengine::geometry::Point2LL x = a + ab * dot_prod / ab_length2;
 
-            int64_t dist2 = vSize2(p - x);
+            int64_t dist2 = ::curaengine::geometry::vSize2(p - x);
             if (dist2 < bestDist2)
             {
                 bestDist2 = dist2;
@@ -463,9 +463,9 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
                 }
                 else
                 {
-                    Point2LL inward_dir = turn90CCW(normal(ab, distance)); // inward or outward depending on the sign of [distance]
+                    ::curaengine::geometry::Point2LL inward_dir = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(ab, distance)); // inward or outward depending on the sign of [distance]
                     ret = x + inward_dir;
-                    is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) >= 0;
+                    is_already_on_correct_side_of_boundary = ::curaengine::geometry::dot(inward_dir, p - x) >= 0;
                 }
             }
         }
@@ -488,26 +488,26 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
     return 0;
 }
 
-Point2LL PolygonUtils::moveOutside(const ClosestPointPolygon& cpp, const int distance)
+::curaengine::geometry::Point2LL PolygonUtils::moveOutside(const ClosestPointPolygon& cpp, const int distance)
 {
     return moveInside(cpp, -distance);
 }
 
-Point2LL PolygonUtils::moveInside(const ClosestPointPolygon& cpp, const int distance)
+::curaengine::geometry::Point2LL PolygonUtils::moveInside(const ClosestPointPolygon& cpp, const int distance)
 {
     if (! cpp.isValid())
     {
-        return no_point;
+        return ::curaengine::geometry::no_point;
     }
     if (distance == 0)
     { // the point which is assumed to be on the boundary doesn't have to be moved
         return cpp.location_;
     }
-    const Polyline& poly = *cpp.poly_;
+    const ::curaengine::geometry::Polyline& poly = *cpp.poly_;
     unsigned int point_idx = cpp.point_idx_;
-    const Point2LL& on_boundary = cpp.location_;
+    const ::curaengine::geometry::Point2LL& on_boundary = cpp.location_;
 
-    const Point2LL& p1 = poly[point_idx];
+    const ::curaengine::geometry::Point2LL& p1 = poly[point_idx];
     unsigned int p2_idx;
     for (p2_idx = point_idx + 1; p2_idx != point_idx; p2_idx = p2_idx + 1)
     { // find the next point different from p1
@@ -520,7 +520,7 @@ Point2LL PolygonUtils::moveInside(const ClosestPointPolygon& cpp, const int dist
             break;
         }
     }
-    const Point2LL& p2 = poly[p2_idx];
+    const ::curaengine::geometry::Point2LL& p2 = poly[p2_idx];
 
     if (on_boundary == p1)
     {
@@ -532,40 +532,40 @@ Point2LL PolygonUtils::moveInside(const ClosestPointPolygon& cpp, const int dist
     }
     else
     {
-        const Point2LL& x = on_boundary; // on_boundary is already projected on p1-p2
+        const ::curaengine::geometry::Point2LL& x = on_boundary; // on_boundary is already projected on p1-p2
 
-        Point2LL inward_dir = turn90CCW(normal(p2 - p1, distance));
+        ::curaengine::geometry::Point2LL inward_dir = ::curaengine::geometry::turn90CCW(::curaengine::geometry::normal(p2 - p1, distance));
         return x + inward_dir;
     }
 }
 
 ClosestPointPolygon PolygonUtils::ensureInsideOrOutside(
-    const Shape& polygons,
-    Point2LL& from,
+    const ::curaengine::geometry::Shape& polygons,
+    ::curaengine::geometry::Point2LL& from,
     int preferred_dist_inside,
     int64_t max_dist2,
-    const Shape* loc_to_line_polygons,
+    const ::curaengine::geometry::Shape* loc_to_line_polygons,
     const LocToLineGrid* loc_to_line_grid,
-    const std::function<int(Point2LL)>& penalty_function)
+    const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     const ClosestPointPolygon closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
     return ensureInsideOrOutside(polygons, from, closest_polygon_point, preferred_dist_inside, loc_to_line_polygons, loc_to_line_grid, penalty_function);
 }
 
 ClosestPointPolygon PolygonUtils::ensureInsideOrOutside(
-    const Shape& polygons,
-    Point2LL& from,
+    const ::curaengine::geometry::Shape& polygons,
+    ::curaengine::geometry::Point2LL& from,
     const ClosestPointPolygon& closest_polygon_point,
     int preferred_dist_inside,
-    const Shape* loc_to_line_polygons,
+    const ::curaengine::geometry::Shape* loc_to_line_polygons,
     const LocToLineGrid* loc_to_line_grid,
-    const std::function<int(Point2LL)>& penalty_function)
+    const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     if (! closest_polygon_point.isValid())
     {
         return ClosestPointPolygon(); // we couldn't move inside
     }
-    const Polygon& closest_poly = *closest_polygon_point.poly_;
+    const ::curaengine::geometry::Polygon& closest_poly = *closest_polygon_point.poly_;
     bool is_outside_boundary = closest_poly.orientation();
 
     {
@@ -593,7 +593,7 @@ ClosestPointPolygon PolygonUtils::ensureInsideOrOutside(
     // The offset is performed on the closest reference polygon in order to save computation time
     {
         const coord_t offset = (is_outside_boundary) ? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
-        Shape insetted
+        ::curaengine::geometry::Shape insetted
             = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
         if (insetted.size() == 0)
         {
@@ -607,7 +607,7 @@ ClosestPointPolygon PolygonUtils::ensureInsideOrOutside(
             {
                 // Insetting from the reference polygon ended up outside another polygon.
                 // Perform an offset on all polygons instead.
-                Shape all_insetted = polygons.offset(-preferred_dist_inside);
+                ::curaengine::geometry::Shape all_insetted = polygons.offset(-preferred_dist_inside);
                 ClosestPointPolygon overall_inside = findClosest(from, all_insetted, penalty_function);
                 bool overall_is_inside = polygons.inside(overall_inside.location_);
                 if (overall_is_inside != (preferred_dist_inside > 0))
@@ -628,8 +628,8 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPointPolygon& poly1_re
     {
         return;
     }
-    const Polygon& poly1 = *poly1_result.poly_;
-    const Polygon& poly2 = *poly2_result.poly_;
+    const ::curaengine::geometry::Polygon& poly1 = *poly1_result.poly_;
+    const ::curaengine::geometry::Polygon& poly2 = *poly2_result.poly_;
     size_t poly1_idx = poly1_result.poly_idx_;
     size_t poly2_idx = poly2_result.poly_idx_;
     if (poly1_result.point_idx_ == NO_INDEX || poly2_result.point_idx_ == NO_INDEX)
@@ -658,13 +658,13 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPointPolygon& poly1_re
     //   \---|
     //    \-'|
     //     o o >> should find connection here
-    coord_t best_distance2 = vSize2(poly1_result.p() - poly2_result.p());
+    coord_t best_distance2 = ::curaengine::geometry::vSize2(poly1_result.p() - poly2_result.p());
     auto check_neighboring_vert
-        = [&best_distance2](const Polygon& from_poly, const Polygon& to_poly, ClosestPointPolygon& from_poly_result, ClosestPointPolygon& to_poly_result, bool vertex_after)
+        = [&best_distance2](const ::curaengine::geometry::Polygon& from_poly, const ::curaengine::geometry::Polygon& to_poly, ClosestPointPolygon& from_poly_result, ClosestPointPolygon& to_poly_result, bool vertex_after)
     {
-        const Point2LL after_poly2_result = to_poly[(to_poly_result.point_idx_ + vertex_after) % to_poly.size()];
+        const ::curaengine::geometry::Point2LL after_poly2_result = to_poly[(to_poly_result.point_idx_ + vertex_after) % to_poly.size()];
         const ClosestPointPolygon poly1_after_poly2_result = findNearestClosest(after_poly2_result, from_poly, from_poly_result.point_idx_);
-        const coord_t poly1_after_poly2_result_dist2 = vSize2(poly1_after_poly2_result.p() - after_poly2_result);
+        const coord_t poly1_after_poly2_result_dist2 = ::curaengine::geometry::vSize2(poly1_after_poly2_result.p() - after_poly2_result);
         if (poly1_after_poly2_result_dist2 < best_distance2)
         {
             from_poly_result = poly1_after_poly2_result;
@@ -681,7 +681,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPointPolygon& poly1_re
     poly2_result.poly_idx_ = poly2_idx;
 }
 
-ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx)
+ClosestPointPolygon PolygonUtils::findNearestClosest(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Polygon& polygon, int start_idx)
 {
     ClosestPointPolygon forth = findNearestClosest(from, polygon, start_idx, 1);
     if (! forth.isValid())
@@ -690,7 +690,7 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const
     }
     ClosestPointPolygon back = findNearestClosest(from, polygon, start_idx, -1);
     assert(back.isValid());
-    if (vSize2(forth.location_ - from) < vSize2(back.location_ - from))
+    if (::curaengine::geometry::vSize2(forth.location_ - from) < ::curaengine::geometry::vSize2(back.location_ - from))
     {
         return forth;
     }
@@ -700,16 +700,16 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const
     }
 }
 
-ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx, int direction)
+ClosestPointPolygon PolygonUtils::findNearestClosest(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Polygon& polygon, int start_idx, int direction)
 {
     if (polygon.size() == 0)
     {
         return ClosestPointPolygon(&polygon);
     }
-    Point2LL aPoint = polygon[0];
-    Point2LL best = aPoint;
+    ::curaengine::geometry::Point2LL aPoint = polygon[0];
+    ::curaengine::geometry::Point2LL best = aPoint;
 
-    int64_t closestDist = vSize2(from - best);
+    int64_t closestDist = ::curaengine::geometry::vSize2(from - best);
     int bestPos = 0;
 
     size_t poly_size = polygon.size();
@@ -717,11 +717,11 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const
     {
         int p1_idx = (poly_size + direction * p + start_idx) % poly_size;
         int p2_idx = (poly_size + direction * (p + 1) + start_idx) % poly_size;
-        const Point2LL& p1 = polygon[p1_idx];
-        const Point2LL& p2 = polygon[p2_idx];
+        const ::curaengine::geometry::Point2LL& p1 = polygon[p1_idx];
+        const ::curaengine::geometry::Point2LL& p2 = polygon[p2_idx];
 
-        Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
-        int64_t dist = vSize2(from - closest_here);
+        ::curaengine::geometry::Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
+        int64_t dist = ::curaengine::geometry::vSize2(from - closest_here);
         if (dist < closestDist)
         {
             best = closest_here;
@@ -737,7 +737,7 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const
     return ClosestPointPolygon(best, bestPos, &polygon);
 }
 
-ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function)
+ClosestPointPolygon PolygonUtils::findClosest(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Shape& polygons, const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     ClosestPointPolygon none;
 
@@ -745,7 +745,7 @@ ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape&
     {
         return none;
     }
-    const Polygon* any_polygon = &(polygons[0]);
+    const ::curaengine::geometry::Polygon* any_polygon = &(polygons[0]);
     unsigned int any_poly_idx;
     for (any_poly_idx = 0; any_poly_idx < polygons.size(); any_poly_idx++)
     { // find first point in all polygons
@@ -761,11 +761,11 @@ ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape&
     }
     ClosestPointPolygon best((*any_polygon)[0], 0, any_polygon, any_poly_idx);
 
-    int64_t closestDist2_score = vSize2(from - best.location_) + penalty_function(best.location_);
+    int64_t closestDist2_score = ::curaengine::geometry::vSize2(from - best.location_) + penalty_function(best.location_);
 
     for (unsigned int ply = 0; ply < polygons.size(); ply++)
     {
-        const Polygon& poly = polygons[ply];
+        const ::curaengine::geometry::Polygon& poly = polygons[ply];
         if (poly.size() == 0)
             continue;
         ClosestPointPolygon closest_here = findClosest(from, poly, penalty_function);
@@ -773,7 +773,7 @@ ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape&
         {
             continue;
         }
-        int64_t dist2_score = vSize2(from - closest_here.location_) + penalty_function(closest_here.location_);
+        int64_t dist2_score = ::curaengine::geometry::vSize2(from - closest_here.location_) + penalty_function(closest_here.location_);
         if (dist2_score < closestDist2_score)
         {
             best = closest_here;
@@ -785,29 +785,29 @@ ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape&
     return best;
 }
 
-ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function)
+ClosestPointPolygon PolygonUtils::findClosest(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Polygon& polygon, const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     if (polygon.size() == 0)
     {
         return ClosestPointPolygon(&polygon);
     }
-    Point2LL aPoint = polygon[0];
-    Point2LL best = aPoint;
+    ::curaengine::geometry::Point2LL aPoint = polygon[0];
+    ::curaengine::geometry::Point2LL best = aPoint;
 
-    int64_t closestDist2_score = vSize2(from - best) + penalty_function(best);
+    int64_t closestDist2_score = ::curaengine::geometry::vSize2(from - best) + penalty_function(best);
     int bestPos = 0;
 
     for (unsigned int p = 0; p < polygon.size(); p++)
     {
-        const Point2LL& p1 = polygon[p];
+        const ::curaengine::geometry::Point2LL& p1 = polygon[p];
 
         unsigned int p2_idx = p + 1;
         if (p2_idx >= polygon.size())
             p2_idx = 0;
-        const Point2LL& p2 = polygon[p2_idx];
+        const ::curaengine::geometry::Point2LL& p2 = polygon[p2_idx];
 
-        Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
-        int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
+        ::curaengine::geometry::Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
+        int64_t dist2_score = ::curaengine::geometry::vSize2(from - closest_here) + penalty_function(closest_here);
         if (dist2_score < closestDist2_score)
         {
             best = closest_here;
@@ -819,16 +819,16 @@ ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Polygo
     return ClosestPointPolygon(best, bestPos, &polygon);
 }
 
-PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL& from, const Shape& polys)
+PolygonsPointIndex PolygonUtils::findNearestVert(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Shape& polys)
 {
     coord_t best_dist2 = std::numeric_limits<coord_t>::max();
     PolygonsPointIndex closest_vert;
     for (unsigned int poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
-        const Polygon& poly = polys[poly_idx];
+        const ::curaengine::geometry::Polygon& poly = polys[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            const coord_t dist2 = vSize2(poly[point_idx] - from);
+            const coord_t dist2 = ::curaengine::geometry::vSize2(poly[point_idx] - from);
             if (dist2 < best_dist2)
             {
                 best_dist2 = dist2;
@@ -839,13 +839,13 @@ PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL& from, const Sha
     return closest_vert;
 }
 
-unsigned int PolygonUtils::findNearestVert(const Point2LL& from, const Polygon& poly)
+unsigned int PolygonUtils::findNearestVert(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Polygon& poly)
 {
     int64_t best_dist2 = std::numeric_limits<int64_t>::max();
     unsigned int closest_vert_idx = -1;
     for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
     {
-        int64_t dist2 = vSize2(poly[point_idx] - from);
+        int64_t dist2 = ::curaengine::geometry::vSize2(poly[point_idx] - from);
         if (dist2 < best_dist2)
         {
             best_dist2 = dist2;
@@ -855,7 +855,7 @@ unsigned int PolygonUtils::findNearestVert(const Point2LL& from, const Polygon& 
     return closest_vert_idx;
 }
 
-std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const Shape& polygons, int square_size)
+std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const ::curaengine::geometry::Shape& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -867,7 +867,7 @@ std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const Shape& po
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
-        const Polygon& poly = polygons[poly_idx];
+        const ::curaengine::geometry::Polygon& poly = polygons[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             ret->insert(PolygonsPointIndex(&polygons, poly_idx, point_idx));
@@ -884,22 +884,22 @@ std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const Shape& po
  * We could skip the duplication by keeping a vector of vectors of bools.
  */
 std::optional<ClosestPointPolygon>
-    PolygonUtils::findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function)
+    PolygonUtils::findClose(::curaengine::geometry::Point2LL from, const ::curaengine::geometry::Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines = loc_to_line.getNearby(from, loc_to_line.getCellSize());
 
-    Point2LL best(0, 0);
+    ::curaengine::geometry::Point2LL best(0, 0);
 
     int64_t closest_dist2_score = std::numeric_limits<int64_t>::max();
     PolygonsPointIndex best_point_poly_idx(nullptr, NO_INDEX, NO_INDEX);
     for (PolygonsPointIndex& point_poly_index : near_lines)
     {
-        const Polygon& poly = polygons[point_poly_index.poly_idx_];
-        const Point2LL& p1 = poly[point_poly_index.point_idx_];
-        const Point2LL& p2 = poly[(point_poly_index.point_idx_ + 1) % poly.size()];
+        const ::curaengine::geometry::Polygon& poly = polygons[point_poly_index.poly_idx_];
+        const ::curaengine::geometry::Point2LL& p1 = poly[point_poly_index.point_idx_];
+        const ::curaengine::geometry::Point2LL& p2 = poly[(point_poly_index.point_idx_ + 1) % poly.size()];
 
-        Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
-        int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
+        ::curaengine::geometry::Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1, p2);
+        int64_t dist2_score = ::curaengine::geometry::vSize2(from - closest_here) + penalty_function(closest_here);
         if (dist2_score < closest_dist2_score)
         {
             best = closest_here;
@@ -918,25 +918,25 @@ std::optional<ClosestPointPolygon>
 }
 
 std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>>
-    PolygonUtils::findClose(const Polygon& from, const Shape& destination, const LocToLineGrid& destination_loc_to_line, const std::function<int(Point2LL)>& penalty_function)
+    PolygonUtils::findClose(const ::curaengine::geometry::Polygon& from, const ::curaengine::geometry::Shape& destination, const LocToLineGrid& destination_loc_to_line, const std::function<int(::curaengine::geometry::Point2LL)>& penalty_function)
 {
     std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>> ret;
     int p0_idx = from.size() - 1;
-    Point2LL p0(from[p0_idx]);
+    ::curaengine::geometry::Point2LL p0(from[p0_idx]);
     int grid_size = destination_loc_to_line.getCellSize();
     for (unsigned int p1_idx = 0; p1_idx < from.size(); p1_idx++)
     {
-        const Point2LL& p1 = from[p1_idx];
+        const ::curaengine::geometry::Point2LL& p1 = from[p1_idx];
         std::optional<ClosestPointPolygon> best_here = findClose(p1, destination, destination_loc_to_line, penalty_function);
         if (best_here)
         {
             ret.push_back(std::make_pair(ClosestPointPolygon(p1, p1_idx, &from), *best_here));
         }
-        Point2LL p0p1 = p1 - p0;
-        int dist_to_p1 = vSize(p0p1);
+        ::curaengine::geometry::Point2LL p0p1 = p1 - p0;
+        int dist_to_p1 = ::curaengine::geometry::vSize(p0p1);
         for (unsigned int middle_point_nr = 1; dist_to_p1 > grid_size * 2; ++middle_point_nr)
         {
-            Point2LL x = p0 + normal(p0p1, middle_point_nr * grid_size);
+            ::curaengine::geometry::Point2LL x = p0 + ::curaengine::geometry::normal(p0p1, middle_point_nr * grid_size);
             dist_to_p1 -= grid_size;
 
             best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
@@ -951,15 +951,15 @@ std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>>
     return ret;
 }
 
-bool PolygonUtils::getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
+bool PolygonUtils::getNextPointWithDistance(::curaengine::geometry::Point2LL from, int64_t dist, const ::curaengine::geometry::OpenPolyline& poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
 {
-    Point2LL prev_poly_point = poly[(start_idx + poly_start_idx) % poly.size()];
+    ::curaengine::geometry::Point2LL prev_poly_point = poly[(start_idx + poly_start_idx) % poly.size()];
 
     for (unsigned int prev_idx = start_idx; prev_idx < poly.size(); prev_idx++)
     {
         int next_idx = (prev_idx + 1 + poly_start_idx) % poly.size(); // last checked segment is between last point in poly and poly[0]...
-        const Point2LL& next_poly_point = poly[next_idx];
-        if (! shorterThen(next_poly_point - from, dist))
+        const ::curaengine::geometry::Point2LL& next_poly_point = poly[next_idx];
+        if (! ::curaengine::geometry::shorterThen(next_poly_point - from, dist))
         {
             /*
              *                 x    r
@@ -976,12 +976,12 @@ bool PolygonUtils::getNextPointWithDistance(Point2LL from, int64_t dist, const O
              * r=result point at distance [dist] from f
              */
 
-            Point2LL pn = next_poly_point - prev_poly_point;
+            ::curaengine::geometry::Point2LL pn = next_poly_point - prev_poly_point;
 
-            if (shorterThen(pn, 100)) // when precision is limited
+            if (::curaengine::geometry::shorterThen(pn, 100)) // when precision is limited
             {
-                Point2LL middle = (next_poly_point + prev_poly_point) / 2;
-                coord_t dist_to_middle = vSize(from - middle);
+                ::curaengine::geometry::Point2LL middle = (next_poly_point + prev_poly_point) / 2;
+                coord_t dist_to_middle = ::curaengine::geometry::vSize(from - middle);
                 if (dist_to_middle - dist < 100 && dist_to_middle - dist > -100)
                 {
                     result.location = middle;
@@ -995,26 +995,26 @@ bool PolygonUtils::getNextPointWithDistance(Point2LL from, int64_t dist, const O
                 }
             }
 
-            Point2LL pf = from - prev_poly_point;
-            Point2LL px = dot(pf, pn) / vSize(pn) * pn / vSize(pn);
-            Point2LL xf = pf - px;
+            ::curaengine::geometry::Point2LL pf = from - prev_poly_point;
+            ::curaengine::geometry::Point2LL px = ::curaengine::geometry::dot(pf, pn) / ::curaengine::geometry::vSize(pn) * pn / ::curaengine::geometry::vSize(pn);
+            ::curaengine::geometry::Point2LL xf = pf - px;
 
-            if (! shorterThen(xf, dist)) // line lies wholly further than pn
+            if (! ::curaengine::geometry::shorterThen(xf, dist)) // line lies wholly further than pn
             {
                 prev_poly_point = next_poly_point;
                 continue;
             }
 
-            int64_t xr_dist = std::sqrt(dist * dist - vSize2(xf)); // inverse Pythagoras
+            int64_t xr_dist = std::sqrt(dist * dist - ::curaengine::geometry::vSize2(xf)); // inverse Pythagoras
 
-            if (vSize(pn - px) - xr_dist < 1) // r lies beyond n
+            if (::curaengine::geometry::vSize(pn - px) - xr_dist < 1) // r lies beyond n
             {
                 prev_poly_point = next_poly_point;
                 continue;
             }
 
-            Point2LL xr = xr_dist * pn / vSize(pn);
-            Point2LL pr = px + xr;
+            ::curaengine::geometry::Point2LL xr = xr_dist * pn / ::curaengine::geometry::vSize(pn);
+            ::curaengine::geometry::Point2LL pr = px + xr;
 
             result.location = prev_poly_point + pr;
             result.pos = prev_idx;
@@ -1029,8 +1029,8 @@ template<class LineType>
 ClosestPoint<LineType> PolygonUtils::walk(const ClosestPoint<LineType>& from, coord_t distance)
 {
     const LineType& poly = *from.poly_;
-    Point2LL last_vertex = from.p();
-    Point2LL next_vertex;
+    ::curaengine::geometry::Point2LL last_vertex = from.p();
+    ::curaengine::geometry::Point2LL next_vertex;
     size_t last_point_idx = from.point_idx_;
     for (size_t point_idx = from.point_idx_ + 1;; point_idx++)
     {
@@ -1039,17 +1039,17 @@ ClosestPoint<LineType> PolygonUtils::walk(const ClosestPoint<LineType>& from, co
             point_idx = 0;
         }
         next_vertex = poly[point_idx];
-        distance -= vSize(last_vertex - next_vertex);
+        distance -= ::curaengine::geometry::vSize(last_vertex - next_vertex);
         if (distance <= 0)
             break;
         last_vertex = next_vertex;
         last_point_idx = point_idx;
     }
-    Point2LL result = next_vertex + normal(last_vertex - next_vertex, -distance);
+    ::curaengine::geometry::Point2LL result = next_vertex + ::curaengine::geometry::normal(last_vertex - next_vertex, -distance);
     return ClosestPoint<LineType>(result, last_point_idx, &poly, from.poly_idx_);
 }
 
-std::optional<ClosestPointPolygon> PolygonUtils::getNextParallelIntersection(const ClosestPointPolygon& start, const Point2LL& line_to, const coord_t dist, const bool forward)
+std::optional<ClosestPointPolygon> PolygonUtils::getNextParallelIntersection(const ClosestPointPolygon& start, const ::curaengine::geometry::Point2LL& line_to, const coord_t dist, const bool forward)
 {
     // <--o--t-----y----< poly 1
     //       :     :
@@ -1063,33 +1063,33 @@ std::optional<ClosestPointPolygon> PolygonUtils::getNextParallelIntersection(con
     //  r=result
     //  t=line_to
 
-    const Polygon& poly = *start.poly_;
-    const Point2LL s = start.p();
-    const Point2LL t = line_to;
+    const ::curaengine::geometry::Polygon& poly = *start.poly_;
+    const ::curaengine::geometry::Point2LL s = start.p();
+    const ::curaengine::geometry::Point2LL t = line_to;
 
-    const Point2LL st = t - s;
-    const Point2LL shift = normal(turn90CCW(st), dist);
+    const ::curaengine::geometry::Point2LL st = t - s;
+    const ::curaengine::geometry::Point2LL shift = ::curaengine::geometry::normal(::curaengine::geometry::turn90CCW(st), dist);
 
-    Point2LL prev_vert = s;
+    ::curaengine::geometry::Point2LL prev_vert = s;
     coord_t prev_projected = 0;
     for (unsigned int next_point_nr = 0; next_point_nr < poly.size(); next_point_nr++)
     {
         const unsigned int next_point_idx = forward
                                               ? (start.point_idx_ + 1 + next_point_nr) % poly.size()
                                               : (static_cast<size_t>(start.point_idx_) - next_point_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
-        const Point2LL next_vert = poly[next_point_idx];
-        const Point2LL so = next_vert - s;
-        const coord_t projected = dot(shift, so) / dist;
+        const ::curaengine::geometry::Point2LL next_vert = poly[next_point_idx];
+        const ::curaengine::geometry::Point2LL so = next_vert - s;
+        const coord_t projected = ::curaengine::geometry::dot(shift, so) / dist;
         if (std::abs(projected) > dist)
         { // segment crosses the line through xy (or the one on the other side of st)
-            const Point2LL segment_vector = next_vert - prev_vert;
-            const coord_t segment_length = vSize(segment_vector);
+            const ::curaengine::geometry::Point2LL segment_vector = next_vert - prev_vert;
+            const coord_t segment_length = ::curaengine::geometry::vSize(segment_vector);
             const coord_t projected_segment_length = std::abs(projected - prev_projected);
             const int16_t sign = (projected > 0) ? 1 : -1;
             const coord_t projected_inter_segment_length
                 = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
-            const Point2LL intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
+            const ::curaengine::geometry::Point2LL intersection = prev_vert + ::curaengine::geometry::normal(next_vert - prev_vert, inter_segment_length);
 
             size_t vert_before_idx = next_point_idx;
             if (forward)
@@ -1108,26 +1108,26 @@ std::optional<ClosestPointPolygon> PolygonUtils::getNextParallelIntersection(con
 }
 
 
-bool PolygonUtils::polygonCollidesWithLineSegment(const Point2LL& from, const Point2LL& to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
+bool PolygonUtils::polygonCollidesWithLineSegment(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Point2LL& to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
 {
     bool ret = false;
-    Point2LL diff = to - from;
-    if (vSize2(diff) < 2)
+    ::curaengine::geometry::Point2LL diff = to - from;
+    if (::curaengine::geometry::vSize2(diff) < 2)
     { // transformation matrix would fail
         return false;
     }
 
-    PointMatrix transformation_matrix = PointMatrix(diff);
-    Point2LL transformed_from = transformation_matrix.apply(from);
-    Point2LL transformed_to = transformation_matrix.apply(to);
+    ::curaengine::geometry::PointMatrix transformation_matrix = ::curaengine::geometry::PointMatrix(diff);
+    ::curaengine::geometry::Point2LL transformed_from = transformation_matrix.apply(from);
+    ::curaengine::geometry::Point2LL transformed_to = transformation_matrix.apply(to);
 
     PolygonsPointIndex result;
 
     std::function<bool(const PolygonsPointIndex&)> process_elem_func
         = [transformed_from, transformed_to, &transformation_matrix, &result, &ret](const PolygonsPointIndex& line_start)
     {
-        Point2LL p0 = transformation_matrix.apply(line_start.p());
-        Point2LL p1 = transformation_matrix.apply(line_start.next().p());
+        ::curaengine::geometry::Point2LL p0 = transformation_matrix.apply(line_start.p());
+        ::curaengine::geometry::Point2LL p1 = transformation_matrix.apply(line_start.next().p());
 
         if (LinearAlg2D::lineSegmentsCollide(transformed_from, transformed_to, p0, p1))
         {
@@ -1147,15 +1147,15 @@ bool PolygonUtils::polygonCollidesWithLineSegment(const Point2LL& from, const Po
 }
 
 bool PolygonUtils::polygonCollidesWithLineSegment(
-    const Polygon& poly,
-    const Point2LL& transformed_startPoint,
-    const Point2LL& transformed_endPoint,
-    const PointMatrix& transformation_matrix)
+    const ::curaengine::geometry::Polygon& poly,
+    const ::curaengine::geometry::Point2LL& transformed_startPoint,
+    const ::curaengine::geometry::Point2LL& transformed_endPoint,
+    const ::curaengine::geometry::PointMatrix& transformation_matrix)
 {
-    Point2LL p0 = transformation_matrix.apply(poly.back());
-    for (Point2LL p1_ : poly)
+    ::curaengine::geometry::Point2LL p0 = transformation_matrix.apply(poly.back());
+    for (::curaengine::geometry::Point2LL p1_ : poly)
     {
-        Point2LL p1 = transformation_matrix.apply(p1_);
+        ::curaengine::geometry::Point2LL p1 = transformation_matrix.apply(p1_);
         if (LinearAlg2D::lineSegmentsCollide(transformed_startPoint, transformed_endPoint, p0, p1))
         {
             return true;
@@ -1166,12 +1166,12 @@ bool PolygonUtils::polygonCollidesWithLineSegment(
 }
 
 bool PolygonUtils::polygonCollidesWithLineSegment(
-    const Shape& polys,
-    const Point2LL& transformed_startPoint,
-    const Point2LL& transformed_endPoint,
-    const PointMatrix& transformation_matrix)
+    const ::curaengine::geometry::Shape& polys,
+    const ::curaengine::geometry::Point2LL& transformed_startPoint,
+    const ::curaengine::geometry::Point2LL& transformed_endPoint,
+    const ::curaengine::geometry::PointMatrix& transformation_matrix)
 {
-    for (const Polygon& poly : polys)
+    for (const ::curaengine::geometry::Polygon& poly : polys)
     {
         if (poly.size() == 0)
         {
@@ -1186,22 +1186,22 @@ bool PolygonUtils::polygonCollidesWithLineSegment(
     return false;
 }
 
-bool PolygonUtils::polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& startPoint, const Point2LL& endPoint)
+bool PolygonUtils::polygonCollidesWithLineSegment(const ::curaengine::geometry::Shape& polys, const ::curaengine::geometry::Point2LL& startPoint, const ::curaengine::geometry::Point2LL& endPoint)
 {
     if (endPoint == startPoint)
     {
         return false; // Zero-length line segments never collide.
     }
-    Point2LL diff = endPoint - startPoint;
+    ::curaengine::geometry::Point2LL diff = endPoint - startPoint;
 
-    PointMatrix transformation_matrix = PointMatrix(diff);
-    Point2LL transformed_startPoint = transformation_matrix.apply(startPoint);
-    Point2LL transformed_endPoint = transformation_matrix.apply(endPoint);
+    ::curaengine::geometry::PointMatrix transformation_matrix = ::curaengine::geometry::PointMatrix(diff);
+    ::curaengine::geometry::Point2LL transformed_startPoint = transformation_matrix.apply(startPoint);
+    ::curaengine::geometry::Point2LL transformed_endPoint = transformation_matrix.apply(endPoint);
 
     return polygonCollidesWithLineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
-bool PolygonUtils::polygonsIntersect(const Polygon& poly_a, const Polygon& poly_b)
+bool PolygonUtils::polygonsIntersect(const ::curaengine::geometry::Polygon& poly_a, const ::curaengine::geometry::Polygon& poly_b)
 {
     // only do the full intersection when the polys' BBs overlap
     AABB bba(poly_a);
@@ -1209,13 +1209,13 @@ bool PolygonUtils::polygonsIntersect(const Polygon& poly_a, const Polygon& poly_
     return bba.hit(bbb) && poly_a.intersection(poly_b).size() > 0;
 }
 
-bool PolygonUtils::polygonOutlinesAdjacent(const Polygon& inner_poly, const Polygon& outer_poly, const coord_t max_gap)
+bool PolygonUtils::polygonOutlinesAdjacent(const ::curaengine::geometry::Polygon& inner_poly, const ::curaengine::geometry::Polygon& outer_poly, const coord_t max_gap)
 {
     // Heuristic check if their AABBs are near first.
     AABB inner_aabb(inner_poly);
     AABB outer_aabb(outer_poly);
-    inner_aabb.max_ += Point2LL(max_gap, max_gap); // Expand one of them by way of a "distance" by checking intersection with the expanded rectangle.
-    inner_aabb.min_ -= Point2LL(max_gap, max_gap);
+    inner_aabb.max_ += ::curaengine::geometry::Point2LL(max_gap, max_gap); // Expand one of them by way of a "distance" by checking intersection with the expanded rectangle.
+    inner_aabb.min_ -= ::curaengine::geometry::Point2LL(max_gap, max_gap);
     if (! inner_aabb.hit(outer_aabb))
     {
         return false;
@@ -1226,9 +1226,9 @@ bool PolygonUtils::polygonOutlinesAdjacent(const Polygon& inner_poly, const Poly
     const unsigned outer_poly_size = outer_poly.size();
     for (unsigned line_index = 0; line_index < outer_poly_size; ++line_index)
     {
-        const Point2LL lp0 = outer_poly[line_index];
-        const Point2LL lp1 = outer_poly[(line_index + 1) % outer_poly_size];
-        for (Point2LL inner_poly_point : inner_poly)
+        const ::curaengine::geometry::Point2LL lp0 = outer_poly[line_index];
+        const ::curaengine::geometry::Point2LL lp1 = outer_poly[(line_index + 1) % outer_poly_size];
+        for (::curaengine::geometry::Point2LL inner_poly_point : inner_poly)
         {
             if (LinearAlg2D::getDist2FromLineSegment(lp0, inner_poly_point, lp1) < max_gap2)
             {
@@ -1241,8 +1241,8 @@ bool PolygonUtils::polygonOutlinesAdjacent(const Polygon& inner_poly, const Poly
 
 void PolygonUtils::findAdjacentPolygons(
     std::vector<unsigned>& adjacent_poly_indices,
-    const Polygon& poly,
-    const std::vector<const Polygon*>& possible_adjacent_polys,
+    const ::curaengine::geometry::Polygon& poly,
+    const std::vector<const ::curaengine::geometry::Polygon*>& possible_adjacent_polys,
     const coord_t max_gap)
 {
     // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
@@ -1255,7 +1255,7 @@ void PolygonUtils::findAdjacentPolygons(
     }
 }
 
-double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& poly_b)
+double PolygonUtils::relativeHammingDistance(const ::curaengine::geometry::Shape& poly_a, const ::curaengine::geometry::Shape& poly_b)
 {
     const double area_a = std::abs(poly_a.area());
     const double area_b = std::abs(poly_b.area());
@@ -1265,9 +1265,9 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
     constexpr bool borders_allowed = true;
     if (total_area == 0.0)
     {
-        for (const Polygon& polygon_a : poly_a)
+        for (const ::curaengine::geometry::Polygon& polygon_a : poly_a)
         {
-            for (Point2LL point : polygon_a)
+            for (::curaengine::geometry::Point2LL point : polygon_a)
             {
                 if (! poly_b.inside(point, borders_allowed))
                 {
@@ -1275,9 +1275,9 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
                 }
             }
         }
-        for (const Polygon& polygon_b : poly_b)
+        for (const ::curaengine::geometry::Polygon& polygon_b : poly_b)
         {
-            for (Point2LL point : polygon_b)
+            for (::curaengine::geometry::Point2LL point : polygon_b)
             {
                 if (! poly_a.inside(point, borders_allowed))
                 {
@@ -1288,24 +1288,24 @@ double PolygonUtils::relativeHammingDistance(const Shape& poly_a, const Shape& p
         return 0.0; // All points are inside the other polygon, regardless of where the vertices are along the edges.
     }
 
-    const Shape symmetric_difference = poly_a.xorPolygons(poly_b);
+    const ::curaengine::geometry::Shape symmetric_difference = poly_a.xorPolygons(poly_b);
     const double hamming_distance = symmetric_difference.area();
     return hamming_distance / total_area;
 }
 
-Polygon PolygonUtils::makeDisc(const Point2LL& mid, const coord_t radius, const size_t steps)
+::curaengine::geometry::Polygon PolygonUtils::makeDisc(const ::curaengine::geometry::Point2LL& mid, const coord_t radius, const size_t steps)
 {
-    return makeCircle<Polygon>(mid, radius, steps);
+    return makeCircle<::curaengine::geometry::Polygon>(mid, radius, steps);
 }
 
-Point2LL PolygonUtils::makeCirclePoint(const Point2LL& mid, const coord_t radius, const AngleRadians& angle)
+::curaengine::geometry::Point2LL PolygonUtils::makeCirclePoint(const ::curaengine::geometry::Point2LL& mid, const coord_t radius, const ::curaengine::types::AngleRadians& angle)
 {
-    return mid + Point2LL(std::llrint(static_cast<double>(radius) * cos(angle)), std::llrint(static_cast<double>(radius) * sin(angle)));
+    return mid + ::curaengine::geometry::Point2LL(std::llrint(static_cast<double>(radius) * cos(angle)), std::llrint(static_cast<double>(radius) * sin(angle)));
 }
 
-ClosedPolyline PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)
+::curaengine::geometry::ClosedPolyline PolygonUtils::makeWheel(const ::curaengine::geometry::Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution)
 {
-    ClosedPolyline wheel;
+    ::curaengine::geometry::ClosedPolyline wheel;
 
     const size_t nb_spokes = semi_nb_spokes * 2;
     const double spoke_angle_step = TAU / static_cast<double>(nb_spokes);
@@ -1326,30 +1326,30 @@ ClosedPolyline PolygonUtils::makeWheel(const Point2LL& mid, const coord_t inner_
     return wheel;
 }
 
-Shape PolygonUtils::connect(const Shape& input)
+::curaengine::geometry::Shape PolygonUtils::connect(const ::curaengine::geometry::Shape& input)
 {
-    Shape ret;
-    std::vector<SingleShape> parts = input.splitIntoParts(true);
-    for (SingleShape& part : parts)
+    ::curaengine::geometry::Shape ret;
+    std::vector<::curaengine::geometry::SingleShape> parts = input.splitIntoParts(true);
+    for (::curaengine::geometry::SingleShape& part : parts)
     {
-        Polygon& outline = part.outerPolygon();
+        ::curaengine::geometry::Polygon& outline = part.outerPolygon();
         for (size_t hole_idx = 1; hole_idx < part.size(); hole_idx++)
         {
-            Polygon& hole = part[hole_idx];
-            Point2LL hole_point = hole[0];
+            ::curaengine::geometry::Polygon& hole = part[hole_idx];
+            ::curaengine::geometry::Point2LL hole_point = hole[0];
             hole.push_back(hole_point);
             // find where the scanline passes the Y
             size_t best_segment_to_idx = 0;
             coord_t best_dist = std::numeric_limits<coord_t>::max();
-            Point2LL best_intersection_point = outline.back();
+            ::curaengine::geometry::Point2LL best_intersection_point = outline.back();
 
-            Point2LL prev = outline.back();
+            ::curaengine::geometry::Point2LL prev = outline.back();
             for (size_t point_idx = 0; point_idx < outline.size(); point_idx++)
             {
-                Point2LL here = outline[point_idx];
+                ::curaengine::geometry::Point2LL here = outline[point_idx];
                 if (here.Y > hole_point.Y && prev.Y <= hole_point.Y && here.Y != prev.Y)
                 {
-                    Point2LL intersection_point = prev + (here - prev) * (hole_point.Y - prev.Y) / (here.Y - prev.Y);
+                    ::curaengine::geometry::Point2LL intersection_point = prev + (here - prev) * (hole_point.Y - prev.Y) / (here.Y - prev.Y);
                     coord_t dist = hole_point.X - intersection_point.X;
                     if (dist > 0 && dist < best_dist)
                     {
@@ -1370,7 +1370,7 @@ Shape PolygonUtils::connect(const Shape& input)
 
 /* Note: Also tries to solve for near-self intersections, when epsilon >= 1
  */
-void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
+void PolygonUtils::fixSelfIntersections(const coord_t epsilon, ::curaengine::geometry::Shape& polygon)
 {
     if (epsilon < 1)
     {
@@ -1394,7 +1394,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
         const size_t pathlen = polygon[poly_idx].size();
         for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
         {
-            Point2LL& pt = polygon[poly_idx][point_idx];
+            ::curaengine::geometry::Point2LL& pt = polygon[poly_idx][point_idx];
             for (const auto& line : query_grid->getNearby(pt, epsilon * 2))
             {
                 const size_t line_next_idx = (line.point_idx_ + 1) % polygon[line.poly_idx_].size();
@@ -1403,14 +1403,14 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
                     continue;
                 }
 
-                const Point2LL& a = polygon[line.poly_idx_][line.point_idx_];
-                const Point2LL& b = polygon[line.poly_idx_][line_next_idx];
+                const ::curaengine::geometry::Point2LL& a = polygon[line.poly_idx_][line.point_idx_];
+                const ::curaengine::geometry::Point2LL& b = polygon[line.poly_idx_][line_next_idx];
 
-                if (half_epsilon_sqrd >= vSize2(pt - LinearAlg2D::getClosestOnLineSegment(pt, a, b)))
+                if (half_epsilon_sqrd >= ::curaengine::geometry::vSize2(pt - LinearAlg2D::getClosestOnLineSegment(pt, a, b)))
                 {
-                    const Point2LL& other = polygon[poly_idx][(point_idx + 1) % pathlen];
-                    const Point2LL vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
-                    const coord_t len = std::max(vSize(vec), 1LL);
+                    const ::curaengine::geometry::Point2LL& other = polygon[poly_idx][(point_idx + 1) % pathlen];
+                    const ::curaengine::geometry::Point2LL vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
+                    const coord_t len = std::max(::curaengine::geometry::vSize(vec), 1LL);
                     pt.X += (-vec.Y * move_dist) / len;
                     pt.Y += (vec.X * move_dist) / len;
                 }
@@ -1421,14 +1421,14 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
     polygon.simplify();
 }
 
-Shape PolygonUtils::unionManySmall(const Shape& polygon)
+::curaengine::geometry::Shape PolygonUtils::unionManySmall(const ::curaengine::geometry::Shape& polygon)
 {
     if (polygon.size() < 8)
     {
         return polygon.unionPolygons();
     }
 
-    Shape a, b;
+    ::curaengine::geometry::Shape a, b;
     a.reserve(polygon.size() / 2);
     b.reserve(a.size() + 1);
     for (const auto& [i, path] : polygon | ranges::views::enumerate)
@@ -1438,18 +1438,18 @@ Shape PolygonUtils::unionManySmall(const Shape& polygon)
     return unionManySmall(a).unionPolygons(unionManySmall(b));
 }
 
-Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
+::curaengine::geometry::Shape PolygonUtils::clipPolygonWithAABB(const ::curaengine::geometry::Shape& src, const AABB& aabb)
 {
-    Shape out;
+    ::curaengine::geometry::Shape out;
     out.reserve(src.size());
     for (const auto path : src)
     {
-        Polygon poly;
+        ::curaengine::geometry::Polygon poly;
 
         const size_t cnt = path.size();
         if (cnt < 3)
         {
-            return Shape();
+            return ::curaengine::geometry::Shape();
         }
 
         enum class Side
@@ -1460,7 +1460,7 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
             Bottom = 8
         };
 
-        auto sides = [aabb](const Point2LL& p)
+        auto sides = [aabb](const ::curaengine::geometry::Point2LL& p)
         {
             return int(p.X < aabb.min_.X) * int(Side::Left) + int(p.X > aabb.max_.X) * int(Side::Right) + int(p.Y < aabb.min_.Y) * int(Side::Bottom)
                  + int(p.Y > aabb.max_.Y) * int(Side::Top);
@@ -1508,7 +1508,7 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-bool PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow)
+bool PolygonUtils::mergeThinOverlap(const coord_t max_dist, ::curaengine::geometry::Shape& source, ::curaengine::geometry::Shape& destination, const bool allow_thin_areas_grow)
 {
     if (source.empty() || destination.empty())
     {
@@ -1516,21 +1516,21 @@ bool PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape
     }
 
     // Get the thin areas of the destination, which we are allowed to grow over
-    const Shape allow_grow_area = getThinAreas(destination, max_dist);
+    const ::curaengine::geometry::Shape allow_grow_area = getThinAreas(destination, max_dist);
     if (allow_grow_area.empty())
     {
         return false;
     }
 
     // If necessary, remove the thin parts of the source to not allow them to grow
-    const Shape source_grow_part = allow_thin_areas_grow ? source : getWideAreas(source, max_dist);
+    const ::curaengine::geometry::Shape source_grow_part = allow_thin_areas_grow ? source : getWideAreas(source, max_dist);
     if (source_grow_part.empty())
     {
         return false;
     }
 
     // Now calculate the actual growing area, which is the intersection of the offset source with the allowed growing area
-    const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
+    const ::curaengine::geometry::Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
     if (actual_grow_area.empty())
     {
         return false;
@@ -1542,27 +1542,27 @@ bool PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape
     return true;
 }
 
-Shape PolygonUtils::getThinAreas(const Shape& shape, const coord_t max_width)
+::curaengine::geometry::Shape PolygonUtils::getThinAreas(const ::curaengine::geometry::Shape& shape, const coord_t max_width)
 {
     // Extract the wide areas, then do a difference to actually keep only the thin areas
     return shape.difference(getRawWideAreas(shape, max_width, EPSILON));
 }
 
-Shape PolygonUtils::getWideAreas(const Shape& shape, const coord_t min_width)
+::curaengine::geometry::Shape PolygonUtils::getWideAreas(const ::curaengine::geometry::Shape& shape, const coord_t min_width)
 {
     // Extract the raw wide areas, then do an intersection to keep them inside the original shape
     return shape.intersection(getRawWideAreas(shape, min_width, EPSILON));
 }
 
-Shape PolygonUtils::getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen)
+::curaengine::geometry::Shape PolygonUtils::getRawWideAreas(const ::curaengine::geometry::Shape& shape, const coord_t min_width, const coord_t extra_widen)
 {
     return shape.offset(-min_width / 2).offset(min_width / 2 + extra_widen);
 }
 
-std::tuple<ClosedLinesSet, coord_t>
-    PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
+std::tuple<::curaengine::geometry::ClosedLinesSet, coord_t>
+    PolygonUtils::generateCirculatOutset(const ::curaengine::geometry::Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
 {
-    ClosedLinesSet outset;
+    ::curaengine::geometry::ClosedLinesSet outset;
     const coord_t semi_line_width = line_width / 2;
     coord_t radius = inner_radius + semi_line_width;
 
@@ -1575,9 +1575,9 @@ std::tuple<ClosedLinesSet, coord_t>
     return { outset, radius - semi_line_width };
 }
 
-ClosedLinesSet PolygonUtils::generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition)
+::curaengine::geometry::ClosedLinesSet PolygonUtils::generateCircularInset(const ::curaengine::geometry::Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition)
 {
-    ClosedLinesSet inset;
+    ::curaengine::geometry::ClosedLinesSet inset;
     const coord_t semi_line_width = line_width / 2;
     coord_t radius = outer_radius - semi_line_width;
 
@@ -1590,10 +1590,10 @@ ClosedLinesSet PolygonUtils::generateCircularInset(const Point2LL& center, const
     return inset;
 }
 
-PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width)
+PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const ::curaengine::geometry::Shape& shape, const coord_t width, const coord_t line_width)
 {
     InsetOutset result;
-    Shape current_outset = shape;
+    ::curaengine::geometry::Shape current_outset = shape;
     const coord_t semi_line_width = line_width / 2;
     coord_t offset = semi_line_width;
 
@@ -1614,7 +1614,7 @@ PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, 
     return result;
 }
 
-template ClosestPoint<Polygon> PolygonUtils::walk(const ClosestPoint<Polygon>& from, coord_t distance);
-template ClosestPoint<OpenPolyline> PolygonUtils::walk(const ClosestPoint<OpenPolyline>& from, coord_t distance);
+template ClosestPoint<::curaengine::geometry::Polygon> PolygonUtils::walk(const ClosestPoint<::curaengine::geometry::Polygon>& from, coord_t distance);
+template ClosestPoint<::curaengine::geometry::OpenPolyline> PolygonUtils::walk(const ClosestPoint<::curaengine::geometry::OpenPolyline>& from, coord_t distance);
 
-} // namespace curaengine
+} // namespace curaengine::utils

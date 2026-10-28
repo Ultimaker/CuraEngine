@@ -14,7 +14,7 @@ namespace curaengine
 class UnionFindTest : public testing::Test
 {
 public:
-    UnionFind<char> union_find;
+    ::curaengine::utils::UnionFind<char> union_find;
 };
 
 TEST_F(UnionFindTest, FindSimple)

@@ -10,7 +10,7 @@
 
 #include "plugins/PluginProxy.h"
 #include "plugins/Validator.h"
-#include "utils/types/CharRangeLiteral.h"
+#include "types/CharRangeLiteral.h"
 
 namespace curaengine::plugins
 {
@@ -30,7 +30,7 @@ namespace curaengine::plugins
  * @tparam ResponseTp The gRPC convertible response type.
  * @tparam Default The default behavior when no plugin is available.
  */
-template<plugins::v0::SlotID SlotID, utils::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
+template<plugins::v0::SlotID SlotID, ::curaengine::types::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
 class SlotProxy
 {
     Default default_process{};

@@ -13,32 +13,32 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-Point2LL VoronoiUtils::p(const vd_t::vertex_type* node)
+::curaengine::geometry::Point2LL VoronoiUtils::p(const vd_t::vertex_type* node)
 {
-    return Point2LL(node->x(), node->y());
+    return ::curaengine::geometry::Point2LL(node->x(), node->y());
 }
 
-bool VoronoiUtils::isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist)
+bool VoronoiUtils::isSourcePoint(const ::curaengine::geometry::Point2LL& p, const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist)
 {
     if (cell.contains_point())
     {
-        return shorterThen(p - getSourcePoint(cell, points, segments), snap_dist);
+        return ::curaengine::geometry::shorterThen(p - getSourcePoint(cell, points, segments), snap_dist);
     }
     else
     {
         const Segment& segment = getSourceSegment(cell, points, segments);
-        return shorterThen(p - segment.from(), snap_dist) || shorterThen(p - segment.to(), snap_dist);
+        return ::curaengine::geometry::shorterThen(p - segment.from(), snap_dist) || ::curaengine::geometry::shorterThen(p - segment.to(), snap_dist);
     }
 }
 
-coord_t VoronoiUtils::getDistance(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+coord_t VoronoiUtils::getDistance(const ::curaengine::geometry::Point2LL& p, const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments)
 {
     if (cell.contains_point())
     {
-        return vSize(p - getSourcePoint(cell, points, segments));
+        return ::curaengine::geometry::vSize(p - getSourcePoint(cell, points, segments));
     }
     else
     {
@@ -47,7 +47,7 @@ coord_t VoronoiUtils::getDistance(const Point2LL& p, const vd_t::cell_type& cell
     }
 }
 
-Point2LL VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+::curaengine::geometry::Point2LL VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
     if (! cell.contains_point())
@@ -74,7 +74,7 @@ Point2LL VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::ve
     return points[cell.source_index()];
 }
 
-PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
     if (! cell.contains_point())
@@ -106,7 +106,7 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
     return ++ret;
 }
 
-const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<::curaengine::geometry::Point2LL>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_segment());
     if (! cell.contains_segment())
@@ -117,28 +117,28 @@ const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_typ
 }
 
 
-std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const Segment& segment, Point2LL s, Point2LL e, coord_t approximate_step_size, double transitioning_angle)
+std::vector<::curaengine::geometry::Point2LL> VoronoiUtils::discretizeParabola(const ::curaengine::geometry::Point2LL& p, const Segment& segment, ::curaengine::geometry::Point2LL s, ::curaengine::geometry::Point2LL e, coord_t approximate_step_size, double transitioning_angle)
 {
-    std::vector<Point2LL> discretized;
+    std::vector<::curaengine::geometry::Point2LL> discretized;
     // x is distance of point projected on the segment ab
     // xx is point projected on the segment ab
-    const Point2LL a = segment.from();
-    const Point2LL b = segment.to();
-    const Point2LL ab = b - a;
-    const Point2LL as = s - a;
-    const Point2LL ae = e - a;
-    const coord_t ab_size = vSize(ab);
-    const coord_t sx = dot(as, ab) / ab_size;
-    const coord_t ex = dot(ae, ab) / ab_size;
+    const ::curaengine::geometry::Point2LL a = segment.from();
+    const ::curaengine::geometry::Point2LL b = segment.to();
+    const ::curaengine::geometry::Point2LL ab = b - a;
+    const ::curaengine::geometry::Point2LL as = s - a;
+    const ::curaengine::geometry::Point2LL ae = e - a;
+    const coord_t ab_size = ::curaengine::geometry::vSize(ab);
+    const coord_t sx = ::curaengine::geometry::dot(as, ab) / ab_size;
+    const coord_t ex = ::curaengine::geometry::dot(ae, ab) / ab_size;
     const coord_t sxex = ex - sx;
 
-    const Point2LL ap = p - a;
-    const coord_t px = dot(ap, ab) / ab_size;
+    const ::curaengine::geometry::Point2LL ap = p - a;
+    const coord_t px = ::curaengine::geometry::dot(ap, ab) / ab_size;
 
-    const Point2LL pxx = LinearAlg2D::getClosestOnLine(p, a, b);
-    const Point2LL ppxx = pxx - p;
-    const coord_t d = vSize(ppxx);
-    const PointMatrix rot = PointMatrix(turn90CCW(ppxx));
+    const ::curaengine::geometry::Point2LL pxx = LinearAlg2D::getClosestOnLine(p, a, b);
+    const ::curaengine::geometry::Point2LL ppxx = pxx - p;
+    const coord_t d = ::curaengine::geometry::vSize(ppxx);
+    const ::curaengine::geometry::PointMatrix rot = ::curaengine::geometry::PointMatrix(::curaengine::geometry::turn90CCW(ppxx));
 
     if (d == 0)
     {
@@ -151,8 +151,8 @@ std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const 
     coord_t msx = -marking_bound * d; // projected marking_start
     coord_t mex = marking_bound * d; // projected marking_end
     const coord_t marking_start_end_h = msx * msx / (2 * d) + d / 2;
-    Point2LL marking_start = rot.unapply(Point2LL(msx, marking_start_end_h)) + pxx;
-    Point2LL marking_end = rot.unapply(Point2LL(mex, marking_start_end_h)) + pxx;
+    ::curaengine::geometry::Point2LL marking_start = rot.unapply(::curaengine::geometry::Point2LL(msx, marking_start_end_h)) + pxx;
+    ::curaengine::geometry::Point2LL marking_end = rot.unapply(::curaengine::geometry::Point2LL(mex, marking_start_end_h)) + pxx;
     const int dir = (sx > ex) ? -1 : 1;
     if (dir < 0)
     {
@@ -163,7 +163,7 @@ std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const 
     bool add_marking_start = msx * dir > (sx - px) * dir && msx * dir < (ex - px) * dir;
     bool add_marking_end = mex * dir > (sx - px) * dir && mex * dir < (ex - px) * dir;
 
-    const Point2LL apex = rot.unapply(Point2LL(0, d / 2)) + pxx;
+    const ::curaengine::geometry::Point2LL apex = rot.unapply(::curaengine::geometry::Point2LL(0, d / 2)) + pxx;
     // Only at the apex point if the projected start and end points
     // are more than 10 microns away from the projected apex
     bool add_apex = (sx - px) * dir < -10 && (ex - px) * dir > 10;
@@ -197,7 +197,7 @@ std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const 
             discretized.emplace_back(marking_end);
             add_marking_end = false;
         }
-        const Point2LL result = rot.unapply(Point2LL(x, y)) + pxx;
+        const ::curaengine::geometry::Point2LL result = rot.unapply(::curaengine::geometry::Point2LL(x, y)) + pxx;
         discretized.emplace_back(result);
     }
     if (add_apex)
@@ -241,13 +241,13 @@ DEALINGS IN THE SOFTWARE.
 */
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, const coord_t max_dist, std::vector<Point2LL>* discretization)
+void VoronoiUtils::discretize(const ::curaengine::geometry::Point2LL& point, const Segment& segment, const coord_t max_dist, std::vector<::curaengine::geometry::Point2LL>* discretization)
 {
     // Apply the linear transformation to move start point of the segment to
     // the point with coordinates (0, 0) and the direction of the segment to
     // coincide the positive direction of the x-axis.
-    const Point2LL segm_vec = segment.to() - segment.from();
-    const coord_t segment_length2 = vSize2(segm_vec);
+    const ::curaengine::geometry::Point2LL segm_vec = segment.to() - segment.from();
+    const coord_t segment_length2 = ::curaengine::geometry::vSize2(segm_vec);
 
     // Compute x-coordinates of the endpoints of the edge
     // in the transformed space.
@@ -257,43 +257,43 @@ void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, con
     // Compute parabola parameters in the transformed space.
     // Parabola has next representation:
     // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
-    const Point2LL point_vec = point - segment.from();
-    const coord_t rot_x = dot(segm_vec, point_vec);
-    const coord_t rot_y = cross(segm_vec, point_vec);
+    const ::curaengine::geometry::Point2LL point_vec = point - segment.from();
+    const coord_t rot_x = ::curaengine::geometry::dot(segm_vec, point_vec);
+    const coord_t rot_y = ::curaengine::geometry::cross(segm_vec, point_vec);
 
     // Save the last point.
-    const Point2LL last_point = (*discretization)[1];
+    const ::curaengine::geometry::Point2LL last_point = (*discretization)[1];
     discretization->pop_back();
 
     // Use stack to avoid recursion.
     std::stack<coord_t> point_stack;
     point_stack.push(projection_end);
-    Point2LL cur(projection_start, parabolaY(projection_start, rot_x, rot_y));
+    ::curaengine::geometry::Point2LL cur(projection_start, parabolaY(projection_start, rot_x, rot_y));
 
     // Adjust max_dist parameter in the transformed space.
     const coord_t max_dist_transformed = max_dist * max_dist * segment_length2;
     while (! point_stack.empty())
     {
-        const Point2LL new_(point_stack.top(), parabolaY(point_stack.top(), rot_x, rot_y));
-        const Point2LL new_vec = new_ - cur;
+        const ::curaengine::geometry::Point2LL new_(point_stack.top(), parabolaY(point_stack.top(), rot_x, rot_y));
+        const ::curaengine::geometry::Point2LL new_vec = new_ - cur;
 
         // Compute coordinates of the point of the parabola that is
         // furthest from the current line segment.
         const coord_t mid_x = new_vec.Y * rot_y / new_vec.X + rot_x;
         const coord_t mid_y = parabolaY(mid_x, rot_x, rot_y);
-        Point2LL mid_vec = Point2LL(mid_x, mid_y) - cur;
+        ::curaengine::geometry::Point2LL mid_vec = ::curaengine::geometry::Point2LL(mid_x, mid_y) - cur;
 
         // Compute maximum distance between the given parabolic arc
         // and line segment that discretize it.
-        coord_t dist = cross(mid_vec, new_vec);
-        dist = dist * dist / vSize2(new_vec); // TODO overflows!!!
+        coord_t dist = ::curaengine::geometry::cross(mid_vec, new_vec);
+        dist = dist * dist / ::curaengine::geometry::vSize2(new_vec); // TODO overflows!!!
         if (dist <= max_dist_transformed)
         {
             // Distance between parabola and line segment is less than max_dist.
             point_stack.pop();
             const coord_t inter_x = (segm_vec.X * new_.X - segm_vec.Y * new_.Y) / segment_length2 + segment.from().X;
             const coord_t inter_y = (segm_vec.X * new_.Y + segm_vec.Y * new_.X) / segment_length2 + segment.from().Y;
-            discretization->push_back(Point2LL(inter_x, inter_y));
+            discretization->push_back(::curaengine::geometry::Point2LL(inter_x, inter_y));
             cur = new_;
         }
         else
@@ -313,13 +313,13 @@ coord_t VoronoiUtils::parabolaY(coord_t x, coord_t a, coord_t b)
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-double VoronoiUtils::getPointProjection(const Point2LL& point, const Segment& segment)
+double VoronoiUtils::getPointProjection(const ::curaengine::geometry::Point2LL& point, const Segment& segment)
 {
-    Point2LL segment_vec = segment.to() - segment.from();
-    Point2LL point_vec = point - segment.from();
-    coord_t sqr_segment_length = vSize2(segment_vec);
-    coord_t vec_dot = dot(segment_vec, point_vec);
+    ::curaengine::geometry::Point2LL segment_vec = segment.to() - segment.from();
+    ::curaengine::geometry::Point2LL point_vec = point - segment.from();
+    coord_t sqr_segment_length = ::curaengine::geometry::vSize2(segment_vec);
+    coord_t vec_dot = ::curaengine::geometry::dot(segment_vec, point_vec);
     return static_cast<double>(vec_dot) / sqr_segment_length;
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils

@@ -11,8 +11,8 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "settings/Settings.h"
-#include "settings/types/AngleDegrees.h" //For the infill angle.
+#include "Settings.h"
+#include "types/AngleDegrees.h" //For the infill angle.
 #include "utils/PolygonUtils.h"
 #include "utils/math.h"
 
@@ -21,31 +21,31 @@
 #define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 // 1 / sqrt(6)
 #define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 // sqrt(2 / 3)
 
-namespace curaengine
+namespace curaengine::infill
 {
 
 std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step_;
-coord_t SubDivCube::radius_addition_ = 0;
-Point3Matrix SubDivCube::rotation_matrix_;
-PointMatrix SubDivCube::infill_rotation_matrix_;
+::curaengine::utils::coord_t SubDivCube::radius_addition_ = 0;
+::curaengine::geometry::Point3Matrix SubDivCube::rotation_matrix_;
+::curaengine::geometry::PointMatrix SubDivCube::infill_rotation_matrix_;
 
-void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill_origin)
+void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const ::curaengine::geometry::Point2LL& infill_origin)
 {
-    radius_addition_ = mesh.settings.get<coord_t>("sub_div_rad_add");
+    radius_addition_ = mesh.settings.get<::curaengine::utils::coord_t>("sub_div_rad_add");
 
     // if infill_angles is not empty use the first value, otherwise use 0
-    const std::vector<AngleDegrees> infill_angles = mesh.settings.get<std::vector<AngleDegrees>>("infill_angles");
-    const AngleDegrees infill_angle = (! infill_angles.empty()) ? infill_angles[0] : AngleDegrees(0);
+    const std::vector<::curaengine::types::AngleDegrees> infill_angles = mesh.settings.get<std::vector<::curaengine::types::AngleDegrees>>("infill_angles");
+    const ::curaengine::types::AngleDegrees infill_angle = (! infill_angles.empty()) ? infill_angles[0] : ::curaengine::types::AngleDegrees(0);
 
-    const coord_t furthest_dist_from_origin = std::sqrt(
-        square(mesh.settings.get<coord_t>("machine_height")) + square(mesh.settings.get<coord_t>("machine_depth") / 2) + square(mesh.settings.get<coord_t>("machine_width") / 2));
-    const coord_t max_side_length = furthest_dist_from_origin * 2;
+    const ::curaengine::utils::coord_t furthest_dist_from_origin = std::sqrt(
+        ::curaengine::utils::square(mesh.settings.get<::curaengine::utils::coord_t>("machine_height")) + ::curaengine::utils::square(mesh.settings.get<::curaengine::utils::coord_t>("machine_depth") / 2) + ::curaengine::utils::square(mesh.settings.get<::curaengine::utils::coord_t>("machine_width") / 2));
+    const ::curaengine::utils::coord_t max_side_length = furthest_dist_from_origin * 2;
 
     size_t curr_recursion_depth = 0;
-    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
+    const ::curaengine::utils::coord_t infill_line_distance = mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance");
     if (infill_line_distance > 0)
     {
-        for (coord_t curr_side_length = infill_line_distance * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
+        for (::curaengine::utils::coord_t curr_side_length = infill_line_distance * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
         {
             cube_properties_per_recursion_step_.emplace_back();
             CubeProperties& cube_properties_here = cube_properties_per_recursion_step_.back();
@@ -57,9 +57,9 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill
             curr_recursion_depth++;
         }
     }
-    Point3LL center(infill_origin.X, infill_origin.Y, 0);
+    ::curaengine::geometry::Point3LL center(infill_origin.X, infill_origin.Y, 0);
 
-    Point3Matrix tilt; // rotation matrix to get from axis aligned cubes to cubes standing on their tip
+    ::curaengine::geometry::Point3Matrix tilt; // rotation matrix to get from axis aligned cubes to cubes standing on their tip
     // The Z axis is transformed to go in positive Y direction
     //
     //  cross section in a horizontal plane      horizontal plane showing
@@ -81,27 +81,27 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill
     tilt.matrix[7] = ONE_OVER_SQRT_3;
     tilt.matrix[8] = ONE_OVER_SQRT_3;
 
-    infill_rotation_matrix_ = PointMatrix(infill_angle);
-    Point3Matrix infill_angle_mat(infill_rotation_matrix_);
+    infill_rotation_matrix_ = ::curaengine::geometry::PointMatrix(infill_angle);
+    ::curaengine::geometry::Point3Matrix infill_angle_mat(infill_rotation_matrix_);
 
     rotation_matrix_ = infill_angle_mat.compose(tilt);
 
     mesh.base_subdiv_cube = std::make_shared<SubDivCube>(mesh, center, curr_recursion_depth - 1);
 }
 
-void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet& result)
+void SubDivCube::generateSubdivisionLines(const ::curaengine::utils::coord_t z, ::curaengine::geometry::OpenLinesSet& result)
 {
     if (cube_properties_per_recursion_step_.empty()) // Infill is set to 0%.
     {
         return;
     }
-    OpenLinesSet directional_line_groups[3];
+    ::curaengine::geometry::OpenLinesSet directional_line_groups[3];
 
     generateSubdivisionLines(z, directional_line_groups);
 
     for (int dir_idx = 0; dir_idx < 3; dir_idx++)
     {
-        OpenLinesSet& line_group = directional_line_groups[dir_idx];
+        ::curaengine::geometry::OpenLinesSet& line_group = directional_line_groups[dir_idx];
         for (unsigned int line_idx = 0; line_idx < line_group.size(); line_idx++)
         {
             result.addSegment(line_group[line_idx][0], line_group[line_idx][1]);
@@ -109,19 +109,19 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet& result)
     }
 }
 
-void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet (&directional_line_groups)[3])
+void SubDivCube::generateSubdivisionLines(const ::curaengine::utils::coord_t z, ::curaengine::geometry::OpenLinesSet (&directional_line_groups)[3])
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step_[depth_];
 
-    const coord_t z_diff = std::abs(z - center_.z_); //!< the difference between the cube center and the target layer.
+    const ::curaengine::utils::coord_t z_diff = std::abs(z - center_.z_); //!< the difference between the cube center and the target layer.
     if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;
     }
     if (z_diff < cube_properties.max_draw_z_diff) //!< this cube has lines that need to be drawn.
     {
-        Point2LL relative_a, relative_b; //!< relative coordinates of line endpoints around cube center
-        Point2LL a, b; //!< absolute coordinates of line endpoints
+        ::curaengine::geometry::Point2LL relative_a, relative_b; //!< relative coordinates of line endpoints around cube center
+        ::curaengine::geometry::Point2LL a, b; //!< absolute coordinates of line endpoints
         relative_a.X = (cube_properties.square_height / 2) * (cube_properties.max_draw_z_diff - z_diff) / cube_properties.max_draw_z_diff;
         relative_b.X = -relative_a.X;
         relative_a.Y = cube_properties.max_line_offset - ((z - (center_.z_ - cube_properties.max_draw_z_diff)) * ONE_OVER_SQRT_2);
@@ -151,7 +151,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet (&direct
     }
 }
 
-SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth)
+SubDivCube::SubDivCube(SliceMeshStorage& mesh, ::curaengine::geometry::Point3LL& center, size_t depth)
     : depth_(depth)
     , center_(center)
 {
@@ -165,11 +165,11 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth)
     }
 
     CubeProperties cube_properties = cube_properties_per_recursion_step_[depth];
-    Point3LL child_center;
-    coord_t radius = double(cube_properties.height) / 4.0 + radius_addition_;
+    ::curaengine::geometry::Point3LL child_center;
+    ::curaengine::utils::coord_t radius = double(cube_properties.height) / 4.0 + radius_addition_;
 
     int child_nr = 0;
-    std::vector<Point3LL> rel_child_centers;
+    std::vector<::curaengine::geometry::Point3LL> rel_child_centers;
     rel_child_centers.emplace_back(1, 1, 1); // top
     rel_child_centers.emplace_back(-1, 1, 1); // top three
     rel_child_centers.emplace_back(1, -1, 1);
@@ -178,7 +178,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth)
     rel_child_centers.emplace_back(1, -1, -1); // bottom three
     rel_child_centers.emplace_back(-1, 1, -1);
     rel_child_centers.emplace_back(-1, -1, 1);
-    for (Point3LL rel_child_center : rel_child_centers)
+    for (::curaengine::geometry::Point3LL rel_child_center : rel_child_centers)
     {
         child_center = center + rotation_matrix_.apply(rel_child_center * int32_t(cube_properties.side_length / 4));
         if (isValidSubdivision(mesh, child_center, radius))
@@ -189,22 +189,22 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth)
     }
 }
 
-bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3LL& center, coord_t radius)
+bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, ::curaengine::geometry::Point3LL& center, ::curaengine::utils::coord_t radius)
 {
-    coord_t distance2 = 0;
-    coord_t sphere_slice_radius2; //!< squared radius of bounding sphere slice on target layer
+    ::curaengine::utils::coord_t distance2 = 0;
+    ::curaengine::utils::coord_t sphere_slice_radius2; //!< squared radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
     int inside;
-    Ratio part_dist; // what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
-    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    ::curaengine::types::Ratio part_dist; // what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
+    const ::curaengine::utils::coord_t layer_height = mesh.settings.get<::curaengine::utils::coord_t>("layer_height");
     int bottom_layer = (center.z_ - radius) / layer_height;
     int top_layer = (center.z_ + radius) / layer_height;
     for (int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
-        part_dist = Ratio{ static_cast<Ratio::value_type>(test_layer * layer_height - center.z_) } / radius;
+        part_dist = ::curaengine::types::Ratio{ static_cast<::curaengine::types::Ratio::value_type>(test_layer * layer_height - center.z_) } / radius;
         sphere_slice_radius2 = radius * radius * (1.0 - (part_dist * part_dist));
-        Point2LL loc(center.x_, center.y_);
+        ::curaengine::geometry::Point2LL loc(center.x_, center.y_);
 
         inside = distanceFromPointToMesh(mesh, test_layer, loc, &distance2);
         if (inside == 1)
@@ -227,24 +227,24 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3LL& center, co
     return false;
 }
 
-coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point2LL& location, coord_t* distance2)
+::curaengine::utils::coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const ::curaengine::types::LayerIndex layer_nr, ::curaengine::geometry::Point2LL& location, ::curaengine::utils::coord_t* distance2)
 {
     if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
         return 2;
         *distance2 = 0;
     }
-    Shape collide;
+    ::curaengine::geometry::Shape collide;
     for (const SliceLayerPart& part : mesh.layers[layer_nr].parts)
     {
         collide.push_back(part.infill_area);
     }
 
-    Point2LL centerpoint = location;
+    ::curaengine::geometry::Point2LL centerpoint = location;
     bool inside = collide.inside(centerpoint);
-    ClosestPointPolygon border_point = PolygonUtils::moveInside2(collide, centerpoint);
-    Point2LL diff = border_point.location_ - location;
-    *distance2 = vSize2(diff);
+    ::curaengine::utils::ClosestPointPolygon border_point = ::curaengine::utils::PolygonUtils::moveInside2(collide, centerpoint);
+    ::curaengine::geometry::Point2LL diff = border_point.location_ - location;
+    *distance2 = ::curaengine::geometry::vSize2(diff);
     if (inside)
     {
         return 1;
@@ -253,21 +253,21 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
 }
 
 
-void SubDivCube::rotatePointInitial(Point2LL& target)
+void SubDivCube::rotatePointInitial(::curaengine::geometry::Point2LL& target)
 {
     target = infill_rotation_matrix_.apply(target);
 }
 
-void SubDivCube::rotatePoint120(Point2LL& target)
+void SubDivCube::rotatePoint120(::curaengine::geometry::Point2LL& target)
 {
     // constexpr double sqrt_three_fourths = sqrt(3.0 / 4.0); //TODO: Reactivate once MacOS is upgraded to a more modern compiler.
 #define sqrt_three_fourths 0.86602540378443864676372317
-    const coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
+    const ::curaengine::utils::coord_t x = -0.5 * target.X - sqrt_three_fourths * target.Y;
     target.Y = -0.5 * target.Y + sqrt_three_fourths * target.X;
     target.X = x;
 }
 
-void SubDivCube::addLineAndCombine(OpenLinesSet& group, Point2LL from, Point2LL to)
+void SubDivCube::addLineAndCombine(::curaengine::geometry::OpenLinesSet& group, ::curaengine::geometry::Point2LL from, ::curaengine::geometry::Point2LL to)
 {
     int epsilon = 10; // the smallest distance of two points which are viewed as coincident (dist > 0 due to rounding errors)
     for (unsigned int idx = 0; idx < group.size(); idx++)
@@ -290,4 +290,4 @@ void SubDivCube::addLineAndCombine(OpenLinesSet& group, Point2LL from, Point2LL 
     group.addSegment(from, to);
 }
 
-} // namespace curaengine
+} // namespace curaengine::infill

@@ -12,8 +12,8 @@
 #include "SlicerLayer.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
-#include "settings/ESurfaceMode.h"
-#include "settings/types/LayerIndex.h"
+#include "types/ESurfaceMode.h"
+#include "types/LayerIndex.h"
 #include "utils/OpenPolylineStitcher.h"
 
 namespace curaengine
@@ -35,7 +35,7 @@ void carveMultipleVolumes(std::vector<Slicer*>& volumes)
     {
         Slicer& volume_1 = *ranked_volumes[volume_1_idx];
         if (! volume_1.mesh->isModelMesh() || volume_1.mesh->settings_.get<bool>("support_mesh")
-            || volume_1.mesh->settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+            || volume_1.mesh->settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::SURFACE)
         {
             continue;
         }
@@ -43,7 +43,7 @@ void carveMultipleVolumes(std::vector<Slicer*>& volumes)
         {
             Slicer& volume_2 = *ranked_volumes[volume_2_idx];
             if (! volume_2.mesh->isModelMesh() || volume_2.mesh->settings_.get<bool>("support_mesh")
-                || volume_2.mesh->settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                || volume_2.mesh->settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::SURFACE)
             {
                 continue;
             }
@@ -51,7 +51,7 @@ void carveMultipleVolumes(std::vector<Slicer*>& volumes)
             {
                 continue;
             }
-            for (LayerIndex layerNr = 0; layerNr < volume_1.layers.size(); layerNr++)
+            for (::curaengine::types::LayerIndex layerNr = 0; layerNr < volume_1.layers.size(); layerNr++)
             {
                 SlicerLayer& layer1 = volume_1.layers[layerNr];
                 SlicerLayer& layer2 = volume_2.layers[layerNr];
@@ -82,16 +82,16 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*>& volumes)
     {
         ClipperLib::PolyFillType fill_type = volume->mesh->settings_.get<bool>("meshfix_union_all") ? ClipperLib::pftNonZero : ClipperLib::pftEvenOdd;
 
-        coord_t overlap = volume->mesh->settings_.get<coord_t>("multiple_mesh_overlap");
+        ::curaengine::utils::coord_t overlap = volume->mesh->settings_.get<::curaengine::utils::coord_t>("multiple_mesh_overlap");
         if (! volume->mesh->isModelMesh() || volume->mesh->settings_.get<bool>("support_mesh") || overlap == 0)
         {
             continue;
         }
-        AABB3D aabb(volume->mesh->getAABB());
+        ::curaengine::utils::AABB3D aabb(volume->mesh->getAABB());
         aabb.expandXY(overlap); // expand to account for the case where two models and their bounding boxes are adjacent along the X or Y-direction
-        for (LayerIndex layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
+        for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
         {
-            Shape all_other_volumes;
+            ::curaengine::geometry::Shape all_other_volumes;
             for (Slicer* other_volume : volumes)
             {
                 if (! other_volume->mesh->isModelMesh() || other_volume->mesh->settings_.get<bool>("support_mesh") || ! other_volume->mesh->getAABB().hit(aabb)
@@ -119,7 +119,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
         has_extruder_change_mesh |= cutting_mesh.settings_.get<bool>("cutting_mesh") && cutting_mesh.settings_.has("extruder_nr");
     }
 
-    std::unordered_map<LayerIndex, Shape> layer_printable_mesh_unions;
+    std::unordered_map<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape> layer_printable_mesh_unions;
     if (has_extruder_change_mesh)
     {
         // Before we make any change to the actual sliced meshes, compute the full union of all the printable meshes on each layer
@@ -131,9 +131,9 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
             }
 
             Slicer& printable_mesh_volume = *volumes[printable_mesh_idx];
-            for (LayerIndex layer_nr = 0; layer_nr < printable_mesh_volume.layers.size(); ++layer_nr)
+            for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr < printable_mesh_volume.layers.size(); ++layer_nr)
             {
-                const Shape& printable_mesh_area = printable_mesh_volume.layers[layer_nr].polygons_;
+                const ::curaengine::geometry::Shape& printable_mesh_area = printable_mesh_volume.layers[layer_nr].polygons_;
                 auto iterator = layer_printable_mesh_unions.find(layer_nr);
                 if (iterator != layer_printable_mesh_unions.end())
                 {
@@ -158,24 +158,24 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
         bool is_extruder_change_mesh = cutting_mesh.settings_.has("extruder_nr");
 
         Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
-        for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); ++layer_nr)
+        for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); ++layer_nr)
         {
-            Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons_;
-            OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].open_polylines_;
-            Shape cutting_mesh_area_recomputed;
-            Shape* cutting_mesh_area;
-            coord_t surface_line_width = cutting_mesh.settings_.get<coord_t>("wall_line_width_0");
+            ::curaengine::geometry::Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons_;
+            ::curaengine::geometry::OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].open_polylines_;
+            ::curaengine::geometry::Shape cutting_mesh_area_recomputed;
+            ::curaengine::geometry::Shape* cutting_mesh_area;
+            ::curaengine::utils::coord_t surface_line_width = cutting_mesh.settings_.get<::curaengine::utils::coord_t>("wall_line_width_0");
             { // compute cutting_mesh_area
-                if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::BOTH)
+                if (cutting_mesh.settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::BOTH)
                 {
                     cutting_mesh_area_recomputed = cutting_mesh_polygons.unionPolygons(cutting_mesh_polylines.offset(surface_line_width / 2));
                     cutting_mesh_area = &cutting_mesh_area_recomputed;
                 }
-                else if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                else if (cutting_mesh.settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::SURFACE)
                 {
                     // break up polygons into polylines
                     // they have to be polylines, because they might break up further when doing the cutting
-                    for (Polygon& poly : cutting_mesh_polygons)
+                    for (::curaengine::geometry::Polygon& poly : cutting_mesh_polygons)
                     {
                         poly.push_back(poly.front());
                         cutting_mesh_polylines.emplace_back(poly.getPoints());
@@ -205,8 +205,8 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
                 }
             }
 
-            Shape new_outlines;
-            OpenLinesSet new_polylines;
+            ::curaengine::geometry::Shape new_outlines;
+            ::curaengine::geometry::OpenLinesSet new_polylines;
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];
@@ -216,11 +216,11 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
                     continue;
                 }
                 Slicer& carved_volume = *volumes[carved_mesh_idx];
-                Shape& carved_mesh_layer = carved_volume.layers[layer_nr].polygons_;
+                ::curaengine::geometry::Shape& carved_mesh_layer = carved_volume.layers[layer_nr].polygons_;
 
-                Shape intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
+                ::curaengine::geometry::Shape intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
                 new_outlines.push_back(intersection);
-                if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // niet te geleuven
+                if (cutting_mesh.settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL) // niet te geleuven
                 {
                     new_polylines.push_back(carved_mesh_layer.intersection(cutting_mesh_polylines));
                 }
@@ -228,10 +228,10 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
                 carved_mesh_layer = carved_mesh_layer.difference(*cutting_mesh_area);
             }
             cutting_mesh_polygons = new_outlines.unionPolygons();
-            if (cutting_mesh.settings_.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            if (cutting_mesh.settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL)
             {
                 cutting_mesh_polylines.clear();
-                OpenPolylineStitcher::stitch(new_polylines, cutting_mesh_polylines, cutting_mesh_polygons, surface_line_width);
+                ::curaengine::utils::OpenPolylineStitcher::stitch(new_polylines, cutting_mesh_polylines, cutting_mesh_polygons, surface_line_width);
             }
         }
 

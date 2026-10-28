@@ -1,0 +1,45 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#pragma once
+
+#include <vector>
+
+#include "GCodePathConfig.h"
+#include "types/LayerIndex.h"
+#include "types/Ratio.h"
+
+namespace curaengine
+{
+class SliceMeshStorage;
+}
+
+namespace curaengine::types
+{
+
+
+struct MeshPathConfigs
+{
+    GCodePathConfig inset0_config{};
+    GCodePathConfig insetX_config{};
+    GCodePathConfig inset0_roofing_config{};
+    GCodePathConfig insetX_roofing_config{};
+    GCodePathConfig inset0_flooring_config{};
+    GCodePathConfig insetX_flooring_config{};
+    GCodePathConfig bridge_inset0_config{};
+    GCodePathConfig bridge_insetX_config{};
+    GCodePathConfig skin_config{};
+    GCodePathConfig bridge_skin_config{}; // used for first bridge layer
+    GCodePathConfig bridge_skin_config2{}; // used for second bridge layer
+    GCodePathConfig bridge_skin_config3{}; // used for third bridge layer
+    GCodePathConfig roofing_config{};
+    GCodePathConfig flooring_config{};
+    std::vector<GCodePathConfig> infill_config{};
+    GCodePathConfig ironing_config{};
+    GCodePathConfig skin_support_config{};
+
+    MeshPathConfigs(const SliceMeshStorage& mesh, const ::curaengine::utils::coord_t layer_thickness, const LayerIndex layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder);
+    void smoothAllSpeeds(const ::curaengine::path_planning::SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer);
+};
+
+} // namespace curaengine::types

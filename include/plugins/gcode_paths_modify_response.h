@@ -8,12 +8,12 @@
 
 #include "GCodePathConfig.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.pb.h"
-#include "pathPlanning/GCodePath.h"
-#include "plugins/converter.h"
+#include "path_planning/GCodePath.h"
+#include "plugins/details/converter.h"
 
 namespace curaengine::plugins
 {
-struct gcode_paths_modify_response : public details::converter<gcode_paths_modify_response, ::cura::plugins::slots::gcode_paths::v0::modify::CallResponse, std::vector<GCodePath>>
+struct gcode_paths_modify_response : public details::converter<gcode_paths_modify_response, ::cura::plugins::slots::gcode_paths::v0::modify::CallResponse, std::vector<::curaengine::path_planning::GCodePath>>
 {
     [[nodiscard]] static constexpr PrintFeatureType getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept;
     [[nodiscard]] static GCodePathConfig buildConfig(const ::cura::plugins::v0::GCodePath& path);

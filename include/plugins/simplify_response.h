@@ -6,11 +6,11 @@
 #ifdef ENABLE_PLUGINS
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
 #include "geometry/Shape.h"
-#include "plugins/converter.h"
+#include "plugins/details/converter.h"
 
 namespace curaengine::plugins
 {
-struct simplify_response : public details::converter<simplify_response, ::cura::plugins::slots::simplify::v0::modify::CallResponse, Shape>
+struct simplify_response : public details::converter<simplify_response, ::cura::plugins::slots::simplify::v0::modify::CallResponse, ::curaengine::geometry::Shape>
 {
     native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };

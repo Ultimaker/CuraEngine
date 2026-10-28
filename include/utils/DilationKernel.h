@@ -7,10 +7,10 @@
 
 #include "geometry/Point3LL.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-using GridPoint3 = Point3LL;
+using GridPoint3 = ::curaengine::geometry::Point3LL;
 
 /*!
  * Class for holding the relative positiongs wrt a reference cell on which to perform a dilation.
@@ -52,4 +52,4 @@ struct DilationKernel
     DilationKernel(GridPoint3 kernel_size, Type type);
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils

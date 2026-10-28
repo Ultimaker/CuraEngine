@@ -10,6 +10,11 @@
 namespace curaengine
 {
 class TextureDataProvider;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to the data contained in the user-painted texture.
@@ -21,9 +26,9 @@ private:
     const std::string feature_name_;
 
 public:
-    explicit TextureScoringCriterion(const PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name);
+    explicit TextureScoringCriterion(const ::curaengine::geometry::PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name);
 
-    virtual double computeScore(const Point2LL& candidate_position) const override;
+    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const override;
 };
 
-} // namespace curaengine
+} // namespace curaengine::utils::scoring

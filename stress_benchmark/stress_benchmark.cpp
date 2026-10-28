@@ -26,7 +26,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "settings/Settings.h"
+#include "Settings.h"
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
@@ -57,7 +57,7 @@ struct Resource
         return wkt_file.stem().string();
     }
 
-    std::vector<curaengine::Shape> polygons() const
+    std::vector<::curaengine::geometry::Shape> polygons() const
     {
         using point_type = boost::geometry::model::d2::point_xy<double>;
         using polygon_type = boost::geometry::model::polygon<point_type>;
@@ -75,25 +75,25 @@ struct Resource
 
         boost::geometry::read_wkt(buffer.str(), boost_polygons);
 
-        std::vector<curaengine::Shape> polygons;
+        std::vector<::curaengine::geometry::Shape> polygons;
 
         for (const auto& boost_polygon : boost_polygons)
         {
-            curaengine::Shape polygon;
+            ::curaengine::geometry::Shape polygon;
 
-            curaengine::Polygon outer;
+            ::curaengine::geometry::Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.push_back(curaengine::Point2LL(point.x(), point.y()));
+                outer.push_back(::curaengine::geometry::Point2LL(point.x(), point.y()));
             }
             polygon.push_back(outer);
 
             for (const auto& hole : boost_polygon.inners())
             {
-                curaengine::Polygon inner;
+                ::curaengine::geometry::Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.push_back(curaengine::Point2LL(point.x(), point.y()));
+                    inner.push_back(::curaengine::geometry::Point2LL(point.x(), point.y()));
                 }
                 polygon.push_back(inner);
             }
@@ -149,15 +149,15 @@ std::vector<Resource> getResources()
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
     curaengine::SliceLayer layer;
-    for (const curaengine::Shape& shape : shapes)
+    for (const ::curaengine::geometry::Shape& shape : shapes)
     {
         layer.parts.emplace_back();
         curaengine::SliceLayerPart& part = layer.parts.back();
         part.outline.push_back(shape);
     }
-    curaengine::LayerIndex layer_idx(100);
+    ::curaengine::types::LayerIndex layer_idx(100);
     curaengine::WallsComputation walls_computation(settings, layer_idx);
-    walls_computation.generateWalls(&layer, curaengine::SectionType::WALL);
+    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
     exit(EXIT_SUCCESS);
 }
 

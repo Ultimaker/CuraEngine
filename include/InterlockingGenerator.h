@@ -77,13 +77,13 @@ protected:
     InterlockingGenerator(
         Slicer& mesh_a,
         Slicer& mesh_b,
-        coord_t beam_width_a,
-        coord_t beam_width_b,
-        const PointMatrix& rotation,
-        Point3LL cell_size,
-        coord_t beam_layer_count,
-        DilationKernel interface_dilation,
-        DilationKernel air_dilation,
+        ::curaengine::utils::coord_t beam_width_a,
+        ::curaengine::utils::coord_t beam_width_b,
+        const ::curaengine::geometry::PointMatrix& rotation,
+        ::curaengine::geometry::Point3LL cell_size,
+        ::curaengine::utils::coord_t beam_layer_count,
+        ::curaengine::utils::DilationKernel interface_dilation,
+        ::curaengine::utils::DilationKernel air_dilation,
         bool air_filtering)
         : mesh_a_(mesh_a)
         , mesh_b_(mesh_b)
@@ -106,14 +106,14 @@ protected:
      * \param detec The expand distance. (Not equal to offset, but a series of small offsets and differences).
      * \return A pair of polygons that repressent the 'borders' of a and b, but expanded 'perpendicularly'.
      */
-    std::pair<Shape, Shape> growBorderAreasPerpendicular(const Shape& a, const Shape& b, const coord_t& detect) const;
+    std::pair<::curaengine::geometry::Shape, ::curaengine::geometry::Shape> growBorderAreasPerpendicular(const ::curaengine::geometry::Shape& a, const ::curaengine::geometry::Shape& b, const ::curaengine::utils::coord_t& detect) const;
 
     /*! Special handling for thin strips of material.
      *
      * Expand the meshes into each other where they need it, namely when a thin strip of material needs to be attached.
      * \param has_all_meshes Only do this special handling if there's actually microstructure nearby that needs to be adhered to.
      */
-    void handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const;
+    void handleThinAreas(const std::unordered_set<::curaengine::utils::GridPoint3>& has_all_meshes) const;
 
     /*!
      * Compute the voxels overlapping with the shell of both models.
@@ -122,7 +122,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \return The shell voxels for mesh a and those for mesh b
      */
-    std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel) const;
+    std::vector<std::unordered_set<::curaengine::utils::GridPoint3>> getShellVoxels(const ::curaengine::utils::DilationKernel& kernel) const;
 
     /*!
      * Compute the voxels overlapping with the shell of some layers.
@@ -132,7 +132,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \param[out] cells The output cells which elong to the shell
      */
-    void addBoundaryCells(const std::vector<Shape>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
+    void addBoundaryCells(const std::vector<::curaengine::geometry::Shape>& layers, const ::curaengine::utils::DilationKernel& kernel, std::unordered_set<::curaengine::utils::GridPoint3>& cells) const;
 
     /*!
      * Compute the regions occupied by both models.
@@ -140,13 +140,13 @@ protected:
      * A morphological close is performed so that we don't register small gaps between the two models as being separate.
      * \return layer_regions The computed layer regions
      */
-    std::vector<Shape> computeUnionedVolumeRegions() const;
+    std::vector<::curaengine::geometry::Shape> computeUnionedVolumeRegions() const;
 
     /*!
      * Generate the polygons for the beams of a single cell
      * \return cell_area_per_mesh_per_layer The output polygons for each beam
      */
-    std::vector<std::vector<Shape>> generateMicrostructure() const;
+    std::vector<std::vector<::curaengine::geometry::Shape>> generateMicrostructure() const;
 
     /*!
      * Change the outlines of the meshes with the computed interlocking structure.
@@ -154,22 +154,22 @@ protected:
      * \param cells The cells where we want to apply the interlocking structure.
      * \param layer_regions The total volume of the two meshes combined (and small gaps closed)
      */
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Shape>& layer_regions) const;
+    void applyMicrostructureToOutlines(const std::unordered_set<::curaengine::utils::GridPoint3>& cells, const std::vector<::curaengine::geometry::Shape>& layer_regions) const;
 
-    static const coord_t ignored_gap_ = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
+    static const ::curaengine::utils::coord_t ignored_gap_ = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
 
     Slicer& mesh_a_;
     Slicer& mesh_b_;
-    coord_t beam_width_a_;
-    coord_t beam_width_b_;
+    ::curaengine::utils::coord_t beam_width_a_;
+    ::curaengine::utils::coord_t beam_width_b_;
 
-    const VoxelUtils vu_;
+    const ::curaengine::utils::VoxelUtils vu_;
 
-    const PointMatrix rotation_;
-    const Point3LL cell_size_;
-    const coord_t beam_layer_count_;
-    const DilationKernel interface_dilation_;
-    const DilationKernel air_dilation_;
+    const ::curaengine::geometry::PointMatrix rotation_;
+    const ::curaengine::geometry::Point3LL cell_size_;
+    const ::curaengine::utils::coord_t beam_layer_count_;
+    const ::curaengine::utils::DilationKernel interface_dilation_;
+    const ::curaengine::utils::DilationKernel air_dilation_;
     const bool air_filtering_; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut
                                //!< off midway in a beam.
 };

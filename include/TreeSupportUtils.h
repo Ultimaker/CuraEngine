@@ -13,7 +13,7 @@
 #include "geometry/Polygon.h"
 #include "infill/Infill.h"
 #include "polyclipping/clipper.hpp"
-#include "settings/EFillMethod.h"
+#include "types/EFillMethod.h"
 #include "utils/Coord_t.h"
 
 namespace curaengine
@@ -28,9 +28,9 @@ public:
      * \param poly[in] The Polygons object, of which its lines should be extended.
      * \return A Polygons object with explicit line from the last vertex of a Polygon to the first one added.
      */
-    static OpenLinesSet toPolylines(const Shape& poly)
+    static ::curaengine::geometry::OpenLinesSet toPolylines(const ::curaengine::geometry::Shape& poly)
     {
-        OpenLinesSet result;
+        ::curaengine::geometry::OpenLinesSet result;
         for (const auto& path : poly)
         {
             result.push_back(path.toPseudoOpenPolyline());
@@ -45,20 +45,20 @@ public:
      * \param toolpaths[in] The toolpaths.
      * \return A Polygons object.
      */
-    [[nodiscard]] static OpenLinesSet toPolylines(const std::vector<VariableWidthLines> toolpaths)
+    [[nodiscard]] static ::curaengine::geometry::OpenLinesSet toPolylines(const std::vector<::curaengine::utils::VariableWidthLines> toolpaths)
     {
-        OpenLinesSet result;
-        for (const VariableWidthLines& lines : toolpaths)
+        ::curaengine::geometry::OpenLinesSet result;
+        for (const ::curaengine::utils::VariableWidthLines& lines : toolpaths)
         {
-            for (const ExtrusionLine& line : lines)
+            for (const ::curaengine::utils::ExtrusionLine& line : lines)
             {
                 if (line.empty())
                 {
                     continue;
                 }
 
-                OpenPolyline result_line;
-                for (const ExtrusionJunction& junction : line)
+                ::curaengine::geometry::OpenPolyline result_line;
+                for (const ::curaengine::utils::ExtrusionJunction& junction : line)
                 {
                     result_line.push_back(junction.p_);
                 }
@@ -88,52 +88,52 @@ public:
      * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static OpenLinesSet generateSupportInfillLines(
-        const Shape& area,
+    [[nodiscard]] static ::curaengine::geometry::OpenLinesSet generateSupportInfillLines(
+        const ::curaengine::geometry::Shape& area,
         const TreeSupportSettings& config,
         bool roof,
-        LayerIndex layer_idx,
-        coord_t support_infill_distance,
-        std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
+        ::curaengine::types::LayerIndex layer_idx,
+        ::curaengine::utils::coord_t support_infill_distance,
+        std::shared_ptr<::curaengine::infill::SierpinskiFillProvider> cross_fill_provider,
         bool include_walls,
         bool generate_support_supporting = false)
     {
-        Shape gaps;
+        ::curaengine::geometry::Shape gaps;
         // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
-        const EFillMethod pattern = generate_support_supporting ? EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
+        const ::curaengine::types::EFillMethod pattern = generate_support_supporting ? ::curaengine::types::EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
 
-        if (pattern == EFillMethod::LIGHTNING)
+        if (pattern == ::curaengine::types::EFillMethod::LIGHTNING)
         {
             // This can't be done for lightning infill since it requires the support to be generated first. Final result is good enough though,
             // because it propagates to properly support the top area, compensating for the same feature of the tree support.
             return {};
         }
 
-        const bool zig_zaggify_infill = roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
+        const bool zig_zaggify_infill = roof ? pattern == ::curaengine::types::EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
         const bool connect_polygons = false;
-        constexpr coord_t support_roof_overlap = 0;
+        constexpr ::curaengine::utils::coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
-        const coord_t wall_line_count
-            = include_walls ? (! roof ? config.support_wall_thickness : static_cast<coord_t>(config.support_roof_wall_count) * config.support_roof_line_width) : coord_t{ 0 };
-        constexpr coord_t narrow_area_width = 0;
-        const Point2LL infill_origin;
+        const ::curaengine::utils::coord_t wall_line_count
+            = include_walls ? (! roof ? config.support_wall_thickness : static_cast<::curaengine::utils::coord_t>(config.support_roof_wall_count) * config.support_roof_line_width) : ::curaengine::utils::coord_t{ 0 };
+        constexpr ::curaengine::utils::coord_t narrow_area_width = 0;
+        const ::curaengine::geometry::Point2LL infill_origin;
         constexpr bool skip_stitching = false;
         constexpr bool fill_gaps = true;
         constexpr bool use_endpieces = true;
         const bool connected_zigzags = roof ? false : config.connect_zigzags;
         const bool skip_some_zags = roof ? false : config.skip_some_zags;
         const size_t zag_skip_count = roof ? 0 : config.zag_skip_count;
-        constexpr coord_t pocket_size = 0;
-        std::vector<AngleDegrees> angles = roof ? config.support_roof_angles : config.support_infill_angles;
-        std::vector<VariableWidthLines> toolpaths;
+        constexpr ::curaengine::utils::coord_t pocket_size = 0;
+        std::vector<::curaengine::types::AngleDegrees> angles = roof ? config.support_roof_angles : config.support_infill_angles;
+        std::vector<::curaengine::utils::VariableWidthLines> toolpaths;
 
-        const coord_t z = config.getActualZ(layer_idx);
+        const ::curaengine::utils::coord_t z = config.getActualZ(layer_idx);
         const size_t divisor = angles.size();
         const size_t index = ((layer_idx % divisor) + divisor) % divisor;
-        const AngleDegrees fill_angle = angles[index];
-        Infill roof_computation(
+        const ::curaengine::types::AngleDegrees fill_angle = angles[index];
+        ::curaengine::infill::Infill roof_computation(
             pattern,
             zig_zaggify_infill,
             connect_polygons,
@@ -158,9 +158,9 @@ public:
             zag_skip_count,
             pocket_size);
 
-        Shape areas;
-        OpenLinesSet lines;
-        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, SectionType::SUPPORT, cross_fill_provider);
+        ::curaengine::geometry::Shape areas;
+        ::curaengine::geometry::OpenLinesSet lines;
+        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, ::curaengine::utils::SectionType::SUPPORT, cross_fill_provider);
         lines.push_back(toPolylines(areas));
         lines.push_back(toPolylines(toolpaths));
         return lines;
@@ -172,7 +172,7 @@ public:
      * \param second[in] The second Polygon.
      * \return The union of both Shape
      */
-    [[nodiscard]] static Shape safeUnion(const Shape& first, const Shape& second = Shape())
+    [[nodiscard]] static ::curaengine::geometry::Shape safeUnion(const ::curaengine::geometry::Shape& first, const ::curaengine::geometry::Shape& second = ::curaengine::geometry::Shape())
     {
         // The unionPolygons function can slowly remove Polygons under certain circumstances, because of rounding issues (Polygons that have a thin area).
         // This does not cause a problem when actually using it on large areas, but as influence areas (representing centerpoints) can be very thin, this does occur so this ugly
@@ -187,7 +187,7 @@ public:
         */
 
         const bool was_empty = first.empty() && second.empty();
-        Shape result = first.unionPolygons(second);
+        ::curaengine::geometry::Shape result = first.unionPolygons(second);
 
         if (result.empty() && ! was_empty) // Some error occurred.
         {
@@ -210,18 +210,18 @@ public:
      * min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy. \param simplifier[in] Pointer to Simplify object if
      * the offset operation also simplify the Polygon. Improves performance. \return The resulting Shape object.
      */
-    [[nodiscard]] static Shape safeOffsetInc(
-        const Shape& me,
-        coord_t distance,
-        const Shape& collision,
-        coord_t safe_step_size,
-        coord_t last_step_offset_without_check,
+    [[nodiscard]] static ::curaengine::geometry::Shape safeOffsetInc(
+        const ::curaengine::geometry::Shape& me,
+        ::curaengine::utils::coord_t distance,
+        const ::curaengine::geometry::Shape& collision,
+        ::curaengine::utils::coord_t safe_step_size,
+        ::curaengine::utils::coord_t last_step_offset_without_check,
         size_t min_amount_offset,
-        coord_t min_offset_per_step,
-        Simplify* simplifier)
+        ::curaengine::utils::coord_t min_offset_per_step,
+        ::curaengine::utils::Simplify* simplifier)
     {
         bool do_final_difference = last_step_offset_without_check == 0;
-        Shape ret = safeUnion(me); // Ensure sane input.
+        ::curaengine::geometry::Shape ret = safeUnion(me); // Ensure sane input.
         if (distance == 0)
         {
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
@@ -232,7 +232,7 @@ public:
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
         }
 
-        coord_t step_size = std::max(min_offset_per_step, safe_step_size);
+        ::curaengine::utils::coord_t step_size = std::max(min_offset_per_step, safe_step_size);
         size_t steps = distance > last_step_offset_without_check ? (distance - last_step_offset_without_check) / step_size : 0;
         if (distance - steps * step_size > last_step_offset_without_check)
         {
@@ -291,26 +291,26 @@ public:
      * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the
      * provided area. \return A Polyline object containing the moved points.
      */
-    [[nodiscard]] static OpenLinesSet movePointsOutside(const OpenLinesSet& polylines, const Shape& area, coord_t max_allowed_distance)
+    [[nodiscard]] static ::curaengine::geometry::OpenLinesSet movePointsOutside(const ::curaengine::geometry::OpenLinesSet& polylines, const ::curaengine::geometry::Shape& area, ::curaengine::utils::coord_t max_allowed_distance)
     {
-        OpenLinesSet result;
+        ::curaengine::geometry::OpenLinesSet result;
 
-        for (const OpenPolyline& line : polylines)
+        for (const ::curaengine::geometry::OpenPolyline& line : polylines)
         {
-            OpenPolyline next_line;
-            for (const Point2LL& p : line)
+            ::curaengine::geometry::OpenPolyline next_line;
+            for (const ::curaengine::geometry::Point2LL& p : line)
             {
                 if (area.inside(p))
                 {
-                    Point2LL next_outside = p;
-                    PolygonUtils::moveOutside(area, next_outside);
-                    if (vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
+                    ::curaengine::geometry::Point2LL next_outside = p;
+                    ::curaengine::utils::PolygonUtils::moveOutside(area, next_outside);
+                    if (::curaengine::geometry::vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
                     {
                         next_line.push_back(next_outside);
                     }
                     else // move point as far as allowed.
                     {
-                        double max_partial_move_proportion = double(max_allowed_distance) / double(vSize(p - next_outside));
+                        double max_partial_move_proportion = double(max_allowed_distance) / double(::curaengine::geometry::vSize(p - next_outside));
                         next_outside = p + (next_outside - p) * max_partial_move_proportion;
                         next_line.push_back(next_outside);
                     }
@@ -329,14 +329,14 @@ public:
         return result;
     }
 
-    [[nodiscard]] static VariableWidthLines polyLineToVWL(const Shape& polylines, coord_t line_width)
+    [[nodiscard]] static ::curaengine::utils::VariableWidthLines polyLineToVWL(const ::curaengine::geometry::Shape& polylines, ::curaengine::utils::coord_t line_width)
     {
-        VariableWidthLines result;
+        ::curaengine::utils::VariableWidthLines result;
         for (auto path : polylines)
         {
-            ExtrusionLine vwl_line(1, true);
+            ::curaengine::utils::ExtrusionLine vwl_line(1, true);
 
-            for (Point2LL p : path)
+            for (::curaengine::geometry::Point2LL p : path)
             {
                 vwl_line.emplace_back(p, line_width, 1);
             }

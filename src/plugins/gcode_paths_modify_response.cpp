@@ -11,7 +11,7 @@
 #include <range/v3/view/transform.hpp>
 
 #include "SliceMeshStorage.h"
-#include "pathPlanning/SpeedDerivatives.h"
+#include "path_planning/SpeedDerivatives.h"
 
 namespace curaengine::plugins
 {
@@ -82,7 +82,7 @@ namespace curaengine::plugins
         .layer_thickness = path.layer_thickness(),
         .flow = path.flow_ratio(),
         .speed_derivatives
-        = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
+        = ::curaengine::path_planning::SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
         .is_bridge_path = path.is_bridge_path(),
         .fan_speed = path.fan_speed(),
         .temperature_delta = path.temperature_delta(),
@@ -92,7 +92,7 @@ namespace curaengine::plugins
 gcode_paths_modify_response::native_value_type
     gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
 {
-    std::vector<GCodePath> paths;
+    std::vector<::curaengine::path_planning::GCodePath> paths;
     using map_t = std::unordered_map<std::string, std::shared_ptr<const SliceMeshStorage>>;
     auto meshes = original_value
                 | ranges::views::filter(
@@ -109,7 +109,7 @@ gcode_paths_modify_response::native_value_type
 
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
-        GCodePath path{
+        ::curaengine::path_planning::GCodePath path{
             .z_offset = gcode_path_msg.z_offset(),
             .config = buildConfig(gcode_path_msg),
             .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
@@ -132,7 +132,7 @@ gcode_paths_modify_response::native_value_type
                     | ranges::views::transform(
                           [](const auto& point_msg)
                           {
-                              return Point3LL{ point_msg.x(), point_msg.y(), point_msg.z() };
+                              return ::curaengine::geometry::Point3LL{ point_msg.x(), point_msg.y(), point_msg.z() };
                           })
                     | ranges::to_vector;
 

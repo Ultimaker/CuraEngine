@@ -9,25 +9,25 @@ namespace curaengine
 {
 
 template<>
-const Point2LL& PathAdapter<ExtrusionLine>::pointAt(size_t index) const
+const ::curaengine::geometry::Point2LL& PathAdapter<::curaengine::utils::ExtrusionLine>::pointAt(size_t index) const
 {
     return path_.junctions_.at(index).p_;
 }
 
 template<>
-coord_t PathAdapter<ExtrusionLine>::lineWidthAt(size_t index) const
+::curaengine::utils::coord_t PathAdapter<::curaengine::utils::ExtrusionLine>::lineWidthAt(size_t index) const
 {
     return path_.junctions_.at(index).w_;
 }
 
 template<>
-const Point2LL& PathAdapter<Polygon>::pointAt(size_t index) const
+const ::curaengine::geometry::Point2LL& PathAdapter<::curaengine::geometry::Polygon>::pointAt(size_t index) const
 {
     return path_.at(index);
 }
 
 template<>
-coord_t PathAdapter<Polygon>::lineWidthAt(size_t /*index*/) const
+::curaengine::utils::coord_t PathAdapter<::curaengine::geometry::Polygon>::lineWidthAt(size_t /*index*/) const
 {
     return fixed_line_width_;
 }

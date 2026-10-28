@@ -25,7 +25,7 @@
 #include "geometry/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
 #include "geometry/Point2F.h"
 #include "geometry/Point3F.h" //To accept incoming meshes with floating point vertices.
-#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
+#include "types/Ratio.h" //For the shrinkage percentage and scale factor.
 #include "utils/MeshUtils.h"
 #include "utils/SectionType.h"
 #include "utils/TimeKeeper.h"
@@ -53,20 +53,20 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-Point3LL MeshGroup::min() const
+::curaengine::geometry::Point3LL MeshGroup::min() const
 {
     if (meshes.size() < 1)
     {
-        return Point3LL(0, 0, 0);
+        return ::curaengine::geometry::Point3LL(0, 0, 0);
     }
-    Point3LL ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
+    ::curaengine::geometry::Point3LL ret(std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
         if (! mesh.isModelMesh()) // Don't count pieces that are not printed.
         {
             continue;
         }
-        Point3LL v = mesh.min();
+        ::curaengine::geometry::Point3LL v = mesh.min();
         ret.x_ = std::min(ret.x_, v.x_);
         ret.y_ = std::min(ret.y_, v.y_);
         ret.z_ = std::min(ret.z_, v.z_);
@@ -74,20 +74,20 @@ Point3LL MeshGroup::min() const
     return ret;
 }
 
-Point3LL MeshGroup::max() const
+::curaengine::geometry::Point3LL MeshGroup::max() const
 {
     if (meshes.size() < 1)
     {
-        return Point3LL(0, 0, 0);
+        return ::curaengine::geometry::Point3LL(0, 0, 0);
     }
-    Point3LL ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
+    ::curaengine::geometry::Point3LL ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
         if (! mesh.isModelMesh()) // Don't count pieces that are not printed.
         {
             continue;
         }
-        Point3LL v = mesh.max();
+        ::curaengine::geometry::Point3LL v = mesh.max();
         ret.x_ = std::max(ret.x_, v.x_);
         ret.y_ = std::max(ret.y_, v.y_);
         ret.z_ = std::max(ret.z_, v.z_);
@@ -106,54 +106,54 @@ void MeshGroup::clear()
 void MeshGroup::finalize()
 {
     // If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
-    Point3LL meshgroup_offset(0, 0, 0);
+    ::curaengine::geometry::Point3LL meshgroup_offset(0, 0, 0);
     if (! settings.get<bool>("machine_center_is_zero"))
     {
-        meshgroup_offset.x_ = settings.get<coord_t>("machine_width") / 2;
-        meshgroup_offset.y_ = settings.get<coord_t>("machine_depth") / 2;
+        meshgroup_offset.x_ = settings.get<::curaengine::utils::coord_t>("machine_width") / 2;
+        meshgroup_offset.y_ = settings.get<::curaengine::utils::coord_t>("machine_depth") / 2;
     }
 
     // If a mesh position was given, put the mesh at this position in 3D space.
     for (Mesh& mesh : meshes)
     {
-        Point3LL mesh_offset(mesh.settings_.get<coord_t>("mesh_position_x"), mesh.settings_.get<coord_t>("mesh_position_y"), mesh.settings_.get<coord_t>("mesh_position_z"));
+        ::curaengine::geometry::Point3LL mesh_offset(mesh.settings_.get<::curaengine::utils::coord_t>("mesh_position_x"), mesh.settings_.get<::curaengine::utils::coord_t>("mesh_position_y"), mesh.settings_.get<::curaengine::utils::coord_t>("mesh_position_z"));
         if (mesh.settings_.get<bool>("center_object"))
         {
-            Point3LL object_min = mesh.min();
-            Point3LL object_max = mesh.max();
-            Point3LL object_size = object_max - object_min;
-            mesh_offset += Point3LL(-object_min.x_ - object_size.x_ / 2, -object_min.y_ - object_size.y_ / 2, -object_min.z_);
+            ::curaengine::geometry::Point3LL object_min = mesh.min();
+            ::curaengine::geometry::Point3LL object_max = mesh.max();
+            ::curaengine::geometry::Point3LL object_size = object_max - object_min;
+            mesh_offset += ::curaengine::geometry::Point3LL(-object_min.x_ - object_size.x_ / 2, -object_min.y_ - object_size.y_ / 2, -object_min.z_);
         }
         mesh.translate(mesh_offset + meshgroup_offset);
     }
     scaleFromBottom(
-        settings.get<Ratio>("material_shrinkage_percentage_xy"),
-        settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
+        settings.get<::curaengine::types::Ratio>("material_shrinkage_percentage_xy"),
+        settings.get<::curaengine::types::Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
     for (const auto& [idx, mesh] : meshes | ranges::views::enumerate)
     {
-        scripta::log(fmt::format("mesh_{}", idx), mesh, SectionType::NA);
+        scripta::log(fmt::format("mesh_{}", idx), mesh, ::curaengine::utils::SectionType::NA);
     }
 }
 
-void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
+void MeshGroup::scaleFromBottom(const ::curaengine::types::Ratio factor_xy, const ::curaengine::types::Ratio factor_z)
 {
-    const Point3LL center = (max() + min()) / 2;
-    const Point3LL origin(center.x_, center.y_, 0);
+    const ::curaengine::geometry::Point3LL center = (max() + min()) / 2;
+    const ::curaengine::geometry::Point3LL origin(center.x_, center.y_, 0);
 
-    const Matrix4x3D transformation = Matrix4x3D::scale(factor_xy, factor_xy, factor_z, origin);
+    const ::curaengine::geometry::Matrix4x3D transformation = ::curaengine::geometry::Matrix4x3D::scale(factor_xy, factor_xy, factor_z, origin);
     for (Mesh& mesh : meshes)
     {
         mesh.transform(transformation);
     }
 }
 
-bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const ::curaengine::geometry::Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename.string().c_str(), "rt");
     char buffer[1024];
-    Point3F vertex;
+    ::curaengine::geometry::Point3F vertex;
     int n = 0;
-    Point3LL v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
+    ::curaengine::geometry::Point3LL v0(0, 0, 0), v1(0, 0, 0), v2(0, 0, 0);
     while (fgets_(buffer, sizeof(buffer), f))
     {
         if (sscanf(buffer, " vertex %f %f %f", &vertex.x_, &vertex.y_, &vertex.z_) == 3)
@@ -180,7 +180,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const Matrix4x3D& m
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
+bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const ::curaengine::geometry::Matrix4x3D& matrix, const std::vector<::curaengine::geometry::Point2F>* uv_coordinates = nullptr)
 {
     FILE* f = fopen(filename.string().c_str(), "rb");
 
@@ -225,16 +225,16 @@ bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& 
         }
         float* v = reinterpret_cast<float*>(buffer) + 3;
 
-        Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
-        Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
-        Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
+        ::curaengine::geometry::Point3LL v0 = matrix.apply(::curaengine::geometry::Point3F(v[0], v[1], v[2]).toPoint3d());
+        ::curaengine::geometry::Point3LL v1 = matrix.apply(::curaengine::geometry::Point3F(v[3], v[4], v[5]).toPoint3d());
+        ::curaengine::geometry::Point3LL v2 = matrix.apply(::curaengine::geometry::Point3F(v[6], v[7], v[8]).toPoint3d());
 
         // Handle UV coordinates if provided
         if (uv_coordinates && vertex_index + 2 < uv_coordinates->size())
         {
-            std::optional<Point2F> uv0 = (*uv_coordinates)[vertex_index];
-            std::optional<Point2F> uv1 = (*uv_coordinates)[vertex_index + 1];
-            std::optional<Point2F> uv2 = (*uv_coordinates)[vertex_index + 2];
+            std::optional<::curaengine::geometry::Point2F> uv0 = (*uv_coordinates)[vertex_index];
+            std::optional<::curaengine::geometry::Point2F> uv1 = (*uv_coordinates)[vertex_index + 1];
+            std::optional<::curaengine::geometry::Point2F> uv2 = (*uv_coordinates)[vertex_index + 2];
             vertex_index += 3;
             mesh->addFace(v0, v1, v2, uv0, uv1, uv2);
         }
@@ -248,7 +248,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& 
     return true;
 }
 
-bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
+bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const ::curaengine::geometry::Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename.string().c_str(), "rb");
     if (f == nullptr)
@@ -287,7 +287,7 @@ bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
     fclose(f);
 
     buffer[5] = '\0';
-    if (stringcasecompare(buffer, "solid") == 0)
+    if (::curaengine::utils::stringcasecompare(buffer, "solid") == 0)
     {
         bool load_success = loadMeshSTL_ascii(mesh, filename, matrix);
         if (! load_success)
@@ -305,7 +305,7 @@ bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
+bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const ::curaengine::geometry::Matrix4x3D& matrix)
 {
     std::ifstream file(filename);
     if (! file.is_open())
@@ -314,8 +314,8 @@ bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
         return false;
     }
 
-    std::vector<Point3LL> vertices;
-    std::vector<Point2F> uv_coordinates;
+    std::vector<::curaengine::geometry::Point3LL> vertices;
+    std::vector<::curaengine::geometry::Point2F> uv_coordinates;
     std::string line;
     std::regex main_regex(R"((v|vt|f)\s+(.*))");
     const std::string floating_number_pattern = R"(([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?))";
@@ -323,7 +323,7 @@ bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
     std::regex uv_regex(floating_number_pattern + R"(\s+)" + floating_number_pattern + R"((?:\s+)" + floating_number_pattern + ")");
     std::regex face_indices_regex(R"((\d+)(?:\/(\d*))?(?:\/(?:\d*))?)");
 
-    auto get_uv_coordinates = [&uv_coordinates](std::optional<size_t> uv_index) -> std::optional<Point2F>
+    auto get_uv_coordinates = [&uv_coordinates](std::optional<size_t> uv_index) -> std::optional<::curaengine::geometry::Point2F>
     {
         if (uv_index.has_value() && uv_index.value() < uv_coordinates.size())
         {
@@ -350,13 +350,13 @@ bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
             const float x = std::stof(matches[1].str());
             const float y = std::stof(matches[2].str());
             const float z = std::stof(matches[3].str());
-            vertices.push_back(matrix.apply(Point3D(x, y, z)));
+            vertices.push_back(matrix.apply(::curaengine::geometry::Point3D(x, y, z)));
         }
         else if (line_identifier == "vt" && std::regex_match(payload, matches, uv_regex))
         {
             const float u = std::stof(matches[1].str());
             const float v = std::stof(matches[2].str());
-            uv_coordinates.push_back(Point2F(u, v));
+            uv_coordinates.push_back(::curaengine::geometry::Point2F(u, v));
         }
         else if (line_identifier == "f")
         {
@@ -422,7 +422,7 @@ bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
  * @param uv_coordinates Vector to store the loaded UV coordinates
  * @return true if UV coordinates were loaded successfully, false otherwise
  */
-bool loadUVCoordinatesFromFile(const fs::path& uv_filename, std::vector<Point2F>& uv_coordinates)
+bool loadUVCoordinatesFromFile(const fs::path& uv_filename, std::vector<::curaengine::geometry::Point2F>& uv_coordinates)
 {
     if (! fs::exists(uv_filename))
     {
@@ -459,7 +459,7 @@ bool loadUVCoordinatesFromFile(const fs::path& uv_filename, std::vector<Point2F>
 }
 
 
-bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
+bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const ::curaengine::geometry::Matrix4x3D& matrix, const std::vector<::curaengine::geometry::Point2F>& uv_coordinates)
 {
     FILE* f = fopen(filename.string().c_str(), "rb");
     if (f == nullptr)
@@ -498,7 +498,7 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D&
     fclose(f);
 
     buffer[5] = '\0';
-    if (stringcasecompare(buffer, "solid") == 0)
+    if (::curaengine::utils::stringcasecompare(buffer, "solid") == 0)
     {
         // ASCII STL with UV coordinates not currently supported
         spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename.string());
@@ -507,9 +507,9 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D&
     return loadMeshSTL_binary(mesh, filename, matrix, &uv_coordinates);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const ::curaengine::geometry::Matrix4x3D& transformation, Settings& object_parent_settings)
 {
-    TimeKeeper load_timer;
+    ::curaengine::utils::TimeKeeper load_timer;
 
     Mesh mesh(object_parent_settings);
     bool load_success = false;
@@ -525,7 +525,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
         // Check for corresponding UV and PNG files
         const fs::path uv_filename = fs::path(base_filename + ".uv");
 
-        std::vector<Point2F> uv_coordinates;
+        std::vector<::curaengine::geometry::Point2F> uv_coordinates;
         has_uv = loadUVCoordinatesFromFile(uv_filename, uv_coordinates);
 
         if (has_uv)
@@ -568,7 +568,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
             const fs::path texture_filename = fs::path(filename).replace_extension("png");
             if (fs::exists(texture_filename))
             {
-                if (MeshUtils::loadTextureFromFile(mesh, texture_filename))
+                if (::curaengine::utils::loadTextureFromFile(mesh, texture_filename))
                 {
                     spdlog::info("Successfully loaded texture from: {}", texture_filename.string());
                 }

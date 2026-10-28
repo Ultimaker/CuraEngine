@@ -18,10 +18,27 @@ namespace Arcus
 class Socket;
 }
 
+namespace curaengine::geometry
+{
+class Polygon;
+}
+
+#ifdef BUILD_TESTS
 namespace curaengine
 {
+class ArcusCommunicationTest;
+class ArcusCommunicationPrivateTest;
+class ArcusCommunicationTest_FlushGCodeTest_Test;
+class ArcusCommunicationTest_HasSlice_Test;
+class ArcusCommunicationTest_SendLayerComplete_Test;
+class ArcusCommunicationTest_SendProgress_Test;
+}
+#endif
 
-class Polygon;
+namespace curaengine::communication
+{
+
+
 
 /*
  * \brief Communication class that connects via libArcus to Cura's front-end.
@@ -29,12 +46,12 @@ class Polygon;
 class ArcusCommunication : public Communication
 {
 #ifdef BUILD_TESTS
-    friend class ArcusCommunicationTest;
-    FRIEND_TEST(ArcusCommunicationTest, FlushGCodeTest);
-    FRIEND_TEST(ArcusCommunicationTest, HasSlice);
-    FRIEND_TEST(ArcusCommunicationTest, SendLayerComplete);
-    FRIEND_TEST(ArcusCommunicationTest, SendProgress);
-    friend class ArcusCommunicationPrivateTest;
+    friend class ::curaengine::ArcusCommunicationTest;
+    friend class ::curaengine::ArcusCommunicationTest_FlushGCodeTest_Test;
+    friend class ::curaengine::ArcusCommunicationTest_HasSlice_Test;
+    friend class ::curaengine::ArcusCommunicationTest_SendLayerComplete_Test;
+    friend class ::curaengine::ArcusCommunicationTest_SendProgress_Test;
+    friend class ::curaengine::ArcusCommunicationPrivateTest;
 #endif
 public:
     /*
@@ -69,7 +86,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    void sendCurrentPosition(const Point3LL& position) override;
+    void sendCurrentPosition(const ::curaengine::geometry::Point3LL& position) override;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
@@ -96,7 +113,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) override;
+    void sendLayerComplete(const ::curaengine::types::LayerIndex::value_type& layer_nr, const ::curaengine::utils::coord_t& z, const ::curaengine::utils::coord_t& thickness) override;
 
     /*
      * \brief Send a line to the front-end to display in layer view.
@@ -112,10 +129,10 @@ public:
      */
     void sendLineTo(
         const PrintFeatureType& type,
-        const Point3LL& to,
-        const coord_t& line_width,
-        const coord_t& line_thickness,
-        const Velocity& velocity,
+        const ::curaengine::geometry::Point3LL& to,
+        const ::curaengine::utils::coord_t& line_width,
+        const ::curaengine::utils::coord_t& line_thickness,
+        const ::curaengine::types::Velocity& velocity,
         const PrintSegmentAttributes& print_attributes) override;
 
     /*
@@ -131,7 +148,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<::curaengine::types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Communicate to Arcus what our progress is.
@@ -149,7 +166,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    void setLayerForSend(const LayerIndex::value_type& layer_nr) override;
+    void setLayerForSend(const ::curaengine::types::LayerIndex::value_type& layer_nr) override;
 
     /*
      * \brief Slice the next scene that the front-end wants us to slice.
@@ -184,6 +201,6 @@ private:
     const std::unique_ptr<PathCompiler> path_compiler;
 };
 
-} // namespace curaengine
+} // namespace curaengine::communication
 
 #endif // ARCUS

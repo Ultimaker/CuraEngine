@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 
 namespace curaengine
 {
 struct ZHopAntiOozing
 {
     double amount{ 0 }; //!< The absolute amount of retracted material (in mm) to be reached while the nozzle is moved up/down
-    Ratio ratio; //!< The ratio of the full z-hop move that contains a retract/prime
+    ::curaengine::types::Ratio ratio; //!< The ratio of the full z-hop move that contains a retract/prime
 };
 
 } // namespace curaengine

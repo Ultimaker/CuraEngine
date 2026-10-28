@@ -10,7 +10,7 @@
 
 #include "AvoidanceType.h"
 #include "InterfacePreference.h"
-#include "PrimeTower/PrimeTower.h"
+#include "prime_tower/PrimeTower.h"
 #include "RestPreference.h"
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
@@ -18,9 +18,9 @@
 #include "TreeSupport.h"
 #include "TreeSupportSettings.h"
 #include "progress/Progress.h"
-#include "settings/ESupportType.h"
-#include "settings/ESurfaceMode.h"
-#include "settings/SupportDistPriority.h"
+#include "types/ESupportType.h"
+#include "types/ESurfaceMode.h"
+#include "types/SupportDistPriority.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 
@@ -29,16 +29,16 @@ namespace curaengine
 
 TreeModelVolumes::TreeModelVolumes(
     const SliceDataStorage& storage,
-    const coord_t max_move,
-    const coord_t max_move_slow,
-    const coord_t min_offset_per_step,
+    const ::curaengine::utils::coord_t max_move,
+    const ::curaengine::utils::coord_t max_move_slow,
+    const ::curaengine::utils::coord_t min_offset_per_step,
     size_t current_mesh_idx,
     double progress_multiplier,
     double progress_offset,
-    const std::vector<Shape>& additional_excluded_areas)
-    : max_move_{ std::max(max_move - 2, coord_t(0)) }
+    const std::vector<::curaengine::geometry::Shape>& additional_excluded_areas)
+    : max_move_{ std::max(max_move - 2, ::curaengine::utils::coord_t(0)) }
     , // -2 to avoid rounding errors
-    max_move_slow_{ std::max(max_move_slow - 2, coord_t(0)) }
+    max_move_slow_{ std::max(max_move_slow - 2, ::curaengine::utils::coord_t(0)) }
     , // -2 to avoid rounding errors
     min_offset_per_step_{ min_offset_per_step }
     , progress_multiplier_{ progress_multiplier }
@@ -46,16 +46,16 @@ TreeModelVolumes::TreeModelVolumes(
     , machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder()) }
     , machine_area_{ storage.getMachineBorder() }
 {
-    anti_overhang_ = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
+    anti_overhang_ = std::vector<::curaengine::geometry::Shape>(storage.support.supportLayers.size(), ::curaengine::geometry::Shape());
     std::unordered_map<size_t, size_t> mesh_to_layeroutline_idx;
 
     // Get, for all participating meshes, simplification settings, and support settings that can be set per mesh.
     // NOTE: The setting 'support_type' (used here for 'support_rests_on_model' is not settable per mesh, if this stays that way, we could simplify the code a bit.
     //       Currently in the middle of rethinking support, so this stays.
 
-    coord_t min_maximum_resolution = std::numeric_limits<coord_t>::max();
-    coord_t min_maximum_deviation = std::numeric_limits<coord_t>::max();
-    coord_t min_maximum_area_deviation = std::numeric_limits<coord_t>::max();
+    ::curaengine::utils::coord_t min_maximum_resolution = std::numeric_limits<::curaengine::utils::coord_t>::max();
+    ::curaengine::utils::coord_t min_maximum_deviation = std::numeric_limits<::curaengine::utils::coord_t>::max();
+    ::curaengine::utils::coord_t min_maximum_area_deviation = std::numeric_limits<::curaengine::utils::coord_t>::max();
 
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
@@ -72,32 +72,32 @@ TreeModelVolumes::TreeModelVolumes(
         if (! added)
         {
             mesh_to_layeroutline_idx[mesh_idx] = layer_outlines_.size();
-            layer_outlines_.emplace_back(mesh.settings, std::vector<Shape>(storage.support.supportLayers.size(), Shape()));
+            layer_outlines_.emplace_back(mesh.settings, std::vector<::curaengine::geometry::Shape>(storage.support.supportLayers.size(), ::curaengine::geometry::Shape()));
         }
     }
 
     for (const auto data_pair : layer_outlines_)
     {
-        support_rests_on_model_ |= data_pair.first.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
-        min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
-        min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
-        min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
+        support_rests_on_model_ |= data_pair.first.get<::curaengine::types::ESupportType>("support_type") == ::curaengine::types::ESupportType::EVERYWHERE;
+        min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation"));
+        min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution"));
+        min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<::curaengine::utils::coord_t>("meshfix_maximum_extrusion_area_deviation"));
     }
 
     // Figure out the rest of the setting(-like variable)s relevant to the class a whole.
     current_outline_idx_ = mesh_to_layeroutline_idx[current_mesh_idx];
     const TreeSupportSettings config(layer_outlines_[current_outline_idx_].first);
 
-    if (config.support_overrides == SupportDistPriority::Z_OVERRIDES_XY)
+    if (config.support_overrides == ::curaengine::types::SupportDistPriority::Z_OVERRIDES_XY)
     {
         current_min_xy_dist_ = config.xy_min_distance;
 
         if (TreeSupportSettings::has_to_rely_on_min_xy_dist_only)
         {
-            current_min_xy_dist_ = std::max(current_min_xy_dist_, coord_t(FUDGE_LENGTH * 2));
+            current_min_xy_dist_ = std::max(current_min_xy_dist_, ::curaengine::utils::coord_t(FUDGE_LENGTH * 2));
         }
 
-        current_min_xy_dist_delta_ = std::max(config.xy_distance - current_min_xy_dist_, coord_t(0));
+        current_min_xy_dist_delta_ = std::max(config.xy_distance - current_min_xy_dist_, ::curaengine::utils::coord_t(0));
     }
     else
     {
@@ -115,38 +115,38 @@ TreeModelVolumes::TreeModelVolumes(
         const auto& mesh_l = *mesh;
         // ^^^ Remove when fixed (and rename accordingly in the below parallel-for).
 
-        curaengine::parallel_for<coord_t>(
+        ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
             0,
-            LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second.size()),
-            [&](const LayerIndex layer_idx)
+            ::curaengine::types::LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second.size()),
+            [&](const ::curaengine::types::LayerIndex layer_idx)
             {
                 if (mesh_l.layer_nr_max_filled_layer < layer_idx)
                 {
                     return; // Can't break as parallel_for wont allow it, this is equivalent to a continue.
                 }
-                Shape outline = extractOutlineFromMesh(mesh_l, layer_idx);
+                ::curaengine::geometry::Shape outline = extractOutlineFromMesh(mesh_l, layer_idx);
                 layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second[layer_idx].push_back(outline);
             });
     }
     // Merge all the layer outlines together.
     for (auto& layer_outline : layer_outlines_)
     {
-        curaengine::parallel_for<coord_t>(
+        ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
             0,
-            LayerIndex(anti_overhang_.size()),
-            [&](const LayerIndex layer_idx)
+            ::curaengine::types::LayerIndex(anti_overhang_.size()),
+            [&](const ::curaengine::types::LayerIndex layer_idx)
             {
                 layer_outline.second[layer_idx] = layer_outline.second[layer_idx].unionPolygons();
             });
     }
 
     // Gather all excluded areas, like support-blockers and trees that where already generated.
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         0,
-        LayerIndex(anti_overhang_.size()),
-        [&](const LayerIndex layer_idx)
+        ::curaengine::types::LayerIndex(anti_overhang_.size()),
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
-            if (layer_idx < coord_t(additional_excluded_areas.size()))
+            if (layer_idx < ::curaengine::utils::coord_t(additional_excluded_areas.size()))
             {
                 anti_overhang_[layer_idx].push_back(additional_excluded_areas[layer_idx]);
             }
@@ -174,10 +174,10 @@ TreeModelVolumes::TreeModelVolumes(
     // Cache some handy settings in the object itself.
     radius_0_ = config.getRadius(0);
     support_rest_preference_ = config.support_rest_preference;
-    simplifier_ = Simplify(min_maximum_resolution, min_maximum_deviation, min_maximum_area_deviation);
+    simplifier_ = ::curaengine::utils::Simplify(min_maximum_resolution, min_maximum_deviation, min_maximum_area_deviation);
 }
 
-void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
+void TreeModelVolumes::precalculate(::curaengine::utils::coord_t max_layer, ::curaengine::utils::TimeKeeper& time_keeper)
 {
     precalculated_ = true;
 
@@ -186,7 +186,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
     const TreeSupportSettings config(layer_outlines_[current_outline_idx_].first);
 
     // Calculate which radius each layer in the tip may have.
-    std::unordered_set<coord_t> possible_tip_radiis;
+    std::unordered_set<::curaengine::utils::coord_t> possible_tip_radiis;
     for (const auto dtt : ranges::views::iota(0UL, config.tip_layers + 1))
     {
         possible_tip_radiis.emplace(ceilRadius(config.getRadius(dtt)));
@@ -195,7 +195,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
     // It theoretically may happen in the tip, that the radius can change so much in-between 2 layers, that a ceil step is skipped (as in there is a radius r so that
     // ceilRadius(radius(dtt))<ceilRadius(r)<ceilRadius(radius(dtt+1))). As such a radius will not reasonable happen in the tree and it will most likely not be requested, there is
     // no need to calculate them. So just skip these.
-    for (coord_t radius_eval = ceilRadius(1); radius_eval <= config.branch_radius; radius_eval = ceilRadius(radius_eval + 1))
+    for (::curaengine::utils::coord_t radius_eval = ceilRadius(1); radius_eval <= config.branch_radius; radius_eval = ceilRadius(radius_eval + 1))
     {
         if (! possible_tip_radiis.count(radius_eval))
         {
@@ -208,15 +208,15 @@ void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
 
     // It may seem that the required avoidance can be of a smaller radius when going to model (no initial layer diameter for to model branches)
     // but as for every branch going towards the bp, the to model avoidance is required to check for possible merges with to model branches, this assumption is in-fact wrong.
-    std::unordered_map<coord_t, LayerIndex> radius_until_layer;
+    std::unordered_map<::curaengine::utils::coord_t, ::curaengine::types::LayerIndex> radius_until_layer;
     // while it is possible to calculate, up to which layer the avoidance should be calculated, this simulation is easier to understand, and does not need to be adjusted if
     // something of the radius calculation is changed. Tested overhead was neligable (milliseconds for thounds of layers).
-    for (LayerIndex simulated_dtt = 0; simulated_dtt <= max_layer; simulated_dtt++)
+    for (::curaengine::types::LayerIndex simulated_dtt = 0; simulated_dtt <= max_layer; simulated_dtt++)
     {
-        const LayerIndex current_layer = max_layer - simulated_dtt;
-        const coord_t max_regular_radius = ceilRadius(config.getRadius(simulated_dtt, 0) + current_min_xy_dist_delta_);
-        const coord_t max_min_radius = ceilRadius(config.getRadius(simulated_dtt, 0)); // the maximal radius that the radius with the min_xy_dist can achieve
-        const coord_t max_initial_layer_diameter_radius = ceilRadius(config.recommendedMinRadius(current_layer) + current_min_xy_dist_delta_);
+        const ::curaengine::types::LayerIndex current_layer = max_layer - simulated_dtt;
+        const ::curaengine::utils::coord_t max_regular_radius = ceilRadius(config.getRadius(simulated_dtt, 0) + current_min_xy_dist_delta_);
+        const ::curaengine::utils::coord_t max_min_radius = ceilRadius(config.getRadius(simulated_dtt, 0)); // the maximal radius that the radius with the min_xy_dist can achieve
+        const ::curaengine::utils::coord_t max_initial_layer_diameter_radius = ceilRadius(config.recommendedMinRadius(current_layer) + current_min_xy_dist_delta_);
         if (! radius_until_layer.count(max_regular_radius))
         {
             radius_until_layer[max_regular_radius] = current_layer;
@@ -319,10 +319,10 @@ void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
     precalculation_finished_ = true;
 }
 
-const Shape& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
+const ::curaengine::geometry::Shape& TreeModelVolumes::getCollision(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, bool min_xy_dist)
 {
-    const coord_t orig_radius = radius;
-    std::optional<std::reference_wrapper<const Shape>> result;
+    const ::curaengine::utils::coord_t orig_radius = radius;
+    std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> result;
     if (! min_xy_dist)
     {
         radius += current_min_xy_dist_delta_;
@@ -352,10 +352,10 @@ const Shape& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx
     return getCollision(orig_radius, layer_idx, min_xy_dist);
 }
 
-const Shape& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
+const ::curaengine::geometry::Shape& TreeModelVolumes::getCollisionHolefree(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, bool min_xy_dist)
 {
-    const coord_t orig_radius = radius;
-    std::optional<std::reference_wrapper<const Shape>> result;
+    const ::curaengine::utils::coord_t orig_radius = radius;
+    std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> result;
     if (! min_xy_dist)
     {
         radius += current_min_xy_dist_delta_;
@@ -382,7 +382,7 @@ const Shape& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerIndex l
     return getCollisionHolefree(orig_radius, layer_idx, min_xy_dist);
 }
 
-const Shape& TreeModelVolumes::getAccumulatedPlaceable0(LayerIndex layer_idx)
+const ::curaengine::geometry::Shape& TreeModelVolumes::getAccumulatedPlaceable0(::curaengine::types::LayerIndex layer_idx)
 {
     {
         std::lock_guard<std::mutex> critical_section_support_max_layer_nr(*critical_accumulated_placeables_cache_radius_0_);
@@ -396,16 +396,16 @@ const Shape& TreeModelVolumes::getAccumulatedPlaceable0(LayerIndex layer_idx)
     return getAccumulatedPlaceable0(layer_idx);
 }
 
-const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
+const ::curaengine::geometry::Shape& TreeModelVolumes::getAvoidance(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
 {
     if (layer_idx == 0) // What on the layer directly above buildplate do i have to avoid to reach the buildplate ...
     {
         return getCollision(radius, layer_idx, min_xy_dist);
     }
 
-    const coord_t orig_radius = radius;
+    const ::curaengine::utils::coord_t orig_radius = radius;
 
-    std::optional<std::reference_wrapper<const Shape>> result;
+    std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> result;
 
     radius += (min_xy_dist ? 0 : current_min_xy_dist_delta_);
     radius = ceilRadius(radius);
@@ -417,7 +417,7 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
 
     const RadiusLayerPair key{ radius, layer_idx };
 
-    std::unordered_map<RadiusLayerPair, Shape>* cache_ptr = nullptr;
+    std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape>* cache_ptr = nullptr;
     std::mutex* mutex_ptr = nullptr;
     switch (type)
     {
@@ -464,7 +464,7 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
             to_model,
             key.first,
             key.second,
-            coord_t(type));
+            ::curaengine::utils::coord_t(type));
     }
     if (type == AvoidanceType::COLLISION)
     {
@@ -481,10 +481,10 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
     return getAvoidance(orig_radius, layer_idx, type, to_model, min_xy_dist); // retrive failed and correct result was calculated. Now it has to be retrived.
 }
 
-const Shape& TreeModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex layer_idx)
+const ::curaengine::geometry::Shape& TreeModelVolumes::getPlaceableAreas(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx)
 {
-    std::optional<std::reference_wrapper<const Shape>> result;
-    const coord_t orig_radius = radius;
+    std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> result;
+    const ::curaengine::utils::coord_t orig_radius = radius;
     radius = ceilRadius(radius);
     RadiusLayerPair key{ radius, layer_idx };
 
@@ -512,22 +512,22 @@ const Shape& TreeModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex laye
 }
 
 
-const Shape& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
+const ::curaengine::geometry::Shape& TreeModelVolumes::getWallRestriction(::curaengine::utils::coord_t radius, ::curaengine::types::LayerIndex layer_idx, bool min_xy_dist)
 {
     if (layer_idx == 0) // Should never be requested as there will be no going below layer 0 ..., but just to be sure some semi-sane catch. Alternative would be empty Polygon.
     {
         return getCollision(radius, layer_idx, min_xy_dist);
     }
 
-    const coord_t orig_radius = radius;
+    const ::curaengine::utils::coord_t orig_radius = radius;
     min_xy_dist = min_xy_dist && current_min_xy_dist_delta_ > 0;
 
-    std::optional<std::reference_wrapper<const Shape>> result;
+    std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> result;
 
     radius = ceilRadius(radius);
     const RadiusLayerPair key{ radius, layer_idx };
 
-    std::unordered_map<RadiusLayerPair, Shape>* cache_ptr = min_xy_dist ? &wall_restrictions_cache_min_ : &wall_restrictions_cache_;
+    std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape>* cache_ptr = min_xy_dist ? &wall_restrictions_cache_min_ : &wall_restrictions_cache_;
     {
         std::lock_guard<std::mutex> critical_section(min_xy_dist ? *critical_wall_restrictions_cache_min_ : *critical_wall_restrictions_cache_);
         result = getArea(*cache_ptr, key);
@@ -545,12 +545,12 @@ const Shape& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex lay
     return getWallRestriction(orig_radius, layer_idx, min_xy_dist); // Retrieve failed and correct result was calculated. Now it has to be retrieved.
 }
 
-coord_t TreeModelVolumes::ceilRadius(coord_t radius, bool min_xy_dist) const
+::curaengine::utils::coord_t TreeModelVolumes::ceilRadius(::curaengine::utils::coord_t radius, bool min_xy_dist) const
 {
     return ceilRadius(radius + (min_xy_dist ? 0 : current_min_xy_dist_delta_));
 }
 
-coord_t TreeModelVolumes::getRadiusNextCeil(coord_t radius, bool min_xy_dist) const
+::curaengine::utils::coord_t TreeModelVolumes::getRadiusNextCeil(::curaengine::utils::coord_t radius, bool min_xy_dist) const
 {
     return ceilRadius(radius, min_xy_dist) - (min_xy_dist ? 0 : current_min_xy_dist_delta_);
 }
@@ -560,33 +560,33 @@ bool TreeModelVolumes::checkSettingsEquality(const Settings& me, const Settings&
     return TreeSupportSettings(me) == TreeSupportSettings(other);
 }
 
-Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const
+::curaengine::geometry::Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, ::curaengine::types::LayerIndex layer_idx) const
 {
     // Similar to SliceDataStorage.getLayerOutlines but only for one mesh instead of for all of them.
 
     constexpr bool external_polys_only = false;
-    Shape total;
+    ::curaengine::geometry::Shape total;
 
     if (! mesh.isModelMesh())
     {
-        return Shape();
+        return ::curaengine::geometry::Shape();
     }
     const SliceLayer& layer = mesh.layers[layer_idx];
 
     layer.getOutlines(total, external_polys_only);
-    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL)
     {
         total = total.unionPolygons(layer.open_polylines.offset(FUDGE_LENGTH * 2));
     }
-    const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    const coord_t maximum_area_deviation = mesh.settings.get<coord_t>("meshfix_maximum_extrusion_area_deviation");
-    return Simplify(maximum_resolution, maximum_deviation, maximum_area_deviation).polygon(total);
+    const ::curaengine::utils::coord_t maximum_resolution = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
+    const ::curaengine::utils::coord_t maximum_deviation = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
+    const ::curaengine::utils::coord_t maximum_area_deviation = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_extrusion_area_deviation");
+    return ::curaengine::utils::Simplify(maximum_resolution, maximum_deviation, maximum_area_deviation).polygon(total);
 }
 
-LayerIndex TreeModelVolumes::getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Shape>& map) const
+::curaengine::types::LayerIndex TreeModelVolumes::getMaxCalculatedLayer(::curaengine::utils::coord_t radius, const std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape>& map) const
 {
-    LayerIndex max_layer = -1;
+    ::curaengine::types::LayerIndex max_layer = -1;
 
     // the placeable on model areas do not exist on layer 0, as there can not be model below it. As such it may be possible that layer 1 is available, but layer 0 does not exist.
     const RadiusLayerPair key_layer_1(radius, 1);
@@ -605,33 +605,33 @@ LayerIndex TreeModelVolumes::getMaxCalculatedLayer(coord_t radius, const std::un
 
 void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& keys)
 {
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         keys.size(),
         [&](const size_t i)
         {
-            const coord_t radius = keys[i].first;
+            const ::curaengine::utils::coord_t radius = keys[i].first;
             RadiusLayerPair key(radius, 0);
-            std::unordered_map<RadiusLayerPair, Shape> data_outer;
-            std::unordered_map<RadiusLayerPair, Shape> data_placeable_outer;
+            std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data_outer;
+            std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data_placeable_outer;
             for (const auto outline_idx : ranges::views::iota(0UL, layer_outlines_.size()))
             {
-                std::unordered_map<RadiusLayerPair, Shape> data;
-                std::unordered_map<RadiusLayerPair, Shape> data_placeable;
+                std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data;
+                std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data_placeable;
 
-                const coord_t layer_height = layer_outlines_[outline_idx].first.get<coord_t>("layer_height");
-                const bool support_rests_on_this_model = layer_outlines_[outline_idx].first.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
-                const coord_t z_distance_bottom = layer_outlines_[outline_idx].first.get<coord_t>("support_bottom_distance");
-                const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height);
-                const coord_t z_distance_top_layers = round_up_divide(layer_outlines_[outline_idx].first.get<coord_t>("support_top_distance"), layer_height);
-                const LayerIndex max_anti_overhang_layer = anti_overhang_.size() - 1;
-                const LayerIndex max_required_layer = keys[i].second + std::max(coord_t(1), z_distance_top_layers);
-                const coord_t xy_distance = outline_idx == current_outline_idx_ ? current_min_xy_dist_ : layer_outlines_[outline_idx].first.get<coord_t>("support_xy_distance");
+                const ::curaengine::utils::coord_t layer_height = layer_outlines_[outline_idx].first.get<::curaengine::utils::coord_t>("layer_height");
+                const bool support_rests_on_this_model = layer_outlines_[outline_idx].first.get<::curaengine::types::ESupportType>("support_type") == ::curaengine::types::ESupportType::EVERYWHERE;
+                const ::curaengine::utils::coord_t z_distance_bottom = layer_outlines_[outline_idx].first.get<::curaengine::utils::coord_t>("support_bottom_distance");
+                const size_t z_distance_bottom_layers = ::curaengine::utils::round_up_divide(z_distance_bottom, layer_height);
+                const ::curaengine::utils::coord_t z_distance_top_layers = ::curaengine::utils::round_up_divide(layer_outlines_[outline_idx].first.get<::curaengine::utils::coord_t>("support_top_distance"), layer_height);
+                const ::curaengine::types::LayerIndex max_anti_overhang_layer = anti_overhang_.size() - 1;
+                const ::curaengine::types::LayerIndex max_required_layer = keys[i].second + std::max(::curaengine::utils::coord_t(1), z_distance_top_layers);
+                const ::curaengine::utils::coord_t xy_distance = outline_idx == current_outline_idx_ ? current_min_xy_dist_ : layer_outlines_[outline_idx].first.get<::curaengine::utils::coord_t>("support_xy_distance");
                 // Technically this causes collision for the normal xy_distance to be larger by current_min_xy_dist_delta for all not currently processing meshes as this delta will
                 // be added at request time. Avoiding this would require saving each collision for each outline_idx separately,
                 //   and later for each avoidance... But avoidance calculation has to be for the whole scene and can NOT be done for each outline_idx separately and combined later.
                 // So avoiding this inaccuracy seems infeasible as it would require 2x the avoidance calculations => 0.5x the performance.
-                coord_t min_layer_bottom;
+                ::curaengine::utils::coord_t min_layer_bottom;
                 {
                     std::lock_guard<std::mutex> critical_section(*critical_collision_cache_);
                     min_layer_bottom = getMaxCalculatedLayer(radius, collision_cache_) - z_distance_bottom_layers;
@@ -644,7 +644,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 for (const auto layer_idx : ranges::views::iota(min_layer_bottom, max_required_layer + 1))
                 {
                     key.second = layer_idx;
-                    Shape collision_areas = machine_border_;
+                    ::curaengine::geometry::Shape collision_areas = machine_border_;
                     if (size_t(layer_idx) < layer_outlines_[outline_idx].second.size())
                     {
                         collision_areas.push_back(layer_outlines_[outline_idx].second[layer_idx]);
@@ -659,20 +659,20 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 for (const auto layer_idx : ranges::views::iota(min_layer_bottom, max_required_layer + 1) | ranges::views::reverse)
                 {
                     key.second = layer_idx;
-                    for (size_t layer_offset = 1; layer_offset <= z_distance_bottom_layers && layer_idx - coord_t(layer_offset) > min_layer_bottom; layer_offset++)
+                    for (size_t layer_offset = 1; layer_offset <= z_distance_bottom_layers && layer_idx - ::curaengine::utils::coord_t(layer_offset) > min_layer_bottom; layer_offset++)
                     {
                         data[key].push_back(data[RadiusLayerPair(radius, layer_idx - layer_offset)]);
                     }
                     // Placeable areas also have to be calculated when a collision has to be calculated if called outside of precalculate to prevent an infinite loop when they are
                     // invalidly requested...
-                    if ((support_rests_on_this_model || precalculation_finished_ || ! precalculated_) && radius == 0 && layer_idx < coord_t(1 + keys[i].second))
+                    if ((support_rests_on_this_model || precalculation_finished_ || ! precalculated_) && radius == 0 && layer_idx < ::curaengine::utils::coord_t(1 + keys[i].second))
                     {
                         data[key] = data[key].unionPolygons();
-                        Shape above = data[RadiusLayerPair(radius, layer_idx + 1)];
-                        above = above.unionPolygons(max_anti_overhang_layer >= layer_idx + 1 ? anti_overhang_[layer_idx] : Shape());
+                        ::curaengine::geometry::Shape above = data[RadiusLayerPair(radius, layer_idx + 1)];
+                        above = above.unionPolygons(max_anti_overhang_layer >= layer_idx + 1 ? anti_overhang_[layer_idx] : ::curaengine::geometry::Shape());
                         // Empty polygons on condition: Just to be sure the area is correctly unioned as otherwise difference may behave unexpectedly.
 
-                        Shape placeable = data[key].unionPolygons().difference(above);
+                        ::curaengine::geometry::Shape placeable = data[key].unionPolygons().difference(above);
                         data_placeable[RadiusLayerPair(radius, layer_idx + 1)] = data_placeable[RadiusLayerPair(radius, layer_idx + 1)].unionPolygons(placeable);
                     }
                 }
@@ -681,8 +681,8 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 for (const auto layer_idx : ranges::views::iota(min_layer_bottom, max_required_layer + 1))
                 {
                     key.second = layer_idx;
-                    for (coord_t layer_offset = 1; layer_offset <= z_distance_top_layers
-                                                   && layer_offset + layer_idx < std::min(coord_t(layer_outlines_[outline_idx].second.size()), coord_t(max_required_layer + 1));
+                    for (::curaengine::utils::coord_t layer_offset = 1; layer_offset <= z_distance_top_layers
+                                                   && layer_offset + layer_idx < std::min(::curaengine::utils::coord_t(layer_outlines_[outline_idx].second.size()), ::curaengine::utils::coord_t(max_required_layer + 1));
                          layer_offset++)
                     {
                         // If just the collision (including the xy distance) of the layers above is accumulated, it leads to the following issue:
@@ -708,12 +708,12 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                         // Technically the calculation below is off by one layer, as the actual distance between plastic one layer down is 0 not layer height, as this layer is
                         // filled with said plastic. But otherwise a part of the overhang that is expected to be supported is overwritten by the remaining part of the xy distance
                         // of the layer below the to be supported area.
-                        const coord_t required_range_x = coord_t(xy_distance - ((layer_offset - (z_distance_top_layers == 1 ? 0.5 : 0)) * xy_distance / z_distance_top_layers));
+                        const ::curaengine::utils::coord_t required_range_x = ::curaengine::utils::coord_t(xy_distance - ((layer_offset - (z_distance_top_layers == 1 ? 0.5 : 0)) * xy_distance / z_distance_top_layers));
                         // ^^^ The conditional -0.5 ensures that plastic can never touch on the diagonal downward when the z_distance_top_layers = 1.
                         //      It is assumed to be better to not support an overhang<90� than to risk fusing to it.
                         data[key].push_back(layer_outlines_[outline_idx].second[layer_idx + layer_offset].offset(radius + required_range_x));
                     }
-                    data[key] = data[key].unionPolygons(max_anti_overhang_layer >= layer_idx ? anti_overhang_[layer_idx].offset(radius) : Shape());
+                    data[key] = data[key].unionPolygons(max_anti_overhang_layer >= layer_idx ? anti_overhang_[layer_idx].offset(radius) : ::curaengine::geometry::Shape());
                 }
 
                 for (const auto layer_idx : ranges::views::iota(static_cast<size_t>(keys[i].second) + 1UL, max_required_layer + 1UL) | ranges::views::reverse)
@@ -742,7 +742,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL)
                 {
                     precalculation_progress_ += TREE_PROGRESS_PRECALC_COLL / keys.size();
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -762,24 +762,24 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
 
 void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPair>& keys)
 {
-    LayerIndex max_layer = 0;
+    ::curaengine::types::LayerIndex max_layer = 0;
     for (long long unsigned int i = 0; i < keys.size(); i++)
     {
         max_layer = std::max(max_layer, keys[i].second);
     }
 
-    curaengine::parallel_for<coord_t>(
+    ::curaengine::utils::parallel_for<::curaengine::utils::coord_t>(
         0,
-        LayerIndex(max_layer + 1),
-        [&](const LayerIndex layer_idx)
+        ::curaengine::types::LayerIndex(max_layer + 1),
+        [&](const ::curaengine::types::LayerIndex layer_idx)
         {
-            std::unordered_map<RadiusLayerPair, Shape> data;
+            std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data;
             for (RadiusLayerPair key : keys)
             {
                 // Logically increase the collision by increase_until_radius
-                const coord_t radius = key.first;
-                const coord_t increase_radius_ceil = ceilRadius(increase_until_radius_, false) - ceilRadius(radius, true);
-                Shape col = getCollision(increase_until_radius_, layer_idx, false).offset(EPSILON - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
+                const ::curaengine::utils::coord_t radius = key.first;
+                const ::curaengine::utils::coord_t increase_radius_ceil = ceilRadius(increase_until_radius_, false) - ceilRadius(radius, true);
+                ::curaengine::geometry::Shape col = getCollision(increase_until_radius_, layer_idx, false).offset(::curaengine::utils::EPSILON - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
                 // ^^^ That last 'unionPolygons' is important as otherwise holes(in form of lines that will increase to holes in a later step) can get unioned onto the area.
                 col = simplifier_.polygon(col);
                 data[RadiusLayerPair(radius, layer_idx)] = col;
@@ -792,16 +792,16 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPa
         });
 }
 
-void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer)
+void TreeModelVolumes::calculateAccumulatedPlaceable0(const ::curaengine::types::LayerIndex max_layer)
 {
-    LayerIndex start_layer = -1;
+    ::curaengine::types::LayerIndex start_layer = -1;
 
     if (max_layer <= 0)
     {
         // the placeable on model areas do not exist on layer 0, as there can not be model below it. As such it may be possible that layer 1 is available, but layer 0 does not
         // exist.
         std::lock_guard<std::mutex> critical_section_support_max_layer_nr(*critical_accumulated_placeables_cache_radius_0_);
-        accumulated_placeables_cache_radius_0_[max_layer] = Shape();
+        accumulated_placeables_cache_radius_0_[max_layer] = ::curaengine::geometry::Shape();
         return;
     }
 
@@ -811,31 +811,31 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
         {
             ++start_layer;
         }
-        start_layer = std::max(LayerIndex{ start_layer + 1 }, LayerIndex{ 1 });
+        start_layer = std::max(::curaengine::types::LayerIndex{ start_layer + 1 }, ::curaengine::types::LayerIndex{ 1 });
     }
     if (start_layer > max_layer)
     {
         spdlog::warn("Requested calculation for value already calculated ?");
         return;
     }
-    Shape accumulated_placeable_0
+    ::curaengine::geometry::Shape accumulated_placeable_0
         = start_layer == 1 ? machine_area_ : getAccumulatedPlaceable0(start_layer - 1).offset(FUDGE_LENGTH + (current_min_xy_dist_ + current_min_xy_dist_delta_));
     // ^^^ The calculation here is done on the areas that are increased by xy_distance, but the result is saved without xy_distance,
     // so here it "restores" the previous state to continue calculating from about where it ended.
     // It would be better to ensure placeable areas of radius 0 do not include the xy distance, and removing the code compensating for it here and in calculatePlaceables.
-    std::vector<std::pair<LayerIndex, Shape>> data(max_layer + 1, std::pair<LayerIndex, Shape>(-1, Shape()));
+    std::vector<std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape>> data(max_layer + 1, std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape>(-1, ::curaengine::geometry::Shape()));
 
-    for (LayerIndex layer = start_layer; layer <= max_layer; layer++)
+    for (::curaengine::types::LayerIndex layer = start_layer; layer <= max_layer; layer++)
     {
         accumulated_placeable_0 = accumulated_placeable_0.unionPolygons(getPlaceableAreas(0, layer).offset(FUDGE_LENGTH)).difference(anti_overhang_[layer]);
         std::lock_guard<std::mutex> critical_section(*critical_accumulated_placeables_cache_radius_0_);
         accumulated_placeable_0 = simplifier_.polygon(accumulated_placeable_0);
         data[layer] = std::pair(layer, accumulated_placeable_0);
     }
-    curaengine::parallel_for<size_t>(
-        std::max(LayerIndex{ start_layer - 1 }, LayerIndex{ 1 }),
+    ::curaengine::utils::parallel_for<size_t>(
+        std::max(::curaengine::types::LayerIndex{ start_layer - 1 }, ::curaengine::types::LayerIndex{ 1 }),
         data.size(),
-        [&](const coord_t layer_idx)
+        [&](const ::curaengine::utils::coord_t layer_idx)
         {
             data[layer_idx].second = data[layer_idx].second.offset(-(current_min_xy_dist_ + current_min_xy_dist_delta_));
         });
@@ -848,15 +848,15 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
 
 void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerPair>& keys)
 {
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         keys.size(),
         [&, keys](const size_t key_idx)
         {
-            const coord_t radius = keys[key_idx].first;
-            const LayerIndex max_required_layer = keys[key_idx].second;
-            const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
-            LayerIndex start_layer = 0;
+            const ::curaengine::utils::coord_t radius = keys[key_idx].first;
+            const ::curaengine::types::LayerIndex max_required_layer = keys[key_idx].second;
+            const ::curaengine::utils::coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
+            ::curaengine::types::LayerIndex start_layer = 0;
             {
                 std::lock_guard<std::mutex> critical_section(*critical_avoidance_cache_collision_);
                 start_layer = 1 + std::max(getMaxCalculatedLayer(radius, avoidance_cache_collision_), max_layer_idx_without_blocker_);
@@ -867,26 +867,26 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
                 return;
             }
 
-            std::vector<std::pair<RadiusLayerPair, Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Shape>(RadiusLayerPair(radius, -1), Shape()));
+            std::vector<std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(RadiusLayerPair(radius, -1), ::curaengine::geometry::Shape()));
             RadiusLayerPair key(radius, 0);
 
-            Shape latest_avoidance = getAvoidance(radius, start_layer - 1, AvoidanceType::COLLISION, true, true);
-            for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
+            ::curaengine::geometry::Shape latest_avoidance = getAvoidance(radius, start_layer - 1, AvoidanceType::COLLISION, true, true);
+            for (const ::curaengine::types::LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
             {
                 key.second = layer;
-                Shape col = getCollision(radius, layer, true);
+                ::curaengine::geometry::Shape col = getCollision(radius, layer, true);
                 latest_avoidance = safeOffset(latest_avoidance, -max_move_, ClipperLib::jtRound, -max_step_move, col);
 
-                Shape placeable0RadiusCompensated = getAccumulatedPlaceable0(layer).offset(-std::max(radius, increase_until_radius_), ClipperLib::jtRound);
+                ::curaengine::geometry::Shape placeable0RadiusCompensated = getAccumulatedPlaceable0(layer).offset(-std::max(radius, increase_until_radius_), ClipperLib::jtRound);
                 latest_avoidance = latest_avoidance.difference(placeable0RadiusCompensated).unionPolygons(getCollision(radius, layer, true));
 
-                Shape next_latest_avoidance = simplifier_.polygon(latest_avoidance);
+                ::curaengine::geometry::Shape next_latest_avoidance = simplifier_.polygon(latest_avoidance);
                 latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
                 // ^^^ Ensure the simplification only causes the avoidance to become larger.
                 // If the deviation of the simplification causes the avoidance to become smaller than it should be it can cause issues, if it is larger the worst case is that the
                 // xy distance is effectively increased by deviation. If there would be an option to ensure the resulting polygon only gets larger by simplifying, it should improve
                 // performance further.
-                data[layer] = std::pair<RadiusLayerPair, Shape>(key, latest_avoidance);
+                data[layer] = std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(key, latest_avoidance);
             }
 
             {
@@ -899,13 +899,13 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
 
 // Ensures offsets are only done in sizes with a max step size per offset while adding the collision offset after each step, this ensures that areas cannot glitch through walls
 // defined by the collision when offsetting to fast.
-Shape TreeModelVolumes::safeOffset(const Shape& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Shape& collision) const
+::curaengine::geometry::Shape TreeModelVolumes::safeOffset(const ::curaengine::geometry::Shape& me, ::curaengine::utils::coord_t distance, ClipperLib::JoinType jt, ::curaengine::utils::coord_t max_safe_step_distance, const ::curaengine::geometry::Shape& collision) const
 {
     assert(distance * max_safe_step_distance >= 0); // Make sure they are the same sign (or one of them is null)
-    const uint8_t offset_sign = sign(distance);
-    const coord_t step_distance = offset_sign * std::max(min_offset_per_step_, std::abs(max_safe_step_distance));
+    const uint8_t offset_sign = ::curaengine::utils::sign(distance);
+    const ::curaengine::utils::coord_t step_distance = offset_sign * std::max(min_offset_per_step_, std::abs(max_safe_step_distance));
     const size_t steps = std::abs(distance / step_distance);
-    Shape ret = me;
+    ::curaengine::geometry::Shape ret = me;
 
     for (size_t i = 0; i < steps; ++i)
     {
@@ -922,7 +922,7 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         keys.size() * 3,
         [&, keys, all_types](const size_t iter_idx)
@@ -934,8 +934,8 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
             const bool slow = type == AvoidanceType::SLOW;
             const bool holefree = type == AvoidanceType::FAST_SAFE;
 
-            const coord_t radius = keys[key_idx].first;
-            const LayerIndex max_required_layer = keys[key_idx].second;
+            const ::curaengine::utils::coord_t radius = keys[key_idx].first;
+            const ::curaengine::types::LayerIndex max_required_layer = keys[key_idx].second;
 
             // do not calculate not needed safe avoidances
             if (holefree && radius >= increase_until_radius_ + current_min_xy_dist_delta_)
@@ -943,11 +943,11 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
                 return;
             }
 
-            const coord_t offset_speed = slow ? max_move_slow_ : max_move_;
-            const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
+            const ::curaengine::utils::coord_t offset_speed = slow ? max_move_slow_ : max_move_;
+            const ::curaengine::utils::coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
             RadiusLayerPair key(radius, 0);
-            Shape latest_avoidance;
-            LayerIndex start_layer;
+            ::curaengine::geometry::Shape latest_avoidance;
+            ::curaengine::types::LayerIndex start_layer;
             {
                 std::lock_guard<std::mutex> critical_section(*(slow ? critical_avoidance_cache_slow_ : holefree ? critical_avoidance_cache_holefree_ : critical_avoidance_cache_));
                 start_layer = 1 + getMaxCalculatedLayer(radius, slow ? avoidance_cache_slow_ : holefree ? avoidance_cache_hole_ : avoidance_cache_);
@@ -957,17 +957,17 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
                 spdlog::debug("Requested calculation for value already calculated ?");
                 return;
             }
-            start_layer = std::max(start_layer, LayerIndex(1)); // Ensure StartLayer is at least 1 as if no avoidance was calculated getMaxCalculatedLayer returns -1
-            std::vector<std::pair<RadiusLayerPair, Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Shape>(RadiusLayerPair(radius, -1), Shape()));
+            start_layer = std::max(start_layer, ::curaengine::types::LayerIndex(1)); // Ensure StartLayer is at least 1 as if no avoidance was calculated getMaxCalculatedLayer returns -1
+            std::vector<std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(RadiusLayerPair(radius, -1), ::curaengine::geometry::Shape()));
 
             latest_avoidance
                 = getAvoidance(radius, start_layer - 1, type, false, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
             // ### main loop doing the calculation
-            for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
+            for (const ::curaengine::types::LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
             {
                 key.second = layer;
-                Shape col;
+                ::curaengine::geometry::Shape col;
                 if ((slow && radius < increase_until_radius_ + current_min_xy_dist_delta_) || holefree)
                 {
                     col = getCollisionHolefree(radius, layer, true);
@@ -978,13 +978,13 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
                 }
 
                 latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col);
-                Shape next_latest_avoidance = simplifier_.polygon(latest_avoidance);
+                ::curaengine::geometry::Shape next_latest_avoidance = simplifier_.polygon(latest_avoidance);
                 latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
                 // ^^^ Ensure the simplification only causes the avoidance to become larger.
                 // If the deviation of the simplification causes the avoidance to become smaller than it should be it can cause issues, if it is larger the worst case is that the
                 // xy distance is effectively increased by deviation. If there would be an option to ensure the resulting polygon only gets larger by simplifying, it should improve
                 // performance further.
-                data[layer] = std::pair<RadiusLayerPair, Shape>(key, latest_avoidance);
+                data[layer] = std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(key, latest_avoidance);
             }
 
             {
@@ -993,7 +993,7 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
                 {
                     precalculation_progress_ += support_rests_on_model_ ? 0.4 : 1 * TREE_PROGRESS_PRECALC_AVO / (keys.size() * 3);
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -1008,17 +1008,17 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
 {
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         keys.size(),
         [&, keys](const size_t key_idx)
         {
-            const coord_t radius = keys[key_idx].first;
-            const LayerIndex max_required_layer = keys[key_idx].second;
-            std::vector<std::pair<RadiusLayerPair, Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Shape>(RadiusLayerPair(radius, -1), Shape()));
+            const ::curaengine::utils::coord_t radius = keys[key_idx].first;
+            const ::curaengine::types::LayerIndex max_required_layer = keys[key_idx].second;
+            std::vector<std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(RadiusLayerPair(radius, -1), ::curaengine::geometry::Shape()));
             RadiusLayerPair key(radius, 0);
 
-            LayerIndex start_layer;
+            ::curaengine::types::LayerIndex start_layer;
             {
                 std::lock_guard<std::mutex> critical_section(*critical_placeable_areas_cache_);
                 start_layer = 1 + getMaxCalculatedLayer(radius, placeable_areas_cache_);
@@ -1031,17 +1031,17 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
 
             if (start_layer == 0)
             {
-                data[0] = std::pair<RadiusLayerPair, Shape>(key, machine_border_.difference(getCollision(radius, 0, true)));
+                data[0] = std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(key, machine_border_.difference(getCollision(radius, 0, true)));
                 start_layer = 1;
             }
 
-            for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1))
+            for (const ::curaengine::types::LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1))
             {
                 key.second = layer;
-                Shape placeable = getPlaceableAreas(0, layer);
+                ::curaengine::geometry::Shape placeable = getPlaceableAreas(0, layer);
                 placeable = simplifier_.polygon(placeable); // it is faster to do this here in each thread than once in calculateCollision.
                 placeable = placeable.offset(-(radius + (current_min_xy_dist_ + current_min_xy_dist_delta_))).unionPolygons();
-                data[layer] = std::pair<RadiusLayerPair, Shape>(key, placeable);
+                data[layer] = std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(key, placeable);
             }
 
             {
@@ -1050,7 +1050,7 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
                 {
                     precalculation_progress_ += 0.2 * TREE_PROGRESS_PRECALC_AVO / (keys.size());
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -1068,7 +1068,7 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         keys.size() * 3,
         [&, keys, all_types](const size_t iter_idx)
@@ -1078,21 +1078,21 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
             const AvoidanceType type = all_types[type_idx];
             const bool slow = type == AvoidanceType::SLOW;
             const bool holefree = type == AvoidanceType::FAST_SAFE;
-            const coord_t radius = keys[key_idx].first;
-            const LayerIndex max_required_layer = keys[key_idx].second;
+            const ::curaengine::utils::coord_t radius = keys[key_idx].first;
+            const ::curaengine::types::LayerIndex max_required_layer = keys[key_idx].second;
 
             // do not calculate not needed safe avoidances
             if (holefree && radius >= increase_until_radius_ + current_min_xy_dist_delta_)
             {
                 return;
             }
-            const coord_t offset_speed = slow ? max_move_slow_ : max_move_;
-            const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
-            Shape latest_avoidance;
-            std::vector<std::pair<RadiusLayerPair, Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Shape>(RadiusLayerPair(radius, -1), Shape()));
+            const ::curaengine::utils::coord_t offset_speed = slow ? max_move_slow_ : max_move_;
+            const ::curaengine::utils::coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist_ * 1.9);
+            ::curaengine::geometry::Shape latest_avoidance;
+            std::vector<std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(RadiusLayerPair(radius, -1), ::curaengine::geometry::Shape()));
             RadiusLayerPair key(radius, 0);
 
-            LayerIndex start_layer;
+            ::curaengine::types::LayerIndex start_layer;
 
             {
                 std::lock_guard<std::mutex> critical_section(
@@ -1101,7 +1101,7 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                                  : critical_avoidance_cache_to_model_));
                 start_layer = 1 + getMaxCalculatedLayer(radius, slow ? avoidance_cache_to_model_slow_ : holefree ? avoidance_cache_hole_to_model_ : avoidance_cache_to_model_);
             }
-            start_layer = std::max(start_layer, LayerIndex(1));
+            start_layer = std::max(start_layer, ::curaengine::types::LayerIndex(1));
             if (start_layer > max_required_layer)
             {
                 spdlog::debug("Requested calculation for value already calculated or max_required_layer is 0?");
@@ -1112,10 +1112,10 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                 = getAvoidance(radius, start_layer - 1, type, true, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
             // ### main loop doing the calculation
-            for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1))
+            for (const ::curaengine::types::LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1))
             {
                 key.second = layer;
-                Shape col = getCollision(radius, layer, true);
+                ::curaengine::geometry::Shape col = getCollision(radius, layer, true);
 
                 if ((slow && radius < increase_until_radius_ + current_min_xy_dist_delta_) || holefree)
                 {
@@ -1127,13 +1127,13 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                 }
 
                 latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col).difference(getPlaceableAreas(radius, layer));
-                Shape next_latest_avoidance = simplifier_.polygon(latest_avoidance);
+                ::curaengine::geometry::Shape next_latest_avoidance = simplifier_.polygon(latest_avoidance);
                 latest_avoidance = next_latest_avoidance.unionPolygons(latest_avoidance);
                 // ^^^ Ensure the simplification only causes the avoidance to become larger.
                 // If the deviation of the simplification causes the avoidance to become smaller than it should be it can cause issues, if it is larger the worst case is that the
                 // xy distance is effectively increased by deviation. If there would be an option to ensure the resulting polygon only gets larger by simplifying, it should improve
                 // performance further.
-                data[layer] = std::pair<RadiusLayerPair, Shape>(key, latest_avoidance);
+                data[layer] = std::pair<RadiusLayerPair, ::curaengine::geometry::Shape>(key, latest_avoidance);
             }
 
             {
@@ -1142,7 +1142,7 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
                 {
                     precalculation_progress_ += 0.4 * TREE_PROGRESS_PRECALC_AVO / (keys.size() * 3);
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -1196,16 +1196,16 @@ void TreeModelVolumes::calculateWallRestrictions(const std::deque<RadiusLayerPai
 
     // FIXME: This should be a parallel-for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    curaengine::parallel_for<size_t>(
+    ::curaengine::utils::parallel_for<size_t>(
         0,
         keys.size(),
         [&, keys](const size_t key_idx)
         {
-            const coord_t radius = keys[key_idx].first;
+            const ::curaengine::utils::coord_t radius = keys[key_idx].first;
             RadiusLayerPair key(radius, 0);
-            coord_t min_layer_bottom;
-            std::unordered_map<RadiusLayerPair, Shape> data;
-            std::unordered_map<RadiusLayerPair, Shape> data_min;
+            ::curaengine::utils::coord_t min_layer_bottom;
+            std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data;
+            std::unordered_map<RadiusLayerPair, ::curaengine::geometry::Shape> data_min;
 
             {
                 std::lock_guard<std::mutex> critical_section(*critical_wall_restrictions_cache_);
@@ -1219,13 +1219,13 @@ void TreeModelVolumes::calculateWallRestrictions(const std::deque<RadiusLayerPai
             for (const auto layer_idx : ranges::views::iota(min_layer_bottom, keys[key_idx].second + 1UL))
             {
                 key.second = layer_idx;
-                const LayerIndex layer_idx_below = layer_idx - 1;
-                Shape wall_restriction = simplifier_.polygon(
+                const ::curaengine::types::LayerIndex layer_idx_below = layer_idx - 1;
+                ::curaengine::geometry::Shape wall_restriction = simplifier_.polygon(
                     getCollision(0, layer_idx, false).intersection(getCollision(radius, layer_idx_below, true))); // radius contains current_min_xy_dist_delta already if required
                 data.emplace(key, wall_restriction);
                 if (current_min_xy_dist_delta_ > 0)
                 {
-                    Shape wall_restriction_min = simplifier_.polygon(getCollision(0, layer_idx, true).intersection(getCollision(radius, layer_idx_below, true)));
+                    ::curaengine::geometry::Shape wall_restriction_min = simplifier_.polygon(getCollision(0, layer_idx, true).intersection(getCollision(radius, layer_idx_below, true)));
                     data_min.emplace(key, wall_restriction_min);
                 }
             }
@@ -1242,7 +1242,7 @@ void TreeModelVolumes::calculateWallRestrictions(const std::deque<RadiusLayerPai
         });
 }
 
-coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
+::curaengine::utils::coord_t TreeModelVolumes::ceilRadius(::curaengine::utils::coord_t radius) const
 {
     if (radius == 0)
     {
@@ -1253,9 +1253,9 @@ coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
         return radius_0_;
     }
 
-    coord_t exponential_result = SUPPORT_TREE_EXPONENTIAL_THRESHOLD * SUPPORT_TREE_EXPONENTIAL_FACTOR;
-    const coord_t stepsize = (exponential_result - radius_0_) / (SUPPORT_TREE_PRE_EXPONENTIAL_STEPS + 1);
-    coord_t result = radius_0_;
+    ::curaengine::utils::coord_t exponential_result = SUPPORT_TREE_EXPONENTIAL_THRESHOLD * SUPPORT_TREE_EXPONENTIAL_FACTOR;
+    const ::curaengine::utils::coord_t stepsize = (exponential_result - radius_0_) / (SUPPORT_TREE_PRE_EXPONENTIAL_STEPS + 1);
+    ::curaengine::utils::coord_t result = radius_0_;
     for (size_t i = 0; i < SUPPORT_TREE_PRE_EXPONENTIAL_STEPS; ++i)
     {
         result += stepsize;
@@ -1267,28 +1267,28 @@ coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
 
     while (exponential_result < radius || ignorable_radii_.count(exponential_result))
     {
-        exponential_result = std::max(coord_t(exponential_result * SUPPORT_TREE_EXPONENTIAL_FACTOR), exponential_result + SUPPORT_TREE_COLLISION_RESOLUTION);
+        exponential_result = std::max(::curaengine::utils::coord_t(exponential_result * SUPPORT_TREE_EXPONENTIAL_FACTOR), exponential_result + SUPPORT_TREE_COLLISION_RESOLUTION);
     }
     return exponential_result;
 }
 
 template<typename KEY>
-const std::optional<std::reference_wrapper<const Shape>> TreeModelVolumes::getArea(const std::unordered_map<KEY, Shape>& cache, const KEY key) const
+const std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>> TreeModelVolumes::getArea(const std::unordered_map<KEY, ::curaengine::geometry::Shape>& cache, const KEY key) const
 {
     const auto it = cache.find(key);
     if (it != cache.end())
     {
-        return std::optional<std::reference_wrapper<const Shape>>{ it->second };
+        return std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>>{ it->second };
     }
     else
     {
-        return std::optional<std::reference_wrapper<const Shape>>();
+        return std::optional<std::reference_wrapper<const ::curaengine::geometry::Shape>>();
     }
 }
 
-Shape TreeModelVolumes::calculateMachineBorderCollision(const Shape&& machine_border)
+::curaengine::geometry::Shape TreeModelVolumes::calculateMachineBorderCollision(const ::curaengine::geometry::Shape&& machine_border)
 {
-    Shape machine_volume_border = machine_border.offset(MM2INT(1000.0)); // Put a border of 1 meter around the print volume so that we don't collide.
+    ::curaengine::geometry::Shape machine_volume_border = machine_border.offset(MM2INT(1000.0)); // Put a border of 1 meter around the print volume so that we don't collide.
     machine_volume_border = machine_volume_border.difference(machine_border); // Subtract the actual volume from the collision area.
     return machine_volume_border;
 }

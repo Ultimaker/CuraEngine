@@ -3,7 +3,7 @@
 
 #include "utils/ThreadPool.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 ThreadPool::ThreadPool(size_t nthreads)

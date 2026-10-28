@@ -7,12 +7,17 @@
 
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::geometry
+{
+class PointMatrix;
+}
+
+namespace curaengine::bridge
 {
 
 enum class SegmentOverlappingType;
 struct SegmentOverlapping;
-class PointMatrix;
+
 
 /*! Base structure tha represents a segment that has been transformed in the space where the bridging lines are horizontal */
 class TransformedSegment
@@ -20,23 +25,23 @@ class TransformedSegment
 public:
     TransformedSegment() = default;
 
-    TransformedSegment(const Point2LL& transformed_start, const Point2LL& transformed_end)
+    TransformedSegment(const ::curaengine::geometry::Point2LL& transformed_start, const ::curaengine::geometry::Point2LL& transformed_end)
         : start_(transformed_start)
         , end_(transformed_end)
     {
         updateMinMax();
     }
 
-    TransformedSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix);
+    TransformedSegment(const ::curaengine::geometry::Point2LL& start, const ::curaengine::geometry::Point2LL& end, const ::curaengine::geometry::PointMatrix& matrix);
 
-    void setStart(const Point2LL& transformed_start)
+    void setStart(const ::curaengine::geometry::Point2LL& transformed_start)
     {
         start_ = transformed_start;
         updateMinMax();
         length_.reset();
     }
 
-    void setEnd(const Point2LL& transformed_end)
+    void setEnd(const ::curaengine::geometry::Point2LL& transformed_end)
     {
         end_ = transformed_end;
         updateMinMax();
@@ -45,31 +50,31 @@ public:
 
     void updateMinMax();
 
-    coord_t minY() const
+    ::curaengine::utils::coord_t minY() const
     {
         return min_y_;
     }
 
-    coord_t maxY() const
+    ::curaengine::utils::coord_t maxY() const
     {
         return max_y_;
     }
 
-    const Point2LL& getStart() const
+    const ::curaengine::geometry::Point2LL& getStart() const
     {
         return start_;
     }
 
-    const Point2LL& getEnd() const
+    const ::curaengine::geometry::Point2LL& getEnd() const
     {
         return end_;
     }
 
-    const coord_t length() const
+    const ::curaengine::utils::coord_t length() const
     {
         if (! length_.has_value())
         {
-            const_cast<TransformedSegment*>(this)->length_ = vSize(end_ - start_);
+            const_cast<TransformedSegment*>(this)->length_ = ::curaengine::geometry::vSize(end_ - start_);
         }
 
         return length_.value();
@@ -85,20 +90,20 @@ public:
     std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const;
 
     /*! Move the segment maximum Y coordinate down, actually cropping it */
-    void cropTop(const coord_t new_max_y);
+    void cropTop(const ::curaengine::utils::coord_t new_max_y);
 
     /*! Move the segment minimum Y coordinate up, actually cropping it */
-    void cropBottom(const coord_t new_min_y);
+    void cropBottom(const ::curaengine::utils::coord_t new_min_y);
 
     /*! Calculate an overlapping type, given whether the segments overlap on the top, bottom or both. Only in case there is no segment intersection. */
     static SegmentOverlappingType makeNonIntersectingOverlapping(const bool overlap_top, const bool overlap_bottom);
 
 private:
-    Point2LL start_;
-    Point2LL end_;
-    coord_t min_y_{ 0 };
-    coord_t max_y_{ 0 };
-    std::optional<coord_t> length_;
+    ::curaengine::geometry::Point2LL start_;
+    ::curaengine::geometry::Point2LL end_;
+    ::curaengine::utils::coord_t min_y_{ 0 };
+    ::curaengine::utils::coord_t max_y_{ 0 };
+    std::optional<::curaengine::utils::coord_t> length_;
 };
 
-} // namespace curaengine
+} // namespace curaengine::bridge

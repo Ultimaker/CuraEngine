@@ -67,7 +67,7 @@ namespace curaengine::plugins
 }
 
 gcode_paths_modify_request::value_type
-    gcode_paths_modify_request::operator()(const gcode_paths_modify_request::native_value_type& paths, const size_t extruder_nr, const LayerIndex layer_nr) const
+    gcode_paths_modify_request::operator()(const gcode_paths_modify_request::native_value_type& paths, const size_t extruder_nr, const ::curaengine::types::LayerIndex layer_nr) const
 {
     value_type message{};
     message.set_extruder_nr(static_cast<int64_t>(extruder_nr));

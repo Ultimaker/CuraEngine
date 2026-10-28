@@ -8,7 +8,7 @@
 #include "geometry/Point3LL.h"
 #include "geometry/PointMatrix.h"
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
 class Point3Matrix
@@ -87,4 +87,4 @@ public:
     }
 };
 
-} // namespace curaengine
+} // namespace curaengine::geometry

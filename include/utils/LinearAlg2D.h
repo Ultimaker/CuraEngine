@@ -7,15 +7,20 @@
 
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::geometry
+{
+class Point3Matrix;
+}
+
+namespace curaengine::utils
 {
 
-class Point3Matrix;
+
 
 class LinearAlg2D
 {
 public:
-    static short pointLiesOnTheRightOfLine(const Point2LL& p, const Point2LL& p0, const Point2LL& p1)
+    static short pointLiesOnTheRightOfLine(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& p0, const ::curaengine::geometry::Point2LL& p1)
     {
         // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
         if (std::max(p0.X, p1.X) >= p.X)
@@ -80,10 +85,10 @@ public:
      *
      * \return Whether the two line segments intersect.
      */
-    static bool segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
-    static bool lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
+    static bool segmentSegmentIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const ::curaengine::geometry::Point2LL& p3, const ::curaengine::geometry::Point2LL& p4, float& t, float& u);
+    static bool lineLineIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const ::curaengine::geometry::Point2LL& p3, const ::curaengine::geometry::Point2LL& p4, float& t, float& u);
 
-    static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
+    static bool lineLineIntersection(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c, const ::curaengine::geometry::Point2LL& d, ::curaengine::geometry::Point2LL& output);
 
     /*!
      * Computes the intersection between a line and a horizontal line
@@ -92,7 +97,7 @@ public:
      * @param line_y The Y coordinates of the horizontal line to intersect with
      * @return The x coordinate of the intersection, or nullopt if they don't intersect
      */
-    static std::optional<coord_t> lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
+    static std::optional<coord_t> lineHorizontalLineIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const coord_t line_y);
 
     /*!
      * Computes the intersection between a segment and a horizontal line
@@ -101,7 +106,7 @@ public:
      * @param line_y The Y coordinates of the horizontal line to intersect with
      * @return The x coordinate of the intersection, or nullopt if they don't intersect
      */
-    static std::optional<coord_t> segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
+    static std::optional<coord_t> segmentHorizontalLineIntersection(const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2, const coord_t line_y);
 
     /*!
      * Find whether a point projected on a line segment would be projected to
@@ -114,16 +119,16 @@ public:
      * \param b The end point of the line segment
      * \return the sign of the projection wrt the line segment
      */
-    inline static short pointIsProjectedBeyondLine(const Point2LL& from, const Point2LL& a, const Point2LL& b)
+    inline static short pointIsProjectedBeyondLine(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b)
     {
-        const Point2LL vec = b - a;
-        const Point2LL point_vec = from - a;
-        const coord_t dot_prod = dot(point_vec, vec);
+        const ::curaengine::geometry::Point2LL vec = b - a;
+        const ::curaengine::geometry::Point2LL point_vec = from - a;
+        const coord_t dot_prod = ::curaengine::geometry::dot(point_vec, vec);
         if (dot_prod < 0)
         { // point is projected to before ab
             return -1;
         }
-        if (dot_prod > vSize2(vec))
+        if (dot_prod > ::curaengine::geometry::vSize2(vec))
         { // point is projected to after ab
             return 1;
         }
@@ -133,14 +138,14 @@ public:
     /*!
      * Find the point closest to \p from on the line segment from \p p0 to \p p1
      */
-    static Point2LL getClosestOnLineSegment(const Point2LL& from, const Point2LL& p0, const Point2LL& p1)
+    static ::curaengine::geometry::Point2LL getClosestOnLineSegment(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Point2LL& p0, const ::curaengine::geometry::Point2LL& p1)
     {
-        const Point2LL direction = p1 - p0;
-        const Point2LL to_from = from - p0;
-        const coord_t projected_x = dot(to_from, direction);
+        const ::curaengine::geometry::Point2LL direction = p1 - p0;
+        const ::curaengine::geometry::Point2LL to_from = from - p0;
+        const coord_t projected_x = ::curaengine::geometry::dot(to_from, direction);
 
         const coord_t x_p0 = 0;
-        const coord_t x_p1 = vSize2(direction);
+        const coord_t x_p1 = ::curaengine::geometry::vSize2(direction);
 
         if (x_p1 == 0)
         {
@@ -169,17 +174,17 @@ public:
     /*!
      * Find the point closest to \p from on the line through \p p0 to \p p1
      */
-    static Point2LL getClosestOnLine(const Point2LL& from, const Point2LL& p0, const Point2LL& p1)
+    static ::curaengine::geometry::Point2LL getClosestOnLine(const ::curaengine::geometry::Point2LL& from, const ::curaengine::geometry::Point2LL& p0, const ::curaengine::geometry::Point2LL& p1)
     {
         if (p1 == p0)
         {
             return p0;
         }
 
-        const Point2LL direction = p1 - p0;
-        const Point2LL to_from = from - p0;
-        const coord_t projected_x = dot(to_from, direction);
-        Point2LL ret = p0 + projected_x / vSize(direction) * direction / vSize(direction);
+        const ::curaengine::geometry::Point2LL direction = p1 - p0;
+        const ::curaengine::geometry::Point2LL to_from = from - p0;
+        const coord_t projected_x = ::curaengine::geometry::dot(to_from, direction);
+        ::curaengine::geometry::Point2LL ret = p0 + projected_x / ::curaengine::geometry::vSize(direction) * direction / ::curaengine::geometry::vSize(direction);
         return ret;
     }
 
@@ -194,7 +199,7 @@ public:
      * \param b2 second point on line b
      * \return A pair: the first point on line a and the second pouint on line b
      */
-    static std::pair<Point2LL, Point2LL> getClosestConnection(Point2LL a1, Point2LL a2, Point2LL b1, Point2LL b2);
+    static std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> getClosestConnection(::curaengine::geometry::Point2LL a1, ::curaengine::geometry::Point2LL a2, ::curaengine::geometry::Point2LL b1, ::curaengine::geometry::Point2LL b2);
 
     /*!
      * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
@@ -206,7 +211,7 @@ public:
      * \param c the second point on the line segment
      * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
      */
-    static coord_t getDist2FromLineSegment(const Point2LL& a, const Point2LL& b, const Point2LL& c, int16_t* b_is_beyond_ac = nullptr)
+    static coord_t getDist2FromLineSegment(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c, int16_t* b_is_beyond_ac = nullptr)
     {
         /*
          *     a,
@@ -223,13 +228,13 @@ public:
          * xb = ab - ax
          * error = vSize(xb)
          */
-        const Point2LL ac = c - a;
-        const coord_t ac_size = vSize(ac);
+        const ::curaengine::geometry::Point2LL ac = c - a;
+        const coord_t ac_size = ::curaengine::geometry::vSize(ac);
 
-        const Point2LL ab = b - a;
+        const ::curaengine::geometry::Point2LL ab = b - a;
         if (ac_size == 0)
         {
-            const coord_t ab_dist2 = vSize2(ab);
+            const coord_t ab_dist2 = ::curaengine::geometry::vSize2(ab);
             if (ab_dist2 == 0 && b_is_beyond_ac)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
@@ -237,7 +242,7 @@ public:
             // otherwise variable b_is_beyond_ac remains its value; it doesn't make sense to choose between -1 and 1
             return ab_dist2;
         }
-        const coord_t projected_x = dot(ab, ac);
+        const coord_t projected_x = ::curaengine::geometry::dot(ab, ac);
         const coord_t ax_size = projected_x / ac_size;
 
         if (ax_size < 0)
@@ -246,7 +251,7 @@ public:
             {
                 *b_is_beyond_ac = -1;
             }
-            return vSize2(ab);
+            return ::curaengine::geometry::vSize2(ab);
         }
         if (ax_size > ac_size)
         { // b is 'after' segment ac
@@ -254,16 +259,16 @@ public:
             {
                 *b_is_beyond_ac = 1;
             }
-            return vSize2(b - c);
+            return ::curaengine::geometry::vSize2(b - c);
         }
 
         if (b_is_beyond_ac)
         {
             *b_is_beyond_ac = 0;
         }
-        const Point2LL ax = ac * ax_size / ac_size;
-        const Point2LL bx = ab - ax;
-        return vSize2(bx);
+        const ::curaengine::geometry::Point2LL ax = ac * ax_size / ac_size;
+        const ::curaengine::geometry::Point2LL bx = ab - ax;
+        return ::curaengine::geometry::vSize2(bx);
         //         return vSize2(ab) - ax_size*ax_size; // less accurate
     }
 
@@ -277,7 +282,7 @@ public:
      * \param d Another end point of the second line segment
      * \param max_dist The maximal distance between the two line segments for which this function will return true.
      */
-    static bool lineSegmentsAreCloserThan(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, const coord_t max_dist)
+    static bool lineSegmentsAreCloserThan(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c, const ::curaengine::geometry::Point2LL& d, const coord_t max_dist)
     {
         const coord_t max_dist2 = max_dist * max_dist;
 
@@ -294,7 +299,7 @@ public:
      * \param c One end point of the second line segment
      * \param d Another end point of the second line segment
      */
-    static coord_t getDist2BetweenLineSegments(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d)
+    static coord_t getDist2BetweenLineSegments(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c, const ::curaengine::geometry::Point2LL& d)
     {
         return std::min(getDist2FromLineSegment(a, c, b), std::min(getDist2FromLineSegment(a, d, b), std::min(getDist2FromLineSegment(c, a, d), getDist2FromLineSegment(c, b, d))));
     }
@@ -313,7 +318,7 @@ public:
      * \param b_from_transformed The transformed to location of line b
      * \return Whether the two line segments collide
      */
-    static bool lineSegmentsCollide(const Point2LL& a_from_transformed, const Point2LL& a_to_transformed, Point2LL b_from_transformed, Point2LL b_to_transformed);
+    static bool lineSegmentsCollide(const ::curaengine::geometry::Point2LL& a_from_transformed, const ::curaengine::geometry::Point2LL& a_to_transformed, ::curaengine::geometry::Point2LL b_from_transformed, ::curaengine::geometry::Point2LL b_to_transformed);
 
     /*!
      * Compute the angle between two consecutive line segments.
@@ -332,7 +337,7 @@ public:
      * \param c end of second line segment
      * \return the angle in radians between 0 and 2 * pi of the corner in \p b
      */
-    static double getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c);
+    static double getAngleLeft(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c);
 
     /*!
      * Returns the determinant of the 2D matrix defined by the the vectors ab and ap as rows.
@@ -345,7 +350,7 @@ public:
      * \param b the to point of the line
      * \return a positive value when \p p lies to the left of the line from \p a to \p b
      */
-    static inline coord_t pointIsLeftOfLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
+    static inline coord_t pointIsLeftOfLine(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b)
     {
         return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
     }
@@ -362,7 +367,7 @@ public:
      * \param[out] result The result (if any was found)
      * \return Whether any such point has been found
      */
-    static bool getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, const Point2LL& b, const coord_t dist, Point2LL& result);
+    static bool getPointOnLineWithDist(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const coord_t dist, ::curaengine::geometry::Point2LL& result);
 
     /*!
      * Get the squared distance from a point \p p to the line on which \p a and
@@ -372,7 +377,7 @@ public:
      * \param b One of the points through which the line goes.
      * \return The distance between the point and the line, squared.
      */
-    static coord_t getDist2FromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b);
+    static coord_t getDist2FromLine(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b);
 
     /*!
      * Get the distance from a point \p p to the line on which \p a and \p b lie.
@@ -385,7 +390,7 @@ public:
      * \param b One of the points through which the line goes.
      * \return The distance between the point and the line.
      */
-    static coord_t getDistFromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b);
+    static coord_t getDistFromLine(const ::curaengine::geometry::Point2LL& p, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b);
 
     /*!
      * Check whether a corner is acute or obtuse.
@@ -400,17 +405,17 @@ public:
      * \param c end of second line segment
      * \return positive if acute, negative if obtuse, zero if 90 degree corner
      */
-    static inline coord_t isAcuteCorner(const Point2LL& a, const Point2LL& b, const Point2LL& c)
+    static inline coord_t isAcuteCorner(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ::curaengine::geometry::Point2LL& c)
     {
-        const Point2LL ba = a - b;
-        const Point2LL bc = c - b;
-        return dot(ba, bc);
+        const ::curaengine::geometry::Point2LL ba = a - b;
+        const ::curaengine::geometry::Point2LL bc = c - b;
+        return ::curaengine::geometry::dot(ba, bc);
     }
 
     /*!
      * Get the rotation matrix for rotating around a specific point in place.
      */
-    static Point3Matrix rotateAround(const Point2LL& middle, double rotation);
+    static ::curaengine::geometry::Point3Matrix rotateAround(const ::curaengine::geometry::Point2LL& middle, double rotation);
 
     /*!
      * Test whether a point is inside a corner.
@@ -419,7 +424,7 @@ public:
      *
      * Test whether the \p query_point is inside of a polygon w.r.t a single corner.
      */
-    static bool isInsideCorner(const Point2LL a, const Point2LL b, const Point2LL c, const Point2LL query_point);
+    static bool isInsideCorner(const ::curaengine::geometry::Point2LL a, const ::curaengine::geometry::Point2LL b, const ::curaengine::geometry::Point2LL c, const ::curaengine::geometry::Point2LL query_point);
 
     /*!
      * Finds the vector for the bisection of a-b as seen from the intersection point.
@@ -431,7 +436,7 @@ public:
      * \param b The second point.
      * \param vec_len The lenght of the resultant vector. It's not wise to set this to 1, since we do tend to do integer math here.
      */
-    static Point2LL getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len);
+    static ::curaengine::geometry::Point2LL getBisectorVector(const ::curaengine::geometry::Point2LL& intersect, const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const coord_t vec_len);
 
     /*!
      * Gets the actual extra width to be applied when using a sloped base like for the prime tower of the supports
@@ -445,4 +450,4 @@ public:
 };
 
 
-} // namespace curaengine
+} // namespace curaengine::utils

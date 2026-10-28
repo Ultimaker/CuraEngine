@@ -3,10 +3,10 @@
 
 #include "geometry/Point3LL.h" //The headers we're implementing.
 
-namespace curaengine
+namespace curaengine::geometry
 {
 
-Point3LL::Point3LL(const Point2LL& point, const coord_t z)
+Point3LL::Point3LL(const Point2LL& point, const ::curaengine::utils::coord_t z)
     : x_(point.X)
     , y_(point.Y)
     , z_(z)
@@ -75,9 +75,9 @@ Point2LL Point3LL::toPoint2LL() const
     return Point2LL(x_, y_);
 }
 
-Point3LL Point3LL::resized(coord_t length) const
+Point3LL Point3LL::resized(::curaengine::utils::coord_t length) const
 {
-    const coord_t actual_length = vSize();
+    const ::curaengine::utils::coord_t actual_length = vSize();
     if (actual_length < 1)
     {
         return { length, 0, 0 };
@@ -85,4 +85,4 @@ Point3LL Point3LL::resized(coord_t length) const
     return ((*this) * length) / actual_length;
 }
 
-} // namespace curaengine
+} // namespace curaengine::geometry

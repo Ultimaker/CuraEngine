@@ -5,16 +5,16 @@
 
 #include "geometry/Shape.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
-std::pair<Point2LL, Point2LL> PolygonsPointIndexSegmentLocator::operator()(const PolygonsPointIndex& val) const
+std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> PolygonsPointIndexSegmentLocator::operator()(const PolygonsPointIndex& val) const
 {
-    const Polygon& poly = (*val.polygons_)[val.poly_idx_];
-    Point2LL start = poly[val.point_idx_];
+    const ::curaengine::geometry::Polygon& poly = (*val.polygons_)[val.poly_idx_];
+    ::curaengine::geometry::Point2LL start = poly[val.point_idx_];
     size_t next_point_idx = (val.point_idx_ + 1ul) % poly.size();
-    Point2LL end = poly[next_point_idx];
-    return std::pair<Point2LL, Point2LL>(start, end);
+    ::curaengine::geometry::Point2LL end = poly[next_point_idx];
+    return std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(start, end);
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils

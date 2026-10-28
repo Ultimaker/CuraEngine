@@ -11,11 +11,11 @@
 
 #include "Application.h"
 #include "Slice.h"
-#include "settings/SettingContainersEnvironmentAdapter.h"
+#include "types/SettingContainersEnvironmentAdapter.h"
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace curaengine
+namespace curaengine::gcode_export
 {
 
 
@@ -32,10 +32,10 @@ void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr
 
     // Now create the global and extruder environment, each pointing towards the extra environment
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    environment_adapters_[std::nullopt] = std::make_shared<SettingContainersEnvironmentAdapter>(scene.settings, global_environment_.get());
+    environment_adapters_[std::nullopt] = std::make_shared<::curaengine::types::SettingContainersEnvironmentAdapter>(scene.settings, global_environment_.get());
     for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
     {
-        environment_adapters_[extruder_nr] = std::make_shared<SettingContainersEnvironmentAdapter>(extruder_train.settings_, global_environment_.get());
+        environment_adapters_[extruder_nr] = std::make_shared<::curaengine::types::SettingContainersEnvironmentAdapter>(extruder_train.settings_, global_environment_.get());
     }
 }
 
@@ -314,4 +314,4 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     return output;
 }
 
-} // namespace curaengine
+} // namespace curaengine::gcode_export

@@ -4,7 +4,7 @@
 #pragma once
 
 #include "PathOrdering.h"
-#include "settings/ZSeamConfig.h" //To get the seam settings.
+#include "types/ZSeamConfig.h" //To get the seam settings.
 
 namespace curaengine
 {
@@ -40,12 +40,12 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    const Point2LL start_point_;
+    const ::curaengine::geometry::Point2LL start_point_;
 
     /*!
      * Seam settings.
      */
-    ZSeamConfig seam_config_;
+    ::curaengine::types::ZSeamConfig seam_config_;
 
     /*!
      * Add a new polygon to be planned.
@@ -93,14 +93,14 @@ protected:
      * pretend they are the same point.
      * This is used for detecting loops and chaining lines together.
      */
-    constexpr static coord_t coincident_point_distance_ = 10;
+    constexpr static ::curaengine::utils::coord_t coincident_point_distance_ = 10;
 
     /*!
      * \brief Basic constructor with a given start point
      * \param start_point The location where the nozzle is assumed to start
      * from before printing these parts.
      */
-    PathOrder(const Point2LL& start_point)
+    PathOrder(const ::curaengine::geometry::Point2LL& start_point)
         : start_point_(start_point)
     {
     }
@@ -124,7 +124,7 @@ protected:
             {
                 continue;
             }
-            if (vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance_ * coincident_point_distance_)
+            if (::curaengine::geometry::vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance_ * coincident_point_distance_)
             {
                 // Endpoints are really close to one another. Consider it a closed loop.
                 path.is_closed_ = true;

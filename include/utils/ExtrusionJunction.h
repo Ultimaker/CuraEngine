@@ -6,7 +6,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::utils
 {
 
 /*!
@@ -21,7 +21,7 @@ struct ExtrusionJunction
      * The position of the centreline of the path when it reaches this junction.
      * This is the position that should end up in the g-code eventually.
      */
-    Point2LL p_;
+    ::curaengine::geometry::Point2LL p_;
 
     /*!
      * The width of the extruded path at this junction.
@@ -36,22 +36,22 @@ struct ExtrusionJunction
      */
     size_t perimeter_index_;
 
-    ExtrusionJunction(const Point2LL& p, const coord_t w, const coord_t perimeter_index);
+    ExtrusionJunction(const ::curaengine::geometry::Point2LL& p, const coord_t w, const coord_t perimeter_index);
 
     bool operator==(const ExtrusionJunction& other) const;
 };
 
-inline Point2LL operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
+inline ::curaengine::geometry::Point2LL operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
 {
     return a.p_ - b.p_;
 }
 
 // Identity function, used to be able to make templated algorithms that do their operations on 'point-like' input.
-inline const Point2LL& make_point(const ExtrusionJunction& ej)
+inline const ::curaengine::geometry::Point2LL& make_point(const ExtrusionJunction& ej)
 {
     return ej.p_;
 }
 
 using LineJunctions = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
 
-} // namespace curaengine
+} // namespace curaengine::utils
