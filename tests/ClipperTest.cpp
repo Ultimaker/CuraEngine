@@ -22,7 +22,7 @@ class DISABLED_ClipperTest : public testing::Test
 public:
     using Paths = ClipperLib::Paths;
     using Path = ClipperLib::Path;
-    using ::curaengine::utils::coord_t = ClipperLib::cInt;
+    using coord_t = ClipperLib::cInt;
     using Point = ClipperLib::IntPoint;
 
     std::vector<Paths> all_outlines;
