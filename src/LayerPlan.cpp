@@ -3928,12 +3928,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     computeAntiOozeAmounts(gcode, extruder, path, z_hop_height, retraction_config, retraction_amounts, priming_amounts);
                 }
 
-                if (retraction_amounts.has_value() && retraction_amounts.value().segment_split_position.X == 352000)
-                {
-                    spdlog::debug("coucou");
-                    retraction_amounts.value().segment_split_position.X = 352000;
-                }
-
                 if (! gcode.writeRetraction(
                         retraction_config->retraction_config,
                         false,
