@@ -41,7 +41,8 @@ These rules apply both when writing and when reviewing C++ code in CuraEngine. T
 * When calling functions with non-explicit arguments, like booleans, declare them above as a `constexpr` or `const` variable with an explicit name.
 * When an additional function associated to a type is required, e.g. a hash or formatting method, it should also be declared along with the type.
 * All the headers should contain the top-level namespace `curaengine`. Types placed in sub-folders should have a matching namespace, e.g. a type `utils/math/Linear.h` should utilize the namespace `curaengine::utils::math`.
-* When using code inside namespaces, never declare a global `using` to this namespace. In order to maintain readibility, you may declare a global alias to a namespace, e.g. instead of using `utils::math::statistics::Linear my_linear;`, you can do `namespace ums = utils::math::statistics; ums::Linear my_linear;`
+* When using code inside external namespaces, never declare a global `using`. In order to maintain readibility, you may declare a global alias to a namespace, e.g. instead of using `utils::math::statistics::Linear my_linear;`, you can do `namespace ums = utils::math::statistics; ums::Linear my_linear;`
+* When using internal namespaces, they should be declared with a `using` in top of cpp files, omitting the `::curaengine` prefix. In header files, we should keep using the namespace prefix for each declaration, but still omit the `::curaengine`. If that turns out to be very long, it is allowed to used acronym compression as described above.
 
 ## Parameters, constness and ownership
 
