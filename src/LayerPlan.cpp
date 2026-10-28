@@ -3739,6 +3739,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
         std::shared_ptr<const SliceMeshStorage> skippable_mesh = nullptr;
+        const auto insert_skippable_end{ [&gcode, &skippable_mesh]() {
+            gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
+            gcode.writeCurrentExtrusionValue();
+        } };
 
         for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
@@ -3753,8 +3757,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (skippable_mesh && skippable_mesh != path.mesh)
             {
-                gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
-                gcode.writeCurrentExtrusionValue();
+                insert_skippable_end();
                 skippable_mesh = nullptr;
             }
 
@@ -4079,8 +4082,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         if (skippable_mesh)
         {
-            gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
-            gcode.writeCurrentExtrusionValue();
+            insert_skippable_end();
         }
 
         if (extruder.settings_.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
