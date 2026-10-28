@@ -3,7 +3,7 @@
 
 #include "MockSocket.h"
 
-namespace cura
+namespace curaengine
 {
 
 MockSocket::MockSocket() = default;
@@ -46,4 +46,4 @@ Arcus::MessagePtr MockSocket::popMessageFromSendQueue()
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

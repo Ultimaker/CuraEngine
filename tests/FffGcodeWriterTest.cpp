@@ -27,7 +27,7 @@
 #include "SliceMeshStorage.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 /*!
  * Fixture that provides a basis for testing wall computation.
@@ -204,5 +204,5 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     EXPECT_LE(ctr, 3) << "Selected points in the middle of the square should not be supported by sparse infill";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

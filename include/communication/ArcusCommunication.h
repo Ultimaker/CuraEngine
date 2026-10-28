@@ -18,7 +18,7 @@ namespace Arcus
 class Socket;
 }
 
-namespace cura
+namespace curaengine
 {
 
 class Polygon;
@@ -131,7 +131,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Communicate to Arcus what our progress is.
@@ -184,6 +184,6 @@ private:
     const std::unique_ptr<PathCompiler> path_compiler;
 };
 
-} // namespace cura
+} // namespace curaengine
 
 #endif // ARCUS

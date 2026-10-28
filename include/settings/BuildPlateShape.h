@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class BuildPlateShape
 {
@@ -12,4 +12,4 @@ enum class BuildPlateShape
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

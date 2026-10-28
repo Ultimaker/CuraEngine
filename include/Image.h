@@ -11,7 +11,7 @@
 
 #include "geometry/Point2F.h"
 
-namespace cura
+namespace curaengine
 {
 class Image
 {
@@ -71,4 +71,4 @@ private:
     size_t bytes_per_row_{ 0 };
 };
 
-} // namespace cura
+} // namespace curaengine

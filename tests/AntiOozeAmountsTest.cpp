@@ -9,7 +9,7 @@
 #include "RetractionAndWipeConfig.h"
 #include "LayerPlan.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct RetractionBaseConfig
@@ -425,4 +425,4 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
 
 INSTANTIATE_TEST_SUITE_P(MeaningfulTestParameters, AntiOozeAmountsTest, testing::ValuesIn(GetTestCases()));
 
-} // namespace cura
+} // namespace curaengine

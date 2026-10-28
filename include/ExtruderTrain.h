@@ -5,7 +5,7 @@
 
 #include "settings/Settings.h"
 
-namespace cura
+namespace curaengine
 {
 
 class ExtruderTrain
@@ -31,4 +31,4 @@ public:
     const size_t extruder_nr_;
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -4,8 +4,9 @@
 #pragma once
 
 #include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/SlotID.h"
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<plugins::v0::SlotID T1, plugins::v0::SlotID T2>
 struct is_broadcast_channel
@@ -15,4 +16,4 @@ struct is_broadcast_channel
 
 template<plugins::v0::SlotID T1, plugins::v0::SlotID T2>
 inline constexpr bool is_broadcast_channel_v = is_broadcast_channel<T1, T2>::value;
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details

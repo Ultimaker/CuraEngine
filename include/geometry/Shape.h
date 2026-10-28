@@ -8,7 +8,7 @@
 #include "settings/types/AngleDegrees.h"
 #include "settings/types/AngleRadians.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Polygon;
@@ -292,4 +292,4 @@ private:
     void splitIntoPartsViewProcessPolyTreeNode(PartsView& parts_view, Shape& reordered, ClipperLib::PolyNode* node) const;
 };
 
-} // namespace cura
+} // namespace curaengine

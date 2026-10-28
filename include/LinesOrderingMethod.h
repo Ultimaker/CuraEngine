@@ -4,7 +4,7 @@
 #pragma once
 
 
-namespace cura
+namespace curaengine
 {
 
 enum class LinesOrderingMethod
@@ -14,4 +14,4 @@ enum class LinesOrderingMethod
     Interlaced, // Similar to monotonic, but with 2 passes so that adjacent lines will not be printed just after each other
 };
 
-} // namespace cura
+} // namespace curaengine

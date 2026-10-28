@@ -9,7 +9,7 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/view.hpp>
 
-namespace cura::views
+namespace curaengine::views
 {
 namespace details
 {
@@ -27,4 +27,4 @@ inline static constexpr auto split_paths = ranges::views::split(details::path_se
                                                    return std::string_view(&*rng.begin(), ranges::distance(rng));
                                                });
 
-} // namespace cura::views
+} // namespace curaengine::views

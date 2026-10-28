@@ -8,7 +8,7 @@
 #include "bridge/BridgeAngleScoringCriterion.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Shape;
@@ -26,4 +26,4 @@ private:
     std::optional<coord_t> total_segments_length_;
 };
 
-} // namespace cura
+} // namespace curaengine

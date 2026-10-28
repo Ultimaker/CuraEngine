@@ -18,7 +18,7 @@ class Polyline2LL;
 class Segment2LL;
 } // namespace cura_viz
 
-namespace cura
+namespace curaengine
 {
 
 class OpenLinesSet;
@@ -117,5 +117,5 @@ private:
     boost::asio::ip::tcp::socket socket_;
 };
 
-} // namespace cura
+} // namespace curaengine
 #endif

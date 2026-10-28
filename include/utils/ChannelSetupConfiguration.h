@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string>
 
-namespace cura::utils
+namespace curaengine::utils
 {
 
 struct ChannelSetupConfiguration
@@ -18,6 +18,6 @@ struct ChannelSetupConfiguration
     uint64_t shibolet = 0UL; // TODO: Either get from startup (server would receive this as well) or remove completely.
 };
 
-} // namespace cura::utils
+} // namespace curaengine::utils
 
 #endif // ENABLE_PLUGINS

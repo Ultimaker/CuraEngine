@@ -12,7 +12,7 @@
 #include "settings/types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -269,4 +269,4 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
     return { best_aabb, best_angle };
 }
 
-} // namespace cura
+} // namespace curaengine

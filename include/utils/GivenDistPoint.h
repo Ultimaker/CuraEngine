@@ -5,7 +5,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -17,4 +17,4 @@ struct GivenDistPoint
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
 };
 
-} // namespace cura
+} // namespace curaengine

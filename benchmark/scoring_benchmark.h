@@ -11,7 +11,7 @@
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"
 
-namespace cura
+namespace curaengine
 {
 class ScoringTestFixture : public benchmark::Fixture
 {
@@ -69,5 +69,5 @@ BENCHMARK_REGISTER_F(ScoringTestFixture, ScoringTest_WorstCase)->Arg(1000)->Unit
 
 BENCHMARK_REGISTER_F(ScoringTestFixture, ScoringTest_WorstCase)->Arg(10)->Unit(benchmark::kMillisecond);
 
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_SCORING_BENCHMARK_H

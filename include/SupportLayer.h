@@ -12,7 +12,7 @@
 #include "geometry/SingleShape.h"
 #include "settings/types/LayerIndex.h"
 
-namespace cura
+namespace curaengine
 {
 class AABB;
 class SliceMeshStorage;
@@ -89,4 +89,4 @@ public:
         const coord_t custom_line_distance = 0);
 };
 
-} // namespace cura
+} // namespace curaengine

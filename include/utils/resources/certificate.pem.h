@@ -7,7 +7,7 @@
 
 #include <string_view>
 
-namespace cura::utils::resources
+namespace curaengine::utils::resources
 {
 constexpr std::string_view certificate =
     R"#(-----BEGIN CERTIFICATE-----
@@ -46,4 +46,4 @@ c3dQRszg9OTAyUwNKQEAuZ9II/cCpLyE+GbnqRdkErHgO7kiKQ==
 -----END CERTIFICATE-----
 )#";
 
-} // namespace cura::utils::resources
+} // namespace curaengine::utils::resources

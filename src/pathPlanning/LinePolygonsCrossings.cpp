@@ -7,7 +7,7 @@
 
 #include "SliceDataStorage.h"
 
-namespace cura
+namespace curaengine
 {
 
 LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx)
@@ -325,4 +325,4 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
     return true;
 }
 
-} // namespace cura
+} // namespace curaengine

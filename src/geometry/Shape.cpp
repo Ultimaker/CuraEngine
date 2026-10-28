@@ -38,7 +38,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 
-namespace cura
+namespace curaengine
 {
 
 Shape::Shape(ClipperLib::Paths&& paths, bool explicitely_closed)
@@ -570,14 +570,14 @@ Shape Shape::removePolygon(const Shape& to_be_removed, int same_distance) const
                 }
                 bool poly_rem_is_poly_keep = true;
                 // compare the two polygons on all points
-                if (smallest_dist2 > static_cast<cura::coord_t>(same_distance * same_distance))
+                if (smallest_dist2 > static_cast<curaengine::coord_t>(same_distance * same_distance))
                 {
                     continue;
                 }
                 for (size_t point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                 {
                     coord_t dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
-                    if (dist2 > static_cast<cura::coord_t>(same_distance * same_distance))
+                    if (dist2 > static_cast<curaengine::coord_t>(same_distance * same_distance))
                     {
                         poly_rem_is_poly_keep = false;
                         break;
@@ -1003,4 +1003,4 @@ template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polyline
 template OpenLinesSet Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 
-} // namespace cura
+} // namespace curaengine

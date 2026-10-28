@@ -26,7 +26,7 @@
 #include "utils/AABB.h"
 #endif
 
-namespace cura
+namespace curaengine
 {
 
 const std::function<int(Point2LL)> PolygonUtils::no_penalty_function = [](Point2LL)
@@ -1617,4 +1617,4 @@ PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, 
 template ClosestPoint<Polygon> PolygonUtils::walk(const ClosestPoint<Polygon>& from, coord_t distance);
 template ClosestPoint<OpenPolyline> PolygonUtils::walk(const ClosestPoint<OpenPolyline>& from, coord_t distance);
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "utils/PolygonUtils.h" //For spreadDotsArea helper function.
 
-namespace cura
+namespace curaengine
 {
 
 constexpr coord_t radius_per_cell_size = 6; // The cell-size should be small compared to the radius, but not so small as to be inefficient.
@@ -82,4 +82,4 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
     grid_.processNearby(added_leaf, supporting_radius_, process_func);
 }
 
-} // namespace cura
+} // namespace curaengine

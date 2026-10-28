@@ -4,7 +4,7 @@
 #include "utils/UnionFind.h"
 #include <gtest/gtest.h>
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -110,4 +110,4 @@ TEST_F(UnionFindTest, UniteSets)
     ASSERT_EQ(b, c) << "A+B and C+D must now be in the same set.";
 }
 
-} // namespace cura
+} // namespace curaengine

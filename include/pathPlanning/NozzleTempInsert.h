@@ -6,7 +6,7 @@
 #include <compare>
 #include <cstddef>
 
-namespace cura
+namespace curaengine
 {
 
 class GCodeExport;
@@ -40,4 +40,4 @@ struct NozzleTempInsert
     void write(GCodeExport& gcode);
 };
 
-} // namespace cura
+} // namespace curaengine

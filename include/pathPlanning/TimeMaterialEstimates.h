@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 struct TimeMaterialEstimates
@@ -80,4 +80,4 @@ struct TimeMaterialEstimates
     }
 };
 
-} // namespace cura
+} // namespace curaengine

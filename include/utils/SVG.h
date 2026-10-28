@@ -13,7 +13,7 @@
 #include "NoCopy.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Point2D;
@@ -393,4 +393,4 @@ void SVG::printf(const char* txt, Args&&... args) const
     fprintf(out_, txt, args...);
 }
 
-} // namespace cura
+} // namespace curaengine

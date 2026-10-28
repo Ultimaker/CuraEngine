@@ -12,7 +12,7 @@
 #include "geometry/Triangle3LL.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 struct AABB3D;
@@ -164,4 +164,4 @@ inline std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
     return boost::hash<uint64_t>()(position.key);
 }
 
-} // namespace cura
+} // namespace curaengine

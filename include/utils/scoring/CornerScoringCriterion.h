@@ -7,7 +7,7 @@
 #include "utils/Coord_t.h"
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace cura
+namespace curaengine
 {
 class PointsSet;
 
@@ -57,4 +57,4 @@ private:
     Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
 };
 
-} // namespace cura
+} // namespace curaengine

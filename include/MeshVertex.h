@@ -8,7 +8,7 @@
 
 #include "geometry/Point3LL.h"
 
-namespace cura
+namespace curaengine
 {
 /*!
 Vertex type to be used in a Mesh.
@@ -28,4 +28,4 @@ public:
     } //!< doesn't set connected_faces
 };
 
-} // namespace cura
+} // namespace curaengine

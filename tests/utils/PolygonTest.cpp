@@ -18,7 +18,7 @@
 #include "utils/PolygonUtils.h" // helper functions
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
@@ -626,5 +626,5 @@ TEST_F(PolygonTest, openCloseLines)
     EXPECT_FALSE(closed_polyline.shorterThan(3500));
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

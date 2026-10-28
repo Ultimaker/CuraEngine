@@ -6,7 +6,7 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/Registry.h"
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<typename TList, template<typename> class Unit>
 class SingletonRegistry
@@ -21,5 +21,5 @@ public:
 private:
     constexpr SingletonRegistry() = default;
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

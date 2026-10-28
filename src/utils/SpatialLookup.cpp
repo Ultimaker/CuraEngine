@@ -6,9 +6,9 @@
 #include "utils/VoxelGrid.h"
 
 
-BOOST_GEOMETRY_REGISTER_POINT_3D(cura::Point3D, double, boost::geometry::cs::cartesian, x_, y_, z_)
+BOOST_GEOMETRY_REGISTER_POINT_3D(curaengine::Point3D, double, boost::geometry::cs::cartesian, x_, y_, z_)
 
-namespace cura
+namespace curaengine
 {
 
 std::optional<OccupiedPosition> SpatialLookup::findClosestOccupation(const Point3D& position) const
@@ -37,4 +37,4 @@ SpatialLookup SpatialLookup::makeSpatialLookupFromVoxelGrid(const VoxelGrid& vox
     return spatial_lookup;
 }
 
-} // namespace cura
+} // namespace curaengine

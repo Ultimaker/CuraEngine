@@ -13,7 +13,7 @@
 #include "geometry/Shape.h"
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 constexpr coord_t locator_cell_size = 4000;
@@ -271,4 +271,4 @@ protected:
     std::optional<Point2LL> last_grounding_location_; //<! The last known grounding location, see 'getLastGroundingLocation()'.
 };
 
-} // namespace cura
+} // namespace curaengine

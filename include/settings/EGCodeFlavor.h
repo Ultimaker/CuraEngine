@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Different flavors of GCode. Some machines require different types of GCode.
@@ -89,4 +89,4 @@ enum class EGCodeFlavor
     PLUGIN = 9,
 };
 
-} // namespace cura
+} // namespace curaengine

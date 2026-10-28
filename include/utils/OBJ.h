@@ -10,7 +10,7 @@
 #include "geometry/Point2F.h"
 #include "geometry/Point3D.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Mesh;
@@ -68,4 +68,4 @@ private:
     std::string materialName(const SVG::Color color) const;
 };
 
-} // namespace cura
+} // namespace curaengine

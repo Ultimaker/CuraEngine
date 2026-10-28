@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
-namespace cura
+namespace curaengine
 {
 TimeKeeper::TimeKeeper()
 {
@@ -68,4 +68,4 @@ void TimeKeeper::logRegisteredTimes(const std::string& global_desc) const
     }
 }
 
-} // namespace cura
+} // namespace curaengine

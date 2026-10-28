@@ -9,7 +9,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/SparsePointGridInclusive.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Image;
@@ -35,4 +35,4 @@ private:
     std::vector<Segment> segments_;
 };
 
-} // namespace cura
+} // namespace curaengine

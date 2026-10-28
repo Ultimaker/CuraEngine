@@ -10,7 +10,7 @@
 #include "utils/Coord_t.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 class Segment3LL;
@@ -73,4 +73,4 @@ private:
     std::vector<Segment3LL> segments_;
 };
 
-} // namespace cura
+} // namespace curaengine

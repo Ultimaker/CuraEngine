@@ -16,7 +16,7 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Mesh;
@@ -446,4 +446,4 @@ private:
     void connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
-} // namespace cura
+} // namespace curaengine

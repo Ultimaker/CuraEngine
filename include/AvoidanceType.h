@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class AvoidanceType
@@ -13,4 +13,4 @@ enum class AvoidanceType
     COLLISION
 };
 
-} // namespace cura
+} // namespace curaengine

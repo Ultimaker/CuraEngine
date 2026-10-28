@@ -25,7 +25,7 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/VoronoiUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -766,4 +766,4 @@ SVG::RgbColor SVG::makeRainbowColor(const size_t index, const size_t elementsCou
     return color;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class ESurfaceMode
 {
@@ -13,4 +13,4 @@ enum class ESurfaceMode
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

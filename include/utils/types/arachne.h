@@ -10,7 +10,7 @@
 #include "utils/types/generic.h"
 #include "utils/types/geometry.h"
 
-namespace cura::utils
+namespace curaengine::utils
 {
 
 /*!
@@ -35,4 +35,4 @@ concept junctions = requires(T val) {
     requires junction<decltype(*ranges::begin(val))>;
 };
 
-} // namespace cura::utils
+} // namespace curaengine::utils

@@ -7,7 +7,7 @@
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 simplify_request::value_type simplify_request::operator()(
     const simplify_request::native_value_type& polygons,
@@ -49,5 +49,5 @@ simplify_request::value_type simplify_request::operator()(
     message.set_max_area_deviation(max_resolution);
     return message;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

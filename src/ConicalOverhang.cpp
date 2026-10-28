@@ -13,7 +13,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
 
-namespace cura
+namespace curaengine
 {
 
 void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
@@ -79,4 +79,4 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

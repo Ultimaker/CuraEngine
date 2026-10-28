@@ -24,6 +24,7 @@
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/SlotID.h"
 #include "plugins/RemoteException.h"
 #include "plugins/ValidatorException.h"
 #include "plugins/broadcast_rpc.h"
@@ -41,7 +42,7 @@
 #include <string>
 #include <thread>
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 
 /**
@@ -67,7 +68,7 @@ class PluginProxy
     using rsp_converter_type = ResponseTp;
     using rsp_msg_type = typename ResponseTp::value_type;
     using invoke_stub_t = Stub;
-    using broadcast_stub_t = slots::broadcast::v0::BroadcastService::Stub;
+    using broadcast_stub_t = ::cura::plugins::slots::broadcast::v0::BroadcastService::Stub;
 
     ranges::semiregular_box<invoke_stub_t> invoke_stub_; ///< The gRPC Invoke stub for communication.
     ranges::semiregular_box<broadcast_stub_t> broadcast_stub_; ///< The gRPC Broadcast stub for communication.
@@ -92,14 +93,14 @@ public:
         // Connect to the plugin and exchange a handshake
         agrpc::GrpcContext grpc_context;
         grpc::Status status;
-        slots::handshake::v0::HandshakeService::Stub handshake_stub(channel);
+        ::cura::plugins::slots::handshake::v0::HandshakeService::Stub handshake_stub(channel);
         plugin_metadata plugin_info;
 
         boost::asio::co_spawn(
             grpc_context,
             [this, &grpc_context, &status, &plugin_info, &handshake_stub, &name, &version]() -> boost::asio::awaitable<void>
             {
-                using RPC = agrpc::ClientRPC<&slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
+                using RPC = agrpc::ClientRPC<&::cura::plugins::slots::handshake::v0::HandshakeService::Stub::PrepareAsyncCall>;
                 grpc::ClientContext client_context{};
                 prep_client_context(client_context, slot_info_);
 
@@ -356,4 +357,4 @@ private:
     std::optional<plugin_metadata> plugin_info_{ std::optional<plugin_metadata>(std::nullopt) }; ///< Optional object that holds the plugin metadata, set after handshake
 };
 
-} // namespace cura::plugins
+} // namespace curaengine::plugins

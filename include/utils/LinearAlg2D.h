@@ -7,7 +7,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Point3Matrix;
@@ -445,4 +445,4 @@ public:
 };
 
 
-} // namespace cura
+} // namespace curaengine

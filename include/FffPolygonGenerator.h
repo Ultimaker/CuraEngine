@@ -6,7 +6,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/NoCopy.h"
 
-namespace cura
+namespace curaengine
 {
 
 class MeshGroup;
@@ -172,4 +172,4 @@ private:
     void processFuzzyWalls(SliceMeshStorage& mesh);
 };
 
-} // namespace cura
+} // namespace curaengine

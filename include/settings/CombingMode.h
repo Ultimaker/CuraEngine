@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class CombingMode
 {
@@ -15,4 +15,4 @@ enum class CombingMode
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

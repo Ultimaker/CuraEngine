@@ -19,7 +19,7 @@
 #include "Slice.h"
 #include "utils/string.h"
 
-namespace cura
+namespace curaengine
 {
 
 EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>& arguments)
@@ -48,7 +48,7 @@ void EmscriptenCommunication::sendProgress(double progress) const
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", progress_handler_, progress).c_str());
 }
 
-std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information)
+std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information)
 {
     // Construct a string with rapidjson containing the slice information
     rapidjson::Document doc;
@@ -135,12 +135,12 @@ std::string EmscriptenCommunication::createEngineInfoMessage()
     return buffer.GetString();
 }
 
-void EmscriptenCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
+void EmscriptenCommunication::sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     auto slice_info = createSliceInfoMessage(time_estimates, print_information);
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
 };
 
-} // namespace cura
+} // namespace curaengine
 
 #endif // __EMSCRIPTEN__

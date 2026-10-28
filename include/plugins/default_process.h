@@ -6,7 +6,7 @@
 #ifdef ENABLE_PLUGINS
 #include <utility>
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 struct default_process
 {
@@ -15,5 +15,5 @@ struct default_process
         return std::forward<decltype(arg)>(arg);
     };
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

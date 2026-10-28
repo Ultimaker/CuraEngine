@@ -44,7 +44,7 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace cura
+namespace curaengine
 {
 
 std::string transliterate(const std::string& text)
@@ -362,7 +362,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
     slots::instance().forEachPlugin(
         [&plugins](const plugins::slot_metadata& slot, const plugins::plugin_metadata& plugin)
         {
-            plugins.push_back(std::make_pair(plugins::v0::SlotID_Name(slot.slot_id), plugin.plugin_name));
+            plugins.push_back(std::make_pair(::cura::plugins::v0::SlotID_Name(slot.slot_id), plugin.plugin_name));
         });
     if (! plugins.empty())
     {
@@ -2239,4 +2239,4 @@ void GCodeExport::setSliceUUID(const std::string& slice_uuid)
     slice_uuid_ = slice_uuid;
 }
 
-} // namespace cura
+} // namespace curaengine

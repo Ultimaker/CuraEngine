@@ -10,7 +10,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -90,4 +90,4 @@ std::list<size_t> OrderOptimizer<T>::optimize(const Point2LL& start_position)
 }
 
 
-} // namespace cura
+} // namespace curaengine

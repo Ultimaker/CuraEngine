@@ -5,7 +5,7 @@
 
 #include "DensityProvider.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct AABB3D;
@@ -31,4 +31,4 @@ protected:
     double density_;
 };
 
-} // namespace cura
+} // namespace curaengine

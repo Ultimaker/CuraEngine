@@ -7,7 +7,7 @@
 
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 // NOLINTBEGIN(*-magic-numbers)
 
@@ -152,4 +152,4 @@ TEST(CoordTTest, TestFuzzyLesserOrEqual)
 
 // NOLINTEND(*-magic-numbers)
 
-} // namespace cura
+} // namespace curaengine

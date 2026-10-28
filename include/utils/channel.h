@@ -14,10 +14,10 @@
 #define ENABLE_REMOTE_PLUGINS false
 #endif
 
-namespace cura::utils
+namespace curaengine::utils
 {
 std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& config = { "localhost", 50010UL });
 
-} // namespace cura::utils
+} // namespace curaengine::utils
 
 #endif // ENABLE_PLUGINS

@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -130,4 +130,4 @@ private:
     std::string getWithoutLimiting(const std::string& key) const;
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -32,10 +32,10 @@ v 50000 50000
  *  - comments can be added after the 'end' of the file.
  */
 
-namespace cura
+namespace curaengine
 {
 bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Shape>& polygons_out);
 bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_out);
-} // namespace cura
+} // namespace curaengine
 
 #endif // READ_TEST_POLYGONS_H

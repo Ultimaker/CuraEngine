@@ -5,7 +5,7 @@
 
 #include "utils/types/generic.h"
 
-namespace cura::utils
+namespace curaengine::utils
 {
 
 template<floating_point T>
@@ -163,4 +163,4 @@ struct NumericFacade
     }
 };
 
-} // namespace cura::utils
+} // namespace curaengine::utils

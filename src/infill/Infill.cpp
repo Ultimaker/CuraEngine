@@ -35,6 +35,9 @@
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
 
+namespace curaengine
+{
+
 /*!
  * Function which returns the scanline_idx for a given x coordinate
  *
@@ -55,9 +58,6 @@ static inline int computeScanSegmentIdx(int x, int line_width)
     }
     return x / line_width;
 }
-
-namespace cura
-{
 
 Shape Infill::generateWallToolPaths(
     std::vector<VariableWidthLines>& toolpaths,
@@ -1172,4 +1172,4 @@ void Infill::InfillLineSegment::appendTo(OpenPolyline& result_polyline, const bo
     result_polyline.push_back(altered_end_);
 }
 
-} // namespace cura
+} // namespace curaengine

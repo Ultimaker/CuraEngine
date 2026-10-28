@@ -8,7 +8,7 @@
 #include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/AABB.h"
 
-namespace cura
+namespace curaengine
 {
 
 RegularNGonalInfill::RegularNGonalInfill(RegularNGonType type)
@@ -116,4 +116,4 @@ std::array<RegularNGonalInfill::SegmentsPattern, 2>
              SegmentsPattern{ .segments = { segment_up, segment_right, segment_up, segment_left }, .delta_x = absolute_delta_x } };
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "BeadingStrategy.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -41,4 +41,4 @@ protected:
     const coord_t min_output_width_;
 };
 
-} // namespace cura
+} // namespace curaengine

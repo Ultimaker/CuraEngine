@@ -10,7 +10,7 @@
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/SparsePointGridInclusiveElem.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<typename PathType>
@@ -437,4 +437,4 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
 template void PathOrderMonotonic<const Polyline*>::optimize();
 template void PathOrderMonotonic<const OpenPolyline*>::optimize();
 
-} // namespace cura
+} // namespace curaengine

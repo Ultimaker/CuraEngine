@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <google/protobuf/empty.pb.h>
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 struct empty
 {
@@ -18,5 +18,5 @@ struct empty
 
     constexpr native_value_type operator()(const value_type&) const;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

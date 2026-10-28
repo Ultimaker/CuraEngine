@@ -9,7 +9,7 @@
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -81,4 +81,4 @@ public:
     LayerIndex cool_fan_full_layer;
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "ZigzagConnectorProcessor.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OpenPolyline;
@@ -36,4 +36,4 @@ public:
 };
 
 
-} // namespace cura
+} // namespace curaengine

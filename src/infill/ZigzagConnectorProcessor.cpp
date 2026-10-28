@@ -11,7 +11,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
-using namespace cura;
+using namespace curaengine;
 
 
 void ZigzagConnectorProcessor::registerVertex(const Point2LL& vertex)
@@ -171,7 +171,7 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point2LL>& points, bo
     addPolyline(polyline);
 }
 
-void cura::ZigzagConnectorProcessor::reset()
+void curaengine::ZigzagConnectorProcessor::reset()
 {
     is_first_connector_ = true;
     first_connector_end_scanline_index_ = 0;
@@ -180,7 +180,7 @@ void cura::ZigzagConnectorProcessor::reset()
     current_connector_.clear();
 }
 
-void cura::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
+void curaengine::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
 {
     result_.emplace_back(polyline);
     for (Point2LL& p : result_.back())

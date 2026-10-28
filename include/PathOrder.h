@@ -6,7 +6,7 @@
 #include "PathOrdering.h"
 #include "settings/ZSeamConfig.h" //To get the seam settings.
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -133,4 +133,4 @@ protected:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

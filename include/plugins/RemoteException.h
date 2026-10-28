@@ -13,7 +13,7 @@
 #include "plugins/slot_metadata.h"
 #include "plugins/types.h"
 
-namespace cura::plugins::exceptions
+namespace curaengine::plugins::exceptions
 {
 class RemoteException : public std::exception
 {
@@ -40,4 +40,4 @@ public:
         return msg_.c_str();
     }
 };
-} // namespace cura::plugins::exceptions
+} // namespace curaengine::plugins::exceptions

@@ -13,7 +13,7 @@
 #include "settings/types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
-namespace cura
+namespace curaengine
 {
 
 void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
@@ -174,4 +174,4 @@ OpenLinesSet Polyline::splitIntoSegments() const
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

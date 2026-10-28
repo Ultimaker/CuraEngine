@@ -12,7 +12,7 @@
 #include "gradual_flow/Utils.h"
 #include "pathPlanning/GCodePath.h"
 
-namespace cura::gradual_flow
+namespace curaengine::gradual_flow
 {
 
 struct FlowLimitedPath
@@ -286,4 +286,4 @@ struct FlowLimitedPath
     }
 };
 
-} // namespace cura::gradual_flow
+} // namespace curaengine::gradual_flow

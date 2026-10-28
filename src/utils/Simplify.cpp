@@ -13,7 +13,7 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/LinearAlg2D.h" //To calculate line deviations and intersecting lines.
 
-namespace cura
+namespace curaengine
 {
 
 Simplify::Simplify(const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
@@ -411,4 +411,4 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
 template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
 template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
 
-} // namespace cura
+} // namespace curaengine

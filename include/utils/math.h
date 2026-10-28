@@ -9,7 +9,7 @@
 #include "utils/types/generic.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /**
@@ -159,4 +159,4 @@ template<utils::numeric T>
     return std::signbit(value) ? -1 : 1;
 }
 
-} // namespace cura
+} // namespace curaengine

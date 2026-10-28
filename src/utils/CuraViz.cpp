@@ -25,7 +25,7 @@
 #include "geometry/Shape.h"
 #include "settings/Settings.h"
 
-namespace cura
+namespace curaengine
 {
 
 CuraViz* CuraViz::instance_ = nullptr;
@@ -265,6 +265,6 @@ cura_viz::GeometricElement* CuraViz::MessageToSend::addGeometricElement(const st
     return element;
 }
 
-} // namespace cura
+} // namespace curaengine
 
 #endif

@@ -12,7 +12,7 @@
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 
-namespace cura
+namespace curaengine
 {
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
@@ -124,4 +124,4 @@ public:
     bool hasWallAtInsetIndex(size_t inset_idx) const;
 };
 
-} // namespace cura
+} // namespace curaengine

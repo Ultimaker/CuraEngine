@@ -6,8 +6,9 @@
 #include <string_view>
 
 #include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/SlotID.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 struct slot_metadata
 {
@@ -15,4 +16,4 @@ struct slot_metadata
     std::string_view version;
     std::string_view engine_uuid;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins

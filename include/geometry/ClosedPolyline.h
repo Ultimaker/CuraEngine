@@ -5,7 +5,7 @@
 
 #include "geometry/Polyline.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OpenPolyline;
@@ -148,4 +148,4 @@ public:
     void shiftVerticesToStartPoint(const size_t start_index);
 };
 
-} // namespace cura
+} // namespace curaengine

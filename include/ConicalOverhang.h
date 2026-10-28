@@ -4,7 +4,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 class Mesh;
@@ -26,4 +26,4 @@ public:
     static void apply(Slicer* slicer, const Mesh& mesh);
 };
 
-} // namespace cura
+} // namespace curaengine

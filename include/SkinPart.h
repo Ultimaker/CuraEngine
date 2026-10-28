@@ -6,7 +6,7 @@
 #include "geometry/Shape.h"
 #include "geometry/SingleShape.h"
 
-namespace cura
+namespace curaengine
 {
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin.
@@ -23,4 +23,4 @@ public:
     Shape flooring_fill; //!< The inner infill which has air directly below
 };
 
-} // namespace cura
+} // namespace curaengine

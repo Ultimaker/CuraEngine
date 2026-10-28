@@ -5,7 +5,7 @@
 
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<>
@@ -14,4 +14,4 @@ const Polygon& PathsPointIndex<Shape>::getPolygon() const
     return (*polygons_)[poly_idx_];
 }
 
-} // namespace cura
+} // namespace curaengine

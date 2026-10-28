@@ -9,7 +9,7 @@
 #include "settings/types/AngleRadians.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 PointMatrix::PointMatrix(double rotation)
@@ -75,4 +75,4 @@ PointMatrix PointMatrix::inverse() const
     return ret;
 }
 
-} // namespace cura
+} // namespace curaengine

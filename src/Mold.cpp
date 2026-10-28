@@ -17,7 +17,7 @@
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 
 void Mold::process(std::vector<Slicer*>& slicer_list)
@@ -125,4 +125,4 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 }
 
 
-} // namespace cura
+} // namespace curaengine

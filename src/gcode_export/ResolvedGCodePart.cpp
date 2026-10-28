@@ -8,7 +8,7 @@
 #include "gcode_export/GcodeTemplateResolver.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 ResolvedGCodePart::ResolvedGCodePart(
@@ -28,4 +28,4 @@ std::string ResolvedGCodePart::str() const
     return template_resolver_->resolveGCodeTemplate(raw_string_, context_extruder_nr_, extra_settings_);
 }
 
-} // namespace cura
+} // namespace curaengine

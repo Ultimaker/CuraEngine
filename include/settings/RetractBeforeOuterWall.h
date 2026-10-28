@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Whether to force a retracted or unretracted travel move when going to an outer wall
@@ -16,4 +16,4 @@ enum class RetractBeforeOuterWall
     NOT_RETRACTED_FROM_INFILL, // Force the first travel move coming from an infill area not to be retracted, others will be use automatic
 };
 
-} // namespace cura
+} // namespace curaengine

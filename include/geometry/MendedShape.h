@@ -9,7 +9,7 @@
 #include "settings/Settings.h"
 #include "utils/SectionType.h"
 
-namespace cura
+namespace curaengine
 {
 /*!
  * \brief A MendedShape is a wrapper class for a Shape,
@@ -39,4 +39,4 @@ protected:
     const Shape* shape_{ nullptr };
     std::optional<Shape> mended_shape_;
 };
-} // namespace cura
+} // namespace curaengine

@@ -11,7 +11,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OBJ;
@@ -237,4 +237,4 @@ private:
     TreeSupportElement::Ptr child_{ nullptr };
 };
 
-} // namespace cura
+} // namespace curaengine

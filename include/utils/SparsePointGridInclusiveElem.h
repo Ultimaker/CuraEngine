@@ -6,7 +6,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura::SparsePointGridInclusiveImpl
+namespace curaengine::SparsePointGridInclusiveImpl
 {
 
 template<class Val>
@@ -26,4 +26,4 @@ struct SparsePointGridInclusiveElem
     Val val;
 };
 
-} // namespace cura::SparsePointGridInclusiveImpl
+} // namespace curaengine::SparsePointGridInclusiveImpl

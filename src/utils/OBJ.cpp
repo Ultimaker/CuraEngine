@@ -15,7 +15,7 @@
 #include "geometry/Point3D.h"
 #include "utils/VoxelGrid.h"
 
-namespace cura
+namespace curaengine
 {
 
 OBJ::OBJ(const std::string& filename, const double scale)
@@ -218,4 +218,4 @@ std::string OBJ::materialName(const SVG::Color color) const
     return fmt::format("material_{}", SVG::toString(color));
 }
 
-} // namespace cura
+} // namespace curaengine

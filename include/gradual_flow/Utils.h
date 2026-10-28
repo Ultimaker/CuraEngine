@@ -8,7 +8,7 @@
 #include <tuple>
 
 
-namespace cura::gradual_flow::utils
+namespace curaengine::gradual_flow::utils
 {
 
 /*
@@ -77,4 +77,4 @@ std::tuple<int, int, int> hsvToRgb(double H, double S, double V)
     return std::make_tuple(R, G, B);
 }
 
-} // namespace cura::gradual_flow::utils
+} // namespace curaengine::gradual_flow::utils

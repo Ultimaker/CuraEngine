@@ -51,7 +51,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
@@ -322,7 +322,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 }
             }
         });
-} // namespace cura
+} // namespace curaengine
 
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 {
@@ -996,7 +996,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     // Generate the actual areas and store them in the mesh.
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         1,
         storage.print_layer_count,
         [&](const size_t layer_idx)
@@ -1252,7 +1252,7 @@ void AreaSupport::generateSupportAreasForMesh(
     // The maximum width of an odd wall = 2 * minimum even wall width.
     auto half_min_feature_width = min_even_wall_line_width + 10;
 
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         1,
         layer_count,
         [&](const size_t layer_idx)
@@ -1327,7 +1327,7 @@ void AreaSupport::generateSupportAreasForMesh(
         // but only in chunks of `bottom_stair_step_layer_count` steps, since, within such a chunk,
         // the order of execution is important.
         // Unless thinking about optimization & threading, you can just think of this as a single for-loop.
-        cura::parallel_for<size_t>(
+        curaengine::parallel_for<size_t>(
             1,
             layer_count,
             [&](const size_t layer_idx)
@@ -1505,7 +1505,7 @@ void AreaSupport::generateSupportAreasForMesh(
         const int max_checking_layer_idx
             = std::max(0, std::min(static_cast<int>(storage.support.supportLayers.size()), static_cast<int>(layer_count - (layer_z_distance_top - 1))));
 
-        cura::parallel_for<size_t>(
+        curaengine::parallel_for<size_t>(
             0,
             max_checking_layer_idx,
             [&](const size_t layer_idx)
@@ -2004,4 +2004,4 @@ void AreaSupport::generateSupportInterfaceLayer(
     support_areas = support_areas.difference(interface_polygons);
 }
 
-} // namespace cura
+} // namespace curaengine

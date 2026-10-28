@@ -8,7 +8,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Shape;
@@ -198,4 +198,4 @@ private:
     Shape getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr);
 };
 
-} // namespace cura
+} // namespace curaengine

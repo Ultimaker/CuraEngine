@@ -4,11 +4,11 @@
 #pragma once
 
 #ifdef ENABLE_PLUGINS
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<typename... Types>
 struct Typelist
 {
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

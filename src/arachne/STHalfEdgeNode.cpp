@@ -12,7 +12,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
-namespace cura
+namespace curaengine
 {
 
 STHalfEdgeNode::STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const Point2LL& p)
@@ -81,4 +81,4 @@ bool STHalfEdgeNode::isLocalMaximum(bool strict) const
     return true;
 }
 
-} // namespace cura
+} // namespace curaengine

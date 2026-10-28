@@ -6,7 +6,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -54,4 +54,4 @@ inline const Point2LL& make_point(const ExtrusionJunction& ej)
 
 using LineJunctions = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
 
-} // namespace cura
+} // namespace curaengine

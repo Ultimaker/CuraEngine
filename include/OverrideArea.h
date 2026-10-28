@@ -9,7 +9,7 @@
 #include "geometry/Shape.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct GCodePathConfig;
@@ -26,4 +26,4 @@ struct OverrideArea
 // A vector of override areas is to be applied as a stack: the last area takes precedences over the previous one, and so on.
 using OverrideAreas = std::vector<OverrideArea>;
 
-} // namespace cura
+} // namespace curaengine

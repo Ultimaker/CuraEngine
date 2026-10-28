@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -16,4 +16,4 @@ enum class ForceRetract
     NOT_RETRACTED, // Force travel move not to be retracted
 };
 
-} // namespace cura
+} // namespace curaengine

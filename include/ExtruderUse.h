@@ -7,7 +7,7 @@
 
 #include "ExtruderPrime.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct ExtruderUse
@@ -16,4 +16,4 @@ struct ExtruderUse
     ExtruderPrime prime;
 };
 
-} // namespace cura
+} // namespace curaengine

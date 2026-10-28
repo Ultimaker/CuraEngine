@@ -5,6 +5,9 @@
 
 #include <type_traits>
 
+namespace curaengine
+{
+
 /*!
  * Utility class to handle enumerations that are actually combinable bit flags. It adds convenient methods to combine the values, compare and test
  * them in a type-safe way.
@@ -60,3 +63,5 @@ public:
 private:
     enum_int_type value_{ 0 };
 };
+
+} // namespace curaengine

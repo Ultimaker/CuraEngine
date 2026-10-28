@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class SlicingTolerance
 {
@@ -13,4 +13,4 @@ enum class SlicingTolerance
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

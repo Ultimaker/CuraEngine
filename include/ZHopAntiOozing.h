@@ -5,7 +5,7 @@
 
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 struct ZHopAntiOozing
 {
@@ -13,4 +13,4 @@ struct ZHopAntiOozing
     Ratio ratio; //!< The ratio of the full z-hop move that contains a retract/prime
 };
 
-} // namespace cura
+} // namespace curaengine

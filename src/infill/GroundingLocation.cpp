@@ -5,7 +5,7 @@
 
 #include <cassert>
 
-using namespace cura;
+using namespace curaengine;
 
 Point2LL GroundingLocation::p() const
 {

@@ -8,7 +8,7 @@
 #include "settings/ZSeamConfig.h" //To get the seam settings.
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -117,4 +117,4 @@ protected:
     std::optional<Polygon> cached_vertices_;
 };
 
-} // namespace cura
+} // namespace curaengine

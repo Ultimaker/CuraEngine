@@ -23,7 +23,7 @@
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
 
-namespace cura
+namespace curaengine
 {
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
@@ -777,4 +777,4 @@ void SkirtBrim::generateSupportBrim()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

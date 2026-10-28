@@ -5,7 +5,7 @@
 
 #include "geometry/ClosedPolyline.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Shape;
@@ -199,4 +199,4 @@ public:
         bool& backward_is_too_far);
 };
 
-} // namespace cura
+} // namespace curaengine

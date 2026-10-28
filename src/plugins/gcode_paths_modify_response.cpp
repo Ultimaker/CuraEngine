@@ -13,67 +13,67 @@
 #include "SliceMeshStorage.h"
 #include "pathPlanning/SpeedDerivatives.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
-[[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const v0::PrintFeature feature) noexcept
+[[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept
 {
     switch (feature)
     {
-    case v0::PrintFeature::NONETYPE:
+    case ::cura::plugins::v0::PrintFeature::NONETYPE:
         return PrintFeatureType::NoneType;
-    case v0::PrintFeature::OUTERWALL:
+    case ::cura::plugins::v0::PrintFeature::OUTERWALL:
         return PrintFeatureType::OuterWall;
-    case v0::PrintFeature::INNERWALL:
+    case ::cura::plugins::v0::PrintFeature::INNERWALL:
         return PrintFeatureType::InnerWall;
-    case v0::PrintFeature::SKIN:
+    case ::cura::plugins::v0::PrintFeature::SKIN:
         return PrintFeatureType::Skin;
-    case v0::PrintFeature::SUPPORT:
+    case ::cura::plugins::v0::PrintFeature::SUPPORT:
         return PrintFeatureType::Support;
-    case v0::PrintFeature::SKIRTBRIM:
+    case ::cura::plugins::v0::PrintFeature::SKIRTBRIM:
         return PrintFeatureType::SkirtBrim;
-    case v0::PrintFeature::INFILL:
+    case ::cura::plugins::v0::PrintFeature::INFILL:
         return PrintFeatureType::Infill;
-    case v0::PrintFeature::SUPPORTINFILL:
+    case ::cura::plugins::v0::PrintFeature::SUPPORTINFILL:
         return PrintFeatureType::SupportInfill;
-    case v0::PrintFeature::MOVEUNRETRACTED:
+    case ::cura::plugins::v0::PrintFeature::MOVEUNRETRACTED:
         return PrintFeatureType::MoveUnretracted;
-    case v0::PrintFeature::MOVERETRACTED:
+    case ::cura::plugins::v0::PrintFeature::MOVERETRACTED:
         return PrintFeatureType::MoveRetracted;
-    case v0::PrintFeature::SUPPORTINTERFACE:
+    case ::cura::plugins::v0::PrintFeature::SUPPORTINTERFACE:
         return PrintFeatureType::SupportInterface;
-    case v0::PrintFeature::PRIMETOWER:
+    case ::cura::plugins::v0::PrintFeature::PRIMETOWER:
         return PrintFeatureType::PrimeTower;
-    case v0::PrintFeature::MOVEWHILERETRACTING:
+    case ::cura::plugins::v0::PrintFeature::MOVEWHILERETRACTING:
         return PrintFeatureType::MoveWhileRetracting;
-    case v0::PrintFeature::MOVEWHILEUNRETRACTING:
+    case ::cura::plugins::v0::PrintFeature::MOVEWHILEUNRETRACTING:
         return PrintFeatureType::MoveWhileUnretracting;
-    case v0::PrintFeature::STATIONARYRETRACTUNRETRACT:
+    case ::cura::plugins::v0::PrintFeature::STATIONARYRETRACTUNRETRACT:
         return PrintFeatureType::StationaryRetractUnretract;
-    case v0::PrintFeature::NUMPRINTFEATURETYPES:
+    case ::cura::plugins::v0::PrintFeature::NUMPRINTFEATURETYPES:
         return PrintFeatureType::NumPrintFeatureTypes;
     default:
         return PrintFeatureType::NoneType;
     }
 }
 
-[[nodiscard]] constexpr SpaceFillType gcode_paths_modify_response::getSpaceFillType(const v0::SpaceFillType space_fill_type) noexcept
+[[nodiscard]] constexpr SpaceFillType gcode_paths_modify_response::getSpaceFillType(const ::cura::plugins::v0::SpaceFillType space_fill_type) noexcept
 {
     switch (space_fill_type)
     {
-    case v0::SpaceFillType::NONE:
+    case ::cura::plugins::v0::SpaceFillType::NONE:
         return SpaceFillType::None;
-    case v0::SpaceFillType::POLYGONS:
+    case ::cura::plugins::v0::SpaceFillType::POLYGONS:
         return SpaceFillType::Polygons;
-    case v0::SpaceFillType::POLY_LINES:
+    case ::cura::plugins::v0::SpaceFillType::POLY_LINES:
         return SpaceFillType::PolyLines;
-    case v0::SpaceFillType::LINES:
+    case ::cura::plugins::v0::SpaceFillType::LINES:
         return SpaceFillType::Lines;
     default:
         return SpaceFillType::None;
     }
 }
 
-[[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
+[[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const ::cura::plugins::v0::GCodePath& path)
 {
     return {
         .z_offset = path.z_offset(),
@@ -141,5 +141,5 @@ gcode_paths_modify_response::native_value_type
 
     return paths;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

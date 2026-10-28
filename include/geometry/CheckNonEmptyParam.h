@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class CheckNonEmptyParam
@@ -13,4 +13,4 @@ enum class CheckNonEmptyParam
     EvenIfEmpty
 };
 
-} // namespace cura
+} // namespace curaengine

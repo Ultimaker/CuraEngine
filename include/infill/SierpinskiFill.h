@@ -8,7 +8,7 @@
 
 #include "utils/AABB.h"
 
-namespace cura
+namespace curaengine
 {
 
 class DensityProvider;
@@ -454,4 +454,4 @@ protected:
      */
     void debugCheck(bool check_subdivision = true);
 };
-} // namespace cura
+} // namespace curaengine

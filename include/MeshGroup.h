@@ -7,7 +7,7 @@
 
 #include "Mesh.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Matrix4x3D;
@@ -68,4 +68,4 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& fi
 
 bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix);
 
-} // namespace cura
+} // namespace curaengine

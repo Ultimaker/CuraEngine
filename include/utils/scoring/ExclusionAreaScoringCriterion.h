@@ -5,7 +5,7 @@
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace cura
+namespace curaengine
 {
 class PointsSet;
 class Shape;
@@ -25,4 +25,4 @@ public:
     virtual double computeScore(const Point2LL& candidate_position) const override;
 };
 
-} // namespace cura
+} // namespace curaengine

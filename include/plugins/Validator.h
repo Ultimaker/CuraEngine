@@ -8,7 +8,7 @@
 #include "plugins/plugin_metadata.h"
 #include "plugins/slot_metadata.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 
 class Validator
@@ -45,4 +45,4 @@ public:
     }
 };
 
-} // namespace cura::plugins
+} // namespace curaengine::plugins

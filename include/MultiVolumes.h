@@ -6,7 +6,7 @@
 #include <vector>
 
 /* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
-namespace cura
+namespace curaengine
 {
 
 class Mesh;
@@ -39,4 +39,4 @@ public:
     static void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes);
 };
 
-} // namespace cura
+} // namespace curaengine

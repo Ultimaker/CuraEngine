@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <numeric>
 
-namespace cura
+namespace curaengine
 {
 
 RedistributeBeadingStrategy::RedistributeBeadingStrategy(const coord_t optimal_width_outer, const Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent)
@@ -106,4 +106,4 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
     return ret;
 }
 
-} // namespace cura
+} // namespace curaengine

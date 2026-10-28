@@ -3,7 +3,7 @@
 
 #include "FffProcessor.h"
 
-namespace cura
+namespace curaengine
 {
 
 FffProcessor FffProcessor::instance; // definition must be in cpp
@@ -13,4 +13,4 @@ void FffProcessor::finalize()
     gcode_writer.finalize();
 }
 
-} // namespace cura
+} // namespace curaengine

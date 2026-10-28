@@ -8,7 +8,7 @@
 #include "Raft.h"
 #include "settings/types/LayerIndex.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -228,4 +228,4 @@ private:
     size_t delta_{ 0 };
 };
 
-} // namespace cura
+} // namespace curaengine

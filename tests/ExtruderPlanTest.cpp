@@ -9,7 +9,7 @@
 #include "pathPlanning/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 /*!
  * A fixture containing some sets of GCodePaths to test with.
@@ -482,5 +482,5 @@ TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
 
     EXPECT_TRUE(extruder_plan.paths_.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

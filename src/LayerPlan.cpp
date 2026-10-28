@@ -53,7 +53,7 @@
 #include "utils/Simplify.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
@@ -1500,7 +1500,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
                     const coord_t length_to_process = destination_position - wall_processed_distance;
                     const double destination_factor = static_cast<double>(segment_processed_distance + length_to_process) / line_length;
-                    split_destination = cura::lerp(p0, p1, destination_factor);
+                    split_destination = curaengine::lerp(p0, p1, destination_factor);
 
                     double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
                     if (process_scarf)
@@ -1658,7 +1658,7 @@ std::vector<LayerPlan::PathCoasting>
                         if (accumulated_volume >= coasting_volume)
                         {
                             const double start_pos_factor = (accumulated_volume - coasting_volume) / segment_volume;
-                            Point3LL coasting_start_pos = cura::lerp(previous_point, point, start_pos_factor);
+                            Point3LL coasting_start_pos = curaengine::lerp(previous_point, point, start_pos_factor);
                             path_coasting = { ApplyCoasting::PartialCoasting, point_idx, coasting_start_pos };
                             chunk_coasting_point_reached = true;
                         }
@@ -2928,7 +2928,7 @@ void LayerPlan::computeAntiOozeTravelSplit(
             if (segment_duration > 0.001_s)
             {
                 const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
-                anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio);
+                anti_oozing.segment_split_position = curaengine::lerp(segment_start, segment_end, segment_ratio);
             }
             else
             {
@@ -4439,4 +4439,4 @@ template void LayerPlan::addLinesByOptimizer(
     const MendedShape& extra_inwards_move_contour,
     const std::optional<coord_t> max_distance_ignore_combing);
 
-} // namespace cura
+} // namespace curaengine

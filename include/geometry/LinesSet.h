@@ -10,7 +10,7 @@
 #include "geometry/CheckNonEmptyParam.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Shape;
@@ -289,4 +289,4 @@ private:
     bool checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty);
 };
 
-} // namespace cura
+} // namespace curaengine

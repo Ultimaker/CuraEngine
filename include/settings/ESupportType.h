@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Type of support material to generate
@@ -16,4 +16,4 @@ enum class ESupportType
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

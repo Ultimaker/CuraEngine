@@ -7,7 +7,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 infill_generate_response::native_value_type infill_generate_response::operator()(const infill_generate_response::value_type& message) const
 {
@@ -68,5 +68,5 @@ infill_generate_response::native_value_type infill_generate_response::operator()
 
     return { toolpaths_, result_polygons, result_lines };
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

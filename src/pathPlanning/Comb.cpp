@@ -16,7 +16,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/PathsPointIndex.h"
 
-namespace cura
+namespace curaengine
 {
 
 LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
@@ -669,4 +669,4 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
     return std::make_shared<std::pair<ClosestPointPolygon, ClosestPointPolygon>>(*best_in, *best_out);
 }
 
-} // namespace cura
+} // namespace curaengine

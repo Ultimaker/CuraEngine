@@ -11,7 +11,7 @@
 #include "math.h"
 #include "utils/types/generic.h"
 
-namespace cura
+namespace curaengine
 {
 
 using coord_t = ClipperLib::cInt;
@@ -81,4 +81,4 @@ template<utils::floating_point FactorType>
     return b > a - EPSILON;
 }
 
-} // namespace cura
+} // namespace curaengine

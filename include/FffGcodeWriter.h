@@ -18,7 +18,7 @@
 #include "utils/NoCopy.h"
 #include "utils/TimeKeeper.h"
 
-namespace cura
+namespace curaengine
 {
 
 class AngleDegrees;
@@ -780,4 +780,4 @@ private:
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
 };
 
-} // namespace cura
+} // namespace curaengine

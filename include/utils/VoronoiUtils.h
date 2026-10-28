@@ -14,9 +14,9 @@
 namespace boost::polygon
 {
 template<>
-struct voronoi_diagram_traits<cura::coord_t>
+struct voronoi_diagram_traits<curaengine::coord_t>
 {
-    typedef cura::coord_t coordinate_type;
+    typedef curaengine::coord_t coordinate_type;
     typedef voronoi_cell<coordinate_type> cell_type;
     typedef voronoi_vertex<coordinate_type> vertex_type;
     typedef voronoi_edge<coordinate_type> edge_type;
@@ -32,7 +32,7 @@ struct voronoi_diagram_traits<cura::coord_t>
 };
 } // namespace boost::polygon
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -106,4 +106,4 @@ protected:
     static double getPointProjection(const Point2LL& point, const Segment& segment);
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -9,7 +9,7 @@
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 class SliceMeshStorage;
 
@@ -37,4 +37,4 @@ struct MeshPathConfigs
     void smoothAllSpeeds(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer);
 };
 
-} // namespace cura
+} // namespace curaengine

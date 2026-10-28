@@ -15,7 +15,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB3D.h"
 
-namespace cura
+namespace curaengine
 {
 class LightningGenerator;
 class Mesh;
@@ -90,4 +90,4 @@ public:
     Point2LL getZSeamHint() const;
 };
 
-} // namespace cura
+} // namespace curaengine

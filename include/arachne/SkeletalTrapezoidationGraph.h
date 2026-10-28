@@ -10,7 +10,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SkeletalTrapezoidationGraph
@@ -52,4 +52,4 @@ private:
     std::pair<Point2LL, Point2LL> getSource(const edge_t& edge);
 };
 
-} // namespace cura
+} // namespace curaengine

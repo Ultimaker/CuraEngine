@@ -18,7 +18,7 @@
 #include "settings/SlicingTolerance.h"
 #include "settings/types/AngleRadians.h"
 
-namespace cura
+namespace curaengine
 {
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
@@ -230,4 +230,4 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

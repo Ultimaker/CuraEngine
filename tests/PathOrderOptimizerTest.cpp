@@ -6,7 +6,7 @@
 #include <gtest/gtest.h> //To run the tests.
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PathOrderOptimizerTest : public testing::Test
@@ -68,5 +68,5 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
     EXPECT_EQ(optimizer.paths_[2].vertices_->front(), Point2LL(1000, 1000)) << "Far triangle last.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

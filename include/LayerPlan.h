@@ -31,7 +31,7 @@
 
 #include "ForceRetract.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Comb;
@@ -1371,4 +1371,4 @@ private:
     static std::vector<PartialExtrusionSegment> splitExtrusionSegment(const Point3LL& start, const Point3LL& end, const OverrideAreas& override_areas);
 };
 
-} // namespace cura
+} // namespace curaengine

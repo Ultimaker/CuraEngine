@@ -3,7 +3,7 @@
 
 #include "pathPlanning/GCodePath.h"
 
-namespace cura
+namespace curaengine
 {
 
 [[nodiscard]] bool GCodePath::isTravelPath() const noexcept
@@ -31,4 +31,4 @@ void GCodePath::setFanSpeed(const double fanspeed) noexcept
     return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config.getFanSpeed();
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -4,7 +4,7 @@
 #pragma once
 
 #ifdef ENABLE_PLUGINS
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<typename T>
 struct Holder
@@ -12,5 +12,5 @@ struct Holder
     using value_type = T;
     T proxy;
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

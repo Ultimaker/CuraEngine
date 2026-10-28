@@ -8,7 +8,7 @@
 #include "settings/types/AngleDegrees.h"
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct AngleCandidate;
@@ -38,4 +38,4 @@ private:
     const Shape& supported_regions_;
 };
 
-} // namespace cura
+} // namespace curaengine

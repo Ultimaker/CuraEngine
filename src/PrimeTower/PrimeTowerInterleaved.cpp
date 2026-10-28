@@ -9,7 +9,7 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 
-namespace cura
+namespace curaengine
 {
 
 PrimeTowerInterleaved::PrimeTowerInterleaved()
@@ -134,4 +134,4 @@ void PrimeTowerInterleaved::polishExtrudersUses(LayerVector<std::vector<Extruder
     }
 }
 
-} // namespace cura
+} // namespace curaengine

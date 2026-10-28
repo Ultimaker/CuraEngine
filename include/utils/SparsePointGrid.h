@@ -10,7 +10,7 @@
 #include "SparseGrid.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
@@ -99,4 +99,4 @@ const ElemT* SGI_THIS::getAnyNearby(const Point2LL& query_pt, coord_t radius)
 #undef SGI_TEMPLATE
 #undef SGI_THIS
 
-} // namespace cura
+} // namespace curaengine

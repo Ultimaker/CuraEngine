@@ -6,7 +6,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class PointMatrix;
@@ -230,4 +230,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

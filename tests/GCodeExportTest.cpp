@@ -15,7 +15,7 @@
 #include "utils/Date.h" // To check the Griffin header.
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -724,5 +724,5 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output(), token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

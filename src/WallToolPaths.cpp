@@ -20,7 +20,7 @@
 #include "utils/Simplify.h"
 #include "utils/actions/smooth_fn.h"
 
-namespace cura
+namespace curaengine
 {
 
 WallToolPaths::WallToolPaths(
@@ -496,4 +496,4 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpa
     return toolpaths.empty();
 }
 
-} // namespace cura
+} // namespace curaengine

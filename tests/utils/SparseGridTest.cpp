@@ -12,7 +12,7 @@
 #include "utils/Coord_t.h"
 #include "utils/SparsePointGridInclusive.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct GetNearbyParameters
@@ -300,4 +300,4 @@ TEST_F(GetNearestTest, Equal)
         << ")."; // FIXME: simplify once fmt or we use C++20 is added as a dependency
 }
 
-} // namespace cura
+} // namespace curaengine

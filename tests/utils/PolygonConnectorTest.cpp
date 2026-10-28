@@ -11,7 +11,7 @@
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
@@ -186,5 +186,5 @@ TEST_F(PolygonConnectorTest, connectFourNested)
 
     EXPECT_EQ(output_polygons.size(), 1) << "All four polygons should've gotten connected into 1 single polygon.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

@@ -6,7 +6,7 @@
 #ifdef ENABLE_PLUGINS
 #include <utility>
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<class T, class Msg, class Native>
 struct converter
@@ -21,5 +21,5 @@ struct converter
         return static_cast<const derived_type*>(this)->operator()(std::forward<decltype(args)>(args)...);
     }
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

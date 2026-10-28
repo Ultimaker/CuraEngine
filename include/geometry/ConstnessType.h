@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class ConstnessType
@@ -12,4 +12,4 @@ enum class ConstnessType
     Modifiable,
 };
 
-} // namespace cura
+} // namespace curaengine

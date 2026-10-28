@@ -6,7 +6,7 @@
 #include "utils/types/NumericFacade.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -36,4 +36,4 @@ constexpr Ratio operator""_r(const long double ratio)
     return { ratio };
 }
 
-} // namespace cura
+} // namespace curaengine

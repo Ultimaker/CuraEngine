@@ -11,7 +11,7 @@
 #include "geometry/Segment3LL.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 PlanarPolygon3LL::PlanarPolygon3LL(std::vector<Segment3LL>&& segments)
@@ -119,4 +119,4 @@ std::tuple<coord_t, coord_t> PlanarPolygon3LL::minmax(const std::function<coord_
     return std::make_tuple(*result.min, *result.max);
 }
 
-} // namespace cura
+} // namespace curaengine

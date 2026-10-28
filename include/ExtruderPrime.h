@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class ExtruderPrime
@@ -13,4 +13,4 @@ enum class ExtruderPrime
     Prime, // Do an actual prime
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -9,7 +9,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class AABB;
@@ -66,4 +66,4 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr);
 
-} // namespace cura
+} // namespace curaengine

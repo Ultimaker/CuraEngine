@@ -6,7 +6,7 @@
 #include "AvoidanceType.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 struct AreaIncreaseSettings
 {
@@ -32,4 +32,4 @@ struct AreaIncreaseSettings
     bool operator==(const AreaIncreaseSettings& other) const = default;
 };
 
-} // namespace cura
+} // namespace curaengine

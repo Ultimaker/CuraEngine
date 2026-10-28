@@ -16,7 +16,7 @@
 #include "geometry/Matrix4x3D.h" // To load STL files.
 #include "utils/PolygonUtils.h" // Comparing similarity of polygons_.
 
-namespace cura
+namespace curaengine
 {
 
 class AdaptiveLayer;
@@ -179,4 +179,4 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 
 std::pair<Point2LL, Point2LL> PolygonsPointIndexSegmentLocator::operator()(const PolygonsPointIndex& val) const
@@ -17,4 +17,4 @@ std::pair<Point2LL, Point2LL> PolygonsPointIndexSegmentLocator::operator()(const
     return std::pair<Point2LL, Point2LL>(start, end);
 }
 
-} // namespace cura
+} // namespace curaengine

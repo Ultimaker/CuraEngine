@@ -4,7 +4,7 @@
 #include "gcode_export/FixedGCodePart.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 FixedGCodePart::FixedGCodePart(const GCodePartType type)
@@ -23,4 +23,4 @@ std::ostringstream& FixedGCodePart::stream()
     return stream_;
 }
 
-} // namespace cura
+} // namespace curaengine

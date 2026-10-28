@@ -15,7 +15,7 @@
 
 #include "utils/types/generic.h"
 
-namespace cura::utils
+namespace curaengine::utils
 {
 // clang-format off
 
@@ -148,4 +148,4 @@ concept segment_range = ranges::range<T> && requires(T segment_range)
     requires segment<decltype(ranges::front(segment_range))>;
 };
 // clang-format on
-} // namespace cura::utils
+} // namespace curaengine::utils

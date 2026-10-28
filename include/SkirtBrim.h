@@ -10,7 +10,7 @@
 #include "settings/EPlatformAdhesion.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Shape;
@@ -243,4 +243,4 @@ public:
      */
     void generateSupportBrim();
 };
-} // namespace cura
+} // namespace curaengine

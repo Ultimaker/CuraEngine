@@ -12,7 +12,7 @@
 #include "settings/types/Acceleration.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
@@ -399,4 +399,4 @@ void TimeEstimateCalculator::recalculateTrapezoids()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

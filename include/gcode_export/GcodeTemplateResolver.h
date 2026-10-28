@@ -28,7 +28,7 @@ class LocalEnvironment;
 } // namespace CuraFormulaeEngine
 
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -116,4 +116,4 @@ private:
     std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };
 
-} // namespace cura
+} // namespace curaengine

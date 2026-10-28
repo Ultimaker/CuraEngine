@@ -6,7 +6,7 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -49,4 +49,4 @@ public:
     [[nodiscard]] OpenLinesSet difference(const Shape& other) const;
 };
 
-} // namespace cura
+} // namespace curaengine

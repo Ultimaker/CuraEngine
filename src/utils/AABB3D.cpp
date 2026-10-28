@@ -7,7 +7,7 @@
 
 #include "utils/AABB.h"
 
-namespace cura
+namespace curaengine
 {
 
 AABB3D::AABB3D()
@@ -123,4 +123,4 @@ coord_t AABB3D::spanZ() const
     return max_.z_ - min_.z_;
 }
 
-} // namespace cura
+} // namespace curaengine

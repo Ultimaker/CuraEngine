@@ -9,7 +9,7 @@
 #include "utils/TimeKeeper.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 // FusedFilamentFabrication processor. Singleton class
@@ -52,4 +52,4 @@ public:
     void finalize();
 };
 
-} // namespace cura
+} // namespace curaengine

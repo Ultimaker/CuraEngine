@@ -16,7 +16,7 @@
 #include "utils/AABB3D.h"
 #include "utils/SVG.h"
 
-namespace cura
+namespace curaengine
 {
 
 static constexpr bool diagonal = true;
@@ -846,4 +846,4 @@ void SierpinskiFill::debugCheck(bool check_subdivision)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

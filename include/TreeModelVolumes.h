@@ -16,7 +16,7 @@
 #include "utils/PairHash.h"
 #include "utils/Simplify.h"
 
-namespace cura
+namespace curaengine
 {
 constexpr coord_t FUDGE_LENGTH = 50;
 
@@ -525,4 +525,4 @@ private:
     Simplify simplifier_ = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 };
 
-} // namespace cura
+} // namespace curaengine

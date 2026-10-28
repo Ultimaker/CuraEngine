@@ -7,7 +7,7 @@
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -30,4 +30,4 @@ public:
 };
 
 
-} // namespace cura
+} // namespace curaengine

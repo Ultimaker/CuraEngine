@@ -5,7 +5,7 @@
 
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 RandomScoringCriterion::RandomScoringCriterion()
@@ -14,7 +14,7 @@ RandomScoringCriterion::RandomScoringCriterion()
 
 double RandomScoringCriterion::computeScore(const size_t /*candidate_index*/) const
 {
-    return cura::randf<double>();
+    return curaengine::randf<double>();
 }
 
-} // namespace cura
+} // namespace curaengine

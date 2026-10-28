@@ -8,7 +8,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -76,4 +76,4 @@ private:
     AdjacencyGraph_t prim(std::vector<Point2LL> vertices) const;
 };
 
-} // namespace cura
+} // namespace curaengine

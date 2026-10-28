@@ -11,7 +11,7 @@
 #include "utils/PathsPointIndex.h"
 #include "utils/PathsPointIndexLocator.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<>
@@ -295,4 +295,4 @@ template void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point
     coord_t max_stitch_distance,
     coord_t snap_distance);
 
-} // namespace cura
+} // namespace curaengine

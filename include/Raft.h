@@ -6,7 +6,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SliceDataStorage;
@@ -92,4 +92,4 @@ private:
     static size_t getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section);
 };
 
-} // namespace cura
+} // namespace curaengine

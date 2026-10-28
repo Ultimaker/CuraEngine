@@ -6,7 +6,7 @@
 #include "geometry/PointsSet.h"
 #include "geometry/SegmentIterator.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<class LineType>
@@ -179,4 +179,4 @@ public:
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -9,7 +9,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Settings;
@@ -333,4 +333,4 @@ private:
 };
 
 
-} // namespace cura
+} // namespace curaengine

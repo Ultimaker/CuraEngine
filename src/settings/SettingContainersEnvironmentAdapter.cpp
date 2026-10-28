@@ -12,7 +12,7 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace cura
+namespace curaengine
 {
 
 SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const Settings& settings, const cfe::env::Environment* shadow_environment)
@@ -69,4 +69,4 @@ std::unordered_map<std::string, cfe::eval::Value> SettingContainersEnvironmentAd
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

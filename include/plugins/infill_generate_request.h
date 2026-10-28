@@ -11,11 +11,11 @@
 #include "plugins/converter.h"
 #include "settings/Settings.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
-struct infill_generate_request : public details::converter<infill_generate_request, slots::infill::v0::generate::CallRequest, Shape>
+struct infill_generate_request : public details::converter<infill_generate_request, ::cura::plugins::slots::infill::v0::generate::CallRequest, Shape>
 {
     value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const coord_t z) const;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

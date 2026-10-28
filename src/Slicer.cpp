@@ -23,7 +23,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/TimeKeeper.h"
 
-namespace cura
+namespace curaengine
 {
 Slicer::Slicer(
     Mesh* i_mesh,
@@ -65,7 +65,7 @@ Slicer::Slicer(
 
 void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbbox, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers)
 {
-    cura::parallel_for(
+    curaengine::parallel_for(
         layers,
         [&](auto layer_it)
         {
@@ -241,7 +241,7 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
 
 void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers)
 {
-    cura::parallel_for(
+    curaengine::parallel_for(
         layers,
         [&mesh](auto layer_it)
         {
@@ -283,7 +283,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
     const auto max_hole_area = std::numbers::pi / 4 * static_cast<double>(hole_offset_max_diameter * hole_offset_max_diameter);
 
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         layers.size(),
         [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole, hole_offset_max_diameter, max_hole_area](size_t layer_nr)
@@ -459,4 +459,4 @@ coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1,
     return y0 + num / dx_01;
 }
 
-} // namespace cura
+} // namespace curaengine

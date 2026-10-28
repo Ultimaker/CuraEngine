@@ -6,7 +6,7 @@
 #include "bridge/SegmentOverlappingType.h"
 #include "bridge/TransformedSegment.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct SegmentOverlapping
@@ -15,4 +15,4 @@ struct SegmentOverlapping
     TransformedSegment other_overlapping_part;
 };
 
-} // namespace cura
+} // namespace curaengine

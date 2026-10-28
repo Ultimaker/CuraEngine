@@ -7,7 +7,7 @@
 #include "geometry/Point3LL.h"
 #include "utils/AABB.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -114,4 +114,4 @@ struct AABB3D
     coord_t spanZ() const;
 };
 
-} // namespace cura
+} // namespace curaengine

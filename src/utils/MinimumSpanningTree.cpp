@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <iterator>
 
-namespace cura
+namespace curaengine
 {
 
 MinimumSpanningTree::MinimumSpanningTree(std::vector<Point2LL> vertices)
@@ -139,4 +139,4 @@ std::vector<Point2LL> MinimumSpanningTree::vertices() const
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

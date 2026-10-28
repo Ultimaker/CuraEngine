@@ -3,7 +3,7 @@
 
 #include "SliceLayerPart.h"
 
-namespace cura
+namespace curaengine
 {
 Shape& SliceLayerPart::getOwnInfillArea()
 {
@@ -37,4 +37,4 @@ bool SliceLayerPart::hasWallAtInsetIndex(size_t inset_idx) const
     return false;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -8,7 +8,7 @@
 #include "utils/Simplify.h"
 #include "utils/actions/smooth_fn.h"
 
-using namespace cura;
+using namespace curaengine;
 
 MendedShape::MendedShape(const Settings* settings, const SectionType section_type, const Shape* shape)
     : settings_(settings)

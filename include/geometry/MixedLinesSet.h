@@ -7,7 +7,7 @@
 
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class ClosedPolyline;
@@ -97,4 +97,4 @@ public:
     [[nodiscard]] coord_t length() const;
 };
 
-} // namespace cura
+} // namespace curaengine

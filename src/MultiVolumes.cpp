@@ -16,7 +16,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/OpenPolylineStitcher.h"
 
-namespace cura
+namespace curaengine
 {
 
 void carveMultipleVolumes(std::vector<Slicer*>& volumes)
@@ -243,4 +243,4 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
     }
 }
 
-} // namespace cura
+} // namespace curaengine

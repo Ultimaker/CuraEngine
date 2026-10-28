@@ -6,7 +6,7 @@
 #include "geometry/Point2LL.h" // INT2MM
 #include "settings/types/Acceleration.h"
 
-namespace cura
+namespace curaengine
 {
 
 [[nodiscard]] double GCodePathConfig::getExtrusionMM3perMM() const noexcept
@@ -75,4 +75,4 @@ const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
 }
 
 
-} // namespace cura
+} // namespace curaengine

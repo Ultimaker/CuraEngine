@@ -14,7 +14,7 @@
 #include "Application.h" // accessing singleton's Application::thread_pool
 #include "utils/math.h" // round_up_divide
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -249,6 +249,6 @@ void run_multiple_producers_ordered_consumer(ptrdiff_t first, ptrdiff_t last, P&
     MultipleProducersOrderedConsumer<P, C>(first, last, std::forward<P>(producer), std::forward<C>(consumer), max_pending).run(*thread_pool);
 }
 
-} // namespace cura
+} // namespace curaengine
 
 #include "utils/MultipleProducersOrderedConsumer.h"

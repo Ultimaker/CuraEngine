@@ -11,7 +11,7 @@
 #include "utils/DilationKernel.h"
 #include "utils/VoxelUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Slicer;
@@ -174,4 +174,4 @@ protected:
                                //!< off midway in a beam.
 };
 
-} // namespace cura
+} // namespace curaengine

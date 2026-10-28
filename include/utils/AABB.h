@@ -8,7 +8,7 @@
 #include "geometry/Point2LL.h"
 #include "settings/types/AngleRadians.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OpenLinesSet;
@@ -128,4 +128,4 @@ public:
     static std::tuple<AABB, AngleRadians> minimumAreaOrientedBoundingBox(const Shape& shape);
 };
 
-} // namespace cura
+} // namespace curaengine

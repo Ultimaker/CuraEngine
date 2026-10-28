@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Prime tower generation mode
@@ -22,4 +22,4 @@ enum class PrimeTowerMode
     NORMAL,
 };
 
-} // namespace cura
+} // namespace curaengine

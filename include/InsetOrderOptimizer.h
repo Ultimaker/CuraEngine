@@ -10,7 +10,7 @@
 #include "settings/RetractBeforeOuterWall.h"
 #include "settings/ZSeamConfig.h"
 
-namespace cura
+namespace curaengine
 {
 
 class LayerPlan;
@@ -175,4 +175,4 @@ private:
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
 };
-} // namespace cura
+} // namespace curaengine

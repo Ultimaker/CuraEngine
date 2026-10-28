@@ -9,7 +9,7 @@
 #include "WallToolPaths.h"
 #include "geometry/OpenPolyline.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<typename PathType>
@@ -58,4 +58,4 @@ template const Polyline& PathOrdering<OpenPolyline*>::getVertexData();
 template const Polyline& PathOrdering<ClosedPolyline*>::getVertexData();
 template const Polyline& PathOrdering<Polyline const*>::getVertexData();
 
-} // namespace cura
+} // namespace curaengine

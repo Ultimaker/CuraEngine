@@ -3,7 +3,7 @@
 
 #include "SupportStorage.h"
 
-namespace cura
+namespace curaengine
 {
 SupportStorage::SupportStorage()
     : generated(false)
@@ -17,4 +17,4 @@ SupportStorage::~SupportStorage()
     supportLayers.clear();
 }
 
-} // namespace cura
+} // namespace curaengine

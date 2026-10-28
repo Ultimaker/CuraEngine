@@ -8,7 +8,7 @@
 
 #include "utils/types/graph.h"
 
-namespace cura::actions
+namespace curaengine::actions
 {
 /* # dfs utility
  *
@@ -85,4 +85,4 @@ constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std
     dfs(current_node, graph, depth_view, visited, 0u);
 }
 
-} // namespace cura::actions
+} // namespace curaengine::actions

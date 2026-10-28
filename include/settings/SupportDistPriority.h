@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class SupportDistPriority
 {
@@ -12,4 +12,4 @@ enum class SupportDistPriority
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

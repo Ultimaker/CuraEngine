@@ -7,7 +7,7 @@
 
 #include "plugins/empty.h"
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<class T, class C = empty>
 struct broadcast_stub
@@ -23,4 +23,4 @@ struct broadcast_stub
 private:
     C request_{};
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details

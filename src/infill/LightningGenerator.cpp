@@ -34,7 +34,7 @@
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
 
-using namespace cura;
+using namespace curaengine;
 
 LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 {

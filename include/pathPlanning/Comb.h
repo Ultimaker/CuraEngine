@@ -12,7 +12,7 @@
 #include "settings/types/LayerIndex.h" // To store the layer on which we comb.
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 class CombPath;
@@ -258,4 +258,4 @@ public:
         bool& do_retracted_move);
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -28,7 +28,7 @@
 #include "utils/NoCopy.h"
 #include "utils/string.h"
 
-namespace cura
+namespace curaengine
 {
 
 class RetractionConfig;
@@ -777,4 +777,4 @@ public:
     void sendFinalGCode();
 };
 
-} // namespace cura
+} // namespace curaengine

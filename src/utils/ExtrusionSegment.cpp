@@ -9,7 +9,7 @@
 
 #include "utils/macros.h"
 
-namespace cura
+namespace curaengine
 {
 
 Shape ExtrusionSegment::toShape()
@@ -156,4 +156,4 @@ std::vector<ExtrusionSegment> ExtrusionSegment::discretize(coord_t step_size)
     return discretized;
 }
 
-} // namespace cura
+} // namespace curaengine

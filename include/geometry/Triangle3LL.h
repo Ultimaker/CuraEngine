@@ -5,11 +5,11 @@
 
 #include <array>
 
-namespace cura
+namespace curaengine
 {
 
 class Point3LL;
 
 using Triangle3LL = std::array<Point3LL, 3>;
 
-} // namespace cura
+} // namespace curaengine

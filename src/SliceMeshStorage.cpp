@@ -10,7 +10,7 @@
 #include "settings/ESurfaceMode.h"
 #include "settings/Settings.h"
 
-namespace cura
+namespace curaengine
 {
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
@@ -188,4 +188,4 @@ Point2LL SliceMeshStorage::getZSeamHint() const
     return pos;
 }
 
-} // namespace cura
+} // namespace curaengine

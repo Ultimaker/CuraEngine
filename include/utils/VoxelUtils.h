@@ -9,7 +9,7 @@
 #include "geometry/Polygon.h"
 #include "utils/DilationKernel.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -121,7 +121,7 @@ public:
 
     Point3LL toLowerCorner(const GridPoint3& location) const
     {
-        return cura::Point3LL(toLowerCoord(location.x_, 0), toLowerCoord(location.y_, 1), toLowerCoord(location.z_, 2));
+        return curaengine::Point3LL(toLowerCoord(location.x_, 0), toLowerCoord(location.y_, 1), toLowerCoord(location.z_, 2));
     }
 
     coord_t toLowerCoord(const grid_coord_t& grid_coord, const size_t dim) const
@@ -145,4 +145,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

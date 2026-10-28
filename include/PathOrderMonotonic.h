@@ -11,7 +11,7 @@
 #include "geometry/Point2D.h"
 #include "utils/SparsePointGridInclusiveElem.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<class Val>
@@ -223,4 +223,4 @@ private:
     std::vector<Path> makeOrderedPath(const std::vector<Path*>& lines, const coord_t max_adjacent_distance);
 };
 
-} // namespace cura
+} // namespace curaengine

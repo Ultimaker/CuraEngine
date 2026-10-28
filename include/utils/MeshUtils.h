@@ -11,7 +11,7 @@
 #include "geometry/Triangle2F.h"
 #include "geometry/Triangle3LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Point3D;
@@ -57,4 +57,4 @@ void loadTextureFromString(const std::string& texture_str, Mesh& mesh);
 
 } // namespace MeshUtils
 
-} // namespace cura
+} // namespace curaengine

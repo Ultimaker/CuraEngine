@@ -7,7 +7,7 @@
 #include "geometry/PointMatrix.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)
@@ -27,4 +27,4 @@ double BridgeAngleScoringCriterion::computeScore(const size_t candidate_index) c
     return computeScore(transformed_skin, transformed_supported_regions);
 }
 
-} // namespace cura
+} // namespace curaengine

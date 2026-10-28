@@ -15,7 +15,7 @@
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
 
-namespace cura
+namespace curaengine
 {
 class Image;
 class Matrix4x3D;
@@ -116,4 +116,4 @@ private:
     int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const;
 };
 
-} // namespace cura
+} // namespace curaengine

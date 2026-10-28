@@ -9,7 +9,7 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/SectionType.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*! A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls */
@@ -166,4 +166,4 @@ private:
     SectionType section_type_;
     const WallToolPathGenerator generator_{ WallToolPathGenerator::Arachne };
 };
-} // namespace cura
+} // namespace curaengine

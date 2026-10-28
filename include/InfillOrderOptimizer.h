@@ -9,7 +9,7 @@
 #include "settings/EFillMethod.h"
 #include "utils/ExtrusionLine.h"
 
-namespace cura
+namespace curaengine
 {
 
 enum class EFillMethod;
@@ -165,4 +165,4 @@ private:
 private:
     std::vector<InfillPart> infill_parts_;
 };
-} // namespace cura
+} // namespace curaengine

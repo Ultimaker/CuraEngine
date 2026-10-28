@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * How to select the starting position of the infill
@@ -15,4 +15,4 @@ enum class InfillStartEndPreference
     END_CLOSE_TO_SEAM // End close to the next wall seam, and split an infill line to provide a proper position if required
 };
 
-} // namespace cura
+} // namespace curaengine

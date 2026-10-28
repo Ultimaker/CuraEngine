@@ -27,7 +27,7 @@
     1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
          // performance).
 
-namespace cura
+namespace curaengine
 {
 
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point2LL p)
@@ -2320,4 +2320,4 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 // =====================
 //
 
-} // namespace cura
+} // namespace curaengine

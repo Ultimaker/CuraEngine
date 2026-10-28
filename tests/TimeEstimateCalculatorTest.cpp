@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <numeric>
 
-namespace cura
+namespace curaengine
 {
 
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
@@ -430,4 +430,4 @@ TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
     EXPECT_NEAR(Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "PrimeTower/PrimeTower.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -34,4 +34,4 @@ protected:
     virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
 };
 
-} // namespace cura
+} // namespace curaengine

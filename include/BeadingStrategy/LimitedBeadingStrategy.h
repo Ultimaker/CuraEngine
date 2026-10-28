@@ -5,7 +5,7 @@
 
 #include "BeadingStrategy.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -45,4 +45,4 @@ protected:
 };
 
 
-} // namespace cura
+} // namespace curaengine

@@ -9,7 +9,7 @@
 
 #include <range/v3/range/concepts.hpp>
 
-namespace cura::utils
+namespace curaengine::utils
 {
 // clang-format off
 template<typename T>
@@ -67,4 +67,4 @@ template<typename T>
 concept multipliable = requires(T a, T b) {
     { a * b };
 };
-} // namespace cura::utils
+} // namespace curaengine::utils

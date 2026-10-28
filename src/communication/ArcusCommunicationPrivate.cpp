@@ -23,7 +23,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/MeshUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 ArcusCommunication::Private::Private()
@@ -35,10 +35,10 @@ ArcusCommunication::Private::Private()
 {
 }
 
-std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex::value_type layer_nr)
+std::shared_ptr<::cura::proto::LayerOptimized> ArcusCommunication::Private::getOptimizedLayerById(LayerIndex::value_type layer_nr)
 {
     layer_nr += optimized_layers.current_layer_offset;
-    std::unordered_map<int, std::shared_ptr<proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
+    std::unordered_map<int, std::shared_ptr<::cura::proto::LayerOptimized>>::iterator find_result = optimized_layers.slice_data.find(layer_nr);
 
     if (find_result != optimized_layers.slice_data.end()) // Load layer from the cache.
     {
@@ -46,7 +46,7 @@ std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimized
     }
     else // Not in the cache yet. Create an empty layer.
     {
-        std::shared_ptr<proto::LayerOptimized> layer = std::make_shared<proto::LayerOptimized>();
+        std::shared_ptr<::cura::proto::LayerOptimized> layer = std::make_shared<::cura::proto::LayerOptimized>();
         layer->set_id(layer_nr);
         optimized_layers.current_layer_count++;
         optimized_layers.slice_data[layer_nr] = layer;
@@ -54,16 +54,16 @@ std::shared_ptr<proto::LayerOptimized> ArcusCommunication::Private::getOptimized
     }
 }
 
-void ArcusCommunication::Private::readGlobalSettingsMessage(const proto::SettingList& global_settings_message)
+void ArcusCommunication::Private::readGlobalSettingsMessage(const ::cura::proto::SettingList& global_settings_message)
 {
     auto slice = Application::getInstance().current_slice_;
-    for (const cura::proto::Setting& setting_message : global_settings_message.settings())
+    for (const ::cura::proto::Setting& setting_message : global_settings_message.settings())
     {
         slice->scene.settings.add(setting_message.name(), setting_message.value());
     }
 }
 
-void ArcusCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages)
+void ArcusCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<::cura::proto::Extruder>& extruder_messages)
 {
     // Make sure we have enough extruders added currently.
     auto slice = Application::getInstance().current_slice_;
@@ -74,7 +74,7 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
     }
 
     // Parse the extruder number and the settings from the messages.
-    for (const cura::proto::Extruder& extruder_message : extruder_messages)
+    for (const ::cura::proto::Extruder& extruder_message : extruder_messages)
     {
         const int32_t extruder_nr = extruder_message.id(); // Cast from proto::int to int32_t!
         if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
@@ -85,14 +85,14 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
         ExtruderTrain& extruder
             = slice->scene
                   .extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
-        for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
+        for (const ::cura::proto::Setting& setting_message : extruder_message.settings().settings())
         {
             extruder.settings_.add(setting_message.name(), setting_message.value());
         }
     }
 }
 
-void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& mesh_group_message)
+void ArcusCommunication::Private::readMeshGroupMessage(const ::cura::proto::ObjectList& mesh_group_message)
 {
     if (mesh_group_message.objects_size() <= 0)
     {
@@ -103,13 +103,13 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
     MeshGroup& mesh_group = scene.mesh_groups.at(object_count);
 
     // Load the settings in the mesh group.
-    for (const cura::proto::Setting& setting : mesh_group_message.settings())
+    for (const ::cura::proto::Setting& setting : mesh_group_message.settings())
     {
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
     Matrix4x3D matrix;
-    for (const cura::proto::Object& object : mesh_group_message.objects())
+    for (const ::cura::proto::Object& object : mesh_group_message.objects())
     {
         constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
         constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
@@ -125,7 +125,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         Mesh& mesh = mesh_group.meshes.back();
 
         // Load the settings for the mesh.
-        for (const cura::proto::Setting& setting : object.settings())
+        for (const ::cura::proto::Setting& setting : object.settings())
         {
             mesh.settings_.add(setting.name(), setting.value());
         }
@@ -169,6 +169,6 @@ void ArcusCommunication::Private::loadTextureData(const std::string& texture_str
     MeshUtils::loadTextureFromString(texture_str, mesh);
 }
 
-} // namespace cura
+} // namespace curaengine
 
 #endif // ARCUS

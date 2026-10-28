@@ -10,11 +10,11 @@
 #include "plugins/converter.h"
 #include "plugins/plugin_metadata.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
-struct handshake_response : public details::converter<handshake_response, slots::handshake::v0::CallResponse, plugin_metadata>
+struct handshake_response : public details::converter<handshake_response, ::cura::plugins::slots::handshake::v0::CallResponse, plugin_metadata>
 {
     native_value_type operator()(const value_type& message, std::string_view peer) const;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

@@ -18,7 +18,7 @@
 #include <grpcpp/create_channel.h>
 #endif
 
-namespace cura
+namespace curaengine
 {
 class SimplifyTestFixture : public benchmark::Fixture
 {
@@ -77,5 +77,5 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_noplugin);
 #endif
 
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H

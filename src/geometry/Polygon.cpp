@@ -12,7 +12,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/ListPolyIt.h"
 
-namespace cura
+namespace curaengine
 {
 
 void Polygon::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
@@ -602,4 +602,4 @@ Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter
     return Shape{ std::move(ret) };
 }
 
-} // namespace cura
+} // namespace curaengine

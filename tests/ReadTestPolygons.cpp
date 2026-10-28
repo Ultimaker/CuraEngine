@@ -10,7 +10,7 @@
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.
 
-namespace cura
+namespace curaengine
 {
 // Read multiple files to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
@@ -87,4 +87,4 @@ bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_
 
     return true;
 }
-} // namespace cura
+} // namespace curaengine

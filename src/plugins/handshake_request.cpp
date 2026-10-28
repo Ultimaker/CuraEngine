@@ -4,7 +4,7 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/handshake_request.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 handshake_request::value_type handshake_request::operator()(const std::string& name, const std::string& version, const handshake_request::native_value_type& slot_info) const
 {
@@ -15,5 +15,5 @@ handshake_request::value_type handshake_request::operator()(const std::string& n
     message.set_plugin_version(version);
     return message;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

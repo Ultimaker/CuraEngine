@@ -6,7 +6,7 @@
 #include "bridge/BridgeAngleScoringCriterion.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Shape;
@@ -50,4 +50,4 @@ private:
     const coord_t line_width_;
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -7,7 +7,7 @@
 #include "SlicerSegment.h"
 #include "utils/SparsePointGridInclusiveElem.h"
 
-namespace cura
+namespace curaengine
 {
 
 SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segments)
@@ -65,18 +65,18 @@ std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2
         else
         {
             interpolate_factor = dot_product / segment_length;
-            const Point2LL projected_position = cura::lerp(segment.start, segment.end, interpolate_factor);
+            const Point2LL projected_position = curaengine::lerp(segment.start, segment.end, interpolate_factor);
             distance_to_segment = vSizef(position - projected_position);
         }
 
         if (distance_to_segment < closest_distance)
         {
             closest_distance = distance_to_segment;
-            closest_uv_coordinates = cura::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
+            closest_uv_coordinates = curaengine::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
         }
     }
 
     return closest_uv_coordinates;
 }
 
-} // namespace cura
+} // namespace curaengine

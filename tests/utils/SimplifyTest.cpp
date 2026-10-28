@@ -11,7 +11,7 @@
 #include "utils/PolygonUtils.h" // Helper functions for testing deviation.
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
@@ -405,5 +405,5 @@ TEST_F(SimplifyTest, ToDegenerate)
     EXPECT_EQ(segment.size(), 0) << "The segment got removed entirely, because simplification would reduce its vertices to less than 2, making it degenerate.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

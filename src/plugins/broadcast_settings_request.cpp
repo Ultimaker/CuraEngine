@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 broadcast_settings_request::value_type broadcast_settings_request::operator()(const broadcast_settings_request::native_value_type& slice_message) const
 {
@@ -61,5 +61,5 @@ broadcast_settings_request::value_type broadcast_settings_request::operator()(co
     }
     return message;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

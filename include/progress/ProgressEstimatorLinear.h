@@ -5,7 +5,7 @@
 
 #include "ProgressEstimator.h"
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -24,4 +24,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

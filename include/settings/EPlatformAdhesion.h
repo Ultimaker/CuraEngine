@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Type of platform adhesion.
@@ -17,4 +17,4 @@ enum class EPlatformAdhesion
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

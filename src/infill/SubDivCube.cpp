@@ -21,7 +21,7 @@
 #define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 // 1 / sqrt(6)
 #define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 // sqrt(2 / 3)
 
-namespace cura
+namespace curaengine
 {
 
 std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step_;
@@ -290,4 +290,4 @@ void SubDivCube::addLineAndCombine(OpenLinesSet& group, Point2LL from, Point2LL 
     group.addSegment(from, to);
 }
 
-} // namespace cura
+} // namespace curaengine

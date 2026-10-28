@@ -7,7 +7,7 @@
 
 #include "BeadingStrategy/BeadingStrategy.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SkeletalTrapezoidationJoint
@@ -58,4 +58,4 @@ private:
     std::weak_ptr<BeadingPropagation> beading_;
 };
 
-} // namespace cura
+} // namespace curaengine

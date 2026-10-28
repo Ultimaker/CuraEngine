@@ -9,7 +9,7 @@
 #include "utils/LinearAlg2D.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 LineAnchoringScoringCriterion::LineAnchoringScoringCriterion(
@@ -226,4 +226,4 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
     return intersections;
 }
 
-} // namespace cura
+} // namespace curaengine

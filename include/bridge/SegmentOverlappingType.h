@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 /*! Enumeration containing the overlapping type of two segments in the bridging projection direction */
@@ -15,4 +15,4 @@ enum class SegmentOverlappingType
     Middle, // The segment overlaps with the base segment somewhere in the middle, but not top neither bottom
 };
 
-} // namespace cura
+} // namespace curaengine

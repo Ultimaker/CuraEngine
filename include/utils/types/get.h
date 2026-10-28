@@ -18,7 +18,7 @@ namespace std
  * @return auto& A reference to the requested coordinate.
  */
 template<size_t N>
-constexpr auto& get(cura::utils::point2d_named auto& point) noexcept
+constexpr auto& get(curaengine::utils::point2d_named auto& point) noexcept
 {
     static_assert(N < 2, "Index out of bounds");
     if constexpr (N == 0)
@@ -35,8 +35,8 @@ constexpr auto& get(cura::utils::point2d_named auto& point) noexcept
  * @param point The point to get the coordinate from.
  * @return auto& A reference to the requested coordinate.
  */
-template<cura::utils::CharRangeLiteral C>
-constexpr auto& get(cura::utils::point2d auto& point) noexcept
+template<curaengine::utils::CharRangeLiteral C>
+constexpr auto& get(curaengine::utils::point2d auto& point) noexcept
 {
     constexpr std::string_view idx = C.value;
     static_assert(idx.size() == 1, "Only one character allowed");
@@ -55,8 +55,8 @@ constexpr auto& get(cura::utils::point2d auto& point) noexcept
  * @param point The point to get the coordinate from.
  * @return auto& A reference to the requested coordinate.
  */
-template<cura::utils::CharRangeLiteral C>
-constexpr const auto& get(const cura::utils::point2d auto& point) noexcept
+template<curaengine::utils::CharRangeLiteral C>
+constexpr const auto& get(const curaengine::utils::point2d auto& point) noexcept
 {
     constexpr std::string_view idx = C.value;
     static_assert(idx.size() == 1, "Only one character allowed");
@@ -76,7 +76,7 @@ constexpr const auto& get(const cura::utils::point2d auto& point) noexcept
  * @return auto& A reference to the requested coordinate.
  */
 template<size_t N>
-constexpr auto& get(cura::utils::point3d_named auto& point) noexcept
+constexpr auto& get(curaengine::utils::point3d_named auto& point) noexcept
 {
     static_assert(N < 3, "Index out of bounds");
     if constexpr (N == 0)
@@ -97,8 +97,8 @@ constexpr auto& get(cura::utils::point3d_named auto& point) noexcept
  * @param point The point to get the coordinate from.
  * @return auto& A reference to the requested coordinate.
  */
-template<cura::utils::CharRangeLiteral C>
-constexpr auto& get(cura::utils::point3d auto& point) noexcept
+template<curaengine::utils::CharRangeLiteral C>
+constexpr auto& get(curaengine::utils::point3d auto& point) noexcept
 {
     constexpr std::string_view idx = C.value;
     static_assert(idx.size() == 1, "Only one character allowed");
@@ -124,7 +124,7 @@ constexpr auto& get(cura::utils::point3d auto& point) noexcept
  * @return auto& A reference to the requested coordinate.
  */
 template<size_t N>
-constexpr auto& get(cura::utils::junction auto& junction) noexcept
+constexpr auto& get(curaengine::utils::junction auto& junction) noexcept
 {
     return get<N>(junction.p);
 }
@@ -136,8 +136,8 @@ constexpr auto& get(cura::utils::junction auto& junction) noexcept
  * @param junction The junction to get the coordinate from.
  * @return auto& A reference to the requested coordinate.
  */
-template<cura::utils::CharRangeLiteral C>
-constexpr auto& get(cura::utils::junction auto& junction) noexcept
+template<curaengine::utils::CharRangeLiteral C>
+constexpr auto& get(curaengine::utils::junction auto& junction) noexcept
 {
     return get<C>(junction.p);
 }

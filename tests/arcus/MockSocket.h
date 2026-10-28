@@ -8,7 +8,7 @@
 
 #include <Arcus/Socket.h> //Inheriting from this to be able to swap this socket in the tested class.
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -38,6 +38,6 @@ public:
     std::deque<Arcus::MessagePtr> received_messages;
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
-} // namespace cura
+} // namespace curaengine
 
 #endif // MOCKSOCKET_H

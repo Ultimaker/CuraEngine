@@ -12,7 +12,7 @@
 #include "plugins/plugin_metadata.h"
 #include "plugins/slot_metadata.h"
 
-namespace cura::plugins::exceptions
+namespace curaengine::plugins::exceptions
 {
 class ValidatorException : public std::exception
 {
@@ -40,4 +40,4 @@ public:
         return msg_.c_str();
     }
 };
-} // namespace cura::plugins::exceptions
+} // namespace curaengine::plugins::exceptions

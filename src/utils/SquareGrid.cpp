@@ -5,7 +5,7 @@
 
 #include "utils/LinearAlg2D.h"
 
-using namespace cura;
+using namespace curaengine;
 
 
 SquareGrid::SquareGrid(coord_t cell_size)
@@ -33,13 +33,13 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord) const
 }
 
 
-cura::Point2LL SquareGrid::toLowerCorner(const GridPoint& location) const
+curaengine::Point2LL SquareGrid::toLowerCorner(const GridPoint& location) const
 {
-    return cura::Point2LL(toLowerCoord(location.X), toLowerCoord(location.Y));
+    return curaengine::Point2LL(toLowerCoord(location.X), toLowerCoord(location.Y));
 }
 
 
-cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord) const
+curaengine::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord) const
 {
     // This mapping via truncation results in the cells with
     // GridPoint.x==0 being twice as large and similarly for

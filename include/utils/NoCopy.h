@@ -3,6 +3,9 @@
 
 #pragma once
 
+namespace curaengine
+{
+
 /*!
  * Util class to base other objects off which should never be copied.
  * Is needed because C++ has an implicit copy constructor and assign operator when none are defined.
@@ -27,3 +30,5 @@ private:
      */
     NoCopy& operator=(const NoCopy&);
 };
+
+} // namespace curaengine

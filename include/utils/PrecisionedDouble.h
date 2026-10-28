@@ -5,7 +5,7 @@
 
 #include "utils/string.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -34,4 +34,4 @@ struct PrecisionedDouble
     }
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -9,7 +9,7 @@
 
 // extensions to algorithm.h from the standard library
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -43,4 +43,4 @@ std::vector<size_t> order(const std::vector<T>& in)
 }
 
 
-} // namespace cura
+} // namespace curaengine

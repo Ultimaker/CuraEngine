@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Structure of the support, such as Tree Support
@@ -15,4 +15,4 @@ enum class ESupportStructure
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

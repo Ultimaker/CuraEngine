@@ -10,7 +10,7 @@
 #include "geometry/Matrix4x3D.h"
 #include "geometry/Point3D.h"
 
-namespace cura
+namespace curaengine
 {
 
 const int vertex_meld_distance = MM2INT(0.03);
@@ -272,4 +272,4 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
     return bestIdx;
 }
 
-} // namespace cura
+} // namespace curaengine

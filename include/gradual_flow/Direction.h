@@ -3,11 +3,11 @@
 
 #pragma once
 
-namespace cura::gradual_flow::utils
+namespace curaengine::gradual_flow::utils
 {
 enum Direction
 {
     Forward,
     Backward,
 };
-} // namespace cura::gradual_flow::utils
+} // namespace curaengine::gradual_flow::utils

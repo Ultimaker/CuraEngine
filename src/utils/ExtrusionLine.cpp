@@ -8,7 +8,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/Simplify.h"
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -60,4 +60,4 @@ bool ExtrusionLine::shorterThan(const coord_t check_length) const
     return true;
 }
 
-} // namespace cura
+} // namespace curaengine

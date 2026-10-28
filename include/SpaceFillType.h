@@ -4,7 +4,7 @@
 #pragma once
 
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -22,4 +22,4 @@ enum class SpaceFillType
     Lines
 };
 
-} // namespace cura
+} // namespace curaengine

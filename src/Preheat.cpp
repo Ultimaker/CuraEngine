@@ -10,7 +10,7 @@
 #include "Slice.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 
 Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)
@@ -190,4 +190,4 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

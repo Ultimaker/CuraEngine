@@ -3,7 +3,7 @@
 
 #include "settings/ZSeamConfig.h" //The definitions we're implementing.
 
-namespace cura
+namespace curaengine
 {
 
 ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point2LL pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature)
@@ -14,4 +14,4 @@ ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point2LL pos, const EZSeam
 {
 }
 
-} // namespace cura
+} // namespace curaengine

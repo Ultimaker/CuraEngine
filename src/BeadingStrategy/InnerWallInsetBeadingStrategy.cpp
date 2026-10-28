@@ -7,7 +7,7 @@
 
 #include <range/v3/view/drop.hpp>
 
-namespace cura
+namespace curaengine
 {
 InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(coord_t inner_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
@@ -70,4 +70,4 @@ BeadingStrategy::Beading InnerWallInsetBeadingStrategy::compute(coord_t thicknes
     return ret;
 }
 
-} // namespace cura
+} // namespace curaengine

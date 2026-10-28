@@ -11,7 +11,7 @@
 #include "polyclipping/clipper.hpp"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 class SliceMeshStorage;
 struct FakeRoofArea;
@@ -308,4 +308,4 @@ private:
     std::mutex critical_roof_tips_;
 };
 
-} // namespace cura
+} // namespace curaengine

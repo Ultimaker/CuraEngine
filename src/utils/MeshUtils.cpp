@@ -21,7 +21,7 @@
 #include "geometry/Point3D.h"
 
 
-namespace cura::MeshUtils
+namespace curaengine::MeshUtils
 {
 
 std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle)
@@ -262,4 +262,4 @@ void loadTextureFromString(const std::string& texture_str, Mesh& mesh)
     loadTextureFromPngData(texture_data, mesh, "network data", false);
 }
 
-} // namespace cura::MeshUtils
+} // namespace curaengine::MeshUtils

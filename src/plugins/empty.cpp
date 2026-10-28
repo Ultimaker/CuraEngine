@@ -4,7 +4,7 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/empty.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 empty::value_type empty::operator()() const
 {
@@ -15,5 +15,5 @@ constexpr empty::native_value_type empty::operator()(const value_type&) const
 {
     return nullptr;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

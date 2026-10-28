@@ -6,7 +6,8 @@
 #include "geometry/OpenLinesSet.h"
 #include "utils/LinearAlg2D.h"
 
-using namespace cura;
+namespace curaengine
+{
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 
@@ -430,3 +431,5 @@ void LightningTreeNode::removeJunctionOverlap(OpenLinesSet& result_lines, const 
         }
     }
 }
+
+} // namespace curaengine

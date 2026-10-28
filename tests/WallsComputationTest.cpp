@@ -26,7 +26,7 @@
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 /*!
  * Fixture that provides a basis for testing wall computation.
@@ -230,5 +230,5 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     EXPECT_EQ(has_order_info.size(), n_paths) << "Every path should have order information.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

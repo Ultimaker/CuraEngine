@@ -19,7 +19,7 @@
 #include "settings/types/Acceleration.h"
 #include "settings/types/Velocity.h"
 
-namespace cura
+namespace curaengine
 {
 
 std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerIndex& layer_nr)
@@ -265,4 +265,4 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
     }
 }
 
-} // namespace cura
+} // namespace curaengine

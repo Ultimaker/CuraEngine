@@ -12,7 +12,7 @@
 #include "geometry/Shape.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 class TextureDataProvider;
 
@@ -63,4 +63,4 @@ public:
     ~SliceLayer();
 };
 
-} // namespace cura
+} // namespace curaengine

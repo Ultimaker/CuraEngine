@@ -12,7 +12,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<class LineType>
@@ -342,4 +342,4 @@ template void LinesSet<Polygon>::push_back(const Polygon& line, CheckNonEmptyPar
 template void LinesSet<Polygon>::push_back(Polygon&& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(LinesSet<Polygon>&& lines_set);
 
-} // namespace cura
+} // namespace curaengine

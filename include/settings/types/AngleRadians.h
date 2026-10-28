@@ -9,7 +9,7 @@
 
 #define TAU (2.0 * std::numbers::pi)
 
-namespace cura
+namespace curaengine
 {
 class AngleDegrees;
 
@@ -94,12 +94,12 @@ inline double boundedTan(const AngleRadians& angle)
     return std::tan(std::min(static_cast<double>(angle), std::numbers::pi / 2.0 - 0.001));
 }
 
-} // namespace cura
+} // namespace curaengine
 
 // Include after the class definition so both conversion constructors work in either include order.
 #include "settings/types/AngleDegrees.h"
 
-namespace cura
+namespace curaengine
 {
 
 inline AngleRadians::AngleRadians(const AngleDegrees& value)
@@ -107,4 +107,4 @@ inline AngleRadians::AngleRadians(const AngleDegrees& value)
 {
 }
 
-} // namespace cura
+} // namespace curaengine

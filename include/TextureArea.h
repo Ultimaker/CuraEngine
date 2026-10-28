@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class TextureArea
 {
@@ -12,4 +12,4 @@ enum class TextureArea
     Avoid = 2, // Area is to be avoided
 };
 
-} // namespace cura
+} // namespace curaengine

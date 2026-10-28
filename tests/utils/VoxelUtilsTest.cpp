@@ -13,7 +13,7 @@
 #include "../src/utils/SVG.h"
 #endif //TEST_SVG_OUTPUT
 
-namespace cura
+namespace curaengine
 {
 
 class VoxelUtilsTest: public testing::Test
@@ -300,4 +300,4 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

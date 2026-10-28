@@ -8,7 +8,7 @@
 
 #include "communication/Listener.h"
 
-namespace cura
+namespace curaengine
 {
 
 void Listener::stateChanged(Arcus::SocketState)
@@ -33,6 +33,6 @@ void Listener::error(const Arcus::Error& error)
     }
 }
 
-} // namespace cura
+} // namespace curaengine
 
 #endif // ARCUS

@@ -5,7 +5,7 @@
 
 #include "utils/types/NumericFacade.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -22,4 +22,4 @@ struct Velocity : public utils::NumericFacade<double>
         : base_type{ base } {};
 };
 
-} // namespace cura
+} // namespace curaengine

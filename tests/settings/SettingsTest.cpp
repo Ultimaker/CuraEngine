@@ -25,7 +25,7 @@
 #include "geometry/Matrix4x3D.h" //Testing matrix transformation settings.
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -269,5 +269,5 @@ TEST_F(SettingsTest, EnumStringSwitch)
     EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::LIGHTNING);
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

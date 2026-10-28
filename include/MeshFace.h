@@ -7,7 +7,7 @@
 
 #include "geometry/Point2F.h"
 
-namespace cura
+namespace curaengine
 {
 /*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers
 
@@ -38,4 +38,4 @@ public:
     std::optional<Point2F> uv_coordinates_[3]; //!< UV coordinates for each vertex of the face
 };
 
-} // namespace cura
+} // namespace curaengine

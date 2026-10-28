@@ -7,7 +7,7 @@
 #include "utils/Coord_t.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 template<class LineType>
@@ -324,4 +324,4 @@ private:
     bool remove(Polygonal& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const;
 };
 
-} // namespace cura
+} // namespace curaengine

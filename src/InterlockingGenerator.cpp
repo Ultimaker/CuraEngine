@@ -20,7 +20,7 @@
 #include "utils/PolygonUtils.h"
 #include "utils/VoxelUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
@@ -343,4 +343,4 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     }
 }
 
-} // namespace cura
+} // namespace curaengine

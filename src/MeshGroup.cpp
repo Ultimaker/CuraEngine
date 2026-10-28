@@ -34,7 +34,7 @@
 
 namespace fs = std::filesystem;
 
-namespace cura
+namespace curaengine
 {
 
 /* Custom fgets function to support Mac line-ends in Ascii STL files. OpenSCAD produces this when used on Mac */
@@ -588,4 +588,4 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
     return load_success;
 }
 
-} // namespace cura
+} // namespace curaengine

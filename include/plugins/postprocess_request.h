@@ -9,11 +9,11 @@
 #include "cura/plugins/slots/postprocess/v0/modify.pb.h"
 #include "plugins/converter.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
-struct postprocess_request : public details::converter<postprocess_request, slots::postprocess::v0::modify::CallRequest, std::string>
+struct postprocess_request : public details::converter<postprocess_request, ::cura::plugins::slots::postprocess::v0::modify::CallRequest, std::string>
 {
     value_type operator()(const native_value_type& gcode) const;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

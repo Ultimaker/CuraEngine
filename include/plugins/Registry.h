@@ -9,11 +9,12 @@
 #include <utility>
 
 #include "cura/plugins/v0/slot_id.pb.h"
+#include "plugins/SlotID.h"
 #include "plugins/Typelist.h"
 #include "plugins/plugin_metadata.h"
 #include "plugins/slot_metadata.h"
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<typename TList, template<typename> class Unit>
 class Registry;
@@ -107,5 +108,5 @@ protected:
 
     Unit<ValueType> value_;
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

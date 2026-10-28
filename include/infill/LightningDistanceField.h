@@ -6,7 +6,7 @@
 #include "../utils/SquareGrid.h" //Tracking for each location the distance to overhang.
 #include "geometry/Polygon.h" //Using outlines to fill and tracking overhang.
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -118,4 +118,4 @@ protected:
     std::unordered_map<SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid_;
 };
 
-} // namespace cura
+} // namespace curaengine

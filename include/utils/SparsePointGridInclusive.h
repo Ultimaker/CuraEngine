@@ -12,7 +12,7 @@
 #include "SparsePointGridInclusiveElem.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -91,4 +91,4 @@ std::vector<Val> SG_THIS::getNearbyVals(const Point2LL& query_pt, coord_t radius
 #undef SG_TEMPLATE
 #undef SG_THIS
 
-} // namespace cura
+} // namespace curaengine

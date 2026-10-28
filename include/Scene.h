@@ -7,7 +7,7 @@
 #include "MeshGroup.h" //To store the mesh groups in the scene.
 #include "settings/Settings.h" //To store the global settings.
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -82,4 +82,4 @@ private:
     Scene& operator=(const Scene&) = delete;
 };
 
-} // namespace cura
+} // namespace curaengine

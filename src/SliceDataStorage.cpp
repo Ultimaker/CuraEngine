@@ -17,7 +17,7 @@
 #include "settings/ESurfaceMode.h"
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 std::vector<RetractionAndWipeConfig> SliceDataStorage::initializeRetractionAndWipeConfigs()
@@ -509,4 +509,4 @@ void SliceDataStorage::initializePrimeTower()
     prime_tower_ = PrimeTower::createPrimeTower(*this);
 }
 
-} // namespace cura
+} // namespace curaengine

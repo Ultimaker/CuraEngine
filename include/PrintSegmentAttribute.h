@@ -7,7 +7,7 @@
 
 #include "utils/Flags.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -26,4 +26,4 @@ enum class PrintSegmentAttribute : uint8_t
 
 using PrintSegmentAttributes = Flags<PrintSegmentAttribute>;
 
-} // namespace cura
+} // namespace curaengine

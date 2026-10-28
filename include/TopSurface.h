@@ -6,7 +6,7 @@
 #include "GCodePathConfig.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 
 class LayerPlan;
@@ -57,4 +57,4 @@ public:
     Shape areas;
 };
 
-} // namespace cura
+} // namespace curaengine

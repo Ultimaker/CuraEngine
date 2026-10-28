@@ -15,7 +15,7 @@
 #include "utils/types/generic.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 class Point3LL
@@ -194,18 +194,18 @@ inline Point3LL operator*(const T i, const Point3LL& rhs)
 
 static Point3LL lerp(const Point3LL& a, const Point3LL& b, const double t)
 {
-    return Point3LL(cura::lerp(a.x_, b.x_, t), cura::lerp(a.y_, b.y_, t), cura::lerp(a.z_, b.z_, t));
+    return Point3LL(curaengine::lerp(a.x_, b.x_, t), curaengine::lerp(a.y_, b.y_, t), curaengine::lerp(a.z_, b.z_, t));
 }
 
-} // namespace cura
+} // namespace curaengine
 
 
 namespace std
 {
 template<>
-struct hash<cura::Point3LL>
+struct hash<curaengine::Point3LL>
 {
-    size_t operator()(const cura::Point3LL& pp) const noexcept
+    size_t operator()(const curaengine::Point3LL& pp) const noexcept
     {
         static int prime = 31;
         int result = 89;

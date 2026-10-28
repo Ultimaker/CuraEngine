@@ -9,7 +9,7 @@
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
 
-namespace cura
+namespace curaengine
 {
 // Some forward declarations to increase compilation speed.
 enum class PrintFeatureType : unsigned char;
@@ -112,7 +112,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    virtual void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const = 0;
+    virtual void sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const = 0;
 
     /* \brief Sends a piece of GCode that is ready to be exported */
     virtual void sendGCodePart(const std::string& gcode_part) = 0;
@@ -138,4 +138,4 @@ public:
     virtual void sliceNext() = 0;
 };
 
-} // namespace cura
+} // namespace curaengine

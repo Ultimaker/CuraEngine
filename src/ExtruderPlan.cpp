@@ -10,7 +10,7 @@
 #include "gcode_export/GCodeExport.h"
 
 
-namespace cura
+namespace curaengine
 {
 ExtruderPlan::ExtruderPlan(
     const size_t extruder,
@@ -179,4 +179,4 @@ coord_t ExtruderPlan::calculateMaxOverhangLength() const
     return std::max(max_overhang_length, current_overhang_length);
 }
 
-} // namespace cura
+} // namespace curaengine

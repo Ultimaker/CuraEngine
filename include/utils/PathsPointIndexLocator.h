@@ -5,7 +5,7 @@
 
 #include "utils/PathsPointIndex.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -20,4 +20,4 @@ struct PathsPointIndexLocator
     }
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -28,7 +28,7 @@
 #include "utils/SVG.h"
 #endif // TEST_PATHS_SVG_OUTPUT
 
-namespace cura
+namespace curaengine
 {
 /* Fixture to allow parameterized tests.
  */
@@ -261,4 +261,4 @@ const std::vector<AngleRadians> angle_radians = { 0,
 INSTANTIATE_TEST_SUITE_P(PathOrderMonotonicTestInstantiation, PathOrderMonotonicTest, testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
 // NOLINTEND(*-magic-numbers)
 
-} // namespace cura
+} // namespace curaengine

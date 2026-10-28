@@ -17,7 +17,7 @@
 #include "utils/string.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -104,7 +104,7 @@ TEST_F(ArcusCommunicationTest, SendGCodePartTest)
     ac->sendGCodePart(test_gcode);
 
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.back().get());
+    const ::cura::proto::GCodeLayer* message = dynamic_cast<::cura::proto::GCodeLayer*>(socket->sent_messages.back().get());
     EXPECT_EQ(test_gcode, message->data());
 }
 
@@ -127,7 +127,7 @@ TEST_F(ArcusCommunicationTest, SendLayerComplete)
     constexpr coord_t layer_z = 20;
     constexpr coord_t layer_thickness = 30;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
-    const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
+    const std::shared_ptr<::cura::proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
     EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";
     EXPECT_EQ(static_cast<float>(layer_z), message->height());
     EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
@@ -139,14 +139,14 @@ TEST_F(ArcusCommunicationTest, SendProgress)
 
     ac->sendProgress(10);
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    auto* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    auto* message = dynamic_cast<::cura::proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(5), message->amount());
 
     ac->sendProgress(50);
     ASSERT_EQ(size_t(2), socket->sent_messages.size());
-    message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    message = dynamic_cast<::cura::proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(25), message->amount());
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

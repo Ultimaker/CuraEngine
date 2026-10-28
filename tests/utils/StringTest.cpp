@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -86,5 +86,5 @@ INSTANTIATE_TEST_SUITE_P(WriteDoubleToStreamTestInstantiation,
                                          std::numeric_limits<double>::lowest(),
                                          -std::numeric_limits<double>::lowest()));
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

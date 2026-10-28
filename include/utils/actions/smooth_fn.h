@@ -23,17 +23,17 @@
 #include "utils/types/geometry.h"
 #include "utils/types/get.h"
 
-namespace cura
+namespace curaengine
 {
 class SmoothTest_TestSmooth_Test;
-} // namespace cura
+} // namespace curaengine
 
-namespace cura::actions
+namespace curaengine::actions
 {
 
 struct smooth_fn
 {
-    friend class cura::SmoothTest_TestSmooth_Test;
+    friend class curaengine::SmoothTest_TestSmooth_Test;
 
     auto operator()(const Settings& settings) const
     {
@@ -285,4 +285,4 @@ private:
 };
 
 inline constexpr smooth_fn smooth{};
-} // namespace cura::actions
+} // namespace curaengine::actions

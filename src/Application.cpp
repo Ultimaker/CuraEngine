@@ -26,7 +26,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
-namespace cura
+namespace curaengine
 {
 
 Application::Application()
@@ -309,4 +309,4 @@ void Application::startThreadPool(int nworkers)
     thread_pool_ = new ThreadPool(nthreads);
 }
 
-} // namespace cura
+} // namespace curaengine

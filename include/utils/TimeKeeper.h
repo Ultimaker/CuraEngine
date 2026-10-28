@@ -12,7 +12,7 @@
 
 using namespace std::chrono_literals;
 
-namespace cura
+namespace curaengine
 {
 
 class TimeKeeper
@@ -51,4 +51,4 @@ public:
     void logRegisteredTimes(const std::string& global_desc) const;
 };
 
-} // namespace cura
+} // namespace curaengine

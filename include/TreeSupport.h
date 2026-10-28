@@ -17,7 +17,7 @@
 #include "utils/Coord_t.h"
 #include "utils/SparsePointGridInclusive.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OBJ;
@@ -349,4 +349,4 @@ private:
 };
 
 
-} // namespace cura
+} // namespace curaengine

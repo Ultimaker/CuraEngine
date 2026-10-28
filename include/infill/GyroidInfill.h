@@ -5,7 +5,7 @@
 
 #include "infill/AbstractLinesInfill.h"
 
-namespace cura
+namespace curaengine
 {
 
 class GyroidInfill : public AbstractLinesInfill
@@ -36,4 +36,4 @@ protected:
     OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const override;
 };
 
-} // namespace cura
+} // namespace curaengine

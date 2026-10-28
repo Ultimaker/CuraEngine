@@ -5,7 +5,7 @@
 
 #include "gcode_export/GCodeExport.h"
 
-namespace cura
+namespace curaengine
 {
 
 void NozzleTempInsert::write(GCodeExport& gcode)
@@ -13,4 +13,4 @@ void NozzleTempInsert::write(GCodeExport& gcode)
     gcode.writeTemperatureCommand(extruder, temperature, wait);
 }
 
-} // namespace cura
+} // namespace curaengine

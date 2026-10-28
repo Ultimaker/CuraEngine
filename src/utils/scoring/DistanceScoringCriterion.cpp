@@ -6,7 +6,7 @@
 #include "geometry/PointsSet.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type, const double distance_divider)
@@ -38,4 +38,4 @@ double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position
     return 1.0 / (1.0 + (distance / distance_divider_));
 }
 
-} // namespace cura
+} // namespace curaengine

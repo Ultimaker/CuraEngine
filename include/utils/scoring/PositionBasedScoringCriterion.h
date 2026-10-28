@@ -6,7 +6,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace cura
+namespace curaengine
 {
 class PointsSet;
 
@@ -32,4 +32,4 @@ protected:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

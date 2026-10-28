@@ -16,7 +16,7 @@
 #include "settings/EFillMethod.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class TreeSupportUtils
@@ -346,4 +346,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

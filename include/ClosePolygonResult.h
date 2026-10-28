@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace cura
+namespace curaengine
 {
 class ClosePolygonResult
 { // The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
@@ -15,4 +15,4 @@ public:
     size_t pointIdx = 0;
 };
 
-} // namespace cura
+} // namespace curaengine

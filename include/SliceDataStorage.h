@@ -15,7 +15,7 @@
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
 
-namespace cura
+namespace curaengine
 {
 class PrimeTower;
 class SliceMeshStorage;
@@ -134,4 +134,4 @@ private:
     std::vector<RetractionAndWipeConfig> initializeRetractionAndWipeConfigs();
 };
 
-} // namespace cura
+} // namespace curaengine

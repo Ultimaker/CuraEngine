@@ -12,7 +12,7 @@
 #include "infill/SierpinskiFill.h"
 #include "utils/AABB3D.h"
 
-namespace cura
+namespace curaengine
 {
 
 static constexpr bool diagonal = true;
@@ -96,4 +96,4 @@ double ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
     return 1.0 - ((double)total_lightness) / value_count / 255.0;
 }
 
-} // namespace cura
+} // namespace curaengine

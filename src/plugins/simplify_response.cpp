@@ -6,7 +6,7 @@
 
 #include "geometry/Polygon.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 simplify_response::native_value_type
     simplify_response::operator()([[maybe_unused]] const simplify_response::native_value_type& original_value, const simplify_response::value_type& message) const
@@ -33,5 +33,5 @@ simplify_response::native_value_type
     }
     return poly;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

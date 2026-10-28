@@ -3,7 +3,7 @@
 
 #include "settings/AdaptiveLayer.h"
 
-namespace cura
+namespace curaengine
 {
 
 AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
@@ -11,4 +11,4 @@ AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
 {
 }
 
-} // namespace cura
+} // namespace curaengine

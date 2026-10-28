@@ -12,7 +12,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
-namespace cura
+namespace curaengine
 {
 
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
@@ -300,4 +300,4 @@ std::pair<Point2LL, Point2LL> SkeletalTrapezoidationGraph::getSource(const edge_
     return std::make_pair(from_edge->from_->p_, to_edge->to_->p_);
 }
 
-} // namespace cura
+} // namespace curaengine

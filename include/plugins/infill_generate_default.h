@@ -11,7 +11,7 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Shape.h"
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 struct infill_generate_default
 {
@@ -23,5 +23,5 @@ struct infill_generate_default
         return {};
     }
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

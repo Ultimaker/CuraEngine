@@ -9,7 +9,7 @@
 #include "SierpinskiFill.h"
 #include "settings/EFillMethod.h" //For EFillMethod.
 
-namespace cura
+namespace curaengine
 {
 
 struct AABB3D;
@@ -54,4 +54,4 @@ protected:
      */
     FractalConfig getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance);
 };
-} // namespace cura
+} // namespace curaengine

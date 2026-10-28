@@ -6,7 +6,7 @@
 #include <cura-formulae-engine/ast/ast.h>
 
 
-namespace cura
+namespace curaengine
 {
 
 class Settings;
@@ -34,4 +34,4 @@ private:
     const Settings& settings_;
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -10,7 +10,7 @@
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OpenLinesSet;
@@ -106,4 +106,4 @@ private:
     static coord_t radius_addition_; //!< addition to the bounding radius when determining if a cube should be subdivided
 };
 
-} // namespace cura
+} // namespace curaengine

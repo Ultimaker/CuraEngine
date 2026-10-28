@@ -14,7 +14,7 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 
-namespace cura
+namespace curaengine
 {
 
 void AbstractLinesInfill::generateInfill(
@@ -257,4 +257,4 @@ OpenLinesSet AbstractLinesInfill::fitLines(const OpenLinesSet& raw_lines, const 
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

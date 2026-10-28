@@ -12,7 +12,7 @@
 #include "settings/types/AngleRadians.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class TreeSupportBaseCircle
@@ -43,4 +43,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

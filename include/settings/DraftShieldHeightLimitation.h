@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * How the draft shield height is limited.
@@ -15,4 +15,4 @@ enum class DraftShieldHeightLimitation
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

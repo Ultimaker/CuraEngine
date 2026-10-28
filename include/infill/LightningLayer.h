@@ -11,7 +11,7 @@
 #include "infill/LightningTreeNode.h"
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 template<class Val>
 class SparsePointGridInclusive;
@@ -67,4 +67,4 @@ public:
 
     void fillLocator(SparseLightningTreeNodeGrid& tree_node_locator);
 };
-} // namespace cura
+} // namespace curaengine

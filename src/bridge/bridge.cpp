@@ -28,7 +28,7 @@
 #include "utils/types/geometry.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -549,4 +549,4 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
 
-} // namespace cura
+} // namespace curaengine

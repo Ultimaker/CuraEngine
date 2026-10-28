@@ -5,7 +5,7 @@
 
 #include "PolylineStitcher.h"
 
-namespace cura
+namespace curaengine
 {
 
 class MixedLinesSet;
@@ -19,4 +19,4 @@ public:
     static void stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
 };
 
-} // namespace cura
+} // namespace curaengine

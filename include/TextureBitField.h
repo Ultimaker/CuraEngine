@@ -7,7 +7,7 @@
 #include <map>
 #include <string>
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -25,4 +25,4 @@ struct TextureBitField
  */
 using TextureDataMapping = std::map<std::string, TextureBitField>;
 
-} // namespace cura
+} // namespace curaengine

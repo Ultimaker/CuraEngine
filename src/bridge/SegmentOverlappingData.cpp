@@ -7,7 +7,7 @@
 #include "utils/LinearAlg2D.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 SegmentOverlappingData::SegmentOverlappingData(
@@ -34,4 +34,4 @@ TransformedSegment SegmentOverlappingData::makeOtherOverlappingPart() const
     return TransformedSegment(Point2LL(other_x_min, y_min), Point2LL(other_x_max, y_max));
 }
 
-} // namespace cura
+} // namespace curaengine

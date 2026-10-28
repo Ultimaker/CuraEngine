@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura::gradual_flow
+namespace curaengine::gradual_flow
 {
 enum class FlowState
 {
@@ -11,4 +11,4 @@ enum class FlowState
     TRANSITION,
     UNDEFINED
 };
-} // namespace cura::gradual_flow
+} // namespace curaengine::gradual_flow

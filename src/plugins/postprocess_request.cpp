@@ -4,7 +4,7 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/postprocess_request.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 postprocess_request::value_type postprocess_request::operator()(const postprocess_request::native_value_type& gcode) const
 {
@@ -12,5 +12,5 @@ postprocess_request::value_type postprocess_request::operator()(const postproces
     message.set_gcode_word(gcode);
     return message;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

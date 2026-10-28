@@ -6,7 +6,7 @@
 
 #include "utils/SparsePointGridInclusiveElem.h"
 
-namespace cura::SparsePointGridInclusiveImpl
+namespace curaengine::SparsePointGridInclusiveImpl
 {
 
 template<class T>
@@ -18,4 +18,4 @@ struct Locatoror
     }
 };
 
-} // namespace cura::SparsePointGridInclusiveImpl
+} // namespace curaengine::SparsePointGridInclusiveImpl

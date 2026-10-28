@@ -8,7 +8,7 @@
 #include "geometry/Polygon.h"
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -159,4 +159,4 @@ public:
     };
 };
 
-} // namespace cura
+} // namespace curaengine

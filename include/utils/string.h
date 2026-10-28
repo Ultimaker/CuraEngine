@@ -13,7 +13,7 @@
 #include <boost/archive/iterators/transform_width.hpp>
 #include <spdlog/spdlog.h>
 
-namespace cura
+namespace curaengine
 {
 
 // c++11 no longer supplies a strcasecmp, so define our own version.
@@ -175,4 +175,4 @@ static inline void writeDoubleToStream(const uint8_t precision, const double coo
     ss << buffer;
 }
 
-} // namespace cura
+} // namespace curaengine

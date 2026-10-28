@@ -5,7 +5,7 @@
 
 #include "BeadingStrategy.h"
 
-namespace cura
+namespace curaengine
 {
 /*
  * This is a meta strategy that allows for the inner wall to be inset towards the inside of the model.
@@ -30,4 +30,4 @@ private:
     BeadingStrategyPtr parent_;
     coord_t inner_wall_offset_;
 };
-} // namespace cura
+} // namespace curaengine

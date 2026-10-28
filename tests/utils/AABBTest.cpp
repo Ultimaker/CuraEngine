@@ -10,7 +10,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 // NOLINTBEGIN(*-magic-numbers)
 TEST(AABBTest, TestConstructEmpty)
@@ -168,4 +168,4 @@ TEST(AABBTest, TestToPolygon)
 }
 // NOLINTEND(*-magic-numbers)
 
-} // namespace cura
+} // namespace curaengine

@@ -16,7 +16,7 @@
 #include "settings/InfillStartEndPreference.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 InfillOrderOptimizer::InfillOrderOptimizer()
@@ -570,4 +570,4 @@ bool InfillOrderOptimizer::isCloserTo(
     return closer_found;
 }
 
-} // namespace cura
+} // namespace curaengine

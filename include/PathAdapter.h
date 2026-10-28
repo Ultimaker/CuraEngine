@@ -8,7 +8,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 /* Adapter class to allow extrusion-related functions to work with either an ExtrusionLine or a Polygon */
@@ -57,4 +57,4 @@ private:
     const coord_t fixed_line_width_;
 };
 
-} // namespace cura
+} // namespace curaengine

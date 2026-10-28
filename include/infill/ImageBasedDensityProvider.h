@@ -8,7 +8,7 @@
 #include "DensityProvider.h"
 #include "geometry/Point3LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct AABB3D;
@@ -29,4 +29,4 @@ protected:
     AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
 };
 
-} // namespace cura
+} // namespace curaengine

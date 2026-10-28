@@ -15,7 +15,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -761,4 +761,4 @@ protected:
 };
 
 
-} // namespace cura
+} // namespace curaengine

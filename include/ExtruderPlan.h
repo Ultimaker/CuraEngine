@@ -20,7 +20,7 @@
 #include <optional>
 #include <vector>
 
-namespace cura
+namespace curaengine
 {
 class LayerPlanBuffer;
 class LayerPlan;
@@ -224,4 +224,4 @@ private:
     TimeMaterialEstimates computeNaiveTimeEstimates(Point2LL starting_position);
 };
 
-} // namespace cura
+} // namespace curaengine

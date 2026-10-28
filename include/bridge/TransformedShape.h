@@ -6,7 +6,7 @@
 #include "bridge/TransformedSegment.h"
 #include "geometry/PointMatrix.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Polygon;
@@ -73,4 +73,4 @@ private:
     coord_t max_y_{ std::numeric_limits<coord_t>::lowest() };
 };
 
-} // namespace cura
+} // namespace curaengine

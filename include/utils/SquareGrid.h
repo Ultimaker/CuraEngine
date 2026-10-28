@@ -7,7 +7,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -146,4 +146,4 @@ protected:
     grid_coord_t nonzeroSign(const grid_coord_t z) const;
 };
 
-} // namespace cura
+} // namespace curaengine

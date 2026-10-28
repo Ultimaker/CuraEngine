@@ -21,7 +21,7 @@
 #include "utils/SectionType.h"
 #include "utils/VoronoiUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -635,4 +635,4 @@ protected:
     void generateLocalMaximaSingleBeads();
 };
 
-} // namespace cura
+} // namespace curaengine

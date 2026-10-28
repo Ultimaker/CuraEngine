@@ -32,7 +32,7 @@
 namespace rg = ranges;
 namespace rv = ranges::views;
 
-namespace cura
+namespace curaengine
 {
 
 InsetOrderOptimizer::InsetOrderOptimizer(
@@ -573,4 +573,4 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
 }
 
-} // namespace cura
+} // namespace curaengine

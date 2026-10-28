@@ -12,7 +12,7 @@
 #include "gradual_flow/FlowLimitedPath.h"
 #include "gradual_flow/FlowState.h"
 
-namespace cura::gradual_flow
+namespace curaengine::gradual_flow
 {
 struct GCodeState
 {
@@ -167,4 +167,4 @@ struct GCodeState
         return discretized_paths;
     }
 };
-} // namespace cura::gradual_flow
+} // namespace curaengine::gradual_flow

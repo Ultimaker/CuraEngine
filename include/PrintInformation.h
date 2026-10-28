@@ -9,7 +9,7 @@
 #include "ExtruderPrintInformation.h"
 #include "utils/AABB.h"
 
-namespace cura
+namespace curaengine
 {
 
 class LayerPlan;
@@ -28,4 +28,4 @@ struct PrintInformation
     void updateWithLayer(const LayerPlan* layer_plan);
 };
 
-} // namespace cura
+} // namespace curaengine

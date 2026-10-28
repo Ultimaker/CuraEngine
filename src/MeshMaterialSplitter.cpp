@@ -37,7 +37,7 @@
 #include "utils/VoxelGrid.h"
 
 
-namespace cura::MeshMaterialSplitter
+namespace curaengine::MeshMaterialSplitter
 {
 
 /*!
@@ -97,7 +97,7 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
     spdlog::stopwatch timer;
     boost::concurrent_flat_set<uint8_t> found_values;
 
-    cura::parallel_for(
+    curaengine::parallel_for(
         mesh.faces_,
         [&](const auto& iterator)
         {
@@ -852,4 +852,4 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup)
     ranges::move(modifier_meshes, std::back_inserter(meshgroup->meshes));
 }
 
-} // namespace cura::MeshMaterialSplitter
+} // namespace curaengine::MeshMaterialSplitter

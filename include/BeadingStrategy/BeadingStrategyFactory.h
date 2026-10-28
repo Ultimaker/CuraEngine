@@ -8,7 +8,7 @@
 #include "BeadingStrategy.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 
 class BeadingStrategyFactory
@@ -31,4 +31,4 @@ public:
         const Ratio minimum_variable_line_ratio = 0.5);
 };
 
-} // namespace cura
+} // namespace curaengine

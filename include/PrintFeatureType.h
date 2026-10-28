@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class PrintFeatureType : unsigned char
@@ -29,4 +29,4 @@ enum class PrintFeatureType : unsigned char
 };
 
 
-} // namespace cura
+} // namespace curaengine

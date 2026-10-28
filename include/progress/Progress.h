@@ -9,7 +9,7 @@
 
 #include "utils/TimeKeeper.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct LayerIndex;
@@ -97,4 +97,4 @@ public:
 };
 
 
-} // namespace cura
+} // namespace curaengine

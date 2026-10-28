@@ -5,11 +5,16 @@
 
 #ifdef ENABLE_PLUGINS
 #include "cura/plugins/v0/slot_id.pb.h"
+
+namespace curaengine::plugins::v0
+{
+using ::cura::plugins::v0::SlotID;
+} // namespace curaengine::plugins::v0
 #else
 #include <cstdint>
 #include <limits>
 
-namespace cura::plugins::v0
+namespace curaengine::plugins::v0
 {
 // FIXME: use same SlotID as defined in Cura.proto, Maybe revert back to char_range_literal, but that is a lot of work
 enum SlotID : int
@@ -24,5 +29,5 @@ enum SlotID : int
     SlotID_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
     SlotID_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
-} // namespace cura::plugins::v0
+} // namespace curaengine::plugins::v0
 #endif // ENABLE_PLUGINS

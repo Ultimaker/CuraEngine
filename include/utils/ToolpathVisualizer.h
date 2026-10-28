@@ -5,9 +5,9 @@
 #include "SVG.h"
 #include "geometry/Polygon.h"
 
-namespace cura
+namespace curaengine
 {
-using namespace cura;
+using namespace curaengine;
 
 /*!
  * Get statistics of the resulting toolpaths
@@ -31,4 +31,4 @@ private:
     SVG& svg_;
 };
 
-} // namespace cura
+} // namespace curaengine

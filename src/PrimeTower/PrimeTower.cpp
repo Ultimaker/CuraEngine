@@ -25,7 +25,7 @@
 #include "utils/LinearAlg2D.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 PrimeTower::PrimeTower()
@@ -393,4 +393,4 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder
     }
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -13,7 +13,7 @@
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
 
-namespace cura
+namespace curaengine
 {
 
 Scene::Scene(const size_t num_mesh_groups)
@@ -101,4 +101,4 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     spdlog::info("Total time elapsed {}\n", std::chrono::duration<double>(time_keeper_total.restart()));
 }
 
-} // namespace cura
+} // namespace curaengine

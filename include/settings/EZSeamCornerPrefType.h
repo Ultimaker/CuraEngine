@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class EZSeamCornerPrefType
 {
@@ -14,4 +14,4 @@ enum class EZSeamCornerPrefType
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

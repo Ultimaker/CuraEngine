@@ -10,7 +10,7 @@
 
 #include "utils/OccupiedPosition.h"
 
-namespace cura
+namespace curaengine
 {
 
 class VoxelGrid;
@@ -41,4 +41,4 @@ private:
     LookupTree lookup_tree_;
 };
 
-} // namespace cura
+} // namespace curaengine

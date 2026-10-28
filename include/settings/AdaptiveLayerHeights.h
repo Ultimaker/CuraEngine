@@ -8,7 +8,7 @@
 #include "settings/AdaptiveLayer.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class MeshGroup;
@@ -100,4 +100,4 @@ private:
     void calculateMeshTriangleSlopes();
 };
 
-} // namespace cura
+} // namespace curaengine

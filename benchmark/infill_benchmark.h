@@ -11,7 +11,7 @@
 #include "geometry/LinesSet.h"
 #include "infill/Infill.h"
 
-namespace cura
+namespace curaengine
 {
 class InfillTest : public benchmark::Fixture
 {
@@ -122,5 +122,5 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 }
 
 BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({ { true, false }, { 400, 800, 1200 } })->Unit(benchmark::kMillisecond);
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_INFILL_BENCHMARK_H

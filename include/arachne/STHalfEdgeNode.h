@@ -6,7 +6,7 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SkeletalTrapezoidationJoint;
@@ -40,4 +40,4 @@ public:
     bool isLocalMaximum(bool strict = false) const;
 };
 
-} // namespace cura
+} // namespace curaengine

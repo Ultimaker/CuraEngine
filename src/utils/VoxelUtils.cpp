@@ -5,7 +5,7 @@
 
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const
@@ -136,4 +136,4 @@ std::function<bool(GridPoint3)> VoxelUtils::dilate(const DilationKernel& kernel,
         return true;
     };
 }
-} // namespace cura
+} // namespace curaengine

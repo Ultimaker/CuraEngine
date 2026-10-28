@@ -16,7 +16,7 @@
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 /*!
  * A fixture to test layer plans with.
@@ -688,5 +688,5 @@ TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
     EXPECT_EQ(nozzle_temp_inserts[5].temperature, 130.);
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

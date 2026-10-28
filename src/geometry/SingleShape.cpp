@@ -5,7 +5,7 @@
 
 #include "geometry/Polygon.h"
 
-namespace cura
+namespace curaengine
 {
 
 bool SingleShape::inside(const Point2LL& p, bool border_result) const
@@ -40,4 +40,4 @@ const Polygon& SingleShape::outerPolygon() const
     return front();
 }
 
-} // namespace cura
+} // namespace curaengine

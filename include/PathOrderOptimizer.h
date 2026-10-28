@@ -31,7 +31,7 @@
 #include "utils/scoring/TextureScoringCriterion.h"
 #include "utils/views/dfs.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -920,4 +920,4 @@ protected:
 template<typename Path>
 const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements_;
 
-} // namespace cura
+} // namespace curaengine

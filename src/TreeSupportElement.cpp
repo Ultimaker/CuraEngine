@@ -7,7 +7,7 @@
 #include "utils/OBJ.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 TreeSupportElement::TreeSupportElement(
@@ -276,4 +276,4 @@ TreeSupportElement::Ptr TreeSupportElement::makeMerged(
     return element;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -6,63 +6,63 @@
 
 #include "SliceMeshStorage.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
-[[nodiscard]] constexpr v0::SpaceFillType gcode_paths_modify_request::getSpaceFillType(const cura::SpaceFillType space_fill_type) noexcept
+[[nodiscard]] constexpr ::cura::plugins::v0::SpaceFillType gcode_paths_modify_request::getSpaceFillType(const curaengine::SpaceFillType space_fill_type) noexcept
 {
     switch (space_fill_type)
     {
     case SpaceFillType::None:
-        return v0::SpaceFillType::NONE;
+        return ::cura::plugins::v0::SpaceFillType::NONE;
     case SpaceFillType::Polygons:
-        return v0::SpaceFillType::POLYGONS;
+        return ::cura::plugins::v0::SpaceFillType::POLYGONS;
     case SpaceFillType::PolyLines:
-        return v0::SpaceFillType::POLY_LINES;
+        return ::cura::plugins::v0::SpaceFillType::POLY_LINES;
     case SpaceFillType::Lines:
-        return v0::SpaceFillType::LINES;
+        return ::cura::plugins::v0::SpaceFillType::LINES;
     default:
-        return v0::SpaceFillType::NONE;
+        return ::cura::plugins::v0::SpaceFillType::NONE;
     }
 }
 
-[[nodiscard]] constexpr v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const cura::PrintFeatureType print_feature_type) noexcept
+[[nodiscard]] constexpr ::cura::plugins::v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const curaengine::PrintFeatureType print_feature_type) noexcept
 {
     switch (print_feature_type)
     {
     case PrintFeatureType::NoneType:
-        return v0::PrintFeature::NONETYPE;
+        return ::cura::plugins::v0::PrintFeature::NONETYPE;
     case PrintFeatureType::OuterWall:
-        return v0::PrintFeature::OUTERWALL;
+        return ::cura::plugins::v0::PrintFeature::OUTERWALL;
     case PrintFeatureType::InnerWall:
-        return v0::PrintFeature::INNERWALL;
+        return ::cura::plugins::v0::PrintFeature::INNERWALL;
     case PrintFeatureType::Skin:
-        return v0::PrintFeature::SKIN;
+        return ::cura::plugins::v0::PrintFeature::SKIN;
     case PrintFeatureType::Support:
-        return v0::PrintFeature::SUPPORT;
+        return ::cura::plugins::v0::PrintFeature::SUPPORT;
     case PrintFeatureType::SkirtBrim:
-        return v0::PrintFeature::SKIRTBRIM;
+        return ::cura::plugins::v0::PrintFeature::SKIRTBRIM;
     case PrintFeatureType::Infill:
-        return v0::PrintFeature::INFILL;
+        return ::cura::plugins::v0::PrintFeature::INFILL;
     case PrintFeatureType::SupportInfill:
-        return v0::PrintFeature::SUPPORTINFILL;
+        return ::cura::plugins::v0::PrintFeature::SUPPORTINFILL;
     case PrintFeatureType::MoveUnretracted:
-        return v0::PrintFeature::MOVEUNRETRACTED;
+        return ::cura::plugins::v0::PrintFeature::MOVEUNRETRACTED;
     case PrintFeatureType::MoveRetracted:
-        return v0::PrintFeature::MOVERETRACTED;
+        return ::cura::plugins::v0::PrintFeature::MOVERETRACTED;
     case PrintFeatureType::SupportInterface:
-        return v0::PrintFeature::SUPPORTINTERFACE;
+        return ::cura::plugins::v0::PrintFeature::SUPPORTINTERFACE;
     case PrintFeatureType::PrimeTower:
-        return v0::PrintFeature::PRIMETOWER;
+        return ::cura::plugins::v0::PrintFeature::PRIMETOWER;
     case PrintFeatureType::MoveWhileRetracting:
-        return v0::PrintFeature::MOVEWHILERETRACTING;
+        return ::cura::plugins::v0::PrintFeature::MOVEWHILERETRACTING;
     case PrintFeatureType::MoveWhileUnretracting:
-        return v0::PrintFeature::MOVEWHILEUNRETRACTING;
+        return ::cura::plugins::v0::PrintFeature::MOVEWHILEUNRETRACTING;
     case PrintFeatureType::StationaryRetractUnretract:
-        return v0::PrintFeature::STATIONARYRETRACTUNRETRACT;
+        return ::cura::plugins::v0::PrintFeature::STATIONARYRETRACTUNRETRACT;
     case PrintFeatureType::NumPrintFeatureTypes:
-        return v0::PrintFeature::NUMPRINTFEATURETYPES;
+        return ::cura::plugins::v0::PrintFeature::NUMPRINTFEATURETYPES;
     default:
-        return v0::PrintFeature::NONETYPE;
+        return ::cura::plugins::v0::PrintFeature::NONETYPE;
     }
 }
 
@@ -115,5 +115,5 @@ gcode_paths_modify_request::value_type
 
     return message;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

@@ -10,7 +10,7 @@
 #include "TextureBitField.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Image;
@@ -44,4 +44,4 @@ private:
     std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 };
 
-} // namespace cura
+} // namespace curaengine

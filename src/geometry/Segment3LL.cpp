@@ -4,7 +4,7 @@
 #include "geometry/Segment3LL.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 Segment3LL::Segment3LL(const Point3LL& start, const Point3LL& end)
@@ -147,4 +147,4 @@ std::optional<Segment3LL> Segment3LL::intersectionWithZLayer(const coord_t layer
         std::bind(&Segment3LL::croppedPointZ, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 }
 
-} // namespace cura
+} // namespace curaengine

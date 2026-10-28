@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -27,4 +27,4 @@ private:
     Date(); //!< Simple constructor initializing all to -1
 };
 
-} // namespace cura
+} // namespace curaengine

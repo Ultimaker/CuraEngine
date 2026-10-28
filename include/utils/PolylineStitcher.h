@@ -7,7 +7,7 @@
 
 #include "SparsePointGrid.h"
 
-namespace cura
+namespace curaengine
 {
 
 template<class T>
@@ -69,4 +69,4 @@ private:
     static void pushToClosedResult(OutputPaths& result_polygons, const Path& polyline);
 };
 
-} // namespace cura
+} // namespace curaengine

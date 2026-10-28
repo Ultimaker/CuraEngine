@@ -7,7 +7,7 @@
 #include <vector>
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 bool has(const Point2LL& pt, const std::vector<Point2LL>& list)
 {
@@ -128,5 +128,5 @@ TEST_F(MinimumSpanningTreeTest, TestLeaves)
         EXPECT_EQ(should_be_leave[i_pt], has(pts[i_pt], leaves)) << "Leaf-'status' of point #" << i_pt << " (start @0) should be the expected one.";
     }
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

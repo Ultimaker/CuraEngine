@@ -17,7 +17,7 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/SectionType.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SierpinskiFillProvider;
@@ -695,4 +695,4 @@ private:
 
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 
-} // namespace cura
+} // namespace curaengine

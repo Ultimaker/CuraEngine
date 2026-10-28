@@ -10,7 +10,7 @@
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 struct MoveInsideParameters
@@ -479,5 +479,5 @@ TEST_F(PolygonUtilsTest, DISABLED_RelativeHammingLineLineDifferentVerts) // Disa
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line_extra_vertices), 0.0) << "Even though the exact vertices are different, the actual outline is the same.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

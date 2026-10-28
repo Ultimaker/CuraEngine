@@ -10,7 +10,7 @@
 #include "settings/Settings.h"
 #include "utils/AABB.h"
 
-namespace cura
+namespace curaengine
 {
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
@@ -113,4 +113,4 @@ void SupportLayer::fillInfillParts(
     }
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -4,7 +4,7 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/handshake_response.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 handshake_response::native_value_type handshake_response::operator()(const handshake_response::value_type& message, std::string_view peer) const
 {
@@ -14,5 +14,5 @@ handshake_response::native_value_type handshake_response::operator()(const hands
              .peer = std::string{ peer },
              .broadcast_subscriptions = std::set<int>(message.broadcast_subscriptions().begin(), message.broadcast_subscriptions().end()) };
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

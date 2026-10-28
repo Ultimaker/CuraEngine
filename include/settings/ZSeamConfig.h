@@ -7,7 +7,7 @@
 #include "settings/EZSeamCornerPrefType.h"
 #include "settings/EZSeamType.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -56,4 +56,4 @@ struct ZSeamConfig
         const coord_t simplify_curvature = 0);
 };
 
-} // namespace cura
+} // namespace curaengine

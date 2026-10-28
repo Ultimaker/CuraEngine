@@ -9,7 +9,7 @@
 #include "infill/LightningTreeNode.h"
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 
@@ -19,4 +19,4 @@ struct GroundingLocation
     std::optional<ClosestPointPolygon> boundary_location; //!< in case the gounding location is on the boundary
     Point2LL p() const;
 };
-} // namespace cura
+} // namespace curaengine

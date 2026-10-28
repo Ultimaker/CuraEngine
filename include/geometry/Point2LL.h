@@ -28,7 +28,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #endif
 
 
-namespace cura
+namespace curaengine
 {
 
 class Point3LL;
@@ -233,14 +233,14 @@ inline bool fuzzy_equal(const Point2LL& a, const Point2LL& b)
     return fuzzy_equal(a.X, b.X) && fuzzy_equal(a.Y, b.Y);
 }
 
-} // namespace cura
+} // namespace curaengine
 
 namespace std
 {
 template<>
-struct hash<cura::Point2LL>
+struct hash<curaengine::Point2LL>
 {
-    size_t operator()(const cura::Point2LL& pp) const noexcept
+    size_t operator()(const curaengine::Point2LL& pp) const noexcept
     {
         static int prime = 31;
         int result = 89;

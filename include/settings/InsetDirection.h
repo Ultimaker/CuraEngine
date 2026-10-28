@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Direction in which to print walls, inside vs. outside.
@@ -28,4 +28,4 @@ enum class InsetDirection
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

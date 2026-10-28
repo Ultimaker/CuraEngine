@@ -13,7 +13,7 @@
 #include "utils/LayerVector.h"
 #include "utils/PolygonUtils.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SliceDataStorage;
@@ -228,4 +228,4 @@ private:
     void subtractFromSupport(SliceDataStorage& storage);
 };
 
-} // namespace cura
+} // namespace curaengine

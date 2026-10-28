@@ -5,7 +5,7 @@
 
 #include <cmath> //For fmod.
 
-namespace cura
+namespace curaengine
 {
 class AngleRadians;
 
@@ -88,12 +88,12 @@ public:
     double value_{ 0 };
 };
 
-} // namespace cura
+} // namespace curaengine
 
 // Include after the class definition so both conversion constructors work in either include order.
 #include "settings/types/AngleRadians.h"
 
-namespace cura
+namespace curaengine
 {
 
 inline AngleDegrees::AngleDegrees(const AngleRadians& value)
@@ -101,4 +101,4 @@ inline AngleDegrees::AngleDegrees(const AngleRadians& value)
 {
 }
 
-} // namespace cura
+} // namespace curaengine

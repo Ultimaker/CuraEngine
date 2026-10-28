@@ -11,7 +11,7 @@
 #include "geometry/Shape.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -78,4 +78,4 @@ ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const Li
 }
 
 
-} // namespace cura
+} // namespace curaengine

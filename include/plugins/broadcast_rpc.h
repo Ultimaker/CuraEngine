@@ -9,7 +9,7 @@
 #include "plugins/broadcast_stub.h"
 #include "plugins/is_broadcast_channel.h"
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 template<v0::SlotID S, class Stub>
     requires is_broadcast_channel_v<S, v0::SlotID::SETTINGS_BROADCAST>
@@ -17,4 +17,4 @@ struct broadcast_rpc : public broadcast_stub<broadcast_rpc<S, Stub>, broadcast_s
 {
     using ClientRPC = agrpc::ClientRPC<&Stub::PrepareAsyncBroadcastSettings>;
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details

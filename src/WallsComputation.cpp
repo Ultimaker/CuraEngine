@@ -22,7 +22,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
 
-namespace cura
+namespace curaengine
 {
 
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
@@ -137,4 +137,4 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart* part, coord_t line_w
     }
 }
 
-} // namespace cura
+} // namespace curaengine

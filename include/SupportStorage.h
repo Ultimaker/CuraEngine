@@ -9,7 +9,7 @@
 #include "SupportLayer.h"
 #include "settings/types/AngleDegrees.h"
 
-namespace cura
+namespace curaengine
 {
 class LightningGenerator;
 class SierpinskiFillProvider;
@@ -34,4 +34,4 @@ public:
     ~SupportStorage();
 };
 
-} // namespace cura
+} // namespace curaengine

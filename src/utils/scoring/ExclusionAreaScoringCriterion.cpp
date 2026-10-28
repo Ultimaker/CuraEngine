@@ -6,7 +6,7 @@
 #include "geometry/Shape.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 ExclusionAreaScoringCriterion::ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area)
@@ -20,4 +20,4 @@ double ExclusionAreaScoringCriterion::computeScore(const Point2LL& candidate_pos
     return exclusion_area_.inside(candidate_position, true) ? 0.0 : 1.0;
 }
 
-} // namespace cura
+} // namespace curaengine

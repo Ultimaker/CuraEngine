@@ -13,7 +13,7 @@
 #include "utils/math.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 TransformedSegment::TransformedSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix)
@@ -129,4 +129,4 @@ SegmentOverlappingType TransformedSegment::makeNonIntersectingOverlapping(const 
     }
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "AreaSupport.h"
 
-using namespace cura;
+using namespace curaengine;
 
 
 SupportInfillPart::SupportInfillPart(

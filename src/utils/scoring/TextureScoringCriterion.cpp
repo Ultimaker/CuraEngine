@@ -9,7 +9,7 @@
 #include "TextureDataProvider.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 TextureScoringCriterion::TextureScoringCriterion(const PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name)
@@ -38,4 +38,4 @@ double TextureScoringCriterion::computeScore(const Point2LL& candidate_position)
     return 0.5;
 }
 
-} // namespace cura
+} // namespace curaengine

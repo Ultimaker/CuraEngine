@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * How to enable/disable cooling fan(s) during extruder switch
@@ -15,4 +15,4 @@ enum class CoolDuringExtruderSwitch
     ALL_FANS, // Turn on all fans
 };
 
-} // namespace cura
+} // namespace curaengine

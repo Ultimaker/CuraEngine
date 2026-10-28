@@ -12,7 +12,7 @@
 #include "utils/Simplify.h"
 #include "utils/SparsePointGridInclusive.h"
 
-namespace cura
+namespace curaengine
 {
 
 constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
@@ -788,4 +788,4 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     segments_.clear();
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * Brim location, inside, outside or both
@@ -23,4 +23,4 @@ enum class BrimLocation
     return static_cast<int>(location1) & static_cast<int>(location2);
 }
 
-} // namespace cura
+} // namespace curaengine

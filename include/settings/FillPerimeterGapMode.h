@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 enum class FillPerimeterGapMode
 {
@@ -12,4 +12,4 @@ enum class FillPerimeterGapMode
     PLUGIN,
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include <ostream>
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -102,4 +102,4 @@ inline Duration operator*(const double lhs, const Duration& rhs)
     return Duration(lhs * rhs.value_);
 }
 
-} // namespace cura
+} // namespace curaengine

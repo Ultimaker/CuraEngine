@@ -8,7 +8,7 @@
 
 #include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
 
-namespace cura::plugins::details
+namespace curaengine::plugins::details
 {
 struct simplify_default
 {
@@ -18,5 +18,5 @@ struct simplify_default
         return simplify.polygon(std::forward<decltype(arg)>(arg));
     }
 };
-} // namespace cura::plugins::details
+} // namespace curaengine::plugins::details
 #endif // ENABLE_PLUGINS

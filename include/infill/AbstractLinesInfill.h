@@ -6,7 +6,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class AABB;
@@ -85,4 +85,4 @@ private:
     static OpenLinesSet fitLines(const OpenLinesSet& raw_lines, const bool zig_zaggify, const Shape& in_outline);
 };
 
-} // namespace cura
+} // namespace curaengine

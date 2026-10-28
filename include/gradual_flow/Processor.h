@@ -12,7 +12,7 @@
 #include "gradual_flow/FlowLimitedPath.h"
 #include "gradual_flow/GCodeState.h"
 
-namespace cura::gradual_flow::Processor
+namespace curaengine::gradual_flow::Processor
 {
 
 /*!
@@ -99,4 +99,4 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
         extruder_plan_paths = new_paths;
     }
 }
-} // namespace cura::gradual_flow::Processor
+} // namespace curaengine::gradual_flow::Processor

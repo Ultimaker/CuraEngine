@@ -11,7 +11,7 @@
 #include "utils/AABB3D.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
@@ -209,4 +209,4 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const Tri
     return traversed_voxels;
 }
 
-} // namespace cura
+} // namespace curaengine

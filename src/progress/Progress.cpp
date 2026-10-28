@@ -14,7 +14,7 @@
 #include "communication/Communication.h" //To send progress through the communication channel.
 #include "utils/TimeKeeper.h"
 
-namespace cura
+namespace curaengine
 {
 std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;
@@ -86,4 +86,4 @@ void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t tota
     }
 }
 
-} // namespace cura
+} // namespace curaengine

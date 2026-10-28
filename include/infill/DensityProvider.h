@@ -4,7 +4,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 struct AABB3D;
@@ -26,4 +26,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

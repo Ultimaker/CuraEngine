@@ -21,7 +21,7 @@
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 
-namespace cura
+namespace curaengine
 {
 class WallTestFixture : public benchmark::Fixture
 {
@@ -241,5 +241,5 @@ BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)(benc
 
 BENCHMARK_REGISTER_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
 
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_WALL_BENCHMARK_H

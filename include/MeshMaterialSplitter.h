@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 class Mesh;
@@ -20,4 +20,4 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup);
 
 } // namespace MeshMaterialSplitter
 
-} // namespace cura
+} // namespace curaengine

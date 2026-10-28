@@ -11,7 +11,7 @@
 
 #include "utils/types/generic.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct LayerIndex
@@ -209,14 +209,14 @@ constexpr LayerIndex distance(const LayerIndex& lhs, const LayerIndex& rhs)
     return rhs - lhs;
 }
 
-} // namespace cura
+} // namespace curaengine
 
 namespace std
 {
 template<>
-struct hash<cura::LayerIndex>
+struct hash<curaengine::LayerIndex>
 {
-    auto operator()(const cura::LayerIndex& layer_index) const
+    auto operator()(const curaengine::LayerIndex& layer_index) const
     {
         return hash<decltype(layer_index.value)>()(layer_index.value);
     }

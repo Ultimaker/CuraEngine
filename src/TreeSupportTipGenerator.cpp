@@ -31,7 +31,7 @@
 #include "utils/math.h" //For round_up_divide and PI.
 
 
-namespace cura
+namespace curaengine
 {
 
 TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
@@ -419,7 +419,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
     std::mutex critical;
 
     // this is ugly, but as far as i can see there is not way to ensure a parallel_for loop is calculated for each iteration up to a certain point before it continues;
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         1,
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
@@ -461,7 +461,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
             }
         });
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         result.size(),
         [&](const LayerIndex layer_idx)
@@ -470,7 +470,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
         });
 }
 
-void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh)
+void TreeSupportTipGenerator::calculateRoofAreas(const curaengine::SliceMeshStorage& mesh)
 {
     std::vector<Shape> potential_support_roofs(mesh.overhang_areas.size(), Shape());
     std::mutex critical_potential_support_roofs;
@@ -481,7 +481,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         dropOverhangAreas(mesh, dropped_overhangs, true);
     }
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
@@ -549,7 +549,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             }
         });
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         potential_support_roofs.size(),
         [&](const LayerIndex layer_idx)
@@ -568,7 +568,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
     std::vector<Shape> additional_support_roofs(mesh.overhang_areas.size(), Shape());
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         potential_support_roofs.size(),
         [&](const LayerIndex layer_idx)
@@ -619,7 +619,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             }
         });
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         additional_support_roofs.size(),
         [&](const LayerIndex layer_idx)
@@ -804,7 +804,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
     SliceDataStorage& storage,
     std::vector<Shape>& additional_support_areas)
 {
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         move_bounds.size(),
         [&](const LayerIndex layer_idx)
@@ -873,7 +873,7 @@ void TreeSupportTipGenerator::generateTips(
         calculateRoofAreas(mesh);
     }
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         1,
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
@@ -1145,7 +1145,7 @@ void TreeSupportTipGenerator::generateTips(
             }
         });
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         support_roof_drawn_.size(),
         [&](const LayerIndex layer_idx)
@@ -1216,4 +1216,4 @@ void TreeSupportTipGenerator::generateTips(
 }
 
 
-} // namespace cura
+} // namespace curaengine

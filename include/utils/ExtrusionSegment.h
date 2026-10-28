@@ -10,7 +10,7 @@
 #include "PolygonUtils.h"
 #include "geometry/Polygon.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -80,4 +80,4 @@ public:
 };
 
 
-} // namespace cura
+} // namespace curaengine

@@ -15,7 +15,7 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -314,4 +314,4 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     return output;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -14,7 +14,7 @@
 #include "settings/EPlatformAdhesion.h" //For EPlatformAdhesion.
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 void Raft::generate(SliceDataStorage& storage)
@@ -231,4 +231,4 @@ size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const 
 }
 
 
-} // namespace cura
+} // namespace curaengine

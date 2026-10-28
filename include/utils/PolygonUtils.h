@@ -17,7 +17,7 @@
 #include "geometry/Polygon.h"
 #include "settings/types/AngleRadians.h"
 
-namespace cura
+namespace curaengine
 {
 
 class ClosedLinesSet;
@@ -686,4 +686,4 @@ private:
         polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, const PointMatrix& transformation_matrix);
 };
 
-} // namespace cura
+} // namespace curaengine

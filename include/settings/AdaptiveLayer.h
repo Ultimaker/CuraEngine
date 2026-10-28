@@ -5,7 +5,7 @@
 
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class AdaptiveLayer
@@ -29,4 +29,4 @@ public:
     explicit AdaptiveLayer(const coord_t layer_height);
 };
 
-} // namespace cura
+} // namespace curaengine

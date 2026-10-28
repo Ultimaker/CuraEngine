@@ -3,7 +3,7 @@
 
 #include "utils/DilationKernel.h"
 
-namespace cura
+namespace curaengine
 {
 
 DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type)
@@ -44,4 +44,4 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
     }
 }
 
-} // namespace cura
+} // namespace curaengine

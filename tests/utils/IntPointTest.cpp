@@ -8,7 +8,7 @@
 #include "geometry/PointMatrix.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 TEST(IntPointTest, TestRotationMatrix)
 {
@@ -32,5 +32,5 @@ TEST(IntPointTest, TestSize)
     ASSERT_LE(sizeof(coord_t), sizeof(int64_t));
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

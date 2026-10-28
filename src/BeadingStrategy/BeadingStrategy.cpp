@@ -5,7 +5,7 @@
 
 #include <cassert>
 
-namespace cura
+namespace curaengine
 {
 
 BeadingStrategy::BeadingStrategy(
@@ -98,4 +98,4 @@ coord_t BeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
     return lower_ideal_width + threshold * (higher_ideal_width - lower_ideal_width);
 }
 
-} // namespace cura
+} // namespace curaengine

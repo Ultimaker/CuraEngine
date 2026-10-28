@@ -6,7 +6,7 @@
 #include <algorithm>
 
 
-namespace cura::utils
+namespace curaengine::utils
 {
 template<size_t N>
 struct CharRangeLiteral
@@ -19,4 +19,4 @@ struct CharRangeLiteral
     char value[N];
 };
 
-} // namespace cura::utils
+} // namespace curaengine::utils

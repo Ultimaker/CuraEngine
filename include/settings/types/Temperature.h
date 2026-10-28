@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -61,4 +61,4 @@ struct Temperature
     double value = 0;
 };
 
-} // namespace cura
+} // namespace curaengine

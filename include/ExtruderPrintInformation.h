@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace cura
+namespace curaengine
 {
 /*! \brief Contains the end-of-print info about used material for an extruder */
 struct ExtruderPrintInformation
@@ -18,4 +18,4 @@ struct ExtruderPrintInformation
     std::string material_guid; // Material guid
 };
 
-} // namespace cura
+} // namespace curaengine

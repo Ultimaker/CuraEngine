@@ -13,7 +13,7 @@
 #include "TimeMaterialEstimates.h"
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 class SliceMeshStorage;
 
@@ -88,4 +88,4 @@ struct GCodePath
     [[nodiscard]] double getFanSpeed() const noexcept;
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -7,7 +7,7 @@
 
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 class GapCloserResult
 {
@@ -19,4 +19,4 @@ public:
     bool AtoB = false;
 };
 
-} // namespace cura
+} // namespace curaengine

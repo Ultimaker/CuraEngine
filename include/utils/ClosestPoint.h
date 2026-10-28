@@ -5,7 +5,7 @@
 
 #include "geometry/Polygon.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -68,17 +68,17 @@ struct ClosestPoint
 
 using ClosestPointPolygon = ClosestPoint<Polygon>;
 
-} // namespace cura
+} // namespace curaengine
 
 namespace std
 {
 
 template<>
-struct hash<cura::ClosestPointPolygon>
+struct hash<curaengine::ClosestPointPolygon>
 {
-    size_t operator()(const cura::ClosestPointPolygon& cpp) const
+    size_t operator()(const curaengine::ClosestPointPolygon& cpp) const
     {
-        return std::hash<cura::Point2LL>()(cpp.p());
+        return std::hash<curaengine::Point2LL>()(cpp.p());
     }
 };
 

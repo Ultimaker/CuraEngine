@@ -10,7 +10,7 @@
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct WipeScriptConfig
@@ -32,4 +32,4 @@ struct WipeScriptConfig
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers
 };
 
-} // namespace cura
+} // namespace curaengine

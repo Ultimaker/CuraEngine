@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-namespace cura
+namespace curaengine
 {
 // NOLINTBEGIN(*-magic-numbers)
 
@@ -66,4 +66,4 @@ TEST(MathTest, TestRoundUpDivide)
 
 // NOLINTEND(*-magic-numbers)
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace cura
+namespace curaengine
 {
 
 class Slicer;
@@ -38,4 +38,4 @@ public:
 private:
 };
 
-} // namespace cura
+} // namespace curaengine

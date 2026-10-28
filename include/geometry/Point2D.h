@@ -8,7 +8,7 @@
 
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Point2D
@@ -98,4 +98,4 @@ inline Point2D lerp(const Point2D& a, const Point2D& b, const double t)
     return Point2D(std::lerp(a.x(), b.x(), t), std::lerp(a.y(), b.y(), t));
 }
 
-} // namespace cura
+} // namespace curaengine

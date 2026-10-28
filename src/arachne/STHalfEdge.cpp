@@ -8,7 +8,7 @@
 #include "arachne/STHalfEdgeNode.h"
 #include "utils/LinearAlg2D.h"
 
-namespace cura
+namespace curaengine
 {
 
 STHalfEdge::STHalfEdge(const SkeletalTrapezoidationEdge& data)
@@ -130,4 +130,4 @@ STHalfEdge* STHalfEdge::getNextUnconnected()
     return result->twin_;
 }
 
-} // namespace cura
+} // namespace curaengine

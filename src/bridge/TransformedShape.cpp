@@ -6,7 +6,7 @@
 #include "geometry/Shape.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 TransformedShape::TransformedShape(const PointMatrix& matrix)
@@ -64,4 +64,4 @@ void TransformedShape::addSegment(const Point2LL& start, const Point2LL& end, co
     segments_.push_back(std::move(segment));
 }
 
-} // namespace cura
+} // namespace curaengine

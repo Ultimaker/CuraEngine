@@ -61,7 +61,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names
@@ -4309,4 +4309,4 @@ void FffGcodeWriter::finalize()
 }
 
 
-} // namespace cura
+} // namespace curaengine

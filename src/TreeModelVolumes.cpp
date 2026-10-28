@@ -24,7 +24,7 @@
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 
-namespace cura
+namespace curaengine
 {
 
 TreeModelVolumes::TreeModelVolumes(
@@ -115,7 +115,7 @@ TreeModelVolumes::TreeModelVolumes(
         const auto& mesh_l = *mesh;
         // ^^^ Remove when fixed (and rename accordingly in the below parallel-for).
 
-        cura::parallel_for<coord_t>(
+        curaengine::parallel_for<coord_t>(
             0,
             LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second.size()),
             [&](const LayerIndex layer_idx)
@@ -131,7 +131,7 @@ TreeModelVolumes::TreeModelVolumes(
     // Merge all the layer outlines together.
     for (auto& layer_outline : layer_outlines_)
     {
-        cura::parallel_for<coord_t>(
+        curaengine::parallel_for<coord_t>(
             0,
             LayerIndex(anti_overhang_.size()),
             [&](const LayerIndex layer_idx)
@@ -141,7 +141,7 @@ TreeModelVolumes::TreeModelVolumes(
     }
 
     // Gather all excluded areas, like support-blockers and trees that where already generated.
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         LayerIndex(anti_overhang_.size()),
         [&](const LayerIndex layer_idx)
@@ -605,7 +605,7 @@ LayerIndex TreeModelVolumes::getMaxCalculatedLayer(coord_t radius, const std::un
 
 void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& keys)
 {
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         keys.size(),
         [&](const size_t i)
@@ -768,7 +768,7 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPa
         max_layer = std::max(max_layer, keys[i].second);
     }
 
-    cura::parallel_for<coord_t>(
+    curaengine::parallel_for<coord_t>(
         0,
         LayerIndex(max_layer + 1),
         [&](const LayerIndex layer_idx)
@@ -832,7 +832,7 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
         accumulated_placeable_0 = simplifier_.polygon(accumulated_placeable_0);
         data[layer] = std::pair(layer, accumulated_placeable_0);
     }
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         std::max(LayerIndex{ start_layer - 1 }, LayerIndex{ 1 }),
         data.size(),
         [&](const coord_t layer_idx)
@@ -848,7 +848,7 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
 
 void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerPair>& keys)
 {
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         keys.size(),
         [&, keys](const size_t key_idx)
@@ -922,7 +922,7 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         keys.size() * 3,
         [&, keys, all_types](const size_t iter_idx)
@@ -1008,7 +1008,7 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
 {
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         keys.size(),
         [&, keys](const size_t key_idx)
@@ -1068,7 +1068,7 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         keys.size() * 3,
         [&, keys, all_types](const size_t iter_idx)
@@ -1196,7 +1196,7 @@ void TreeModelVolumes::calculateWallRestrictions(const std::deque<RadiusLayerPai
 
     // FIXME: This should be a parallel-for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         0,
         keys.size(),
         [&, keys](const size_t key_idx)
@@ -1293,4 +1293,4 @@ Shape TreeModelVolumes::calculateMachineBorderCollision(const Shape&& machine_bo
     return machine_volume_border;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -5,7 +5,7 @@
 
 #include "settings/types/Ratio.h"
 
-namespace cura
+namespace curaengine
 {
 
 class Point3D;
@@ -60,4 +60,4 @@ public:
     Point3LL apply(const Point3LL& p) const;
 };
 
-} // namespace cura
+} // namespace curaengine

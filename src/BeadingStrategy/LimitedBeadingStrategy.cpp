@@ -9,7 +9,7 @@
 
 #include "utils/macros.h"
 
-namespace cura
+namespace curaengine
 {
 
 std::string LimitedBeadingStrategy::toString() const
@@ -134,4 +134,4 @@ coord_t LimitedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
         return max_bead_count_ + 1;
 }
 
-} // namespace cura
+} // namespace curaengine

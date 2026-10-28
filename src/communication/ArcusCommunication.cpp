@@ -39,7 +39,7 @@
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -51,14 +51,14 @@ namespace cura
  */
 class ArcusCommunication::PathCompiler
 {
-    typedef cura::proto::PathSegment::PointType PointType;
+    typedef ::cura::proto::PathSegment::PointType PointType;
     static_assert(sizeof(PrintFeatureType) == 1, "To be compatible with the Cura frontend code PrintFeatureType needs to be of size 1");
     //! Reference to the private data of the CommandSocket used to send the data to the front end.
     ArcusCommunication::Private& _cs_private_data;
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
     LayerIndex _layer_nr{ 0 };
     size_t extruder{ 0 };
-    PointType data_point_type{ cura::proto::PathSegment::Point3D };
+    PointType data_point_type{ ::cura::proto::PathSegment::Point3D };
 
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
@@ -158,9 +158,9 @@ public:
             return; // Nothing to do.
         }
 
-        std::shared_ptr<proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
+        std::shared_ptr<::cura::proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
 
-        proto::PathSegment* path_segment = proto_layer->add_path_segment();
+        ::cura::proto::PathSegment* path_segment = proto_layer->add_path_segment();
         path_segment->set_extruder(extruder);
         path_segment->set_point_type(data_point_type);
 
@@ -295,15 +295,15 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
     private_data->socket = new Arcus::Socket;
     private_data->socket->addListener(new Listener);
 
-    private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::Layer::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::LayerOptimized::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::PrintTimeMaterialEstimates::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::SettingExtruder::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::Slice::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::Layer::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::LayerOptimized::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::Progress::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::GCodeLayer::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::PrintTimeMaterialEstimates::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::SettingList::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::SlicingFinished::default_instance());
+    private_data->socket->registerMessageType(&::cura::proto::SettingExtruder::default_instance());
 
     spdlog::info("Connecting to {}:{}", ip, port);
     private_data->socket->connect(ip, port);
@@ -333,7 +333,7 @@ void ArcusCommunication::sendGCodePart(const std::string& gcode_part)
         return;
     }
 
-    std::shared_ptr<proto::GCodeLayer> message = std::make_shared<proto::GCodeLayer>();
+    std::shared_ptr<::cura::proto::GCodeLayer> message = std::make_shared<::cura::proto::GCodeLayer>();
     message->set_data(message_str);
     private_data->socket->sendMessage(message);
 }
@@ -351,21 +351,21 @@ void ArcusCommunication::sendCurrentPosition(const Point3LL& position)
 
 void ArcusCommunication::sendSliceUUID(const std::string& slice_uuid) const
 {
-    std::shared_ptr<proto::SliceUUID> message = std::make_shared<proto::SliceUUID>();
+    std::shared_ptr<::cura::proto::SliceUUID> message = std::make_shared<::cura::proto::SliceUUID>();
     message->set_slice_uuid(slice_uuid);
     private_data->socket->sendMessage(message);
 }
 
 void ArcusCommunication::sendFinishedSlicing() const
 {
-    std::shared_ptr<proto::SlicingFinished> done_message = std::make_shared<proto::SlicingFinished>();
+    std::shared_ptr<::cura::proto::SlicingFinished> done_message = std::make_shared<::cura::proto::SlicingFinished>();
     private_data->socket->sendMessage(done_message);
     spdlog::debug("Sent slicing finished message.");
 }
 
 void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness)
 {
-    std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
+    std::shared_ptr<::cura::proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(thickness);
 }
@@ -385,7 +385,7 @@ void ArcusCommunication::sendOptimizedLayerData()
 {
     path_compiler->flushPathSegments(); // Make sure the last path segment has been flushed from the compiler.
 
-    SliceDataStruct<proto::LayerOptimized>& data = private_data->optimized_layers;
+    SliceDataStruct<::cura::proto::LayerOptimized>& data = private_data->optimized_layers;
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
     if (data.sliced_objects < private_data->object_count) // Nothing to send.
@@ -405,11 +405,11 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
+void ArcusCommunication::sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     spdlog::debug("Sending print information.");
 
-    std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
+    std::shared_ptr<::cura::proto::PrintTimeMaterialEstimates> message = std::make_shared<::cura::proto::PrintTimeMaterialEstimates>();
 
     message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
     message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
@@ -428,7 +428,7 @@ void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>&
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
-        proto::MaterialEstimates* material_message = message->add_materialestimates();
+        ::cura::proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
 
         const std::optional<ExtruderPrintInformation>& extruder_info = print_information.extruders_info[extruder_nr];
@@ -455,7 +455,7 @@ void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>&
 
     private_data->socket->sendMessage(message);
 
-    auto initial_extruder_message = std::make_shared<proto::InitialExtruder>();
+    auto initial_extruder_message = std::make_shared<::cura::proto::InitialExtruder>();
     initial_extruder_message->set_extruder_nr(print_information.initial_extruder_nr.value_or(0));
     private_data->socket->sendMessage(initial_extruder_message);
 
@@ -470,7 +470,7 @@ void ArcusCommunication::sendProgress(double progress) const
         return;
     }
 
-    std::shared_ptr<proto::Progress> message = std::make_shared<cura::proto::Progress>();
+    std::shared_ptr<::cura::proto::Progress> message = std::make_shared<::cura::proto::Progress>();
     double progress_all_objects = progress / private_data->object_count;
     progress_all_objects += private_data->optimized_layers.sliced_objects * (1.0 / private_data->object_count);
     message->set_amount(progress_all_objects);
@@ -494,7 +494,7 @@ void ArcusCommunication::sliceNext()
     const Arcus::MessagePtr message = private_data->socket->takeNextMessage();
 
     // Handle the main Slice message.
-    const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice. Returns nullptr otherwise.
+    const ::cura::proto::Slice* slice_message = dynamic_cast<::cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice. Returns nullptr otherwise.
     if (slice_message == nullptr)
     {
         return;
@@ -539,7 +539,7 @@ void ArcusCommunication::sliceNext()
     const size_t extruder_count = slice->scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
-    for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
+    for (const ::cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
     {
         const int32_t extruder_nr = setting_extruder.extruder(); // Cast from proto::int to int32_t!
         if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
@@ -553,7 +553,7 @@ void ArcusCommunication::sliceNext()
 
     // Load all mesh groups, meshes and their settings.
     private_data->object_count = 0;
-    for (const cura::proto::ObjectList& mesh_group_message : slice_message->object_lists())
+    for (const ::cura::proto::ObjectList& mesh_group_message : slice_message->object_lists())
     {
         private_data->readMeshGroupMessage(mesh_group_message);
     }
@@ -570,6 +570,6 @@ void ArcusCommunication::sliceNext()
     std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Pause before checking again for a slice message.
 }
 
-} // namespace cura
+} // namespace curaengine
 
 #endif // ARCUS

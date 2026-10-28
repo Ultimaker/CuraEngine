@@ -5,7 +5,7 @@
 
 #include <cmath>
 
-namespace cura
+namespace curaengine
 {
 
 class Point2F
@@ -51,4 +51,4 @@ static Point2F lerp(const Point2F& a, const Point2F& b, const float t)
     return Point2F(std::lerp(a.x_, b.x_, t), std::lerp(a.y_, b.y_, t));
 }
 
-} // namespace cura
+} // namespace curaengine

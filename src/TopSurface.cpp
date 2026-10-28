@@ -13,7 +13,7 @@
 #include "settings/EZSeamCornerPrefType.h"
 #include "settings/EZSeamType.h"
 
-namespace cura
+namespace curaengine
 {
 
 TopSurface::TopSurface()
@@ -192,4 +192,4 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     return added;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 /*!
  * In Cura different infill methods are available.
@@ -32,4 +32,4 @@ enum class EFillMethod
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
-} // namespace cura
+} // namespace curaengine

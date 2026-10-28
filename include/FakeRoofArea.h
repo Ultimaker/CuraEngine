@@ -6,7 +6,7 @@
 #include "geometry/Shape.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 struct FakeRoofArea
 {
@@ -32,4 +32,4 @@ struct FakeRoofArea
     bool fractional_;
 };
 
-} // namespace cura
+} // namespace curaengine

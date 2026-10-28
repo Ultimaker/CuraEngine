@@ -12,7 +12,7 @@
 #include "utils/NoCopy.h"
 
 
-namespace cura
+namespace curaengine
 {
 class Communication;
 class Slice;
@@ -156,4 +156,4 @@ private:
     void registerPlugins(const PluginSetupConfiguration& plugins_config);
 };
 
-} // namespace cura
+} // namespace curaengine

@@ -3,7 +3,7 @@
 
 #include "SliceLayer.h"
 
-namespace cura
+namespace curaengine
 {
 SliceLayer::~SliceLayer()
 {
@@ -31,4 +31,4 @@ void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
     }
 }
 
-} // namespace cura
+} // namespace curaengine

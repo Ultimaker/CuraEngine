@@ -28,7 +28,7 @@
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
-namespace cura
+namespace curaengine
 {
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
@@ -815,4 +815,4 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

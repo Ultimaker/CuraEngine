@@ -8,7 +8,7 @@
 #include "geometry/Point2F.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 class MeshVertex;
 
@@ -26,4 +26,4 @@ public:
     bool addedToPolygon = false;
 };
 
-} // namespace cura
+} // namespace curaengine

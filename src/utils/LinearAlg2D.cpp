@@ -12,7 +12,7 @@
 #include "geometry/PointMatrix.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine
 {
 
 double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c)
@@ -371,4 +371,4 @@ coord_t LinearAlg2D::getSlopedWidth(const coord_t base_width, const coord_t base
     return std::llrint(static_cast<double>(base_width) * factor);
 }
 
-} // namespace cura
+} // namespace curaengine

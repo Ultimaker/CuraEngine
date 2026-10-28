@@ -3,7 +3,7 @@
 
 #include "pathPlanning/SpeedDerivatives.h"
 
-namespace cura
+namespace curaengine
 {
 
 void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer_nr)
@@ -18,4 +18,4 @@ void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, c
     jerk = (jerk * static_cast<double>(layer_nr)) / max_speed_layer + (first_layer_jerk * (max_speed_layer - static_cast<double>(layer_nr)) / max_speed_layer);
 }
 
-} // namespace cura
+} // namespace curaengine

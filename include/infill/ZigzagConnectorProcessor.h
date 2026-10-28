@@ -7,7 +7,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class OpenLinesSet;
@@ -210,4 +210,4 @@ protected:
     std::vector<Point2LL> current_connector_;
 };
 
-} // namespace cura
+} // namespace curaengine

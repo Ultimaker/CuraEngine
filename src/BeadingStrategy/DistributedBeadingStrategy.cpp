@@ -4,7 +4,7 @@
 
 #include <numeric>
 
-namespace cura
+namespace curaengine
 {
 
 DistributedBeadingStrategy::DistributedBeadingStrategy(
@@ -100,4 +100,4 @@ coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     return naive_count + (remainder >= minimum_line_width); // If there's enough space, fit an extra one.
 }
 
-} // namespace cura
+} // namespace curaengine

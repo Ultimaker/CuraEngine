@@ -7,7 +7,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 enum class SegmentOverlappingType;
@@ -101,4 +101,4 @@ private:
     std::optional<coord_t> length_;
 };
 
-} // namespace cura
+} // namespace curaengine

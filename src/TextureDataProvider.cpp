@@ -9,7 +9,7 @@
 #include "TextureArea.h"
 #include "TextureBitField.h"
 
-namespace cura
+namespace curaengine
 {
 
 TextureDataProvider::TextureDataProvider(
@@ -65,4 +65,4 @@ std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL
     return std::nullopt;
 }
 
-} // namespace cura
+} // namespace curaengine

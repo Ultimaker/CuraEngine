@@ -12,7 +12,7 @@
 #include "utils/ExtrusionLine.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -43,4 +43,4 @@ struct SupportInfillPart
     const Shape& getInfillArea() const;
 };
 
-} // namespace cura
+} // namespace curaengine

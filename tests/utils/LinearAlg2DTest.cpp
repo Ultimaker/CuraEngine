@@ -11,7 +11,7 @@
 #include "geometry/Point3Matrix.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -362,5 +362,5 @@ TEST(Temp, LineDistTests)
     }
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

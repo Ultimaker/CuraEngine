@@ -37,7 +37,7 @@
 
 namespace fs = std::filesystem;
 
-namespace cura
+namespace curaengine
 {
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
@@ -88,7 +88,7 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
     // pass
 }
 
-void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
+void CommandLine::sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);
@@ -748,4 +748,4 @@ std::string CommandLine::findDefinitionFile(const std::string& definition_id, co
     return {};
 }
 
-} // namespace cura
+} // namespace curaengine

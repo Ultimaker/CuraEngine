@@ -7,7 +7,7 @@
 
 #include "utils/types/generic.h"
 
-namespace cura::utils
+namespace curaengine::utils
 {
 // clang-format off
 
@@ -33,4 +33,4 @@ concept setable = nodeable<typename T::key_type>
                && (std::is_same<T, std::vector<typename T::value_type>>::value || std::is_same<T, std::unordered_multiset<typename T::value_type>>::value || std::is_same<T, std::unordered_set<typename T::value_type>>::value);
 
 // clang-format off
-} // namespace cura
+} // namespace curaengine

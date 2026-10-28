@@ -5,7 +5,7 @@
 
 #include <string_view>
 
-namespace cura::utils
+namespace curaengine::utils
 {
 
 // Source: https://learnmoderncpp.com/2020/06/01/strings-as-switch-case-labels/
@@ -35,4 +35,4 @@ constexpr inline auto operator""_sw(const char* str, size_t len)
 }
 
 
-} // namespace cura::utils
+} // namespace curaengine::utils

@@ -8,7 +8,7 @@
 #include "geometry/Point3LL.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -145,4 +145,4 @@ public:
     }
 };
 
-} // namespace cura
+} // namespace curaengine

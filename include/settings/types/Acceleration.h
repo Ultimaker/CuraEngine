@@ -5,7 +5,7 @@
 
 #include "utils/types/NumericFacade.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct Acceleration : public utils::NumericFacade<double>
@@ -17,4 +17,4 @@ struct Acceleration : public utils::NumericFacade<double>
         : base_type{ base } {};
 };
 
-} // namespace cura
+} // namespace curaengine

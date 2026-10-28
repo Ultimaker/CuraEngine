@@ -12,7 +12,7 @@
 #include "plugins/Validator.h"
 #include "utils/types/CharRangeLiteral.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 
 /**
@@ -123,4 +123,4 @@ public:
     }
 };
 
-} // namespace cura::plugins
+} // namespace curaengine::plugins

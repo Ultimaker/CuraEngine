@@ -10,7 +10,7 @@
 #include "geometry/Shape.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -148,7 +148,7 @@ public:
 using PolygonsPointIndex = PathsPointIndex<Shape>;
 
 
-} // namespace cura
+} // namespace curaengine
 
 namespace std
 {
@@ -156,11 +156,11 @@ namespace std
  * Hash function for \ref PolygonsPointIndex
  */
 template<>
-struct hash<cura::PolygonsPointIndex>
+struct hash<curaengine::PolygonsPointIndex>
 {
-    size_t operator()(const cura::PolygonsPointIndex& lpi) const
+    size_t operator()(const curaengine::PolygonsPointIndex& lpi) const
     {
-        return std::hash<cura::Point2LL>()(lpi.p());
+        return std::hash<curaengine::Point2LL>()(lpi.p());
     }
 };
 } // namespace std

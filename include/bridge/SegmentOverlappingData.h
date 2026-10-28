@@ -6,7 +6,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 class TransformedSegment;
@@ -46,4 +46,4 @@ struct SegmentOverlappingData
     TransformedSegment makeOtherOverlappingPart() const;
 };
 
-} // namespace cura
+} // namespace curaengine

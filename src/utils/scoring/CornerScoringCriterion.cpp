@@ -8,7 +8,7 @@
 #include "utils/math.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
@@ -39,11 +39,11 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
     {
     case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
         // Give advantage to concave corners. More advantage for sharper corners.
-        score = cura::inverse_lerp(1.0, -1.0, corner_angle);
+        score = curaengine::inverse_lerp(1.0, -1.0, corner_angle);
         break;
     case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
         // Give advantage to convex corners. More advantage for sharper corners.
-        score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
+        score = curaengine::inverse_lerp(-1.0, 1.0, corner_angle);
         break;
     case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
         // Still give sharper corners more advantage.
@@ -116,4 +116,4 @@ Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t
     }
 }
 
-} // namespace cura
+} // namespace curaengine

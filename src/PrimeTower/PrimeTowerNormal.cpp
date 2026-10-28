@@ -9,7 +9,7 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 
-namespace cura
+namespace curaengine
 {
 
 PrimeTowerNormal::PrimeTowerNormal(const std::vector<size_t>& used_extruders)
@@ -120,4 +120,4 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
     return toolpaths;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -7,7 +7,7 @@
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 infill_generate_request::value_type
     infill_generate_request::operator()(const infill_generate_request::native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const coord_t z)
@@ -56,5 +56,5 @@ infill_generate_request::value_type
 
     return message;
 }
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

@@ -8,7 +8,7 @@
 #include "ZHopAntiOozing.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct TravelAntiOozing
@@ -20,4 +20,4 @@ struct TravelAntiOozing
     std::vector<double> amount_by_segment; //!< For each intermediate segment containing a retraction/prime, this is the absolute amount to be reached at the end of the segment
 };
 
-} // namespace cura
+} // namespace curaengine

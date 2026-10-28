@@ -24,7 +24,7 @@
 #endif // TEST_INFILL_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 coord_t getPatternMultiplier(const EFillMethod& pattern)
 {
@@ -297,5 +297,5 @@ TEST_P(InfillTest, TestInfillSanity)
         << "Infill (lines) should not be outside target polygon.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

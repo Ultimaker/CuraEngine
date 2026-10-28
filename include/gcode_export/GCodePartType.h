@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class GCodePartType
@@ -14,4 +14,4 @@ enum class GCodePartType
 
 };
 
-} // namespace cura
+} // namespace curaengine

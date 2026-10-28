@@ -7,7 +7,7 @@
 
 #include "arachne/SkeletalTrapezoidationEdge.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SkeletalTrapezoidationJoint;
@@ -56,4 +56,4 @@ public:
     STHalfEdge* getNextUnconnected();
 };
 
-} // namespace cura
+} // namespace curaengine

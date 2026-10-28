@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 #pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class RestPreference
@@ -11,4 +11,4 @@ enum class RestPreference
     GRACEFUL
 };
 
-} // namespace cura
+} // namespace curaengine

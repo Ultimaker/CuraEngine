@@ -7,7 +7,7 @@
 
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 class AngleDegrees;
@@ -40,4 +40,4 @@ public:
     [[nodiscard]] PointMatrix inverse() const;
 };
 
-} // namespace cura
+} // namespace curaengine

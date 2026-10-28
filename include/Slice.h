@@ -5,7 +5,7 @@
 
 #include "Scene.h" //To store the scene to slice.
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -58,4 +58,4 @@ private:
     Slice& operator=(const Slice& other) = delete;
 };
 
-} // namespace cura
+} // namespace curaengine

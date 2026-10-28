@@ -14,7 +14,7 @@
 #include "BeadingStrategy/RedistributeBeadingStrategy.h"
 #include "BeadingStrategy/WideningBeadingStrategy.h"
 
-namespace cura
+namespace curaengine
 {
 
 BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
@@ -66,4 +66,4 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
     ret = make_unique<LimitedBeadingStrategy>(max_bead_count, std::move(ret));
     return ret;
 }
-} // namespace cura
+} // namespace curaengine

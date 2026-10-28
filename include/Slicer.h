@@ -15,7 +15,7 @@
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
 */
-namespace cura
+namespace curaengine
 {
 class AdaptiveLayer;
 class Mesh;
@@ -135,4 +135,4 @@ private:
         buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbboxes, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers);
 };
 
-} // namespace cura
+} // namespace curaengine

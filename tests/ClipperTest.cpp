@@ -14,7 +14,7 @@
 #endif // TEST_INFILL_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test
@@ -154,5 +154,5 @@ void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylin
 }
 
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

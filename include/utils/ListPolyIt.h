@@ -9,7 +9,7 @@
 #include "geometry/Point2LL.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 class Polygon;
@@ -156,7 +156,7 @@ private:
 };
 
 
-} // namespace cura
+} // namespace curaengine
 
 namespace std
 {
@@ -164,11 +164,11 @@ namespace std
  * Hash function for \ref ListPolyIt
  */
 template<>
-struct hash<cura::ListPolyIt>
+struct hash<curaengine::ListPolyIt>
 {
-    size_t operator()(const cura::ListPolyIt& lpi) const
+    size_t operator()(const curaengine::ListPolyIt& lpi) const
     {
-        return std::hash<cura::Point2LL>()(lpi.p());
+        return std::hash<curaengine::Point2LL>()(lpi.p());
     }
 };
 } // namespace std

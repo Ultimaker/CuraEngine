@@ -8,7 +8,7 @@
 #include "../utils/PolygonUtils.h"
 #include "LightningLayer.h"
 
-namespace cura
+namespace curaengine
 {
 class SliceMeshStorage;
 class SupportStorage;
@@ -149,4 +149,4 @@ protected:
     std::vector<LightningLayer> lightning_layers;
 };
 
-} // namespace cura
+} // namespace curaengine

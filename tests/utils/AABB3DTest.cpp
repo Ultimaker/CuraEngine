@@ -9,7 +9,7 @@
 #include <polyclipping/clipper.hpp>
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 inline AABB3D toBox(const coord_t& x, const coord_t& y, const coord_t& z)
 {
@@ -156,5 +156,5 @@ TEST(AABB3DTest, TestFlatten)
     EXPECT_TRUE(flat.contains(Point2LL(1, 1))) << "The flattened box should contain this point.";
     EXPECT_FALSE(flat.contains(Point2LL(-11, 3))) << "The flattened box shouldn't contain this point.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

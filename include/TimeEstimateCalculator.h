@@ -12,7 +12,7 @@
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
 
-namespace cura
+namespace curaengine
 {
 
 class Settings;
@@ -131,4 +131,4 @@ private:
     void plannerForwardPassKernel(Block* previous, Block* current, Block* next);
 };
 
-} // namespace cura
+} // namespace curaengine

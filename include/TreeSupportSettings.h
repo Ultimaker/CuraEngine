@@ -20,7 +20,7 @@
 #include "utils/math.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -543,4 +543,4 @@ public:
         known_z = z;
     }
 };
-} // namespace cura
+} // namespace curaengine

@@ -7,7 +7,7 @@
 
 #include "geometry/Point3LL.h"
 
-namespace cura
+namespace curaengine
 {
 
 using GridPoint3 = Point3LL;
@@ -52,4 +52,4 @@ struct DilationKernel
     DilationKernel(GridPoint3 kernel_size, Type type);
 };
 
-} // namespace cura
+} // namespace curaengine

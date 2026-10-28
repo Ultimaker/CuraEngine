@@ -7,7 +7,7 @@
 
 #include "bridge/TransformedSegment.h"
 
-namespace cura
+namespace curaengine
 {
 
 struct SegmentOverlapping;
@@ -133,4 +133,4 @@ private:
     bool is_projected_;
 };
 
-} // namespace cura
+} // namespace curaengine

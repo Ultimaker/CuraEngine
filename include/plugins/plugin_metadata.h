@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
 struct plugin_metadata
 {
@@ -16,4 +16,4 @@ struct plugin_metadata
     std::string peer;
     std::set<int> broadcast_subscriptions;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins

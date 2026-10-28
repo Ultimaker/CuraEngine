@@ -5,7 +5,7 @@
 
 #include "infill/AbstractLinesInfill.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -79,4 +79,4 @@ private:
     const RegularNGonType type_;
 };
 
-} // namespace cura
+} // namespace curaengine

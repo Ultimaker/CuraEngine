@@ -14,7 +14,7 @@
 
 #include "Communication.h" //The class we're implementing.
 
-namespace cura
+namespace curaengine
 {
 class Settings;
 
@@ -94,7 +94,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<curaengine::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Show an update of our slicing progress.
@@ -202,4 +202,4 @@ private:
     static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
-} // namespace cura
+} // namespace curaengine

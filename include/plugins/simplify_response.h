@@ -8,11 +8,11 @@
 #include "geometry/Shape.h"
 #include "plugins/converter.h"
 
-namespace cura::plugins
+namespace curaengine::plugins
 {
-struct simplify_response : public details::converter<simplify_response, slots::simplify::v0::modify::CallResponse, Shape>
+struct simplify_response : public details::converter<simplify_response, ::cura::plugins::slots::simplify::v0::modify::CallResponse, Shape>
 {
     native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };
-} // namespace cura::plugins
+} // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

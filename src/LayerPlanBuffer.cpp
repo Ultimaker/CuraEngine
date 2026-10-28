@@ -17,7 +17,7 @@
 #include "settings/InsetDirection.h"
 #include "settings/RetractBeforeOuterWall.h"
 
-namespace cura
+namespace curaengine
 {
 
 
@@ -661,4 +661,4 @@ void LayerPlanBuffer::insertTempCommands()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

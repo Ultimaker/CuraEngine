@@ -55,7 +55,7 @@
 #include "utils/Escaped.h"
 #include "utils/types/string_switch.h" //For string switch.
 
-namespace cura
+namespace curaengine
 {
 
 Settings::Settings()
@@ -227,7 +227,7 @@ template<>
 DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "full"_sw:
@@ -347,7 +347,7 @@ template<>
 EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "Marlin"_sw:
@@ -381,7 +381,7 @@ template<>
 EFillMethod Settings::get<EFillMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "none"_sw:
@@ -429,7 +429,7 @@ template<>
 EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "skirt"_sw:
@@ -451,7 +451,7 @@ template<>
 ESupportType Settings::get<ESupportType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "none"_sw:
@@ -471,7 +471,7 @@ template<>
 ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "normal"_sw:
@@ -490,7 +490,7 @@ template<>
 EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "shortest"_sw:
@@ -512,7 +512,7 @@ template<>
 EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "z_seam_corner_outer"_sw:
@@ -533,7 +533,7 @@ template<>
 ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "normal"_sw:
@@ -553,7 +553,7 @@ template<>
 FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "nowhere"_sw:
@@ -571,7 +571,7 @@ template<>
 BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "rectangular"_sw:
@@ -589,7 +589,7 @@ template<>
 CombingMode Settings::get<CombingMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "all"_sw:
@@ -613,7 +613,7 @@ template<>
 SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "xy_overrides_z"_sw:
@@ -631,7 +631,7 @@ template<>
 SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "middle"_sw:
@@ -651,7 +651,7 @@ template<>
 InsetDirection Settings::get<InsetDirection>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
+    using namespace curaengine::utils;
     switch (hash_enum(value))
     {
     case "inside_out"_sw:
@@ -908,4 +908,4 @@ std::vector<std::string> Settings::getKeys() const
     return ranges::views::keys(settings) | ranges::to_vector;
 }
 
-} // namespace cura
+} // namespace curaengine
