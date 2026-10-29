@@ -1,13 +1,25 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef ARCUSCOMMUNICATIONPRIVATE_H
-#define ARCUSCOMMUNICATIONPRIVATE_H
-#ifdef ARCUS
+#ifndef GRPCCOMMUNICATIONPRIVATE_H
+#define GRPCCOMMUNICATIONPRIVATE_H
 
+#include <atomic>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
 #include <sstream> //For ostringstream.
+#include <thread>
 
-#include "ArcusCommunication.h" //We're adding a subclass to this.
+#include <agrpc/asio_grpc.hpp>
+#include <boost/asio/awaitable.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <google/protobuf/message.h>
+#include <grpcpp/grpcpp.h>
+
+#include "GrpcCommunication.h" //We're adding a subclass to this.
+#include "Cura.grpc.pb.h"
 #include "SliceDataStruct.h"
 #include "settings/types/LayerIndex.h"
 
@@ -16,9 +28,9 @@ namespace cura
 
 class Mesh;
 
-class ArcusCommunication::Private
+class GrpcCommunication::Private
 {
-    friend class ArcusCommunicationPrivateTest;
+    friend class GrpcCommunicationTest;
 
 public:
     Private();
@@ -47,7 +59,22 @@ public:
      */
     void readMeshGroupMessage(const proto::ObjectList& mesh_group_message);
 
-    Arcus::Socket* socket; //!< Socket to send data to.
+    std::shared_ptr<grpc::Channel> channel;
+    std::unique_ptr<proto::CuraEngineCommunication::Stub> stub;
+    agrpc::GrpcContext grpc_context;
+    std::thread grpc_thread;
+    std::mutex active_context_mutex;
+    std::atomic<grpc::ClientContext*> active_context{ nullptr };
+    std::atomic<bool> connected{ false };
+    std::atomic<bool> stream_failed{ false };
+    std::atomic<bool> read_finished{ false };
+    std::mutex slice_mutex;
+    std::condition_variable slice_condition;
+    std::deque<proto::Slice> incoming_slices;
+    std::mutex send_queue_mutex;
+    std::condition_variable send_queue_space;
+    std::deque<proto::CuraEngineMessage> send_queue;
+    std::atomic<size_t> send_queue_bytes{ 0 };
     size_t object_count; //!< Number of objects that need to be sliced.
     std::string temp_gcode_file; //!< Temporary buffer for the g-code.
     std::ostringstream gcode_output_stream; //!< The stream to write g-code to.
@@ -72,7 +99,15 @@ public:
      */
     size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
 
-    const size_t millisecUntilNextTry; // How long we wait until we try to connect again.
+    const size_t millisecUntilNextTry; // Delay between stream readiness checks.
+
+    bool sendMessage(const google::protobuf::Message& message);
+    bool flushMessages();
+    bool takeNextSlice(proto::Slice& slice);
+    boost::asio::awaitable<void> runStream();
+    template<class RPC> boost::asio::awaitable<void> readLoop(RPC& rpc);
+    template<class RPC> boost::asio::awaitable<void> writeLoop(RPC& rpc);
+    void stop();
 
 private:
     static void loadTextureData(const std::string& texture_str, Mesh& mesh);
@@ -80,5 +115,4 @@ private:
 
 } // namespace cura
 
-#endif // ARCUS
-#endif // ARCUSCOMMUNICATIONPRIVATE_H
+#endif // GRPCCOMMUNICATIONPRIVATE_H

@@ -17,9 +17,14 @@
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#ifndef __EMSCRIPTEN__
+#include <oneapi/tbb/global_control.h>
+#endif
 
 #include "Slice.h"
-#include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
+#ifdef ENABLE_GRPC_COMMUNICATION
+#include "communication/GrpcCommunication.h" //To connect to Cura's gRPC service.
+#endif
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
 #include "progress/Progress.h"
@@ -59,19 +64,13 @@ Application& Application::getInstance()
     return instance;
 }
 
-#ifdef ARCUS
+#ifdef ENABLE_GRPC_COMMUNICATION
 void Application::connect()
 {
-    std::string ip = "127.0.0.1";
-    int port = 49674;
-
-    // Parse port number from IP address.
-    std::string ip_port(argv_[2]);
-    std::size_t found_pos = ip_port.find(':');
-    if (found_pos != std::string::npos)
+    std::string endpoint = "127.0.0.1:49674";
+    if (argc_ > 2)
     {
-        ip = ip_port.substr(0, found_pos);
-        port = std::stoi(ip_port.substr(found_pos + 1).data());
+        endpoint = argv_[2];
     }
 
     int n_threads;
@@ -104,11 +103,15 @@ void Application::connect()
         }
     }
 
-    auto arcus_communication = std::make_shared<ArcusCommunication>();
-    arcus_communication->connect(ip, port);
-    communication_ = arcus_communication;
+    auto grpc_communication = std::make_shared<GrpcCommunication>();
+    if (! grpc_communication->connect(endpoint))
+    {
+        spdlog::error("Failed to connect to Cura gRPC service at {}", endpoint);
+        return;
+    }
+    communication_ = grpc_communication;
 }
-#endif // ARCUS
+#endif // ENABLE_GRPC_COMMUNICATION
 
 void Application::printCall() const
 {
@@ -122,13 +125,13 @@ void Application::printHelp() const
     fmt::print("CuraEngine help\n");
     fmt::print("\tShow this help message\n");
     fmt::print("\n");
-#ifdef ARCUS
+#ifdef ENABLE_GRPC_COMMUNICATION
     fmt::print("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     fmt::print("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads. Supports only a single digit.\n");
     fmt::print("\n");
-#endif // ARCUS
+#endif // ENABLE_GRPC_COMMUNICATION
     fmt::print("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     fmt::print("  -v\n\tIncrease the verbose level (show log messages).\n");
     fmt::print("  -m<thread_count>\n\tSet the desired number of threads.\n");
@@ -240,13 +243,13 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
-#ifdef ARCUS
+#ifdef ENABLE_GRPC_COMMUNICATION
     if (stringcasecompare(argv[1], "connect") == 0)
     {
         connect();
     }
     else
-#endif // ARCUS
+#endif // ENABLE_GRPC_COMMUNICATION
         if (stringcasecompare(argv[1], "slice") == 0)
         {
             slice();

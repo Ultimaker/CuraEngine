@@ -104,14 +104,14 @@ public:
     void startThreadPool(int nworkers = 0);
 
 protected:
-#ifdef ARCUS
+#ifdef ENABLE_GRPC_COMMUNICATION
     /*!
-     * \brief Connect using libArcus to a socket.
+     * \brief Connect to Cura's gRPC stream endpoint.
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */
     void connect();
-#endif // ARCUS
+#endif // ENABLE_GRPC_COMMUNICATION
 
     /*!
      * \brief Print the header to the stderr channel.
