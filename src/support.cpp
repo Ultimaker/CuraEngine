@@ -726,9 +726,10 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
             break;
         case EPlatformAdhesion::RAFT:
         {
-            adhesion_size = std::max({ mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
+            adhesion_size = std::max(
+                { mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
             break;
         }
         case EPlatformAdhesion::NONE:
@@ -1035,22 +1036,24 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
     if (layer_idx_below != layer_idx)
     {
         const auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_bot,
-            .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_below,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_bot,
+                .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_below,
+            });
     }
 
     const LayerIndex layer_idx_above{ std::min(LayerIndex{ layer_idx + layer_index_offset }, LayerIndex{ storage.layers.size() - 1 }) };
     if (layer_idx_above != layer_idx)
     {
         const auto layer_above = simplify.polygon(storage.layers[layer_idx_above].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_top,
-            .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_above,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_top,
+                .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_above,
+            });
     }
 
     // Initialize the offset_dist_at_point map with all the points in the current layer.
@@ -1656,7 +1659,8 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
     // To avoids generating support for textures on vertical surfaces, a moving average
     // is taken over smooth_height. The smooth_height is currently an educated guess
     // that we might want to expose to the frontend in the future.
-    Shape outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).offset(max_dist_from_lower_layer);
+    const Shape original_outlines_below{ storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower) };
+    Shape outlines_below = original_outlines_below.offset(max_dist_from_lower_layer);
     for (int layer_idx_offset = 2; layer_idx - layer_idx_offset >= 0 && layer_idx_offset <= layers_below; layer_idx_offset++)
     {
         auto outlines_below_ = storage.getLayerOutlines(layer_idx - layer_idx_offset, no_support, no_prime_tower).offset(max_dist_from_lower_layer * layer_idx_offset);
@@ -1677,7 +1681,7 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
 
     if (! support_layer.force_overhang.empty())
     {
-        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang);
+        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang.intersection(outlines.difference(original_outlines_below.offset(EPSILON))));
     }
 
     Shape overhang_extended = basic_overhang

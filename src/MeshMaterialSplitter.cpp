@@ -334,7 +334,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
                 const auto mesh_iterator = meshes.find(feature_value);
                 if (mesh_iterator == meshes.end())
                 {
-                    const Settings settings = mesh_settings.value_or(Application::getInstance().current_slice_->scene.extruders[feature_value].settings_);
+                    const Settings settings = mesh_settings ? *mesh_settings : Application::getInstance().current_slice_->scene.extruders[feature_value].settings_;
                     meshes.insert({ feature_value, Mesh(settings) });
                 }
 

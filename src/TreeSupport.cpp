@@ -2193,8 +2193,8 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
 void TreeSupport::finalizeInterfaceAndSupportAreas(
     std::vector<Shape>& support_layer_storage,
-    std::vector<Shape>& support_roof_storage,
-    std::vector<Shape>& support_layer_storage_fractional,
+    const std::vector<Shape>& support_roof_storage,
+    const std::vector<Shape>& support_layer_storage_fractional,
     const CenterGrid& center_locator_per_layer,
     SliceDataStorage& storage)
 {
@@ -2254,15 +2254,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(
+                        TreeSupportUtils::generateSupportInfillLines(
+                            support_layer_storage[layer_idx],
+                            config,
+                            false,
+                            layer_idx,
+                            config.support_line_distance,
+                            storage.support.cross_fill_provider,
+                            true)
+                            .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
@@ -2309,6 +2310,19 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         {
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
 
+            // This only works because fractional support is always just projected upwards regular support or skin.
+            // Also technically violates skin height, but there is no good way to prevent that.
+            Shape fractional_support;
+
+            if (layer_idx > 0)
+            {
+                fractional_support = support_layer_storage_fractional[layer_idx].intersection(support_layer_storage[layer_idx - 1]);
+            }
+            else
+            {
+                fractional_support = support_layer_storage_fractional[layer_idx];
+            }
+
             const auto* center_locator = center_locator_per_layer[layer_idx].get();
             for (const SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
             {
@@ -2331,20 +2345,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 // Clamp wall-thickness to configured values, and draw the support part with the calculated wall-thickness.
                 const auto wall_thickness = std::clamp(weighted_average, config.support_wall_thickness, config.support_enlarged_wall_thickness);
-                storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
-            }
-
-            // This only works because fractional support is always just projected upwards regular support or skin.
-            // Also technically violates skin height, but there is no good way to prevent that.
-            Shape fractional_support;
-
-            if (layer_idx > 0)
-            {
-                fractional_support = support_layer_storage_fractional[layer_idx].intersection(support_layer_storage[layer_idx - 1]);
-            }
-            else
-            {
-                fractional_support = support_layer_storage_fractional[layer_idx];
+                storage.support.supportLayers[layer_idx]
+                    .fillInfillParts(support_part.difference(fractional_support), config.support_line_width, wall_thickness, false, convert_every_part);
             }
 
             storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_thickness, true, convert_every_part);

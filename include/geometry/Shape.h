@@ -4,6 +4,8 @@
 #ifndef GEOMETRY_SHAPE_H
 #define GEOMETRY_SHAPE_H
 
+#include <optional>
+
 #include "geometry/LinesSet.h"
 #include "geometry/Polygon.h"
 #include "settings/types/Angle.h"
@@ -120,6 +122,19 @@ public:
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
     [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
+
+    /*!
+     * Check if the given point is inside the polygon.
+     *
+     * We do this by counting the number of polygons inside which this point lies.
+     * An odd number is inside, while an even number is outside.
+     *
+     * Returns false if outside, true if inside, nullopt if the point lies exactly on the border of a polygon.
+     *
+     * \param p The point for which to check if it is inside this polygon
+     * \return Whether the point \p p is inside this polygon, or nullopt when it is on the border
+     */
+    [[nodiscard]] std::optional<bool> insideWithoutBorder(const Point2LL& p) const;
 
     /*!
      * Find the polygon inside which point \p p resides.
@@ -248,7 +263,7 @@ public:
      * Calculates the intersections between the given segment and all the segments of the shape
      * @param start The start position of the segment
      * @param end The end position of the segment
-     * @return The parameters of the intersections on the segment (intersection = start + t * (end - start)), unsorted
+     * @return The parameters of the intersections on the segment (intersection = start + t * (end - start)), unsorted and possibly containing duplicates
      */
     std::vector<float> intersectionsWithSegment(const Point2LL& start, const Point2LL& end) const;
 
