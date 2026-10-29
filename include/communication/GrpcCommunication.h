@@ -1,60 +1,52 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef ARCUSCOMMUNICATION_H
-#define ARCUSCOMMUNICATION_H
-#ifdef ARCUS
+#ifndef GRPCCOMMUNICATION_H
+#define GRPCCOMMUNICATION_H
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
 #include <memory> //For unique_ptr and shared_ptr.
 
+#include <google/protobuf/message.h>
+
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 
 // Forward declarations to speed up compilation.
-namespace Arcus
-{
-class Socket;
-}
-
 namespace cura
 {
 
 class Polygon;
 
 /*
- * \brief Communication class that connects via libArcus to Cura's front-end.
+ * \brief Communication class that connects via gRPC to Cura's front-end.
  */
-class ArcusCommunication : public Communication
+class GrpcCommunication : public Communication
 {
 #ifdef BUILD_TESTS
-    friend class ArcusCommunicationTest;
-    FRIEND_TEST(ArcusCommunicationTest, FlushGCodeTest);
-    FRIEND_TEST(ArcusCommunicationTest, HasSlice);
-    FRIEND_TEST(ArcusCommunicationTest, SendLayerComplete);
-    FRIEND_TEST(ArcusCommunicationTest, SendProgress);
-    friend class ArcusCommunicationPrivateTest;
+    friend class GrpcCommunicationTest;
+    FRIEND_TEST(GrpcCommunicationTest, FlushGCodeTest);
+    FRIEND_TEST(GrpcCommunicationTest, HasSlice);
+    FRIEND_TEST(GrpcCommunicationTest, SendLayerComplete);
+    FRIEND_TEST(GrpcCommunicationTest, SendProgress);
 #endif
 public:
     /*
-     * \brief Construct a new communicator that listens to libArcus messages via
-     * a network socket.
-     * \param ip The IP address to connect the socket to.
-     * \param port The port number to connect the socket to.
+     * \brief Construct a new gRPC client communicator.
      */
-    ArcusCommunication();
+    GrpcCommunication();
 
     /*
      * \brief Closes the connection.
      */
-    ~ArcusCommunication();
+    ~GrpcCommunication();
 
     /*
-     * \brief Initialize and connect the socket
+     * \brief Connect to Cura's streaming gRPC endpoint.
      */
-    void connect(const std::string& ip, const uint16_t port);
+    bool connect(const std::string& endpoint);
 
     /* \brief Sends a piece of GCode that is ready to be exported */
     void sendGCodePart(const std::string& gcode_part) override;
@@ -135,7 +127,7 @@ public:
     void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
-     * \brief Communicate to Arcus what our progress is.
+     * \brief Send progress to Cura.
      */
     void sendProgress(double progress) const override;
 
@@ -159,9 +151,9 @@ public:
 
 private:
     /*
-     * \brief Put any mock-socket there to assist with Unit-Testing.
+     * \brief Send one protobuf message through the gRPC stream.
      */
-    void setSocketMock(Arcus::Socket* socket);
+    bool sendMessage(const google::protobuf::Message& message) const;
 
     /*
      * \brief PIMPL pattern subclass that contains the private implementation.
@@ -187,5 +179,4 @@ private:
 
 } // namespace cura
 
-#endif // ARCUS
-#endif // ARCUSCOMMUNICATION_H
+#endif // GRPCCOMMUNICATION_H
