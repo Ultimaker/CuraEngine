@@ -7,9 +7,8 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
-#include <memory> //For unique_ptr and shared_ptr.
-
 #include <google/protobuf/message.h>
+#include <memory> //For unique_ptr and shared_ptr.
 
 #include "Communication.h" //The class we're implementing.
 #include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
@@ -18,6 +17,7 @@
 namespace cura
 {
 
+class Slice;
 class Polygon;
 
 /*
@@ -54,7 +54,7 @@ public:
     /*
      * \brief Test if there are any more slices in the queue.
      */
-    bool hasSlice() const override;
+    bool hasSlice() override;
 
     /*
      * \brief Send the current position to the front-end.
@@ -155,6 +155,8 @@ private:
      */
     bool sendMessage(const google::protobuf::Message& message) const;
 
+    std::shared_ptr<Slice> makeSlice(const proto::Slice& slice_message);
+
     /*
      * \brief PIMPL pattern subclass that contains the private implementation.
      */
@@ -175,6 +177,8 @@ private:
      * \brief Pointer that contains the private implementation of the path compiler.
      */
     const std::unique_ptr<PathCompiler> path_compiler;
+
+    std::shared_ptr<Slice> current_slice_;
 };
 
 } // namespace cura

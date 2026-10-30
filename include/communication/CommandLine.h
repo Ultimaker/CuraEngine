@@ -44,7 +44,7 @@ public:
     /*
      * \brief Test if there are any more slices to be made.
      */
-    bool hasSlice() const override;
+    bool hasSlice() override;
 
     /*
      * \brief Send the current position.

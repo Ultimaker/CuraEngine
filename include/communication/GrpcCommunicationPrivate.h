@@ -7,30 +7,34 @@
 #include <atomic>
 #include <condition_variable>
 #include <deque>
+#include <google/protobuf/message.h>
+#include <grpcpp/grpcpp.h>
 #include <mutex>
+#include <optional>
 #include <sstream> //For ostringstream.
 #include <thread>
 
 #include <agrpc/asio_grpc.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#include <google/protobuf/message.h>
-#include <grpcpp/grpcpp.h>
 
-#include "GrpcCommunication.h" //We're adding a subclass to this.
 #include "Cura.grpc.pb.h"
+#include "GrpcCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
 #include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
+class MeshGroup;
+class Scene;
 class Mesh;
 
 class GrpcCommunication::Private
 {
     friend class GrpcCommunicationTest;
+
+    using RPC = agrpc::ClientRPC<&proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
 
 public:
     Private();
@@ -48,16 +52,20 @@ public:
      * The global settings are stored in the current scene.
      * \param global_settings_message The global settings message.
      */
-    void readGlobalSettingsMessage(const proto::SettingList& global_settings_message);
+    void readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice);
 
-    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages);
+    std::shared_ptr<Slice> readSliceMessage(const proto::Slice& slice_message);
+
+    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice);
 
     /*
      * \brief Reads a Protobuf message describing a mesh group.
      *
      * This gets the vertex data from the message as well as the settings.
      */
-    void readMeshGroupMessage(const proto::ObjectList& mesh_group_message);
+    void readMeshGroupMessage(const proto::MeshGroup& mesh_group_message, Scene& scene);
+
+    void readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group);
 
     std::shared_ptr<grpc::Channel> channel;
     std::unique_ptr<proto::CuraEngineCommunication::Stub> stub;
@@ -68,9 +76,9 @@ public:
     std::atomic<bool> connected{ false };
     std::atomic<bool> stream_failed{ false };
     std::atomic<bool> read_finished{ false };
-    std::mutex slice_mutex;
-    std::condition_variable slice_condition;
-    std::deque<proto::Slice> incoming_slices;
+    std::mutex message_mutex;
+    std::condition_variable message_condition;
+    std::deque<proto::CuraClientMessage> incoming_messages;
     std::atomic<bool> exit_requested{ false };
     std::mutex send_queue_mutex;
     std::condition_variable send_queue_space;
@@ -85,43 +93,15 @@ public:
 
     int last_sent_progress; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
 
-    /*
-     * \brief How often we've sliced so far during this run of CuraEngine.
-     *
-     * This is currently used to limit the number of slices per run to 1,
-     * because CuraEngine produced different output for each slice. The fix was
-     * to restart CuraEngine every time you make a slice.
-     *
-     * Once this bug is resolved, we can allow multiple slices for each run. Our
-     * intuition says that there might be some differences if we let stuff
-     * depend on the order of iteration in unordered_map or unordered_set,
-     * because those data structures will give a different order if more memory
-     * has already been reserved for them.
-     */
-    /*
-     * \brief How often we've sliced so far during this run of CuraEngine.
-     *
-     * This is currently used to limit the number of slices per run to 1,
-     * because CuraEngine produced different output for each slice. The fix was
-     * to restart CuraEngine every time you make a slice.
-     *
-     * Once this bug is resolved, we can allow multiple slices for each run. Our
-     * intuition says that there might be some differences if we let stuff
-     * depend on the order of iteration in unordered_map or unordered_set,
-     * because those data structures will give a different order if more memory
-     * has already been reserved for them.
-     */
-    size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
-
     const size_t millisecUntilNextTry; // Delay between stream readiness checks.
 
     bool sendMessage(const google::protobuf::Message& message);
     bool flushMessages();
     bool waitForSliceOrExit();
-    bool takeNextSlice(proto::Slice& slice);
+    std::optional<proto::CuraClientMessage> takeNextMessage();
     boost::asio::awaitable<void> runStream();
-    template<class RPC> boost::asio::awaitable<void> readLoop(RPC& rpc);
-    template<class RPC> boost::asio::awaitable<void> writeLoop(RPC& rpc);
+    boost::asio::awaitable<void> readLoop(RPC& rpc);
+    boost::asio::awaitable<void> writeLoop(RPC& rpc);
     void stop();
 
 private:

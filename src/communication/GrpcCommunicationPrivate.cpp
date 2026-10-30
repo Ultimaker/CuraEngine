@@ -3,19 +3,21 @@
 
 #include "communication/GrpcCommunicationPrivate.h"
 
+#include <chrono>
+#include <exception>
 #include <fstream>
 #include <png.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/memorystream.h>
+#include <utility>
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
-#include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/types/LayerIndex.h"
@@ -23,17 +25,12 @@
 #include "utils/MeshUtils.h"
 #include "utils/Point3F.h" //To accept vertices (which are provided in floating point).
 
-#include <chrono>
-#include <exception>
-#include <utility>
-
 namespace cura
 {
 
 GrpcCommunication::Private::Private()
     : object_count(0)
     , last_sent_progress(-1)
-    , slice_count(0)
     , millisecUntilNextTry(100)
 {
 }
@@ -75,9 +72,12 @@ bool GrpcCommunication::Private::sendMessage(const google::protobuf::Message& me
         if (queued_bytes > max_queued_bytes - message_bytes)
         {
             std::unique_lock<std::mutex> lock(send_queue_mutex);
-            send_queue_space.wait(lock, [this, message_bytes] {
-                return stream_failed || ! connected || send_queue_bytes.load() <= max_queued_bytes - message_bytes;
-            });
+            send_queue_space.wait(
+                lock,
+                [this, message_bytes]
+                {
+                    return stream_failed || ! connected || send_queue_bytes.load() <= max_queued_bytes - message_bytes;
+                });
             continue;
         }
         if (send_queue_bytes.compare_exchange_weak(queued_bytes, queued_bytes + message_bytes))
@@ -92,49 +92,64 @@ bool GrpcCommunication::Private::sendMessage(const google::protobuf::Message& me
 bool GrpcCommunication::Private::flushMessages()
 {
     std::unique_lock<std::mutex> lock(send_queue_mutex);
-    send_queue_space.wait(lock, [this] { return stream_failed || ! connected || send_queue_bytes.load() == 0; });
+    send_queue_space.wait(
+        lock,
+        [this]
+        {
+            return stream_failed || ! connected || send_queue_bytes.load() == 0;
+        });
     return connected && ! stream_failed;
 }
 
-bool GrpcCommunication::Private::takeNextSlice(proto::Slice& slice)
+std::optional<proto::CuraClientMessage> GrpcCommunication::Private::takeNextMessage()
 {
-    std::unique_lock<std::mutex> lock(slice_mutex);
-    slice_condition.wait(lock, [this] { return ! incoming_slices.empty() || stream_failed || ! connected; });
-    if (incoming_slices.empty() || stream_failed)
-        return false;
-    slice = std::move(incoming_slices.front());
-    incoming_slices.pop_front();
-    return true;
+    std::unique_lock<std::mutex> lock(message_mutex);
+    message_condition.wait(
+        lock,
+        [this]
+        {
+            return ! incoming_messages.empty() || stream_failed || ! connected;
+        });
+    if (incoming_messages.empty() || stream_failed)
+        return std::nullopt;
+
+    auto result = std::make_optional(std::move(incoming_messages.front()));
+    incoming_messages.pop_front();
+    return result;
 }
 
 bool GrpcCommunication::Private::waitForSliceOrExit()
 {
-    std::unique_lock<std::mutex> lock(slice_mutex);
-    slice_condition.wait(lock, [this] { return ! incoming_slices.empty() || exit_requested || stream_failed; });
-    return ! incoming_slices.empty() && ! stream_failed;
+    std::unique_lock<std::mutex> lock(message_mutex);
+    message_condition.wait(
+        lock,
+        [this]
+        {
+            return ! incoming_messages.empty() || exit_requested || stream_failed;
+        });
+    return ! incoming_messages.empty() && ! stream_failed;
 }
 
-template<class RPC>
 boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
 {
     using boost::asio::use_awaitable;
-    proto::CuraClientMessage message;
     try
     {
+        proto::CuraClientMessage message;
         while (! stream_failed && co_await rpc.read(message, use_awaitable))
         {
-            if (message.has_slice())
+            if (message.has_exit_engine())
             {
-                std::lock_guard<std::mutex> lock(slice_mutex);
-                incoming_slices.push_back(std::move(*message.mutable_slice()));
-                slice_condition.notify_all();
+                std::lock_guard<std::mutex> lock(message_mutex);
+                exit_requested = true;
+                incoming_messages.clear();
+                message_condition.notify_all();
             }
-    else if (message.has_exit_engine())
-    {
-        std::lock_guard<std::mutex> lock(slice_mutex);
-        exit_requested = true;
-        incoming_slices.clear();
-        slice_condition.notify_all();
+            else
+            {
+                std::lock_guard<std::mutex> lock(message_mutex);
+                incoming_messages.push_back(std::move(message));
+                message_condition.notify_all();
             }
         }
     }
@@ -146,17 +161,16 @@ boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
     {
         spdlog::warn("Cura gRPC stream read failed with an unknown error.");
     }
-    std::unique_lock<std::mutex> slice_lock(slice_mutex);
+    std::unique_lock<std::mutex> slice_lock(message_mutex);
     stream_failed = true;
     read_finished = true;
     connected = false;
-    slice_condition.notify_all();
+    message_condition.notify_all();
     slice_lock.unlock();
     rpc.cancel();
     send_queue_space.notify_all();
 }
 
-template<class RPC>
 boost::asio::awaitable<void> GrpcCommunication::Private::writeLoop(RPC& rpc)
 {
     using boost::asio::use_awaitable;
@@ -164,24 +178,24 @@ boost::asio::awaitable<void> GrpcCommunication::Private::writeLoop(RPC& rpc)
     boost::asio::steady_timer polling_timer(executor);
     while (! stream_failed)
     {
-        proto::CuraEngineMessage message;
-        bool have_message = false;
+        std::optional<proto::CuraEngineMessage> message;
         {
             std::lock_guard<std::mutex> lock(send_queue_mutex);
             if (! send_queue.empty())
             {
-                send_queue_bytes.fetch_sub(send_queue.front().ByteSizeLong());
                 message = std::move(send_queue.front());
                 send_queue.pop_front();
-                have_message = true;
             }
         }
-        if (have_message)
+
+        if (message.has_value())
         {
-            const bool write_succeeded = co_await rpc.write(message, use_awaitable);
-            send_queue_bytes.fetch_sub(message.ByteSizeLong());
-            send_queue_space.notify_all();
-            if (! write_succeeded)
+            if (co_await rpc.write(*message, use_awaitable))
+            {
+                send_queue_bytes.fetch_sub(message->ByteSizeLong());
+                send_queue_space.notify_all();
+            }
+            else
             {
                 stream_failed = true;
                 rpc.cancel();
@@ -198,7 +212,6 @@ boost::asio::awaitable<void> GrpcCommunication::Private::writeLoop(RPC& rpc)
 boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
 {
     using boost::asio::use_awaitable;
-    using RPC = agrpc::ClientRPC<&proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
     RPC rpc{ grpc_context };
     {
         std::lock_guard<std::mutex> lock(active_context_mutex);
@@ -213,7 +226,7 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
             std::lock_guard<std::mutex> lock(active_context_mutex);
             active_context = nullptr;
         }
-        slice_condition.notify_all();
+        message_condition.notify_all();
         send_queue_space.notify_all();
         co_return;
     }
@@ -222,7 +235,7 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
     read_finished = false;
     exit_requested = false;
     exit_requested = false;
-    slice_condition.notify_all();
+    message_condition.notify_all();
     boost::asio::co_spawn(grpc_context, readLoop(rpc), boost::asio::detached);
     try
     {
@@ -252,7 +265,7 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
         std::lock_guard<std::mutex> lock(active_context_mutex);
         active_context = nullptr;
     }
-    slice_condition.notify_all();
+    message_condition.notify_all();
     send_queue_space.notify_all();
     if (! status.ok())
         spdlog::warn("Cura gRPC stream ended: {}", status.error_message());
@@ -267,7 +280,7 @@ void GrpcCommunication::Private::stop()
         if (grpc::ClientContext* context = active_context.load())
             context->TryCancel();
     }
-    slice_condition.notify_all();
+    message_condition.notify_all();
     if (grpc_thread.joinable())
         grpc_thread.join();
 }
@@ -291,19 +304,17 @@ std::shared_ptr<proto::LayerOptimized> GrpcCommunication::Private::getOptimizedL
     }
 }
 
-void GrpcCommunication::Private::readGlobalSettingsMessage(const proto::SettingList& global_settings_message)
+void GrpcCommunication::Private::readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice)
 {
-    auto slice = Application::getInstance().current_slice_;
     for (const cura::proto::Setting& setting_message : global_settings_message.settings())
     {
         slice->scene.settings.add(setting_message.name(), setting_message.value());
     }
 }
 
-void GrpcCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages)
+void GrpcCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice)
 {
     // Make sure we have enough extruders added currently.
-    auto slice = Application::getInstance().current_slice_;
     const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -329,76 +340,73 @@ void GrpcCommunication::Private::readExtruderSettingsMessage(const google::proto
     }
 }
 
-void GrpcCommunication::Private::readMeshGroupMessage(const proto::ObjectList& mesh_group_message)
+void GrpcCommunication::Private::readMeshGroupMessage(const proto::MeshGroup& mesh_group_message, Scene& scene)
 {
-    if (mesh_group_message.objects_size() <= 0)
-    {
-        return; // Don't slice empty mesh groups.
-    }
-
-    Scene& scene = Application::getInstance().current_slice_->scene;
-    MeshGroup& mesh_group = scene.mesh_groups.at(object_count);
+    auto mesh_group = std::make_shared<MeshGroup>();
 
     // Load the settings in the mesh group.
     for (const cura::proto::Setting& setting : mesh_group_message.settings())
     {
-        mesh_group.settings.add(setting.name(), setting.value());
+        mesh_group->settings.add(setting.name(), setting.value());
     }
 
+    scene.appendMeshGroup(mesh_group);
+}
+
+void GrpcCommunication::Private::readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group)
+{
     Matrix4x3D matrix;
-    for (const cura::proto::Object& object : mesh_group_message.objects())
+    constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
+    constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
+    const size_t face_count = object_message.vertices().size() / bytes_per_face;
+
+    if (face_count <= 0)
     {
-        constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
-        constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
-        const size_t face_count = object.vertices().size() / bytes_per_face;
-
-        if (face_count <= 0)
-        {
-            spdlog::warn("Got an empty mesh. Ignoring it!");
-            continue;
-        }
-
-        mesh_group.meshes.emplace_back();
-        Mesh& mesh = mesh_group.meshes.back();
-
-        // Load the settings for the mesh.
-        for (const cura::proto::Setting& setting : object.settings())
-        {
-            mesh.settings_.add(setting.name(), setting.value());
-        }
-        ExtruderTrain& extruder = mesh.settings_.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
-        mesh.settings_.setParent(&extruder.settings_);
-
-        for (size_t face = 0; face < face_count; face++)
-        {
-            const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-            const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
-            const std::string uv_coordinates_str = object.uv_coordinates().empty() ? "" : object.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
-            const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
-
-            Point3LL verts[3];
-            verts[0] = matrix.apply(float_vertices[0].toPoint3d());
-            verts[1] = matrix.apply(float_vertices[1].toPoint3d());
-            verts[2] = matrix.apply(float_vertices[2].toPoint3d());
-
-            std::optional<Point2F> uv_coordinates[3];
-            if (uv_coordinates_data)
-            {
-                uv_coordinates[0] = uv_coordinates_data[0];
-                uv_coordinates[1] = uv_coordinates_data[1];
-                uv_coordinates[2] = uv_coordinates_data[2];
-            }
-
-            mesh.addFace(verts[0], verts[1], verts[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
-        }
-
-        loadTextureData(object.texture(), mesh);
-
-        mesh.mesh_name_ = object.name();
-        mesh.finish();
+        spdlog::warn("Got an empty mesh. Ignoring it!");
+        return;
     }
-    object_count++;
-    mesh_group.finalize();
+
+    mesh_group.meshes.emplace_back();
+    Mesh& mesh = mesh_group.meshes.back();
+
+    // Load the settings for the mesh.
+    for (const cura::proto::Setting& setting : object_message.settings())
+    {
+        mesh.settings_.add(setting.name(), setting.value());
+    }
+
+    // Set the parent setting to the correct extruder.
+    const auto extruder_nr = mesh.settings_.get<size_t>("extruder_nr");
+    ExtruderTrain& extruder = slice.scene.extruders[extruder_nr];
+    mesh.settings_.setParent(&extruder.settings_);
+
+    for (size_t face = 0; face < face_count; face++)
+    {
+        const std::string data = object_message.vertices().substr(face * bytes_per_face, bytes_per_face);
+        const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
+        const std::string uv_coordinates_str = object_message.uv_coordinates().empty() ? "" : object_message.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
+        const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
+
+        Point3LL verts[3];
+        verts[0] = matrix.apply(float_vertices[0].toPoint3d());
+        verts[1] = matrix.apply(float_vertices[1].toPoint3d());
+        verts[2] = matrix.apply(float_vertices[2].toPoint3d());
+
+        std::optional<Point2F> uv_coordinates[3];
+        if (uv_coordinates_data)
+        {
+            uv_coordinates[0] = uv_coordinates_data[0];
+            uv_coordinates[1] = uv_coordinates_data[1];
+            uv_coordinates[2] = uv_coordinates_data[2];
+        }
+
+        mesh.addFace(verts[0], verts[1], verts[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
+    }
+
+    loadTextureData(object_message.texture(), mesh);
+
+    mesh.mesh_name_ = object_message.name();
+    mesh.finish();
 }
 
 void GrpcCommunication::Private::loadTextureData(const std::string& texture_str, Mesh& mesh)

@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_H
 #define SLICE_H
@@ -19,9 +19,8 @@ class Slice
 public:
     /*
      * \brief Creates a new Slice instance.
-     * \param num_mesh_groups How many mesh groups to allocate memory for.
      */
-    Slice(const size_t num_mesh_groups);
+    Slice();
 
     /*
      * \brief The scene that must be sliced.
@@ -56,9 +55,9 @@ private:
     /*
      * \brief Disallow copying slice objects.
      */
-    Slice& operator =(const Slice& other) = delete;
+    Slice& operator=(const Slice& other) = delete;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //SLICE_H
+#endif // SLICE_H

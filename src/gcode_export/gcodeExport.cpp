@@ -12,6 +12,7 @@
 #include <regex>
 
 #include <fmt/chrono.h>
+#include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
@@ -94,7 +95,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     current_extruder_ = start_extruder;
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
+    const std::shared_ptr<MeshGroup>& mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords_ = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
@@ -140,7 +141,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
 
     estimate_calculator_.setFirmwareDefaults(mesh_group->settings);
 
-    if (mesh_group == scene.mesh_groups.begin())
+    if (mesh_group == scene.mesh_groups.front())
     {
         if (! scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
         {
@@ -155,7 +156,8 @@ void GCodeExport::preSetup(const size_t start_extruder)
     else
     {
         // Current bed temperature is the one of the previous group
-        bed_temperature_ = (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature");
+        auto iterator = ranges::find(scene.mesh_groups, scene.current_mesh_group);
+        bed_temperature_ = (*(iterator - 1))->settings.get<Temperature>("material_bed_temperature");
     }
 }
 
@@ -816,7 +818,7 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
     const bool material_print_temp_prepend = scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend");
     const bool material_print_temp_wait = scene.current_mesh_group->settings.get<bool>("material_print_temp_wait");
 
-    if (! material_print_temp_prepend && (scene.current_mesh_group == scene.mesh_groups.begin()))
+    if (! material_print_temp_prepend && (scene.current_mesh_group == scene.mesh_groups.front()))
     {
         // Nozzle initial temperatures are handled by start GCode, ignore
         return;

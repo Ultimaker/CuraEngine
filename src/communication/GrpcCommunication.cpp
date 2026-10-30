@@ -293,14 +293,20 @@ bool GrpcCommunication::connect(const std::string& endpoint)
     arguments.SetMaxSendMessageSize(500 * 1024 * 1024);
     private_data->channel = grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments);
     private_data->stub = proto::CuraEngineCommunication::NewStub(private_data->channel);
-    private_data->grpc_thread = std::thread([this] {
-        boost::asio::co_spawn(private_data->grpc_context, private_data->runStream(), boost::asio::detached);
-        private_data->grpc_context.run();
-    });
-    std::unique_lock<std::mutex> lock(private_data->slice_mutex);
-    const bool ready = private_data->slice_condition.wait_for(lock, std::chrono::seconds(10), [this] {
-        return private_data->connected || private_data->stream_failed;
-    });
+    private_data->grpc_thread = std::thread(
+        [this]
+        {
+            boost::asio::co_spawn(private_data->grpc_context, private_data->runStream(), boost::asio::detached);
+            private_data->grpc_context.run();
+        });
+    std::unique_lock<std::mutex> lock(private_data->message_mutex);
+    const bool ready = private_data->message_condition.wait_for(
+        lock,
+        std::chrono::seconds(10),
+        [this]
+        {
+            return private_data->connected || private_data->stream_failed;
+        });
     if (! ready || ! private_data->connected)
     {
         spdlog::error("Could not establish Cura gRPC stream at {}", endpoint);
@@ -328,9 +334,105 @@ void GrpcCommunication::sendGCodePart(const std::string& gcode_part)
     sendMessage(*message);
 }
 
-bool GrpcCommunication::hasSlice() const
+std::shared_ptr<Slice> GrpcCommunication::makeSlice(const proto::Slice& slice_message)
 {
-    return ! private_data->stream_failed && private_data->slice_count < 1;
+    auto slice = std::make_shared<Slice>();
+
+#ifdef SENTRY_URL
+    sentry_value_t user = sentry_value_new_object();
+    sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message.sentry_id().c_str()));
+    if (slice_message.has_user_name())
+    {
+        spdlog::debug("Setting Sentry user to {}", slice_message.user_name());
+        sentry_value_set_by_key(user, "username", sentry_value_new_string(slice_message.user_name().c_str()));
+    }
+    sentry_set_user(user);
+    sentry_set_tag("cura.version", slice_message.cura_version().c_str());
+    if (slice_message.has_project_name())
+    {
+        sentry_set_tag("cura.project_name", slice_message.project_name().c_str());
+    }
+#endif
+
+#ifdef ENABLE_PLUGINS
+    for (const auto& plugin : slice_message.engine_plugins())
+    {
+        const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+        slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+#ifdef SENTRY_URL
+        sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
+#endif
+    }
+#endif // ENABLE_PLUGINS
+
+    private_data->readGlobalSettingsMessage(slice_message.global_settings(), slice);
+    private_data->readExtruderSettingsMessage(slice_message.extruders(), slice);
+
+    // Broadcast the settings to the plugins
+    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(slice_message);
+    const size_t extruder_count = slice->scene.extruders.size();
+
+    // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
+    for (const cura::proto::SettingExtruder& setting_extruder : slice_message.limit_to_extruder())
+    {
+        const int32_t extruder_nr = setting_extruder.extruder(); // Cast from proto::int to int32_t!
+        if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
+        {
+            // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
+            continue;
+        }
+        ExtruderTrain& extruder = slice->scene.extruders[setting_extruder.extruder()];
+        slice->scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
+    }
+
+    private_data->object_count = 0;
+    return slice;
+}
+
+bool GrpcCommunication::hasSlice()
+{
+    current_slice_.reset();
+
+    std::optional<proto::CuraClientMessage> message;
+    for (message = private_data->takeNextMessage(); message.has_value() && ! message->has_start_slice() && ! message->has_exit_engine(); message = private_data->takeNextMessage())
+    {
+        if (message->has_slice())
+        {
+            current_slice_ = makeSlice(message->slice());
+        }
+        else if (message->has_mesh_group())
+        {
+            if (! current_slice_)
+            {
+                spdlog::error("Received mesh group message without a current slice.");
+                return false;
+            }
+
+            private_data->readMeshGroupMessage(message->mesh_group(), current_slice_->scene);
+        }
+        else if (message->has_object())
+        {
+            if (! current_slice_)
+            {
+                spdlog::error("Received object message without a current slice.");
+                return false;
+            }
+
+            if (current_slice_->scene.mesh_groups.empty())
+            {
+                spdlog::error("Received object message without a mesh group.");
+                return false;
+            }
+
+            private_data->readObjectMessage(message->object(), *current_slice_, *current_slice_->scene.mesh_groups.back());
+        }
+
+#warning do that
+        // object_count++;
+        // mesh_group.finalize();
+    }
+
+    return message.has_value() && message->has_start_slice() && current_slice_;
 }
 
 void GrpcCommunication::sendCurrentPosition(const Point3LL& position)
@@ -481,79 +583,101 @@ void GrpcCommunication::setExtruderForSend(const ExtruderTrain& extruder)
 
 void GrpcCommunication::sliceNext()
 {
-    proto::Slice slice_message;
-    if (! private_data->takeNextSlice(slice_message))
+    if (! current_slice_)
     {
+        spdlog::error("Cannot slice, no current slice available.");
         return;
     }
-    spdlog::debug("Received a Slice message.");
 
-#ifdef SENTRY_URL
-    sentry_value_t user = sentry_value_new_object();
-    sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message.sentry_id().c_str()));
-    if (slice_message.has_user_name())
+    if (current_slice_->scene.mesh_groups.empty())
     {
-        spdlog::debug("Setting Sentry user to {}", slice_message.user_name());
-        sentry_value_set_by_key(user, "username", sentry_value_new_string(slice_message.user_name().c_str()));
-    }
-    sentry_set_user(user);
-    sentry_set_tag("cura.version", slice_message.cura_version().c_str());
-    if (slice_message.has_project_name())
-    {
-        sentry_set_tag("cura.project_name", slice_message.project_name().c_str());
-    }
-#endif
-
-#ifdef ENABLE_PLUGINS
-    for (const auto& plugin : slice_message.engine_plugins())
-    {
-        const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
-        slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
-#ifdef SENTRY_URL
-        sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
-#endif
-    }
-#endif // ENABLE_PLUGINS
-
-    auto slice = std::make_shared<Slice>(slice_message.object_lists().size());
-    Application::getInstance().current_slice_ = slice;
-
-    private_data->readGlobalSettingsMessage(slice_message.global_settings());
-    private_data->readExtruderSettingsMessage(slice_message.extruders());
-
-    // Broadcast the settings to the plugins
-    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(slice_message);
-    const size_t extruder_count = slice->scene.extruders.size();
-
-    // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
-    for (const cura::proto::SettingExtruder& setting_extruder : slice_message.limit_to_extruder())
-    {
-        const int32_t extruder_nr = setting_extruder.extruder(); // Cast from proto::int to int32_t!
-        if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
-        {
-            // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
-            continue;
-        }
-        ExtruderTrain& extruder = slice->scene.extruders[setting_extruder.extruder()];
-        slice->scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
+        spdlog::error("Cannot slice, scene has no mesh groups.");
+        return;
     }
 
-    // Load all mesh groups, meshes and their settings.
-    private_data->object_count = 0;
-    for (const cura::proto::ObjectList& mesh_group_message : slice_message.object_lists())
-    {
-        private_data->readMeshGroupMessage(mesh_group_message);
-    }
-    spdlog::debug("Done reading Slice message.");
+    Application::getInstance().current_slice_ = current_slice_;
 
-    if (! slice->scene.mesh_groups.empty())
-    {
-        slice->compute();
-        sendFinishedSlicing();
-        slice.reset();
-        private_data->slice_count++;
-    }
+    spdlog::info("Start actual slicing.");
 
+    current_slice_->compute();
+    sendFinishedSlicing();
+    current_slice_.reset();
+
+
+    //     proto::Slice slice_message;
+    //     if (! private_data->takeNextSlice(slice_message))
+    //     {
+    //         return;
+    //     }
+    //     spdlog::debug("Received a Slice message.");
+    //
+    // #ifdef SENTRY_URL
+    //     sentry_value_t user = sentry_value_new_object();
+    //     sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message.sentry_id().c_str()));
+    //     if (slice_message.has_user_name())
+    //     {
+    //         spdlog::debug("Setting Sentry user to {}", slice_message.user_name());
+    //         sentry_value_set_by_key(user, "username", sentry_value_new_string(slice_message.user_name().c_str()));
+    //     }
+    //     sentry_set_user(user);
+    //     sentry_set_tag("cura.version", slice_message.cura_version().c_str());
+    //     if (slice_message.has_project_name())
+    //     {
+    //         sentry_set_tag("cura.project_name", slice_message.project_name().c_str());
+    //     }
+    // #endif
+    //
+    // #ifdef ENABLE_PLUGINS
+    //     for (const auto& plugin : slice_message.engine_plugins())
+    //     {
+    //         const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
+    //         slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+    // #ifdef SENTRY_URL
+    //         sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
+    // #endif
+    //     }
+    // #endif // ENABLE_PLUGINS
+    //
+    //     auto slice = std::make_shared<Slice>(slice_message.object_lists().size());
+    //     Application::getInstance().current_slice_ = slice;
+    //
+    //     private_data->readGlobalSettingsMessage(slice_message.global_settings());
+    //     private_data->readExtruderSettingsMessage(slice_message.extruders());
+    //
+    //     // Broadcast the settings to the plugins
+    //     slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(slice_message);
+    //     const size_t extruder_count = slice->scene.extruders.size();
+    //
+    //     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
+    //     for (const cura::proto::SettingExtruder& setting_extruder : slice_message.limit_to_extruder())
+    //     {
+    //         const int32_t extruder_nr = setting_extruder.extruder(); // Cast from proto::int to int32_t!
+    //         if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
+    //         {
+    //             // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
+    //             continue;
+    //         }
+    //         ExtruderTrain& extruder = slice->scene.extruders[setting_extruder.extruder()];
+    //         slice->scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
+    //     }
+    //
+    //     // Load all mesh groups, meshes and their settings.
+    //     private_data->object_count = 0;
+    //     for (const cura::proto::ObjectList& mesh_group_message : slice_message.object_lists())
+    //     {
+    //         private_data->readMeshGroupMessage(mesh_group_message);
+    //     }
+    //
+    //
+    //     spdlog::debug("Done reading Slice message.");
+    //
+    //     if (! slice->scene.mesh_groups.empty())
+    //     {
+    //         slice->compute();
+    //         sendFinishedSlicing();
+    //         slice.reset();
+    //         private_data->slice_count++;
+    //     }
 }
 
 } // namespace cura
