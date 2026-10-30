@@ -7,6 +7,7 @@ include(GoogleTest)
 set(TESTS_SRC_BASE
         AntiOozeAmountsTest
         ClipperTest
+        CrossHatchInfillTest
         ExtruderPlanTest
         FffGcodeWriterTest
         GCodeExportTest
