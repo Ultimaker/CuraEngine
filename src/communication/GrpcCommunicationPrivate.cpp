@@ -100,11 +100,18 @@ bool GrpcCommunication::Private::takeNextSlice(proto::Slice& slice)
 {
     std::unique_lock<std::mutex> lock(slice_mutex);
     slice_condition.wait(lock, [this] { return ! incoming_slices.empty() || stream_failed || ! connected; });
-    if (incoming_slices.empty())
+    if (incoming_slices.empty() || stream_failed)
         return false;
     slice = std::move(incoming_slices.front());
     incoming_slices.pop_front();
     return true;
+}
+
+bool GrpcCommunication::Private::waitForSliceOrExit()
+{
+    std::unique_lock<std::mutex> lock(slice_mutex);
+    slice_condition.wait(lock, [this] { return ! incoming_slices.empty() || exit_requested || stream_failed; });
+    return ! incoming_slices.empty() && ! stream_failed;
 }
 
 template<class RPC>
@@ -122,6 +129,13 @@ boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
                 incoming_slices.push_back(std::move(*message.mutable_slice()));
                 slice_condition.notify_all();
             }
+    else if (message.has_exit_engine())
+    {
+        std::lock_guard<std::mutex> lock(slice_mutex);
+        exit_requested = true;
+        incoming_slices.clear();
+        slice_condition.notify_all();
+            }
         }
     }
     catch (const std::exception& error)
@@ -132,12 +146,14 @@ boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
     {
         spdlog::warn("Cura gRPC stream read failed with an unknown error.");
     }
+    std::unique_lock<std::mutex> slice_lock(slice_mutex);
     stream_failed = true;
     read_finished = true;
     connected = false;
+    slice_condition.notify_all();
+    slice_lock.unlock();
     rpc.cancel();
     send_queue_space.notify_all();
-    slice_condition.notify_all();
 }
 
 template<class RPC>
@@ -154,6 +170,7 @@ boost::asio::awaitable<void> GrpcCommunication::Private::writeLoop(RPC& rpc)
             std::lock_guard<std::mutex> lock(send_queue_mutex);
             if (! send_queue.empty())
             {
+                send_queue_bytes.fetch_sub(send_queue.front().ByteSizeLong());
                 message = std::move(send_queue.front());
                 send_queue.pop_front();
                 have_message = true;
@@ -161,18 +178,8 @@ boost::asio::awaitable<void> GrpcCommunication::Private::writeLoop(RPC& rpc)
         }
         if (have_message)
         {
-            bool write_succeeded = false;
-            try
-            {
-                write_succeeded = co_await rpc.write(message, use_awaitable);
-            }
-            catch (...)
-            {
-                send_queue_bytes -= message.ByteSizeLong();
-                send_queue_space.notify_all();
-                throw;
-            }
-            send_queue_bytes -= message.ByteSizeLong();
+            const bool write_succeeded = co_await rpc.write(message, use_awaitable);
+            send_queue_bytes.fetch_sub(message.ByteSizeLong());
             send_queue_space.notify_all();
             if (! write_succeeded)
             {
@@ -212,6 +219,9 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
     }
 
     connected = true;
+    read_finished = false;
+    exit_requested = false;
+    exit_requested = false;
     slice_condition.notify_all();
     boost::asio::co_spawn(grpc_context, readLoop(rpc), boost::asio::detached);
     try
