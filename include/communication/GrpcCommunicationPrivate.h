@@ -71,6 +71,7 @@ public:
     std::mutex slice_mutex;
     std::condition_variable slice_condition;
     std::deque<proto::Slice> incoming_slices;
+    std::atomic<bool> exit_requested{ false };
     std::mutex send_queue_mutex;
     std::condition_variable send_queue_space;
     std::deque<proto::CuraEngineMessage> send_queue;
@@ -97,12 +98,26 @@ public:
      * because those data structures will give a different order if more memory
      * has already been reserved for them.
      */
+    /*
+     * \brief How often we've sliced so far during this run of CuraEngine.
+     *
+     * This is currently used to limit the number of slices per run to 1,
+     * because CuraEngine produced different output for each slice. The fix was
+     * to restart CuraEngine every time you make a slice.
+     *
+     * Once this bug is resolved, we can allow multiple slices for each run. Our
+     * intuition says that there might be some differences if we let stuff
+     * depend on the order of iteration in unordered_map or unordered_set,
+     * because those data structures will give a different order if more memory
+     * has already been reserved for them.
+     */
     size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
 
     const size_t millisecUntilNextTry; // Delay between stream readiness checks.
 
     bool sendMessage(const google::protobuf::Message& message);
     bool flushMessages();
+    bool waitForSliceOrExit();
     bool takeNextSlice(proto::Slice& slice);
     boost::asio::awaitable<void> runStream();
     template<class RPC> boost::asio::awaitable<void> readLoop(RPC& rpc);
