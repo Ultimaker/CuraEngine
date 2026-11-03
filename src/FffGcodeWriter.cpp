@@ -1278,7 +1278,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
                 )
                 {
-                    addMeshLayerToGCode_meshSurfaceMode(*mesh, mesh_config, gcode_layer);
+                    addMeshLayerToGCode_meshSurfaceMode(mesh, mesh_config, gcode_layer);
                 }
                 else
                 {
@@ -1722,8 +1722,12 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(
+    const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+    const MeshPathConfigs& mesh_config,
+    LayerPlan& gcode_layer) const
 {
+    const auto& mesh = *mesh_ptr;
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
         return;
@@ -1734,8 +1738,9 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         return;
     }
 
-    const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
+    gcode_layer.setMesh(mesh_ptr);
 
+    const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
     Shape polygons;
     for (const SliceLayerPart& part : layer->parts)

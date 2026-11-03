@@ -313,13 +313,16 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(
+        const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const MeshPathConfigs& mesh_config,
+        LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
      *
      * \param[in] storage where the slice data is stored.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_ptr The mesh for which to add to the layer plan \p gcodeLayer.
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */

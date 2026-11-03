@@ -3906,15 +3906,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
 
-            const auto& feature_type_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
-            if (! path.config.isTravelPath() && feature_type_changed)
+            const bool non_travel_path = ! path.config.isTravelPath();
+            if (skip_mesh_enabled && non_travel_path && skippable_mesh == nullptr && path.mesh)
             {
-                if (skip_mesh_enabled && skippable_mesh == nullptr && path.mesh)
-                {
-                    gcode.writeComment(fmt::format("TAG:SKIPPABLE.START={}", path.mesh->mesh_id));
-                    skippable_mesh = path.mesh;
-                }
+                gcode.writeComment(fmt::format("TAG:SKIPPABLE.START={}", path.mesh->mesh_id));
+                skippable_mesh = path.mesh;
+            }
 
+            const auto& feature_type_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
+            if (non_travel_path && feature_type_changed)
+            {
                 gcode.writeTypeComment(path.config.type);
                 if (path.config.isBridgePath())
                 {

@@ -450,12 +450,14 @@ private:
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
      *
+     * \param skip_mesh_enable Wether the gcode-body may include TAG:SKIP..., and thus needs the ids/names of meshes
      * \param extruder_is_used For each extruder whether it is used in the print
      * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
      * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
     std::string getFileHeader(
+        const bool skip_mesh_enable,
         const std::vector<bool>& extruder_is_used,
         const std::vector<double>& filament_used = std::vector<double>(),
         const std::vector<std::string>& mat_ids = std::vector<std::string>());
