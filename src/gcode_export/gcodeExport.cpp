@@ -300,19 +300,6 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                    << new_line_;
         }
 
-        constexpr bool model_names = true; // Prepare for if it needs to be a setting, since older printers won't use it.
-        if (model_names)
-        {
-            prefix << ";NAMES_ENABLE:TRUE" << new_line_;
-            for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
-            {
-                for (const auto& mesh : mesh_group.meshes)
-                {
-                    prefix << ";MODEL_NAME." << mesh.mesh_id() << ":" << mesh.mesh_name_ << new_line_;
-                }
-            }
-        }
-
         prefix << ";END_OF_HEADER" << new_line_;
         break;
     }
@@ -361,6 +348,18 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";MAXY:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
         prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
+    }
+
+    for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
+    {
+        if (! mesh_group.settings.get<bool>("skip_mesh_enabled"))
+        {
+            continue;
+        }
+        for (const auto& mesh : mesh_group.meshes)
+        {
+            prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << mesh.mesh_name_ << new_line_;
+        }
     }
 
 #ifdef ENABLE_PLUGINS

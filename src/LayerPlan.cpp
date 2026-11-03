@@ -3738,6 +3738,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
+        const bool skip_mesh_enabled = mesh_group_settings.get<bool>("skip_mesh_enabled");
         std::shared_ptr<const SliceMeshStorage> skippable_mesh = nullptr;
         const auto insert_skippable_end{ [&gcode, &skippable_mesh]() {
             gcode.writeComment(fmt::format("TAG:SKIPPABLE.END={}", skippable_mesh->mesh_id));
@@ -3755,7 +3756,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             assert(! path.points.empty());
 
-            if (skippable_mesh && skippable_mesh != path.mesh)
+            if (skip_mesh_enabled && skippable_mesh && skippable_mesh != path.mesh)
             {
                 insert_skippable_end();
                 skippable_mesh = nullptr;
@@ -3908,7 +3909,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const auto& feature_type_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
             if (! path.config.isTravelPath() && feature_type_changed)
             {
-                if (skippable_mesh == nullptr && path.mesh)
+                if (skip_mesh_enabled && skippable_mesh == nullptr && path.mesh)
                 {
                     gcode.writeComment(fmt::format("TAG:SKIPPABLE.START={}", path.mesh->mesh_id));
                     skippable_mesh = path.mesh;
@@ -4080,7 +4081,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (skippable_mesh)
+        if (skip_mesh_enabled && skippable_mesh)
         {
             insert_skippable_end();
         }
