@@ -522,7 +522,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
     if (extension == "stl")
     {
         // Check for corresponding UV and PNG files
-        const fs::path uv_filename = fs::path(base_filename + ".uv");
+        const fs::path uv_filename = fs::path(filename).replace_extension("uv");
 
         std::vector<Point2F> uv_coordinates;
         has_uv = loadUVCoordinatesFromFile(uv_filename, uv_coordinates);
