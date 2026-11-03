@@ -144,9 +144,16 @@ public:
     private:
         inline static int count{ -1 };
         int id;
+
     public:
-        MeshCounter() noexcept: id(++count) {}
-        int operator()() const noexcept { return id; }
+        MeshCounter() noexcept
+            : id(++count)
+        {
+        }
+        int operator()() const noexcept
+        {
+            return id;
+        }
     } mesh_id; //!< useful for mesh-identity (in gcode for example) when meshes have the same name
 
     Mesh(const Settings& parent);

@@ -14,8 +14,8 @@
 
 #include <fmt/chrono.h>
 #include <range/v3/algorithm/find_if.hpp>
-#include <range/v3/view/filter.hpp>
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To send layer view data.
@@ -222,8 +222,7 @@ std::string GCodeExport::getFileHeader(
     const bool skip_mesh_enable,
     const std::vector<bool>& extruder_is_used,
     const std::vector<double>& filament_used,
-    const std::vector<std::string>& mat_ids
-)
+    const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
 
@@ -364,10 +363,13 @@ std::string GCodeExport::getFileHeader(
             for (const auto& mesh : mesh_group.meshes)
             {
                 using ranges::to;
-                const auto sanitized_mesh_name =
-                    mesh.mesh_name_ |
-                    ranges::views::filter([](unsigned char c) { return ! std::iscntrl(c); }) |
-                    ranges::to<std::string>();
+                const auto sanitized_mesh_name = mesh.mesh_name_
+                                               | ranges::views::filter(
+                                                     [](unsigned char c)
+                                                     {
+                                                         return ! std::iscntrl(c);
+                                                     })
+                                               | ranges::to<std::string>();
                 prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
             }
         }
