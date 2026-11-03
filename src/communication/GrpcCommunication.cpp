@@ -274,8 +274,6 @@ private:
 };
 
 GrpcCommunication::GrpcCommunication()
-    : private_data(new Private)
-    , path_compiler(new PathCompiler(*private_data))
 {
 }
 
@@ -291,23 +289,10 @@ bool GrpcCommunication::connect(const std::string& endpoint)
     grpc::ChannelArguments arguments;
     arguments.SetMaxReceiveMessageSize(500 * 1024 * 1024);
     arguments.SetMaxSendMessageSize(500 * 1024 * 1024);
-    private_data->channel = grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments);
-    private_data->stub = proto::CuraEngineCommunication::NewStub(private_data->channel);
-    private_data->grpc_thread = std::thread(
-        [this]
-        {
-            boost::asio::co_spawn(private_data->grpc_context, private_data->runStream(), boost::asio::detached);
-            private_data->grpc_context.run();
-        });
-    std::unique_lock<std::mutex> lock(private_data->message_mutex);
-    const bool ready = private_data->message_condition.wait_for(
-        lock,
-        std::chrono::seconds(10),
-        [this]
-        {
-            return private_data->connected || private_data->stream_failed;
-        });
-    if (! ready || ! private_data->connected)
+
+    private_data = std::make_unique<Private>(endpoint, arguments);
+    path_compiler = std::make_unique<PathCompiler>(*private_data);
+    if (! private_data->isReady())
     {
         spdlog::error("Could not establish Cura gRPC stream at {}", endpoint);
         private_data->stop();
@@ -426,10 +411,6 @@ bool GrpcCommunication::hasSlice()
 
             private_data->readObjectMessage(message->object(), *current_slice_, *current_slice_->scene.mesh_groups.back());
         }
-
-#warning do that
-        // object_count++;
-        // mesh_group.finalize();
     }
 
     return message.has_value() && message->has_start_slice() && current_slice_;
@@ -451,7 +432,7 @@ void GrpcCommunication::sendFinishedSlicing() const
 {
     std::shared_ptr<proto::SlicingFinished> done_message = std::make_shared<proto::SlicingFinished>();
     sendMessage(*done_message);
-    private_data->flushMessages();
+    // private_data->flushMessages();
     spdlog::debug("Sent slicing finished message.");
 }
 

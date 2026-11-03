@@ -6,16 +6,14 @@
 #include <chrono>
 #include <exception>
 #include <fstream>
-#include <png.h>
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/memorystream.h>
 #include <utility>
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/use_future.hpp>
 #include <spdlog/spdlog.h>
 
 #include "ExtruderTrain.h"
@@ -25,97 +23,160 @@
 #include "utils/MeshUtils.h"
 #include "utils/Point3F.h" //To accept vertices (which are provided in floating point).
 
+using namespace std::chrono_literals;
+
 namespace cura
 {
 
-GrpcCommunication::Private::Private()
-    : object_count(0)
+GrpcCommunication::Private::Private(const std::string& endpoint, const grpc::ChannelArguments& arguments)
+    : channel(grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments))
+    , stub(proto::CuraEngineCommunication::NewStub(channel))
     , last_sent_progress(-1)
-    , millisecUntilNextTry(100)
+    , send_channel(grpc_context.get_executor(), 4096)
+    , receive_channel(grpc_context.get_executor(), 16)
 {
+    grpc_thread = std::thread(
+        [this]
+        {
+            boost::asio::co_spawn(grpc_context, runStream(), boost::asio::detached);
+            grpc_context.run();
+        });
+
+    connected = channel->WaitForConnected(std::chrono::system_clock::now() + 10s);
 }
 
 bool GrpcCommunication::Private::sendMessage(const google::protobuf::Message& message)
 {
     proto::CuraEngineMessage envelope;
     if (const auto* progress = dynamic_cast<const proto::Progress*>(&message))
+    {
         *envelope.mutable_progress() = *progress;
+        // spdlog::info(">>>>>>>>>> Sending progress");
+    }
     else if (const auto* layer = dynamic_cast<const proto::Layer*>(&message))
+    {
         *envelope.mutable_layer() = *layer;
+        // spdlog::info(">>>>>>>>>> Sending layer");
+    }
     else if (const auto* layer = dynamic_cast<const proto::LayerOptimized*>(&message))
+    {
         *envelope.mutable_layer_optimized() = *layer;
+        // spdlog::info(">>>>>>>>>> Sending layer_optimized");
+    }
     else if (const auto* gcode = dynamic_cast<const proto::GCodeLayer*>(&message))
+    {
         *envelope.mutable_gcode_layer() = *gcode;
+        // spdlog::info(">>>>>>>>>> Sending gcode");
+    }
     else if (const auto* uuid = dynamic_cast<const proto::SliceUUID*>(&message))
+    {
         *envelope.mutable_slice_uuid() = *uuid;
+        // spdlog::info(">>>>>>>>>> Sending slice UUID");
+    }
     else if (const auto* estimates = dynamic_cast<const proto::PrintTimeMaterialEstimates*>(&message))
+    {
         *envelope.mutable_print_time_material_estimates() = *estimates;
+        // spdlog::info(">>>>>>>>>> Sending estimates");
+    }
     else if (const auto* extruder = dynamic_cast<const proto::InitialExtruder*>(&message))
+    {
         *envelope.mutable_initial_extruder() = *extruder;
+        // spdlog::info(">>>>>>>>>> Sending initial extruder");
+    }
     else if (const auto* finished = dynamic_cast<const proto::SlicingFinished*>(&message))
+    {
         *envelope.mutable_slicing_finished() = *finished;
+        // spdlog::info(">>>>>>>>>> Sending finished");
+    }
     else
     {
         spdlog::error("Unsupported Cura gRPC output message type: {}", message.GetTypeName());
         return false;
     }
 
-    const size_t message_bytes = envelope.ByteSizeLong();
-    constexpr size_t max_queued_bytes = 500 * 1024 * 1024;
-    if (message_bytes > max_queued_bytes)
-        return false;
-    while (true)
-    {
-        if (! connected || stream_failed)
-            return false;
-        size_t queued_bytes = send_queue_bytes.load();
-        if (queued_bytes > max_queued_bytes - message_bytes)
-        {
-            std::unique_lock<std::mutex> lock(send_queue_mutex);
-            send_queue_space.wait(
-                lock,
-                [this, message_bytes]
-                {
-                    return stream_failed || ! connected || send_queue_bytes.load() <= max_queued_bytes - message_bytes;
-                });
-            continue;
-        }
-        if (send_queue_bytes.compare_exchange_weak(queued_bytes, queued_bytes + message_bytes))
-        {
-            std::lock_guard<std::mutex> lock(send_queue_mutex);
-            send_queue.push_back(std::move(envelope));
-            return true;
-        }
-    }
+    send_channel.async_send(boost::system::error_code{}, envelope, boost::asio::use_future).get();
+
+    // const size_t message_bytes = envelope.ByteSizeLong();
+    // constexpr size_t max_queued_bytes = 500 * 1024 * 1024;
+    // if (message_bytes > max_queued_bytes)
+    // {
+    //     return false;
+    // }
+    // std::unique_lock<std::mutex> lock(send_queue_mutex);
+    // send_queue_space.wait(
+    //     lock,
+    //     [this, message_bytes, max_queued_bytes]
+    //     {
+    //         return stream_failed || ! connected || message_bytes <= max_queued_bytes - send_queue_bytes;
+    //     });
+    // if (! connected || stream_failed)
+    // {
+    //     return false;
+    // }
+    // send_queue_bytes += message_bytes;
+    // send_queue.push_back(std::move(envelope));
+    return true;
 }
 
-bool GrpcCommunication::Private::flushMessages()
-{
-    std::unique_lock<std::mutex> lock(send_queue_mutex);
-    send_queue_space.wait(
-        lock,
-        [this]
-        {
-            return stream_failed || ! connected || send_queue_bytes.load() == 0;
-        });
-    return connected && ! stream_failed;
-}
+// bool GrpcCommunication::Private::flushMessages()
+// {
+//     std::unique_lock<std::mutex> lock(send_queue_mutex);
+//     send_queue_space.wait(
+//         lock,
+//         [this]
+//         {
+//             return stream_failed || ! connected || (send_queue.empty() && send_queue_bytes == 0);
+//         });
+//     return connected && ! stream_failed;
+// }
 
 std::optional<proto::CuraClientMessage> GrpcCommunication::Private::takeNextMessage()
 {
-    std::unique_lock<std::mutex> lock(message_mutex);
-    message_condition.wait(
-        lock,
-        [this]
-        {
-            return ! incoming_messages.empty() || stream_failed || ! connected;
-        });
-    if (incoming_messages.empty() || stream_failed)
-        return std::nullopt;
+    std::optional<proto::CuraClientMessage> message = receive_channel.async_receive(boost::asio::use_future).get();
 
-    auto result = std::make_optional(std::move(incoming_messages.front()));
-    incoming_messages.pop_front();
-    return result;
+    // if (error_code.failed())
+    // {
+    // return std::nullopt;
+    // }
+
+    // std::unique_lock<std::mutex> lock(message_mutex);
+    // message_condition.wait(
+    //     lock,
+    //     [this]
+    //     {
+    //         return ! incoming_messages.empty() || stream_failed || ! connected;
+    //     });
+    // if (incoming_messages.empty() || stream_failed)
+    // {
+    //     return std::nullopt;
+    // }
+
+
+    // auto result = std::make_optional(std::move(incoming_messages.front()));
+
+    if (message->has_start_slice())
+    {
+        spdlog::info("<<<<<<<<<< Received start slice");
+    }
+    else if (message->has_exit_engine())
+    {
+        spdlog::info("<<<<<<<<<< Received engine exit");
+    }
+    else if (message->has_mesh_group())
+    {
+        spdlog::info("<<<<<<<<<< Received mesh group");
+    }
+    else if (message->has_object())
+    {
+        spdlog::info("<<<<<<<<<< Received object");
+    }
+    else if (message->has_slice())
+    {
+        spdlog::info("<<<<<<<<<< Received slice");
+    }
+
+    // incoming_messages.pop_front();
+    return message;
 }
 
 bool GrpcCommunication::Private::waitForSliceOrExit()
@@ -138,18 +199,19 @@ boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
         proto::CuraClientMessage message;
         while (! stream_failed && co_await rpc.read(message, use_awaitable))
         {
-            if (message.has_exit_engine())
+            // if (message.has_exit_engine())
+            // {
+            //     std::lock_guard<std::mutex> lock(message_mutex);
+            //     exit_requested = true;
+            //     incoming_messages.clear();
+            //     message_condition.notify_all();
+            // }
+            // else
             {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                exit_requested = true;
-                incoming_messages.clear();
-                message_condition.notify_all();
-            }
-            else
-            {
-                std::lock_guard<std::mutex> lock(message_mutex);
-                incoming_messages.push_back(std::move(message));
-                message_condition.notify_all();
+                co_await receive_channel.async_send(boost::system::error_code{}, message, use_awaitable);
+                // std::lock_guard<std::mutex> lock(message_mutex);
+                // incoming_messages.push_back(std::move(message));
+                // message_condition.notify_all();
             }
         }
     }
@@ -161,6 +223,7 @@ boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
     {
         spdlog::warn("Cura gRPC stream read failed with an unknown error.");
     }
+
     std::unique_lock<std::mutex> slice_lock(message_mutex);
     stream_failed = true;
     read_finished = true;
@@ -174,44 +237,120 @@ boost::asio::awaitable<void> GrpcCommunication::Private::readLoop(RPC& rpc)
 boost::asio::awaitable<void> GrpcCommunication::Private::writeLoop(RPC& rpc)
 {
     using boost::asio::use_awaitable;
-    auto executor = co_await boost::asio::this_coro::executor;
-    boost::asio::steady_timer polling_timer(executor);
+    // auto executor = co_await boost::asio::this_coro::executor;
+    // boost::asio::steady_timer polling_timer(executor);
     while (! stream_failed)
     {
         std::optional<proto::CuraEngineMessage> message;
+        try
+        {
+            message = co_await send_channel.async_receive(use_awaitable);
+        }
+        catch (boost::asio::experimental::error::channel_errors error)
+        {
+            spdlog::error("BADDDD channel");
+            co_return;
+        }
+        // proto::CuraEngineMessage& message = std::get<1>(message_to_send);
+        // send_channel.async_receive(
+        //     [&message](proto::CuraEngineMessage& received_message)
+        //     {
+        //         message = std::move(received_message);
+        //     });
+        // if (ec == boost::asio::error::eof)
+        // {
+        //     break;
+        // }
+
+        // {
+        //     std::lock_guard<std::mutex> lock(send_queue_mutex);
+        //     if (! send_queue.empty())
+        //     {
+        //         send_queue_bytes -= send_queue.front().ByteSizeLong();
+        //         message = std::move(send_queue.front());
+        //         send_queue.pop_front();
+        //     }
+        // }
+
+        if (! message.has_value())
+        {
+            // No more messages, quit
+            co_return;
+        }
+
+#if 1
+        if (message->has_progress())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending progress");
+        }
+        else if (message->has_layer())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending layer");
+        }
+        else if (message->has_layer_optimized())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending layer_optimized");
+        }
+        else if (message->has_gcode_layer())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending gcode");
+        }
+        else if (message->has_slice_uuid())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending slice UUID");
+        }
+        else if (message->has_print_time_material_estimates())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending estimates");
+        }
+        else if (message->has_initial_extruder())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending initial extruder");
+        }
+        else if (message->has_slicing_finished())
+        {
+            spdlog::info(">>>>>>>>>> Actually Sending finished");
+        }
+#endif
+
+        const size_t message_bytes = message->ByteSizeLong();
         {
             std::lock_guard<std::mutex> lock(send_queue_mutex);
-            if (! send_queue.empty())
-            {
-                message = std::move(send_queue.front());
-                send_queue.pop_front();
-            }
+            send_queue_bytes += message_bytes;
         }
-
-        if (message.has_value())
+        bool write_succeeded = false;
+        try
         {
-            if (co_await rpc.write(*message, use_awaitable))
-            {
-                send_queue_bytes.fetch_sub(message->ByteSizeLong());
-                send_queue_space.notify_all();
-            }
-            else
-            {
-                stream_failed = true;
-                rpc.cancel();
-                co_return;
-            }
-            continue;
+            write_succeeded = co_await rpc.write(*message, use_awaitable);
+        }
+        catch (...)
+        {
+            stream_failed = true;
+            spdlog::warn("Cura gRPC write threw while sending an output envelope.");
+        }
+        {
+            std::lock_guard<std::mutex> lock(send_queue_mutex);
+            send_queue_bytes -= message_bytes;
+        }
+        message_condition.notify_all();
+        send_queue_space.notify_all();
+        if (! write_succeeded || stream_failed)
+        {
+            stream_failed = true;
+            rpc.cancel();
+            co_return;
         }
 
-        polling_timer.expires_after(std::chrono::milliseconds(2));
-        co_await polling_timer.async_wait(use_awaitable);
+        // polling_timer.expires_after(std::chrono::milliseconds(2));
+        // co_await polling_timer.async_wait(use_awaitable);
     }
 }
 
 boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
 {
     using boost::asio::use_awaitable;
+    using namespace boost::asio::experimental::awaitable_operators;
+
     RPC rpc{ grpc_context };
     {
         std::lock_guard<std::mutex> lock(active_context_mutex);
@@ -234,23 +373,23 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
     connected = true;
     read_finished = false;
     exit_requested = false;
-    exit_requested = false;
     message_condition.notify_all();
-    boost::asio::co_spawn(grpc_context, readLoop(rpc), boost::asio::detached);
-    try
-    {
-        co_await writeLoop(rpc);
-    }
-    catch (const std::exception& error)
-    {
-        spdlog::warn("Cura gRPC stream write failed: {}", error.what());
-        stream_failed = true;
-    }
-    catch (...)
-    {
-        spdlog::warn("Cura gRPC stream write failed with an unknown error.");
-        stream_failed = true;
-    }
+    co_await (readLoop(rpc) && writeLoop(rpc));
+    // try
+    // {
+    //     co_await writeLoop(rpc);
+    // }
+    // catch (const std::exception& error)
+    // {
+    //     spdlog::warn("Cura gRPC stream write failed: {}", error.what());
+    //     stream_failed = true;
+    // }
+    // catch (...)
+    // {
+    //     spdlog::warn("Cura gRPC stream write failed with an unknown error.");
+    //     stream_failed = true;
+    // }
+
     rpc.cancel();
     boost::asio::steady_timer reader_shutdown_timer(co_await boost::asio::this_coro::executor);
     while (! read_finished)
@@ -258,6 +397,7 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
         reader_shutdown_timer.expires_after(std::chrono::milliseconds(2));
         co_await reader_shutdown_timer.async_wait(use_awaitable);
     }
+
     const grpc::Status status = co_await rpc.finish(use_awaitable);
     connected = false;
     send_queue_space.notify_all();
@@ -267,22 +407,32 @@ boost::asio::awaitable<void> GrpcCommunication::Private::runStream()
     }
     message_condition.notify_all();
     send_queue_space.notify_all();
+
     if (! status.ok())
+    {
         spdlog::warn("Cura gRPC stream ended: {}", status.error_message());
+    }
 }
 
 void GrpcCommunication::Private::stop()
 {
+    send_channel.try_send(boost::system::error_code{}, std::nullopt);
+
     stream_failed = true;
     connected = false;
     {
         std::lock_guard<std::mutex> lock(active_context_mutex);
         if (grpc::ClientContext* context = active_context.load())
+        {
             context->TryCancel();
+        }
     }
+
     message_condition.notify_all();
     if (grpc_thread.joinable())
+    {
         grpc_thread.join();
+    }
 }
 
 std::shared_ptr<proto::LayerOptimized> GrpcCommunication::Private::getOptimizedLayerById(LayerIndex::value_type layer_nr)
@@ -407,6 +557,8 @@ void GrpcCommunication::Private::readObjectMessage(const proto::Object& object_m
 
     mesh.mesh_name_ = object_message.name();
     mesh.finish();
+
+    object_count++;
 }
 
 void GrpcCommunication::Private::loadTextureData(const std::string& texture_str, Mesh& mesh)

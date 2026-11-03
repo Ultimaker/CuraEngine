@@ -16,6 +16,7 @@
 
 #include <agrpc/asio_grpc.hpp>
 #include <boost/asio/awaitable.hpp>
+#include <boost/asio/experimental/concurrent_channel.hpp>
 #include <boost/asio/steady_timer.hpp>
 
 #include "Cura.grpc.pb.h"
@@ -34,10 +35,8 @@ class GrpcCommunication::Private
 {
     friend class GrpcCommunicationTest;
 
-    using RPC = agrpc::ClientRPC<&proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
-
 public:
-    Private();
+    Private(const std::string& endpoint, const grpc::ChannelArguments& arguments);
 
     /*
      * Get the optimised layer data for a specific layer.
@@ -54,8 +53,6 @@ public:
      */
     void readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice);
 
-    std::shared_ptr<Slice> readSliceMessage(const proto::Slice& slice_message);
-
     void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice);
 
     /*
@@ -66,6 +63,21 @@ public:
     void readMeshGroupMessage(const proto::MeshGroup& mesh_group_message, Scene& scene);
 
     void readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group);
+
+    bool sendMessage(const google::protobuf::Message& message);
+    // bool flushMessages();
+    bool waitForSliceOrExit();
+    std::optional<proto::CuraClientMessage> takeNextMessage();
+    void stop();
+
+    bool isReady() const
+    {
+        return connected && ! stream_failed;
+    }
+
+    size_t object_count{ 0 }; //!< Number of objects that need to be sliced.
+
+    using RPC = agrpc::ClientRPC<&proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
 
     std::shared_ptr<grpc::Channel> channel;
     std::unique_ptr<proto::CuraEngineCommunication::Stub> stub;
@@ -83,8 +95,9 @@ public:
     std::mutex send_queue_mutex;
     std::condition_variable send_queue_space;
     std::deque<proto::CuraEngineMessage> send_queue;
-    std::atomic<size_t> send_queue_bytes{ 0 };
-    size_t object_count; //!< Number of objects that need to be sliced.
+    boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<proto::CuraEngineMessage>)> send_channel;
+    boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<proto::CuraClientMessage>)> receive_channel;
+    size_t send_queue_bytes{ 0 }; // Guarded by send_queue_mutex.
     std::string temp_gcode_file; //!< Temporary buffer for the g-code.
     std::ostringstream gcode_output_stream; //!< The stream to write g-code to.
 
@@ -93,18 +106,11 @@ public:
 
     int last_sent_progress; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
 
-    const size_t millisecUntilNextTry; // Delay between stream readiness checks.
-
-    bool sendMessage(const google::protobuf::Message& message);
-    bool flushMessages();
-    bool waitForSliceOrExit();
-    std::optional<proto::CuraClientMessage> takeNextMessage();
+private:
     boost::asio::awaitable<void> runStream();
     boost::asio::awaitable<void> readLoop(RPC& rpc);
     boost::asio::awaitable<void> writeLoop(RPC& rpc);
-    void stop();
 
-private:
     static void loadTextureData(const std::string& texture_str, Mesh& mesh);
 };
 

@@ -165,7 +165,7 @@ private:
     /*
      * \brief Pointer that contains the private implementation.
      */
-    const std::unique_ptr<Private> private_data;
+    std::unique_ptr<Private> private_data;
 
     /*
      * \brief Another PIMPL pattern subclass for private implementation regarding the
@@ -176,7 +176,7 @@ private:
     /*
      * \brief Pointer that contains the private implementation of the path compiler.
      */
-    const std::unique_ptr<PathCompiler> path_compiler;
+    std::unique_ptr<PathCompiler> path_compiler;
 
     std::shared_ptr<Slice> current_slice_;
 };

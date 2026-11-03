@@ -217,6 +217,8 @@ message CuraEngineMessage {
   }
 }
 
+// Create a service with a single method that acts as a long-term communication channel. Because the attributes are
+// tagged as "stream", calling the method creates two channels, one for each direction, and keeps them alive.
 service CuraEngineCommunication {
   rpc Communicate(stream CuraEngineMessage) returns (stream CuraClientMessage);
 }

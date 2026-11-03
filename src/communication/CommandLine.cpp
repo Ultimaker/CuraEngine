@@ -473,7 +473,6 @@ void CommandLine::sliceNext()
     try
     {
 #endif // DEBUG
-        slice->scene.mesh_groups[mesh_group_index]->finalize();
         spdlog::info("Loaded from disk in {}\n", FffProcessor::getInstance()->time_keeper.restart());
 
         // Start slicing.

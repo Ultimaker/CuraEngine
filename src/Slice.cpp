@@ -30,6 +30,7 @@ void Slice::compute()
 
     for (std::shared_ptr<MeshGroup>& mesh_group : scene.mesh_groups)
     {
+        mesh_group->finalize();
         scene.current_mesh_group = mesh_group;
         for (ExtruderTrain& extruder : scene.extruders)
         {
