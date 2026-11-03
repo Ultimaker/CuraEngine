@@ -3740,7 +3740,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         std::shared_ptr<const SliceMeshStorage> skippable_mesh = nullptr;
         const auto insert_skippable_end{ [&gcode, &skippable_mesh]() {
-            gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
+            gcode.writeComment(fmt::format("TAG:SKIPPABLE.END={}", skippable_mesh->mesh_id));
             gcode.writeCurrentExtrusionValue();
         } };
 
@@ -3910,7 +3910,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 if (skippable_mesh == nullptr && path.mesh)
                 {
-                    gcode.writeComment(fmt::format("TAG:SKIPPABLE.START='{}'", path.mesh->mesh_name));
+                    gcode.writeComment(fmt::format("TAG:SKIPPABLE.START={}", path.mesh->mesh_id));
                     skippable_mesh = path.mesh;
                 }
 
