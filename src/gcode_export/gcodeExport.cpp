@@ -360,6 +360,10 @@ std::string GCodeExport::getFileHeader(
     {
         for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
         {
+            if (mesh_group.meshes.size() <= 1)
+            {
+                continue;
+            }
             for (const auto& mesh : mesh_group.meshes)
             {
                 using ranges::to;
