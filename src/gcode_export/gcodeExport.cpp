@@ -4,6 +4,7 @@
 #include "gcode_export/gcodeExport.h"
 
 #include <cassert>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cura-formulae-engine/parser/parser.h>
@@ -13,6 +14,8 @@
 
 #include <fmt/chrono.h>
 #include <range/v3/algorithm/find_if.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To send layer view data.
@@ -347,6 +350,26 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";MAXY:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
         prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
+    }
+
+    for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
+    {
+        if (! mesh_group.getSkipMeshEnabled())
+        {
+            continue;
+        }
+        for (const auto& mesh : mesh_group.meshes)
+        {
+            using ranges::to;
+            const auto sanitized_mesh_name = mesh.mesh_name_
+                                           | ranges::views::filter(
+                                                 [](unsigned char c)
+                                                 {
+                                                     return ! std::iscntrl(c);
+                                                 })
+                                           | ranges::to<std::string>();
+            prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
+        }
     }
 
 #ifdef ENABLE_PLUGINS
@@ -711,6 +734,15 @@ void GCodeExport::resetExtrusionValue()
     }
     current_e_value_ = 0.0;
     extruder_attr_[current_extruder_].retraction_e_amount_at_e_start_ = extruder_attr_[current_extruder_].retraction_e_amount_current_;
+}
+
+void GCodeExport::writeCurrentExtrusionValue()
+{
+    if (relative_extrusion_)
+    {
+        return;
+    }
+    *output_stream_ << "G92 " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, current_e_value_ } << new_line_;
 }
 
 bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr)
