@@ -53,25 +53,25 @@ if (${ENABLE_GRPC_COMMUNICATION})
     set(engine_PB_HEADERS ${engine_PROTO_HEADER})
     set_source_files_properties(${engine_PB_SRCS} ${engine_PB_HEADERS} PROPERTIES GENERATED TRUE)
     add_custom_command(
-        OUTPUT ${engine_PROTO_OUTPUT} ${engine_PROTO_HEADER}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_PROTO_GENERATED_DIR}
-        COMMAND protobuf::protoc
-        ARGS --cpp_out=${engine_PROTO_GENERATED_DIR}
-             --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
-             ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
-        DEPENDS Cura.proto protobuf::protoc
-        VERBATIM
+            OUTPUT ${engine_PROTO_OUTPUT} ${engine_PROTO_HEADER}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_PROTO_GENERATED_DIR}
+            COMMAND protobuf::protoc
+            ARGS --cpp_out=${engine_PROTO_GENERATED_DIR}
+            --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
+            DEPENDS Cura.proto protobuf::protoc
+            VERBATIM
     )
     add_custom_command(
-        OUTPUT ${engine_GRPC_SRCS} ${engine_GRPC_HEADERS}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_GRPC_GENERATED_DIR}
-        COMMAND protobuf::protoc
-        ARGS --grpc_out=${engine_GRPC_GENERATED_DIR}
-             --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-             --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
-             ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
-        DEPENDS Cura.proto protobuf::protoc gRPC::grpc_cpp_plugin
-        VERBATIM
+            OUTPUT ${engine_GRPC_SRCS} ${engine_GRPC_HEADERS}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_GRPC_GENERATED_DIR}
+            COMMAND protobuf::protoc
+            ARGS --grpc_out=${engine_GRPC_GENERATED_DIR}
+            --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+            --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
+            DEPENDS Cura.proto protobuf::protoc gRPC::grpc_cpp_plugin
+            VERBATIM
     )
     set_source_files_properties(${engine_GRPC_SRCS} ${engine_GRPC_HEADERS} PROPERTIES GENERATED TRUE)
 else ()
@@ -158,8 +158,8 @@ set(engine_SRCS # Except main.cpp.
         src/bridge/BridgeAngleScoringCriterion.cpp
         src/bridge/AlignShapeScoringCriterion.cpp
 
-        src/communication/CommandLine.cpp
-        src/communication/EmscriptenCommunication.cpp
+        src/communication/command_line/CommandLine.cpp
+        src/communication/emscripten/EmscriptenCommunication.cpp
 
         src/gcode_export/gcodeExport.cpp
         src/gcode_export/FixedGCodePart.cpp
@@ -262,8 +262,9 @@ set(engine_SRCS # Except main.cpp.
 if (ENABLE_GRPC_COMMUNICATION)
     list(APPEND engine_SRCS ${engine_GRPC_SRCS} ${engine_GRPC_HEADERS} ${engine_PB_HEADERS})
     list(APPEND engine_SRCS
-        src/communication/GrpcCommunication.cpp
-        src/communication/GrpcCommunicationPrivate.cpp
+            src/communication/grpc/GrpcCommunication.cpp
+            src/communication/grpc/GrpcTransport.cpp
+            src/communication/grpc/PathCompiler.cpp
     )
 endif ()
 

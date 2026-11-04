@@ -7,18 +7,43 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
-#include <google/protobuf/message.h>
 #include <memory> //For unique_ptr and shared_ptr.
 
-#include "Communication.h" //The class we're implementing.
-#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
+#include "SliceDataStruct.h"
+#include "communication/Communication.h" //The class we're implementing.
+
+namespace google::protobuf
+{
+
+class Message;
+template<class Field>
+class RepeatedPtrField;
+
+} // namespace google::protobuf
 
 // Forward declarations to speed up compilation.
 namespace cura
 {
 
+class Scene;
+class MeshGroup;
+class Mesh;
 class Slice;
 class Polygon;
+class GrpcTransport;
+class PathCompiler;
+
+namespace proto
+{
+
+class SettingList;
+class Extruder;
+class MeshGroup;
+class Object;
+class Layer;
+class Slice;
+
+} // namespace proto
 
 /*
  * \brief Communication class that connects via gRPC to Cura's front-end.
@@ -32,6 +57,7 @@ class GrpcCommunication : public Communication
     FRIEND_TEST(GrpcCommunicationTest, SendLayerComplete);
     FRIEND_TEST(GrpcCommunicationTest, SendProgress);
 #endif
+
 public:
     /*
      * \brief Construct a new gRPC client communicator.
@@ -124,7 +150,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Send progress to Cura.
@@ -150,35 +176,32 @@ public:
     void sliceNext() override;
 
 private:
-    /*
-     * \brief Send one protobuf message through the gRPC stream.
-     */
-    bool sendMessage(const google::protobuf::Message& message) const;
-
-    std::shared_ptr<Slice> makeSlice(const proto::Slice& slice_message);
+    static std::shared_ptr<Slice> makeSlice(const proto::Slice& slice_message);
 
     /*
-     * \brief PIMPL pattern subclass that contains the private implementation.
+     * Reads the global settings from a Protobuf message.
+     *
+     * The global settings are stored in the current scene.
+     * \param global_settings_message The global settings message.
      */
-    class Private;
+    static void readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice);
+
+    static void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice);
 
     /*
-     * \brief Pointer that contains the private implementation.
+     * \brief Reads a Protobuf message describing a mesh group.
+     *
+     * This gets the vertex data from the message as well as the settings.
      */
-    std::unique_ptr<Private> private_data;
+    static void readMeshGroupMessage(const proto::MeshGroup& mesh_group_message, Scene& scene);
 
-    /*
-     * \brief Another PIMPL pattern subclass for private implementation regarding the
-     * compilation of paths to Protobuf messages.
-     */
-    class PathCompiler;
+    static void readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group);
 
-    /*
-     * \brief Pointer that contains the private implementation of the path compiler.
-     */
+    std::unique_ptr<GrpcTransport> grpc_transport_;
     std::unique_ptr<PathCompiler> path_compiler;
-
     std::shared_ptr<Slice> current_slice_;
+    int last_sent_progress{ -1 }; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
+    SliceDataStruct<proto::Layer> sliced_layers;
 };
 
 } // namespace cura

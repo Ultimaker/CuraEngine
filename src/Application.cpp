@@ -23,10 +23,10 @@
 
 #include "Slice.h"
 #ifdef ENABLE_GRPC_COMMUNICATION
-#include "communication/GrpcCommunication.h" //To connect to Cura's gRPC service.
+#include "communication/grpc/GrpcCommunication.h" //To connect to Cura's gRPC service.
 #endif
-#include "communication/CommandLine.h" //To use the command line to slice stuff.
-#include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
+#include "communication/command_line/CommandLine.h" //To use the command line to slice stuff.
+#include "communication/emscripten/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
@@ -147,11 +147,13 @@ void Application::printHelp() const
     fmt::print("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     fmt::print("\n");
     fmt::print("The settings are appended to the last supplied object:\n");
-    fmt::print("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
-               "settings] \n\t--next [next group settings]\n\t... etc.\n");
+    fmt::print(
+        "CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
+        "settings] \n\t--next [next group settings]\n\t... etc.\n");
     fmt::print("\n");
-    fmt::print("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
-               "paths delimited by a (semi-)colon.\n");
+    fmt::print(
+        "In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
+        "paths delimited by a (semi-)colon.\n");
     fmt::print("\n");
 }
 

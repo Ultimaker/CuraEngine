@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector> //To store the command line arguments.
 
-#include "Communication.h" //The class we're implementing.
+#include "communication/Communication.h" //The class we're implementing.
 
 namespace cura
 {

@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "communication/CommandLine.h"
+#include "communication/command_line/CommandLine.h"
 
 #include <cerrno> // error number when trying to read file
 #include <cstring> //For strtok and strcopy.
