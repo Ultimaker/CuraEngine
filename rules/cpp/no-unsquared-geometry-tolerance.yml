@@ -1,0 +1,24 @@
+id: no-unsquared-geometry-tolerance
+language: cpp
+severity: error
+message: vSize2 returns squared distance; compare with EPSILON_SQUARED, not EPSILON.
+note: CuraEngine defines both tolerances in include/utils/Coord_t.h; clang-tidy does not infer geometric units.
+rule:
+  kind: binary_expression
+  any:
+    - pattern: vSize2($V) < EPSILON
+    - pattern: vSize2($V) <= EPSILON
+    - pattern: vSize2($V) > EPSILON
+    - pattern: vSize2($V) >= EPSILON
+    - pattern: EPSILON < vSize2($V)
+    - pattern: EPSILON <= vSize2($V)
+    - pattern: EPSILON > vSize2($V)
+    - pattern: EPSILON >= vSize2($V)
+    - pattern: $V.vSize2() < EPSILON
+    - pattern: $V.vSize2() <= EPSILON
+    - pattern: $V.vSize2() > EPSILON
+    - pattern: $V.vSize2() >= EPSILON
+    - pattern: EPSILON < $V.vSize2()
+    - pattern: EPSILON <= $V.vSize2()
+    - pattern: EPSILON > $V.vSize2()
+    - pattern: EPSILON >= $V.vSize2()

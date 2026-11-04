@@ -1,0 +1,8 @@
+ruleDirs:
+  - rules/cpp
+
+# ast-grep otherwise parses .h as C, but CuraEngine's headers are C++.
+languageGlobs:
+  cpp:
+    - "*.h"
+    - "*.hpp"
