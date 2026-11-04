@@ -244,7 +244,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     }
 
     const std::vector<bool> extruder_is_used(num_extruders, true);
-    std::istringstream result(gcode.getFileHeader(false, extruder_is_used));
+    std::istringstream result(gcode.getFileHeader(extruder_is_used));
     std::string token;
 
     std::getline(result, token, '\n');
@@ -324,7 +324,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     }
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(false, extruder_is_used, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
@@ -343,7 +343,7 @@ TEST_F(GCodeExportTest, HeaderRepRap)
     const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(false, extruder_is_used, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
@@ -362,7 +362,7 @@ TEST_F(GCodeExportTest, HeaderMarlin)
     const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(false, extruder_is_used, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
@@ -379,7 +379,7 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(false, extruder_is_used, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,

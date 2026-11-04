@@ -146,6 +146,12 @@ void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
     }
 }
 
+bool MeshGroup::getSkipMeshEnabled() const
+{
+    constexpr int too_many_extruders = 2;
+    return num_extruders_used.value_or(too_many_extruders) < too_many_extruders && meshes.size() > 1;
+}
+
 bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
 {
     FILE* f = fopen(filename.string().c_str(), "rt");

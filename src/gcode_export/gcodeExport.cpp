@@ -219,7 +219,6 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
 }
 
 std::string GCodeExport::getFileHeader(
-    const bool skip_mesh_enable,
     const std::vector<bool>& extruder_is_used,
     const std::vector<double>& filament_used,
     const std::vector<std::string>& mat_ids)
@@ -356,26 +355,23 @@ std::string GCodeExport::getFileHeader(
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
     }
 
-    if (skip_mesh_enable)
+    for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
     {
-        for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
+        if (! mesh_group.getSkipMeshEnabled())
         {
-            if (mesh_group.meshes.size() <= 1)
-            {
-                continue;
-            }
-            for (const auto& mesh : mesh_group.meshes)
-            {
-                using ranges::to;
-                const auto sanitized_mesh_name = mesh.mesh_name_
-                                               | ranges::views::filter(
-                                                     [](unsigned char c)
-                                                     {
-                                                         return ! std::iscntrl(c);
-                                                     })
-                                               | ranges::to<std::string>();
-                prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
-            }
+            continue;
+        }
+        for (const auto& mesh : mesh_group.meshes)
+        {
+            using ranges::to;
+            const auto sanitized_mesh_name = mesh.mesh_name_
+                                            | ranges::views::filter(
+                                                    [](unsigned char c)
+                                                    {
+                                                        return ! std::iscntrl(c);
+                                                    })
+                                            | ranges::to<std::string>();
+            prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
         }
     }
 
@@ -2113,13 +2109,11 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
 
     std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS); // To be used by the formula engine
     std::vector<bool> is_extruder_used_bool(MAX_EXTRUDERS); // To be used for the header creation
-    int num_extruders_used = 0;
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         const bool is_this_extruder_used = extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value();
         is_extruder_used_bool[extruder_nr] = is_this_extruder_used;
         is_extruder_used[extruder_nr] = is_this_extruder_used;
-        num_extruders_used += static_cast<int>(is_this_extruder_used);
     }
     extra_global_settings.emplace("is_extruder_used", is_extruder_used);
 
@@ -2129,8 +2123,7 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
         // Prepend the header as a full separate part
         constexpr GCodePartType type = GCodePartType::Header;
         auto header_part = std::make_shared<FixedGCodePart>(type);
-        const bool skip_mesh_enabled = num_extruders_used <= 1;
-        header_part->stream() << getFileHeader(skip_mesh_enabled, is_extruder_used_bool, filaments_volumes, materials_ids);
+        header_part->stream() << getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
         gcode_parts_.insert(gcode_parts_.begin(), header_part);
     }
 
