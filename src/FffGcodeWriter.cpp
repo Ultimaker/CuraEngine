@@ -2662,9 +2662,12 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     return result;
 }
 
-OverrideAreas
-    FffGcodeWriter::makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, const SliceLayerPart& part)
-        const
+OverrideAreas FffGcodeWriter::makeLayerMasks(
+    const SliceDataStorage& storage,
+    LayerPlan& gcode_layer,
+    const SliceMeshStorage& mesh,
+    const MeshPathConfigs& mesh_config,
+    const SliceLayerPart& part) const
 {
     // Start by clearing all the masks since this is done per-mesh
     gcode_layer.setBridgeWallMask(Shape());
