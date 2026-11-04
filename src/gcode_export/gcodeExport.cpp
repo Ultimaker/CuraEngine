@@ -2123,7 +2123,7 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
         // Prepend the header as a full separate part
         constexpr GCodePartType type = GCodePartType::Header;
         auto header_part = std::make_shared<FixedGCodePart>(type);
-        const bool skip_mesh_enabled = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("skip_mesh_enabled");
+        const bool skip_mesh_enabled = Application::getInstance().current_slice_->scene.settings.get<bool>("skip_mesh_enabled");
         header_part->stream() << getFileHeader(skip_mesh_enabled, is_extruder_used_bool, filaments_volumes, materials_ids);
         gcode_parts_.insert(gcode_parts_.begin(), header_part);
     }
