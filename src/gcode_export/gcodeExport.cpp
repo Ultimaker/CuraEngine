@@ -2109,11 +2109,13 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
 
     std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS); // To be used by the formula engine
     std::vector<bool> is_extruder_used_bool(MAX_EXTRUDERS); // To be used for the header creation
+    int num_extruders_used = 0;
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         const bool is_this_extruder_used = extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value();
         is_extruder_used_bool[extruder_nr] = is_this_extruder_used;
         is_extruder_used[extruder_nr] = is_this_extruder_used;
+        num_extruders_used += static_cast<int>(is_this_extruder_used);
     }
     extra_global_settings.emplace("is_extruder_used", is_extruder_used);
 
@@ -2123,7 +2125,7 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
         // Prepend the header as a full separate part
         constexpr GCodePartType type = GCodePartType::Header;
         auto header_part = std::make_shared<FixedGCodePart>(type);
-        const bool skip_mesh_enabled = Application::getInstance().current_slice_->scene.settings.get<bool>("skip_mesh_enabled");
+        const bool skip_mesh_enabled = num_extruders_used <= 1;
         header_part->stream() << getFileHeader(skip_mesh_enabled, is_extruder_used_bool, filaments_volumes, materials_ids);
         gcode_parts_.insert(gcode_parts_.begin(), header_part);
     }

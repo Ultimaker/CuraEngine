@@ -3739,7 +3739,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
-        const bool skip_mesh_enabled = mesh_group_settings.get<bool>("skip_mesh_enabled");
+        const bool skip_mesh_enabled = ranges::count(storage_.getExtrudersUsed(), true) <= 1;
         std::shared_ptr<const SliceMeshStorage> skippable_mesh = nullptr;
         const auto insert_skippable_end{ [&gcode, &skippable_mesh]()
                                          {
