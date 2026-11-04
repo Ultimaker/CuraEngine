@@ -218,10 +218,7 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
     }
 }
 
-std::string GCodeExport::getFileHeader(
-    const std::vector<bool>& extruder_is_used,
-    const std::vector<double>& filament_used,
-    const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
 
@@ -365,12 +362,12 @@ std::string GCodeExport::getFileHeader(
         {
             using ranges::to;
             const auto sanitized_mesh_name = mesh.mesh_name_
-                                            | ranges::views::filter(
-                                                    [](unsigned char c)
-                                                    {
-                                                        return ! std::iscntrl(c);
-                                                    })
-                                            | ranges::to<std::string>();
+                                           | ranges::views::filter(
+                                                 [](unsigned char c)
+                                                 {
+                                                     return ! std::iscntrl(c);
+                                                 })
+                                           | ranges::to<std::string>();
             prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
         }
     }
