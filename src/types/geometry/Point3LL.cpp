@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/geometry/Point3LL.h" //The headers we're implementing.
+#include "types/geometry/Point3LL.h"
 
 namespace curaengine::types::geometry
 {

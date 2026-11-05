@@ -5,7 +5,7 @@
 
 #include <cassert>
 #include <list>
-#include <memory> // smart pointers
+#include <memory>
 #include <vector>
 
 #include "types/geometry/ExtrusionJunction.h"

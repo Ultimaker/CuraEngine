@@ -3,17 +3,17 @@
 
 #pragma once
 
-#include <deque> // for extrusionAmountAtPreviousRetractions
+#include <deque>
 #ifdef BUILD_TESTS
-#include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#include <gtest/gtest_prod.h>
 #endif
 #include <cura-formulae-engine/eval.h>
 #include <optional>
-#include <sstream> // for stream.str()
+#include <sstream>
 #include <stdio.h>
 
 #include "PrintInformation.h"
-#include "Settings.h" //For MAX_EXTRUDERS.
+#include "Settings.h"
 #include "TimeEstimateCalculator.h"
 #include "ZHopAntiOozing.h"
 #include "gcode_export/DynamicExtruderContext.h"
@@ -22,9 +22,9 @@
 #include "types/EGCodeFlavor.h"
 #include "types/LayerIndex.h"
 #include "types/NoCopy.h"
-#include "types/Temperature.h" //Bed temperature.
+#include "types/Temperature.h"
 #include "types/Velocity.h"
-#include "types/geometry/AABB3D.h" //To track the used build volume for the Griffin header.
+#include "types/geometry/AABB3D.h"
 #include "types/geometry/Point2LL.h"
 #include "utils/string.h"
 

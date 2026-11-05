@@ -8,9 +8,9 @@
 
 #include "PrintFeatureType.h"
 #include "types/Acceleration.h"
-#include "types/Duration.h" //Print time estimates.
+#include "types/Duration.h"
 #include "types/Ratio.h"
-#include "types/Velocity.h" //Speeds and accelerations at which we print.
+#include "types/Velocity.h"
 
 namespace curaengine
 {

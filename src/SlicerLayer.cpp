@@ -3,7 +3,7 @@
 
 #include "SlicerLayer.h"
 
-#include <algorithm> // remove_if
+#include <algorithm>
 
 #include "Mesh.h"
 #include "SlicedUVCoordinates.h"

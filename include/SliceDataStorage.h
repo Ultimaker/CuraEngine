@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "RetractionAndWipeConfig.h"
-#include "Settings.h" //For MAX_EXTRUDERS.
+#include "Settings.h"
 #include "SupportStorage.h"
 #include "types/LayerIndex.h"
 #include "types/NoCopy.h"

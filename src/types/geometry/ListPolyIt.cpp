@@ -4,8 +4,8 @@
 #include "types/geometry/ListPolyIt.h"
 
 #include <cassert>
-#include <cmath> // isfinite
-#include <sstream> // ostream
+#include <cmath>
+#include <sstream>
 
 #include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"

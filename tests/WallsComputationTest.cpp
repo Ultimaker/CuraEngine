@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "WallsComputation.h" //Unit under test.
+#include "WallsComputation.h"
 
 #include <unordered_set>
 
@@ -10,14 +10,14 @@
 
 #include <gtest/gtest.h>
 
-#include "InsetOrderOptimizer.h" //Unit also under test.
-#include "Settings.h" //Settings to generate walls with.
-#include "SliceDataStorage.h" //Sl
+#include "InsetOrderOptimizer.h"
+#include "Settings.h"
+#include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 #include "Slicer.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/Polygon.h" //To create example polygons.
+#include "types/geometry/Polygon.h"
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include <cstdlib>

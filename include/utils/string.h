@@ -4,9 +4,9 @@
 #pragma once
 
 #include <cmath>
-#include <cstdio> // snprintf
+#include <cstdio>
 #include <ctype.h>
-#include <sstream> // ostringstream
+#include <sstream>
 
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/ostream_iterator.hpp>

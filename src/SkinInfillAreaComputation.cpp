@@ -3,13 +3,13 @@
 
 #include "SkinInfillAreaComputation.h"
 
-#include <cmath> // std::ceil
+#include <cmath>
 
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/equal.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "SkinPart.h"
 #include "Slice.h"
@@ -19,8 +19,8 @@
 #include "SliceMeshStorage.h"
 #include "WallToolPaths.h"
 #include "infill/Infill.h"
-#include "types/AngleRadians.h" //For the infill support angle.
-#include "types/EFillMethod.h" //For EFillMethod.
+#include "types/AngleRadians.h"
+#include "types/EFillMethod.h"
 #include "types/Ratio.h"
 #include "types/geometry/PolygonUtils.h"
 #include "types/geometry/Simplify.h"

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "infill/LightningLayer.h" //The class we're implementing.
+#include "infill/LightningLayer.h"
 
 #include "SliceDataStorage.h"
 #include "infill/GroundingLocation.h"

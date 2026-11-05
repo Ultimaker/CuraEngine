@@ -5,7 +5,7 @@
 
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
-#include "types/geometry/Point2LL.h" //To store the preferred seam position.
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine::types
 {

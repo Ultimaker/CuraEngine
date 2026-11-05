@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <cmath> //For fmod.
+#include <cmath>
 
 namespace curaengine::types
 {

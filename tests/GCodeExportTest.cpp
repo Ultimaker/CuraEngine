@@ -1,18 +1,18 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcode_export/GCodeExport.h" // The unit under test.
+#include "gcode_export/GCodeExport.h"
 
 #include <gtest/gtest.h>
 
-#include "Application.h" // To set up a slice with settings.
-#include "RetractionConfig.h" // For extruder switch tests.
-#include "Slice.h" // To set up a slice with settings.
-#include "WipeScriptConfig.h" // For wipe script tests.
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
+#include "Application.h"
+#include "RetractionConfig.h"
+#include "Slice.h"
+#include "WipeScriptConfig.h"
+#include "arcus/MockCommunication.h"
 #include "gcode_export/GCodePart.h"
 #include "types/Coord_t.h"
-#include "types/Date.h" // To check the Griffin header.
+#include "types/Date.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine

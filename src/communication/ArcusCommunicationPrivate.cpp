@@ -19,8 +19,8 @@
 #include "MeshGroup.h"
 #include "Slice.h"
 #include "types/LayerIndex.h"
-#include "types/geometry/Matrix4x3D.h" //To convert vertices to integer-points.
-#include "types/geometry/Point3F.h" //To accept vertices (which are provided in floating point).
+#include "types/geometry/Matrix4x3D.h"
+#include "types/geometry/Point3F.h"
 #include "utils/MeshUtils.h"
 
 namespace curaengine::communication

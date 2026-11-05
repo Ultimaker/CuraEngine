@@ -4,7 +4,7 @@
 #pragma once
 #ifdef ARCUS // Extends from Arcus::SocketListener, so only compile if we're using libArcus.
 
-#include <Arcus/SocketListener.h> //The class we're extending from.
+#include <Arcus/SocketListener.h>
 
 namespace curaengine::communication
 {

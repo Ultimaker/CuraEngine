@@ -4,7 +4,7 @@
 #pragma once
 
 #include "beading_strategy/BeadingStrategy.h"
-#include "types/Ratio.h" // For the wall transition threshold.
+#include "types/Ratio.h"
 
 namespace curaengine::beading_strategy
 {

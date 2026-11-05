@@ -4,7 +4,7 @@
 #include "GCodePathConfig.h"
 
 #include "types/Acceleration.h"
-#include "types/geometry/Point2LL.h" // INT2MM
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine
 {

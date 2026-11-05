@@ -3,9 +3,9 @@
 
 #include "types/geometry/LinearAlg2D.h"
 
-#include <algorithm> // swap
+#include <algorithm>
 #include <cassert>
-#include <cmath> // atan2
+#include <cmath>
 #include <numbers>
 
 #include "types/geometry/Point3Matrix.h"

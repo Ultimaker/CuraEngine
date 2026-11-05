@@ -4,9 +4,9 @@
 #pragma once
 #ifdef ARCUS
 
-#include <sstream> //For ostringstream.
+#include <sstream>
 
-#include "ArcusCommunication.h" //We're adding a subclass to this.
+#include "ArcusCommunication.h"
 #include "SliceDataStruct.h"
 #include "types/LayerIndex.h"
 

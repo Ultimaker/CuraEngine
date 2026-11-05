@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include <stdio.h> // for file output
+#include <stdio.h>
 #include <variant>
 
 #include <boost/polygon/voronoi.hpp>
 
 #include "types/NoCopy.h"
 #include "types/geometry/AABB.h"
-#include "types/geometry/ExtrusionLine.h" //To accept variable-width paths.
+#include "types/geometry/ExtrusionLine.h"
 #include "types/geometry/Point2LL.h"
 
 namespace curaengine::types::geometry

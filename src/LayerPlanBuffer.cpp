@@ -6,13 +6,13 @@
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To flush g-code through the communication channel.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
 #include "LayerPlan.h"
 #include "Slice.h"
 #include "SliceMeshStorage.h"
-#include "communication/Communication.h" //To flush g-code through the communication channel.
+#include "communication/Communication.h"
 #include "gcode_export/GCodeExport.h"
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"

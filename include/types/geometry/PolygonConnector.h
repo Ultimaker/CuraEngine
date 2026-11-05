@@ -4,7 +4,7 @@
 #pragma once
 
 #ifdef BUILD_TESTS
-#include <gtest/gtest_prod.h> //To allow tests to use protected members.
+#include <gtest/gtest_prod.h>
 #endif
 #include <vector>
 

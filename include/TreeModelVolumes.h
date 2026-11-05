@@ -11,7 +11,7 @@
 
 #include "AvoidanceType.h"
 #include "RestPreference.h"
-#include "types/LayerIndex.h" //Part of the RadiusLayerPair.
+#include "types/LayerIndex.h"
 #include "types/geometry/Shape.h"
 #include "types/geometry/Simplify.h"
 #include "utils/format/PairHash.h"

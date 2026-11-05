@@ -1,9 +1,9 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "infill/LightningDistanceField.h" //Class we're implementing.
+#include "infill/LightningDistanceField.h"
 
-#include "types/geometry/PolygonUtils.h" //For spreadDotsArea helper function.
+#include "types/geometry/PolygonUtils.h"
 
 namespace curaengine::infill
 {

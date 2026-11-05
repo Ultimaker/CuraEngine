@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "ExtruderTrain.h" //To store the extruders in the scene.
-#include "MeshGroup.h" //To store the mesh groups in the scene.
-#include "Settings.h" //To store the global settings.
+#include "ExtruderTrain.h"
+#include "MeshGroup.h"
+#include "Settings.h"
 
 namespace curaengine
 {

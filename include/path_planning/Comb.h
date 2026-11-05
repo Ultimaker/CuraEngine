@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include <limits> // To find the maximum for coord_t.
-#include <memory> // shared_ptr
+#include <limits>
+#include <memory>
 
-#include "types/LayerIndex.h" // To store the layer on which we comb.
+#include "types/LayerIndex.h"
 #include "types/geometry/PartsView.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/PolygonUtils.h"

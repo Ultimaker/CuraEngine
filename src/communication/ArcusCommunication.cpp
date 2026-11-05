@@ -17,25 +17,25 @@
 #include <sentry.h>
 #endif
 
-#include <thread> //To sleep while waiting for the connection.
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
+#include <thread>
+#include <unordered_map>
 
-#include <Arcus/Socket.h> //The socket to communicate to.
+#include <Arcus/Socket.h>
 #include <fmt/format.h>
 #include <spdlog/details/os.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get and set the current slice command.
+#include "Application.h"
 #include "ExtruderTrain.h"
-#include "FffProcessor.h" //To start a slice.
+#include "FffProcessor.h"
 #include "PrintFeatureType.h"
-#include "Slice.h" //To process slices.
-#include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
-#include "communication/Listener.h" //To listen to the Arcus socket.
-#include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "Slice.h"
+#include "communication/ArcusCommunicationPrivate.h"
+#include "communication/Listener.h"
+#include "communication/SliceDataStruct.h"
 #include "plugins/Slots.h"
-#include "types/LayerIndex.h" //To point to layers.
-#include "types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "types/LayerIndex.h"
+#include "types/Velocity.h"
 #include "types/geometry/Polygon.h"
 #include "utils/channel.h"
 

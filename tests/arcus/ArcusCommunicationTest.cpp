@@ -8,11 +8,11 @@
 #include <gtest/gtest.h>
 
 #include "FffProcessor.h"
-#include "MockSocket.h" //To mock out the communication with the front-end.
-#include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
+#include "MockSocket.h"
+#include "communication/ArcusCommunicationPrivate.h"
 #include "types/Coord_t.h"
 #include "types/LayerIndex.h"
-#include "types/geometry/Polygon.h" //Create test shapes to send over the socket.
+#include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"
 #include "utils/string.h"
 

@@ -7,10 +7,10 @@
 #include "Mesh.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "types/AngleRadians.h" //To process the overhang angle.
+#include "types/AngleRadians.h"
 #include "types/LayerIndex.h"
 #include "types/geometry/Polygon.h"
-#include "types/geometry/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
+#include "types/geometry/Simplify.h"
 #include "types/geometry/SingleShape.h"
 
 namespace curaengine

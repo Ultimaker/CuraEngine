@@ -5,7 +5,7 @@
 
 #include <algorithm>
 #include <cura-formulae-engine/eval.h>
-#include <limits> // numeric_limits
+#include <limits>
 #include <list>
 #include <memory>
 #include <numbers>
@@ -36,7 +36,7 @@
 #include "SupportStorage.h"
 #include "WallToolPaths.h"
 #include "bridge/bridge.h"
-#include "communication/Communication.h" //To send layer view data.
+#include "communication/Communication.h"
 #include "infill/Infill.h"
 #include "prime_tower/PrimeTower.h"
 #include "progress/Progress.h"
@@ -57,7 +57,7 @@
 #include "types/geometry/OrderOptimizer.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/PolygonUtils.h"
-#include "types/geometry/Simplify.h" //Removing micro-segments created by offsetting.
+#include "types/geometry/Simplify.h"
 #include "types/geometry/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 #include "utils/math.h"
 

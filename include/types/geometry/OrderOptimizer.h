@@ -5,7 +5,7 @@
 
 #include <cstdint>
 #include <list>
-#include <utility> // pair
+#include <utility>
 #include <vector>
 
 #include "types/geometry/Point2LL.h"

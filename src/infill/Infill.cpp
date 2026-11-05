@@ -3,7 +3,7 @@
 
 #include "infill/Infill.h"
 
-#include <algorithm> //For std::sort.
+#include <algorithm>
 #include <functional>
 #include <numbers>
 #include <unordered_set>

@@ -5,7 +5,7 @@
 
 #include <optional>
 
-#include "types/ZSeamConfig.h" //To get the seam settings.
+#include "types/ZSeamConfig.h"
 #include "types/geometry/PolygonUtils.h"
 
 namespace curaengine

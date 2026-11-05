@@ -3,10 +3,10 @@
 
 #include "AreaSupport.h"
 
-#include <cmath> // sqrt, round
+#include <cmath>
 #include <deque>
-#include <fstream> // ifstream.good()
-#include <utility> // pair
+#include <fstream>
+#include <utility>
 
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/view/concat.hpp>
@@ -21,7 +21,7 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Raft.h"
 #include "Slice.h"
@@ -37,14 +37,14 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
-#include "types/AngleRadians.h" //To compute overhang distance from the angle.
+#include "types/AngleRadians.h"
 #include "types/BuildPlateShape.h"
 #include "types/EFillMethod.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/ESupportStructure.h"
 #include "types/ESupportType.h"
 #include "types/Ratio.h"
-#include "types/SupportDistPriority.h" //For EFillMethod.
+#include "types/SupportDistPriority.h"
 #include "types/ThreadPool.h"
 #include "types/geometry/ClosedLinesSet.h"
 #include "types/geometry/LinearAlg2D.h"

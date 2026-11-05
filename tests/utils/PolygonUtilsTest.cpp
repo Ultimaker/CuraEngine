@@ -1,13 +1,13 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/geometry/PolygonUtils.h" // The class under test.
+#include "types/geometry/PolygonUtils.h"
 
 #include <gtest/gtest.h>
 
 #include "types/Coord_t.h"
-#include "types/geometry/Point2LL.h" // Creating and testing with points.
-#include "types/geometry/Polygon.h" // Creating polygons to test with.
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Polygon.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine

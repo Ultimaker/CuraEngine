@@ -3,8 +3,8 @@
 
 #include "PathOrderMonotonic.h"
 
-#include <unordered_map> //To track monotonic sequences.
-#include <unordered_set> //To track starting points of monotonic sequences.
+#include <unordered_map>
+#include <unordered_set>
 
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/SparsePointGridInclusive.h"

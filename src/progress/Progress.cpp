@@ -10,8 +10,8 @@
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get the communication channel to send progress through.
-#include "communication/Communication.h" //To send progress through the communication channel.
+#include "Application.h"
+#include "communication/Communication.h"
 #include "types/TimeKeeper.h"
 
 namespace curaengine::progress

@@ -9,7 +9,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "Raft.h"

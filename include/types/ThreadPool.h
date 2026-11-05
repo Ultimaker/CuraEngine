@@ -6,13 +6,13 @@
 #include <cassert>
 #include <condition_variable>
 #include <deque>
-#include <functional> // std::function<>
+#include <functional>
 #include <mutex>
 #include <thread>
 #include <vector>
 
-#include "Application.h" // accessing singleton's Application::thread_pool
-#include "utils/math.h" // round_up_divide
+#include "Application.h"
+#include "utils/math.h"
 
 namespace curaengine::types
 {

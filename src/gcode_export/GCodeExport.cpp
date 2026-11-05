@@ -16,7 +16,7 @@
 #include <range/v3/view/enumerate.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To send layer view data.
+#include "Application.h"
 #include "ExtruderPrintInformation.h"
 #include "ExtruderTrain.h"
 #include "PrintFeatureType.h"
@@ -26,7 +26,7 @@
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
 #include "ZHopAntiOozing.h"
-#include "communication/Communication.h" //To send layer view data.
+#include "communication/Communication.h"
 #include "gcode_export/FixedGCodePart.h"
 #include "gcode_export/GcodeTemplateResolver.h"
 #include "gcode_export/ResolvedGCodePart.h"
@@ -40,7 +40,7 @@
 #include "types/PrecisionedDouble.h"
 #include "types/ThreadPool.h"
 #include "utils/math.h"
-#include "utils/string.h" // MMtoStream, PrecisionedDouble
+#include "utils/string.h"
 
 namespace cfe = CuraFormulaeEngine;
 

@@ -4,12 +4,12 @@
 #include "types/geometry/Simplify.h"
 
 #include <limits>
-#include <queue> //Priority queue to prioritise removing unimportant vertices.
+#include <queue>
 
-#include "Settings.h" //To load the parameters from a Settings object.
+#include "Settings.h"
 #include "types/geometry/ClosedPolyline.h"
 #include "types/geometry/ExtrusionLine.h"
-#include "types/geometry/LinearAlg2D.h" //To calculate line deviations and intersecting lines.
+#include "types/geometry/LinearAlg2D.h"
 #include "types/geometry/MixedLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
 

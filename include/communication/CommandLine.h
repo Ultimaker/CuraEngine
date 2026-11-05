@@ -7,12 +7,12 @@
 #include <fstream>
 #include <memory>
 #include <optional>
-#include <rapidjson/document.h> //Loading JSON documents to get settings from them.
-#include <string> //To store the command line arguments.
+#include <rapidjson/document.h>
+#include <string>
 #include <unordered_map>
-#include <vector> //To store the command line arguments.
+#include <vector>
 
-#include "Communication.h" //The class we're implementing.
+#include "Communication.h"
 
 namespace curaengine
 {

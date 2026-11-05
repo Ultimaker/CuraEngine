@@ -3,8 +3,8 @@
 
 #include <algorithm>
 #include <atomic>
-#include <fstream> // ifstream.good()
-#include <map> // multimap (ordered map allowing duplicate keys)
+#include <fstream>
+#include <map>
 #include <numeric>
 
 #include <spdlog/spdlog.h>

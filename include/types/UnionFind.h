@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <unordered_map> //To map the data type to indices for user's convenience.
-#include <vector> //Holds the main data.
+#include <unordered_map>
+#include <vector>
 
 namespace curaengine::types
 {

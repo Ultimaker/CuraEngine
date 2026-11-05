@@ -4,11 +4,11 @@
 #pragma once
 
 #include <cassert>
-#include <cmath> //For sqrt.
+#include <cmath>
 #include <compare>
-#include <iostream> //Auto-serialization.
-#include <limits> //For numeric_limits::min and max.
-#include <type_traits> // for operations on any arithmetic number type
+#include <iostream>
+#include <limits>
+#include <type_traits>
 
 #include "types/Coord_t.h"
 #include "types/generic.h"

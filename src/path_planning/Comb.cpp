@@ -4,7 +4,7 @@
 #include "path_planning/Comb.h"
 
 #include <algorithm>
-#include <functional> // function
+#include <functional>
 #include <unordered_set>
 
 #include "Application.h"

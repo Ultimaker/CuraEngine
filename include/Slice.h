@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Scene.h" //To store the scene to slice.
+#include "Scene.h"
 
 namespace curaengine
 {

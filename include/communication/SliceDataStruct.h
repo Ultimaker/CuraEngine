@@ -4,8 +4,8 @@
 #pragma once
 #ifdef ARCUS
 
-#include <memory> //To store pointers to slice data.
-#include <unordered_map> //To store the slice data by layer.
+#include <memory>
+#include <unordered_map>
 
 namespace curaengine::communication
 {

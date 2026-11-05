@@ -10,7 +10,7 @@
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "types/AngleDegrees.h"
-#include "types/EFillMethod.h" //For infill types.
+#include "types/EFillMethod.h"
 #include "types/SectionType.h"
 #include "types/geometry/AABB.h"
 #include "types/geometry/ExtrusionLine.h"

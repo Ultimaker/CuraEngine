@@ -13,7 +13,7 @@
 #include "types/geometry/Point2LL.h"
 
 #ifdef BUILD_TESTS
-#include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#include <gtest/gtest_prod.h>
 #endif
 
 #include <list>

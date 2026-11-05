@@ -1,11 +1,11 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/geometry/Matrix4x3D.h" //The definitions we're implementing.
+#include "types/geometry/Matrix4x3D.h"
 
-#include "types/Ratio.h" //Scale factor.
-#include "types/geometry/Point2LL.h" //Conversion directly into integer-based coordinates.
-#include "types/geometry/Point3D.h" //This matrix gets applied to floating point coordinates.
+#include "types/Ratio.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Point3D.h"
 
 namespace curaengine::types::geometry
 {

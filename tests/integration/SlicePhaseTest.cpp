@@ -6,15 +6,15 @@
 
 #include <gtest/gtest.h>
 
-#include "Application.h" // To set up a slice with settings.
+#include "Application.h"
 #include "Mesh.h"
-#include "Slice.h" // To set up a scene to slice.
-#include "Slicer.h" // Starts the slicing phase that we want to test.
+#include "Slice.h"
+#include "Slicer.h"
 #include "types/Coord_t.h"
-#include "types/geometry/Matrix4x3D.h" // To load STL files.
+#include "types/geometry/Matrix4x3D.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/Polygon.h" // Creating polygons to compare to sliced layers.
-#include "types/geometry/PolygonUtils.h" // Comparing similarity of polygons_.
+#include "types/geometry/Polygon.h"
+#include "types/geometry/PolygonUtils.h"
 
 namespace curaengine::types
 {

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/ZSeamConfig.h" //The definitions we're implementing.
+#include "types/ZSeamConfig.h"
 
 namespace curaengine::types
 {

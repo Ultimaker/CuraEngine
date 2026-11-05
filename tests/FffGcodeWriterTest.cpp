@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "FffGcodeWriter.h" //Unit under test.
+#include "FffGcodeWriter.h"
 
 #include <filesystem>
 #include <fstream>
@@ -17,14 +17,14 @@
 #include "Application.h"
 #include "LayerPlan.h"
 #include "Mesh.h"
-#include "Settings.h" //Settings to generate walls with.
+#include "Settings.h"
 #include "Slice.h"
-#include "SliceDataStorage.h" //Sl
+#include "SliceDataStorage.h"
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
+#include "arcus/MockCommunication.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/Polygon.h" //To create example polygons.
+#include "types/geometry/Polygon.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine

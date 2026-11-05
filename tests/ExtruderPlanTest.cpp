@@ -1,11 +1,11 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <numeric> //For calculating averages.
+#include <numeric>
 
 #include <gtest/gtest.h>
 
-#include "LayerPlan.h" //Code under test.
+#include "LayerPlan.h"
 #include "path_planning/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)

@@ -16,11 +16,11 @@
 #include <spdlog/spdlog.h>
 
 #include "PathOrdering.h"
-#include "path_planning/CombPath.h" //To calculate the combing distance if we want to use combing.
-#include "path_planning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "types/EZSeamCornerPrefType.h" //To get the seam settings.
+#include "path_planning/CombPath.h"
+#include "path_planning/LinePolygonsCrossings.h"
+#include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
-#include "types/ZSeamConfig.h" //To read the seam configuration.
+#include "types/ZSeamConfig.h"
 #include "types/geometry/PolygonUtils.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 #include "types/scoring/BestElementFinder.h"

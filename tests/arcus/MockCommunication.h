@@ -6,10 +6,10 @@
 
 #include <gmock/gmock.h>
 
-#include "communication/Communication.h" //The interface we're implementing.
+#include "communication/Communication.h"
 #include "types/Coord_t.h"
 #include "types/LayerIndex.h"
-#include "types/geometry/Polygon.h" //In the signature of Communication.
+#include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"
 
 namespace curaengine

@@ -9,7 +9,7 @@
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
-#include "types/AngleDegrees.h" //For the infill angle.
+#include "types/AngleDegrees.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/PolygonUtils.h"

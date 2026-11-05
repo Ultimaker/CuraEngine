@@ -11,9 +11,9 @@
 #include "MeshGroup.h"
 #include "PrintFeatureType.h"
 #include "Raft.h"
-#include "Settings.h" // MAX_INFILL_COMBINE
+#include "Settings.h"
 #include "Slice.h"
-#include "SliceDataStorage.h" // SliceDataStorage
+#include "SliceDataStorage.h"
 #include "SliceMeshStorage.h"
 #include "types/Acceleration.h"
 #include "types/EPlatformAdhesion.h"

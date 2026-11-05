@@ -3,7 +3,7 @@
 
 #include "WallToolPaths.h"
 
-#include <algorithm> //For std::partition_copy and std::min_element.
+#include <algorithm>
 #include <unordered_set>
 
 #include <range/v3/range/conversion.hpp>

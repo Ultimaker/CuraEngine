@@ -22,12 +22,12 @@
 #include <spdlog/spdlog.h>
 
 #include "Mesh.h"
-#include "types/Ratio.h" //For the shrinkage percentage and scale factor.
+#include "types/Ratio.h"
 #include "types/SectionType.h"
 #include "types/TimeKeeper.h"
-#include "types/geometry/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "types/geometry/Matrix4x3D.h"
 #include "types/geometry/Point2F.h"
-#include "types/geometry/Point3F.h" //To accept incoming meshes with floating point vertices.
+#include "types/geometry/Point3F.h"
 #include "utils/MeshUtils.h"
 #include "utils/string.h"
 

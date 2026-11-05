@@ -1,14 +1,14 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/geometry/Simplify.h" // The unit under test.
+#include "types/geometry/Simplify.h"
 
 #include <numbers>
 
 #include <gtest/gtest.h>
 
 #include "types/Coord_t.h"
-#include "types/geometry/PolygonUtils.h" // Helper functions for testing deviation.
+#include "types/geometry/PolygonUtils.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine

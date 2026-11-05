@@ -4,7 +4,7 @@
 #pragma once
 
 #include <algorithm>
-#include <cmath> //For fmod.
+#include <cmath>
 #include <numbers>
 
 #define TAU (2.0 * std::numbers::pi)

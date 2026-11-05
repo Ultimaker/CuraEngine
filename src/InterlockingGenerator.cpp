@@ -3,7 +3,7 @@
 
 #include "InterlockingGenerator.h"
 
-#include <algorithm> // max
+#include <algorithm>
 
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>

@@ -20,9 +20,9 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
-#include "AreaSupport.h" //For precomputeCrossInfillTree
-#include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
+#include "Application.h"
+#include "AreaSupport.h"
+#include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
@@ -35,10 +35,10 @@
 #include "types/OBJ.h"
 #include "types/SectionType.h"
 #include "types/ThreadPool.h"
-#include "types/geometry/PolygonUtils.h" //For moveInside.
+#include "types/geometry/PolygonUtils.h"
 #include "types/geometry/Simplify.h"
 #include "utils/algorithm.h"
-#include "utils/math.h" //For round_up_divide and PI.
+#include "utils/math.h"
 
 namespace curaengine
 {

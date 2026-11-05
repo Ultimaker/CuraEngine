@@ -1,9 +1,9 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PathOrderOptimizer.h" //The code under test.
+#include "PathOrderOptimizer.h"
 
-#include <gtest/gtest.h> //To run the tests.
+#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine

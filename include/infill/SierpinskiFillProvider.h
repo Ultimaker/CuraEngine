@@ -7,7 +7,7 @@
 #include <optional>
 
 #include "SierpinskiFill.h"
-#include "types/EFillMethod.h" //For EFillMethod.
+#include "types/EFillMethod.h"
 
 namespace curaengine::types::geometry
 {

@@ -10,11 +10,11 @@
 #include "Slicer.h"
 #include "SlicerLayer.h"
 #include "progress/Progress.h"
-#include "types/ESurfaceMode.h" //For ESurfaceMode.
+#include "types/ESurfaceMode.h"
 #include "types/ThreadPool.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/OpenPolylineStitcher.h"
-#include "types/geometry/Simplify.h" //Simplifying the layers after creating them.
+#include "types/geometry/Simplify.h"
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.

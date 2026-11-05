@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <cmath> //For std::sin() and std::cos().
+#include <cmath>
 #include <deque>
 
 #include "PathOrder.h"

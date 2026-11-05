@@ -7,11 +7,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
-#include "types/EPlatformAdhesion.h" //For EPlatformAdhesion.
+#include "types/EPlatformAdhesion.h"
 #include "utils/math.h"
 
 namespace curaengine

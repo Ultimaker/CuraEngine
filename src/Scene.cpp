@@ -7,10 +7,10 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "FffProcessor.h" //To start a slice.
+#include "FffProcessor.h"
 #include "Mesh.h"
 #include "SliceDataStorage.h"
-#include "communication/Communication.h" //To flush g-code and layer view when we're done.
+#include "communication/Communication.h"
 #include "progress/Progress.h"
 
 namespace curaengine

@@ -3,9 +3,9 @@
 
 #include "types/Date.h"
 
-#include <cstdio> // sscanf
-#include <cstring> // strstr
-#include <iomanip> // setw, setfill
+#include <cstdio>
+#include <cstring>
+#include <iomanip>
 #include <sstream>
 
 namespace curaengine::types

@@ -5,7 +5,7 @@
 
 #include "communication/Listener.h"
 
-#include <Arcus/Error.h> //To process error codes.
+#include <Arcus/Error.h>
 #include <spdlog/spdlog.h>
 
 namespace curaengine::communication

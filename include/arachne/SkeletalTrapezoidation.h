@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include <memory> // smart pointers
+#include <memory>
 #include <unordered_map>
-#include <utility> // pair
+#include <utility>
 
 #include <boost/polygon/voronoi.hpp>
 

@@ -5,7 +5,7 @@
 
 #include <numbers>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Mesh.h"
 #include "Scene.h"

@@ -9,15 +9,15 @@
 #include <cstdlib>
 #include <fstream>
 #include <numbers>
-#include <regex> // regex parsing for temp flow graph
-#include <sstream> // ostringstream
-#include <string> //Parsing strings (stod, stoul).
+#include <regex>
+#include <sstream>
+#include <string>
 
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get the extruders.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "beading_strategy/BeadingStrategyFactory.h"
@@ -29,7 +29,7 @@
 #include "types/CombingMode.h"
 #include "types/CoolDuringExtruderSwitch.h"
 #include "types/DraftShieldHeightLimitation.h"
-#include "types/Duration.h" //For duration and time settings.
+#include "types/Duration.h"
 #include "types/EFillMethod.h"
 #include "types/EGCodeFlavor.h"
 #include "types/EPlatformAdhesion.h"
@@ -42,18 +42,18 @@
 #include "types/FillPerimeterGapMode.h"
 #include "types/InfillStartEndPreference.h"
 #include "types/InsetDirection.h"
-#include "types/LayerIndex.h" //For layer index settings.
+#include "types/LayerIndex.h"
 #include "types/PrimeTowerMode.h"
-#include "types/Ratio.h" //For ratio settings and percentages.
+#include "types/Ratio.h"
 #include "types/RetractBeforeOuterWall.h"
 #include "types/SlicingTolerance.h"
 #include "types/SupportDistPriority.h"
-#include "types/Temperature.h" //For temperature settings.
-#include "types/Velocity.h" //For velocity settings.
+#include "types/Temperature.h"
+#include "types/Velocity.h"
 #include "types/geometry/Matrix4x3D.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"
-#include "types/string_switch.h" //For string switch.
+#include "types/string_switch.h"
 
 namespace curaengine
 {

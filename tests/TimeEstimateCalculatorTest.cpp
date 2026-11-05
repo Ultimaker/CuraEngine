@@ -1,10 +1,10 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "PrintFeatureType.h" //We get time estimates per print feature.
-#include "Settings.h" //To set firmware settings.
+#include "PrintFeatureType.h"
+#include "Settings.h"
 #include "types/Duration.h"
-#include "TimeEstimateCalculator.h" //The unit under test.
+#include "TimeEstimateCalculator.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <numeric>

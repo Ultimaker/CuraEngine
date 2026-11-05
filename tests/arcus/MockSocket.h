@@ -4,9 +4,9 @@
 #ifndef MOCKSOCKET_H
 #define MOCKSOCKET_H
 
-#include <deque> //History of sent and received messages.
+#include <deque>
 
-#include <Arcus/Socket.h> //Inheriting from this to be able to swap this socket in the tested class.
+#include <Arcus/Socket.h>
 
 namespace curaengine
 {

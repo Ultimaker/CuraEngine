@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include <functional> // function
+#include <functional>
 #include <limits>
-#include <memory> // unique_ptr
+#include <memory>
 #include <numbers>
 #include <optional>
 

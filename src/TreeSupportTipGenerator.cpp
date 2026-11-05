@@ -14,7 +14,7 @@
 #include <range/v3/view/iota.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "FakeRoofArea.h"
 #include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
@@ -26,9 +26,9 @@
 #include "types/geometry/ClosestPoint.h"
 #include "types/geometry/GivenDistPoint.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/PolygonUtils.h" //For moveInside.
+#include "types/geometry/PolygonUtils.h"
 #include "utils/algorithm.h"
-#include "utils/math.h" //For round_up_divide and PI.
+#include "utils/math.h"
 
 
 namespace curaengine

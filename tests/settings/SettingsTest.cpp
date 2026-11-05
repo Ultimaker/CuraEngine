@@ -1,15 +1,15 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "Settings.h" //The class under test.
+#include "Settings.h"
 
 #include <cmath>
-#include <memory> //For shared_ptr.
+#include <memory>
 #include <numbers>
 
 #include <gtest/gtest.h>
 
-#include "Application.h" //To test extruder train settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/FlowTempGraph.h"
@@ -22,7 +22,7 @@
 #include "types/Ratio.h"
 #include "types/Temperature.h"
 #include "types/Velocity.h"
-#include "types/geometry/Matrix4x3D.h" //Testing matrix transformation settings.
+#include "types/geometry/Matrix4x3D.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine

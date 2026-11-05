@@ -4,7 +4,7 @@
 #pragma once
 
 #include "PathOrdering.h"
-#include "types/ZSeamConfig.h" //To get the seam settings.
+#include "types/ZSeamConfig.h"
 
 namespace curaengine
 {

@@ -6,7 +6,7 @@
 #ifdef ENABLE_PLUGINS
 #include <utility>
 
-#include "types/geometry/Simplify.h" // TODO: Remove once the simplify slot has been removed
+#include "types/geometry/Simplify.h"
 
 namespace curaengine::plugins::details
 {

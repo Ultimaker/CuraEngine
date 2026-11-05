@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/string.h" // The file under test.
+#include "utils/string.h"
 
 #include <gtest/gtest.h>
 

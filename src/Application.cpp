@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 
-#include <boost/uuid/random_generator.hpp> //For generating a UUID.
-#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/cfg/helpers.h>
@@ -19,12 +19,12 @@
 #include <spdlog/spdlog.h>
 
 #include "Slice.h"
-#include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
-#include "communication/CommandLine.h" //To use the command line to slice stuff.
-#include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
+#include "communication/ArcusCommunication.h"
+#include "communication/CommandLine.h"
+#include "communication/EmscriptenCommunication.h"
 #include "progress/Progress.h"
 #include "types/ThreadPool.h"
-#include "utils/string.h" //For stringcasecompare.
+#include "utils/string.h"
 
 namespace curaengine
 {

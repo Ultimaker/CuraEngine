@@ -17,12 +17,12 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To communicate layer view data.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "FanSpeedLayerTimeSettings.h"
 #include "PathAdapter.h"
-#include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
-#include "Raft.h" // getTotalExtraLayers
+#include "PathOrderMonotonic.h"
+#include "Raft.h"
 #include "RetractionAndWipeConfig.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"

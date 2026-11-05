@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <memory> // smart pointers
+#include <memory>
 
 #include "beading_strategy/BeadingStrategy.h"
 

@@ -8,7 +8,7 @@
 #include <functional>
 #include <vector>
 
-#include "types/SVG.h" // debug
+#include "types/SVG.h"
 #include "types/geometry/Point2LL.h"
 #include "types/geometry/SparseGrid.h"
 

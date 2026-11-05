@@ -1,10 +1,10 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <iostream> //To change the formatting of std::cerr.
-#include <signal.h> //For floating point exceptions.
+#include <iostream>
+#include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#include <sys/resource.h> //For setpriority.
+#include <sys/resource.h>
 #endif
 
 #ifdef SENTRY_URL

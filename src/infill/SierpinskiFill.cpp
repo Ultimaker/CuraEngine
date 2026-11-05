@@ -3,10 +3,10 @@
 
 #include "infill/SierpinskiFill.h"
 
-#include <algorithm> // swap
+#include <algorithm>
 #include <assert.h>
-#include <functional> // function
-#include <iterator> // next, prev
+#include <functional>
+#include <iterator>
 
 #include <spdlog/spdlog.h>
 

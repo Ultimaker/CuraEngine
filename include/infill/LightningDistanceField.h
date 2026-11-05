@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "types/geometry/Polygon.h" //Using outlines to fill and tracking overhang.
-#include "types/geometry/SquareGrid.h" //Tracking for each location the distance to overhang.
+#include "types/geometry/Polygon.h"
+#include "types/geometry/SquareGrid.h"
 
 namespace curaengine::infill
 {
