@@ -14,12 +14,11 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 void AbstractLinesInfill::generateInfill(
     OpenLinesSet& result_polylines,

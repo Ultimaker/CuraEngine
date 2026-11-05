@@ -12,11 +12,10 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/ListPolyIt.h"
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace types;
+using namespace utils;
 
 void Polygon::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
 {

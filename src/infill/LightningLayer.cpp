@@ -11,11 +11,10 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 coord_t LightningLayer::getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location)
 {

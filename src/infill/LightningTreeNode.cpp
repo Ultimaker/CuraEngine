@@ -6,11 +6,10 @@
 #include "geometry/OpenLinesSet.h"
 #include "utils/LinearAlg2D.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 

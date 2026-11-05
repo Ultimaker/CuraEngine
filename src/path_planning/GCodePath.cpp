@@ -3,10 +3,9 @@
 
 #include "path_planning/GCodePath.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::path_planning
 {
+using namespace utils;
 
 [[nodiscard]] bool GCodePath::isTravelPath() const noexcept
 {

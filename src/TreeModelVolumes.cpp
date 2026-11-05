@@ -24,13 +24,12 @@
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::progress;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace progress;
+using namespace types;
+using namespace utils;
 
 TreeModelVolumes::TreeModelVolumes(
     const SliceDataStorage& storage,

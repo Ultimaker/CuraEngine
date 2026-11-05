@@ -6,10 +6,9 @@
 #include "utils/AABB.h"
 #include "utils/LinearAlg2D.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 PolygonConnector::PolygonConnector(const coord_t line_width)
     : line_width_(line_width)

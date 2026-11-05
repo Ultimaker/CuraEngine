@@ -19,11 +19,10 @@
 #include "types/EPlatformAdhesion.h"
 #include "types/Velocity.h"
 
-using namespace curaengine::path_planning;
-using namespace curaengine::utils;
-
 namespace curaengine::types
 {
+using namespace path_planning;
+using namespace utils;
 
 std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerIndex& layer_nr)
 {

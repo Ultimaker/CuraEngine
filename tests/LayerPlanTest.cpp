@@ -18,7 +18,10 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using ::curaengine::types::operator""_r;
+using namespace geometry;
+using namespace path_planning;
+using namespace types;
+using namespace utils;
 
 
 /*!
@@ -197,23 +200,23 @@ public:
 
         // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;
-        fan_settings.cool_min_layer_time = settings->get<::curaengine::types::Duration>("cool_min_layer_time");
-        fan_settings.cool_min_layer_time_fan_speed_max = settings->get<::curaengine::types::Duration>("cool_min_layer_time_fan_speed_max");
-        fan_settings.cool_fan_speed_0 = settings->get<::curaengine::types::Ratio>("cool_fan_speed_0");
-        fan_settings.cool_fan_speed_min = settings->get<::curaengine::types::Ratio>("cool_fan_speed_min");
-        fan_settings.cool_fan_speed_max = settings->get<::curaengine::types::Ratio>("cool_fan_speed_max");
-        fan_settings.cool_min_speed = settings->get<::curaengine::types::Velocity>("cool_min_speed");
-        fan_settings.cool_fan_full_layer = settings->get<::curaengine::types::LayerIndex>("cool_fan_full_layer");
+        fan_settings.cool_min_layer_time = settings->get<Duration>("cool_min_layer_time");
+        fan_settings.cool_min_layer_time_fan_speed_max = settings->get<Duration>("cool_min_layer_time_fan_speed_max");
+        fan_settings.cool_fan_speed_0 = settings->get<Ratio>("cool_fan_speed_0");
+        fan_settings.cool_fan_speed_min = settings->get<Ratio>("cool_fan_speed_min");
+        fan_settings.cool_fan_speed_max = settings->get<Ratio>("cool_fan_speed_max");
+        fan_settings.cool_min_speed = settings->get<Velocity>("cool_min_speed");
+        fan_settings.cool_fan_full_layer = settings->get<LayerIndex>("cool_fan_full_layer");
         fan_speed_layer_time_settings.push_back(fan_settings);
 
         // Set the retraction settings (also copied by LayerPlan).
         RetractionConfig retraction_config;
         retraction_config.distance = settings->get<double>("retraction_amount");
         retraction_config.prime_volume = settings->get<double>("retraction_extra_prime_amount");
-        retraction_config.speed = settings->get<::curaengine::types::Velocity>("retraction_retract_speed");
-        retraction_config.primeSpeed = settings->get<::curaengine::types::Velocity>("retraction_prime_speed");
-        retraction_config.zHop = settings->get<::curaengine::utils::coord_t>("retraction_hop");
-        retraction_config.retraction_min_travel_distance = settings->get<::curaengine::utils::coord_t>("retraction_min_travel");
+        retraction_config.speed = settings->get<Velocity>("retraction_retract_speed");
+        retraction_config.primeSpeed = settings->get<Velocity>("retraction_prime_speed");
+        retraction_config.zHop = settings->get<coord_t>("retraction_hop");
+        retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel");
         retraction_config.retraction_extrusion_window = settings->get<double>("retraction_extrusion_window");
         retraction_config.retraction_count_max = settings->get<size_t>("retraction_count_max");
 
@@ -224,7 +227,7 @@ public:
 
     void SetUp() override
     {
-        layer_plan.addTravel_simple(::curaengine::geometry::Point2LL(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
+        layer_plan.addTravel_simple(Point2LL(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
     }
 
     /*!
@@ -318,39 +321,39 @@ public:
     AddTravelParameters parameters;
 
     // Some obstacles that can be placed in the scene.
-    ::curaengine::geometry::Polygon around_start_end; // Around both the start and end position.
-    ::curaengine::geometry::Polygon around_start; // Only around the start position.
-    ::curaengine::geometry::Polygon around_end; // Only around the end position.
-    ::curaengine::geometry::Polygon between; // Between the start and end position.
-    ::curaengine::geometry::Polygon between_hole; // Negative polygon between the start and end position (a hole).
+    Polygon around_start_end; // Around both the start and end position.
+    Polygon around_start; // Only around the start position.
+    Polygon around_end; // Only around the end position.
+    Polygon between; // Between the start and end position.
+    Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
     AddTravelTest()
         : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
-        around_start_end.push_back(::curaengine::geometry::Point2LL(-100, -100));
-        around_start_end.push_back(::curaengine::geometry::Point2LL(500100, -100));
-        around_start_end.push_back(::curaengine::geometry::Point2LL(500100, 500100));
-        around_start_end.push_back(::curaengine::geometry::Point2LL(-100, 500100));
+        around_start_end.push_back(Point2LL(-100, -100));
+        around_start_end.push_back(Point2LL(500100, -100));
+        around_start_end.push_back(Point2LL(500100, 500100));
+        around_start_end.push_back(Point2LL(-100, 500100));
 
-        around_start.push_back(::curaengine::geometry::Point2LL(-100, -100));
-        around_start.push_back(::curaengine::geometry::Point2LL(100, -100));
-        around_start.push_back(::curaengine::geometry::Point2LL(100, 100));
-        around_start.push_back(::curaengine::geometry::Point2LL(-100, 100));
+        around_start.push_back(Point2LL(-100, -100));
+        around_start.push_back(Point2LL(100, -100));
+        around_start.push_back(Point2LL(100, 100));
+        around_start.push_back(Point2LL(-100, 100));
 
-        around_end.push_back(::curaengine::geometry::Point2LL(249900, 249900));
-        around_end.push_back(::curaengine::geometry::Point2LL(250100, 249900));
-        around_end.push_back(::curaengine::geometry::Point2LL(250100, 250100));
-        around_end.push_back(::curaengine::geometry::Point2LL(249900, 249900));
+        around_end.push_back(Point2LL(249900, 249900));
+        around_end.push_back(Point2LL(250100, 249900));
+        around_end.push_back(Point2LL(250100, 250100));
+        around_end.push_back(Point2LL(249900, 249900));
 
-        between.push_back(::curaengine::geometry::Point2LL(250000, 240000));
-        between.push_back(::curaengine::geometry::Point2LL(260000, 240000));
-        between.push_back(::curaengine::geometry::Point2LL(260000, 300000));
-        between.push_back(::curaengine::geometry::Point2LL(250000, 300000));
+        between.push_back(Point2LL(250000, 240000));
+        between.push_back(Point2LL(260000, 240000));
+        between.push_back(Point2LL(260000, 300000));
+        between.push_back(Point2LL(250000, 300000));
 
-        between_hole.push_back(::curaengine::geometry::Point2LL(250000, 240000));
-        between_hole.push_back(::curaengine::geometry::Point2LL(250000, 300000));
-        between_hole.push_back(::curaengine::geometry::Point2LL(260000, 300000));
-        between_hole.push_back(::curaengine::geometry::Point2LL(260000, 240000));
+        between_hole.push_back(Point2LL(250000, 240000));
+        between_hole.push_back(Point2LL(250000, 300000));
+        between_hole.push_back(Point2LL(260000, 300000));
+        between_hole.push_back(Point2LL(260000, 240000));
     }
 
     /*!
@@ -359,7 +362,7 @@ public:
      * \param parameters The parameter object provided to the test.
      * \return The resulting g-code path.
      */
-    ::curaengine::path_planning::GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>& combine_parameters)
+    GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>& combine_parameters)
     {
         parameters = AddTravelParameters(combine_parameters);
         settings->add("retraction_enable", parameters.retraction_enable);
@@ -367,10 +370,10 @@ public:
         settings->add("retraction_combing", parameters.combing);
         settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); // If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
         storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance
-            = settings->get<::curaengine::utils::coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
+            = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
-        ::curaengine::geometry::Shape slice_data;
+        Shape slice_data;
         switch (parameters.scene)
         {
         case OPEN:
@@ -404,7 +407,7 @@ public:
         layer_plan.comb_boundary_preferred_ = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb_ = new ::curaengine::path_planning::Comb(
+            layer_plan.comb_ = new Comb(
                 *storage,
                 100, // layer_nr
                 layer_plan.comb_boundary_minimum_,
@@ -419,7 +422,7 @@ public:
             layer_plan.comb_ = nullptr;
         }
 
-        const ::curaengine::geometry::Point2LL destination(500000, 500000);
+        const Point2LL destination(500000, 500000);
         return layer_plan.addTravel(destination);
     }
 };
@@ -441,7 +444,7 @@ INSTANTIATE_TEST_SUITE_P(
  */
 TEST_P(AddTravelTest, NoRetractionIfDisabled)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (parameters.retraction_enable == "false")
     {
@@ -454,7 +457,7 @@ TEST_P(AddTravelTest, NoRetractionIfDisabled)
  */
 TEST_P(AddTravelTest, NoHopIfDisabled)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (parameters.hop_enable == "false")
     {
@@ -468,7 +471,7 @@ TEST_P(AddTravelTest, NoHopIfDisabled)
  */
 TEST_P(AddTravelTest, NoRetractionIfShort)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (! parameters.is_long)
     {
@@ -481,7 +484,7 @@ TEST_P(AddTravelTest, NoRetractionIfShort)
  */
 TEST_P(AddTravelTest, NoCombingRetraction)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (parameters.retraction_enable == "true" && parameters.combing == "off" && parameters.is_long)
     {
@@ -494,7 +497,7 @@ TEST_P(AddTravelTest, NoCombingRetraction)
  */
 TEST_P(AddTravelTest, NoRetractionShortCombing)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (parameters.combing != "off" && ! parameters.is_long_combing && ! parameters.throughOutside())
     {
@@ -507,7 +510,7 @@ TEST_P(AddTravelTest, NoRetractionShortCombing)
  */
 TEST_P(AddTravelTest, RetractionLongCombing)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     //  Combing is enabled              combing move is longer  not too short to not retract         retraction enabled
     if (parameters.combing != "off" && parameters.is_long_combing && parameters.is_long && parameters.retraction_enable == "true")
@@ -522,7 +525,7 @@ TEST_P(AddTravelTest, RetractionLongCombing)
  */
 TEST_P(AddTravelTest, HopWhenRetracting)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (result.retract)
     {
@@ -547,7 +550,7 @@ TEST_P(AddTravelTest, HopWhenRetracting)
  */
 TEST_P(AddTravelTest, RetractIfCombingImpossible)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (parameters.retraction_enable != "true" || ! parameters.is_long || parameters.combing == "off")
     {
@@ -569,7 +572,7 @@ TEST_P(AddTravelTest, RetractIfCombingImpossible)
  */
 TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
 {
-    const ::curaengine::path_planning::GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if (! result.retract)
     {
@@ -592,8 +595,8 @@ TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
 {
     // A huge override area covering the whole move means every point lands in the overhang zone
     // and receives the reduced speed_ratio.
-    constexpr ::curaengine::types::Ratio overhang_speed_ratio = 0.5_r;
-    ::curaengine::geometry::Shape overhang_region;
+    constexpr Ratio overhang_speed_ratio = 0.5_r;
+    Shape overhang_region;
     overhang_region.emplace_back();
     overhang_region.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
     overhang_region.back().emplace_back(MM2INT(1000), -MM2INT(1000));
@@ -607,17 +610,17 @@ TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
         .line_width = MM2INT(0.4),
         .layer_thickness = MM2INT(0.1),
         .flow = 1.0_r,
-        .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ ::curaengine::types::Velocity{ 50.0 }, ::curaengine::types::Acceleration{ 1000.0 }, ::curaengine::types::Velocity{ 10.0 } },
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
     };
 
     // SetUp() placed last_planned_position at (0,0). Move somewhere entirely in the overhang zone.
-    layer_plan.addExtrusionMove(::curaengine::geometry::Point3LL(MM2INT(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(MM2INT(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     const bool any_reduced = std::any_of(
         paths.begin(),
         paths.end(),
-        [](const ::curaengine::path_planning::GCodePath& p)
+        [](const GCodePath& p)
         {
             return ! p.isTravelPath() && p.speed_factor < 1.0_r;
         });
@@ -633,21 +636,21 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
 {
     // supported_region: 20x20 mm square centred at origin — points inside get no override (full speed)
     // overhang_region: the rest of a huge area outside the square — gets speed_ratio = 0.5 (overhang)
-    ::curaengine::geometry::Shape supported_region;
+    Shape supported_region;
     supported_region.emplace_back();
     supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
     supported_region.back().emplace_back( MM2INT(10), -MM2INT(10));
     supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
     supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
 
-    ::curaengine::geometry::Shape full_area;
+    Shape full_area;
     full_area.emplace_back();
     full_area.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
     full_area.back().emplace_back(MM2INT(1000), -MM2INT(1000));
     full_area.back().emplace_back(MM2INT(1000), MM2INT(1000));
     full_area.back().emplace_back(-MM2INT(1000), MM2INT(1000));
 
-    const ::curaengine::geometry::Shape overhang_region = full_area.difference(supported_region);
+    const Shape overhang_region = full_area.difference(supported_region);
     const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, 0.5_r } };
 
     const GCodePathConfig config{
@@ -655,16 +658,16 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
         .line_width = MM2INT(0.4),
         .layer_thickness = MM2INT(0.1),
         .flow = 1.0_r,
-        .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ ::curaengine::types::Velocity{ 50.0 }, ::curaengine::types::Acceleration{ 1000.0 }, ::curaengine::types::Velocity{ 10.0 } },
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
     };
 
     // Start at (0,0) inside the square. Move to (50mm,0,0), crossing the boundary at x=10mm.
-    layer_plan.addExtrusionMove(::curaengine::geometry::Point3LL(MM2INT(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(MM2INT(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     bool found_full_speed = false;
     bool found_reduced_speed = false;
-    for (const ::curaengine::path_planning::GCodePath& path : paths)
+    for (const GCodePath& path : paths)
     {
         if (path.isTravelPath()) continue;
         if (path.speed_factor >= 1.0_r) found_full_speed = true;
@@ -677,7 +680,7 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
 {
-    std::vector<::curaengine::path_planning::NozzleTempInsert> nozzle_temp_inserts{
+    std::vector<NozzleTempInsert> nozzle_temp_inserts{
         { .path_idx = 1, .extruder = 1, .temperature = 100., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 110., .wait = false, .time_after_path_start = 2. },
         { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true }, { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
         { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },

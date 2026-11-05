@@ -9,10 +9,9 @@
 
 #include "utils/macros.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 Shape ExtrusionSegment::toShape()
 {

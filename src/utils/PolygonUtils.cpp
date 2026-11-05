@@ -26,12 +26,11 @@
 #include "utils/AABB.h"
 #endif
 
-using namespace curaengine::geometry;
-using namespace curaengine::infill;
-using namespace curaengine::types;
-
 namespace curaengine::utils
 {
+using namespace geometry;
+using namespace infill;
+using namespace types;
 
 const std::function<int(Point2LL)> PolygonUtils::no_penalty_function = [](Point2LL)
 {

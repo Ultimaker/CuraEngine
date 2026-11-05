@@ -22,12 +22,11 @@
 #include "types/Ratio.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)

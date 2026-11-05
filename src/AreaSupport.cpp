@@ -51,14 +51,13 @@
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::infill;
-using namespace curaengine::progress;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace infill;
+using namespace progress;
+using namespace types;
+using namespace utils;
 
 bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
 {

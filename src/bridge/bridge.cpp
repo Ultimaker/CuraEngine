@@ -28,12 +28,12 @@
 #include "utils/scoring/BestElementFinder.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::bridge
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
+using namespace utils::scoring;
 
 /*!
  * Gets the proper angle when bridging over infill
@@ -241,7 +241,7 @@ std::optional<AngleDegrees> bridgeAngle(
         {
             angle_candidates.push_back(angle);
         }
-        utils::scoring::BestElementFinder best_angle_finder;
+        BestElementFinder best_angle_finder;
 
         // First pass tries to find the angle that maximizes the number of properly bridging line, i.e. anchored on both sides
         // Give some threshold so that we keep a few candidates that are close to the best one
@@ -266,7 +266,7 @@ std::optional<AngleDegrees> bridgeAngle(
         {
             angle_candidates.push_back(angle);
         }
-        utils::scoring::BestElementFinder best_angle_refiner;
+        BestElementFinder best_angle_refiner;
         best_angle_refiner.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
         best_angle_index = best_angle_refiner.findBestElement(angle_candidates.size());
     }

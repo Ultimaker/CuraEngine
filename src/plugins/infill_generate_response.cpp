@@ -7,11 +7,10 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::plugins
 {
+using namespace geometry;
+using namespace utils;
 infill_generate_response::native_value_type infill_generate_response::operator()(const infill_generate_response::value_type& message) const
 {
     VariableWidthLines toolpaths;

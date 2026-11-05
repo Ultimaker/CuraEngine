@@ -11,10 +11,9 @@
 #include "utils/PathsPointIndex.h"
 #include "utils/PathsPointIndexLocator.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 template<>
 bool ExtrusionLineStitcher::canReverse(const PathsPointIndex<VariableWidthLines>& ppi)

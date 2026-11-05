@@ -16,12 +16,11 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/PathsPointIndex.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::path_planning
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
 {

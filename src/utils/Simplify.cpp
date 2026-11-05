@@ -13,10 +13,9 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/LinearAlg2D.h" //To calculate line deviations and intersecting lines.
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 Simplify::Simplify(const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
     : max_resolution_(max_resolution)

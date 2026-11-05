@@ -13,28 +13,31 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class SimplifyTest : public testing::Test
 {
 public:
     // Settings to use for most of these tests.
-    static constexpr ::curaengine::utils::coord_t MAX_RESOLUTION = 1000;
-    static constexpr ::curaengine::utils::coord_t MAX_DEVIATION = 100;
-    static constexpr ::curaengine::utils::coord_t MAX_AREA_DEVIATION = 20000;
+    static constexpr coord_t MAX_RESOLUTION = 1000;
+    static constexpr coord_t MAX_DEVIATION = 100;
+    static constexpr coord_t MAX_AREA_DEVIATION = 20000;
 
     /*!
      * Use this basic simplify instance to easily run tests.
      */
-    ::curaengine::utils::Simplify simplifier;
+    Simplify simplifier;
 
     // Some polygons to run tests on.
-    ::curaengine::geometry::Polygon circle; // High resolution circle.
-    ::curaengine::geometry::Polygon square_collinear; // Square, but with extra vertices along each edge, with up to 4 units jitter.
+    Polygon circle; // High resolution circle.
+    Polygon square_collinear; // Square, but with extra vertices along each edge, with up to 4 units jitter.
     // And some polylines.
-    ::curaengine::geometry::Polygon sine; // A sinewave.
-    ::curaengine::geometry::Polygon spiral; // A spiral with gradually increasing segment length.
-    ::curaengine::geometry::Polygon zigzag; // Sawtooth zig-zag pattern.
+    Polygon sine; // A sinewave.
+    Polygon spiral; // A spiral with gradually increasing segment length.
+    Polygon zigzag; // Sawtooth zig-zag pattern.
 
     SimplifyTest()
         : simplifier(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION)
@@ -43,16 +46,16 @@ public:
 
     void SetUp() override
     {
-        simplifier = ::curaengine::utils::Simplify(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION); // Reset in case the test wants to change a parameter.
+        simplifier = Simplify(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION); // Reset in case the test wants to change a parameter.
 
         circle.clear();
-        ::curaengine::utils::coord_t radius = 100000;
+        coord_t radius = 100000;
         constexpr double segment_length = MAX_RESOLUTION - 10;
         constexpr double tau = 6.283185307179586476925286766559; // 2 * pi.
         const double increment = segment_length / radius; // Segments of 990 units.
         for (double angle = 0; angle < tau; angle += increment)
         {
-            circle.push_back(::curaengine::geometry::Point2LL(std::cos(angle) * radius, std::sin(angle) * radius));
+            circle.push_back(Point2LL(std::cos(angle) * radius, std::sin(angle) * radius));
         }
 
         square_collinear.clear();
@@ -63,54 +66,54 @@ public:
         {
             for (size_t vertex = 0; vertex < extra_vertices; ++vertex)
             {
-                const ::curaengine::utils::coord_t latitude = (vertex % 2) * jitter;
-                const ::curaengine::utils::coord_t longitude = vertex * width / extra_vertices;
+                const coord_t latitude = (vertex % 2) * jitter;
+                const coord_t longitude = vertex * width / extra_vertices;
                 switch (side)
                 {
                 case 0:
-                    square_collinear.push_back(::curaengine::geometry::Point2LL(longitude, latitude));
+                    square_collinear.push_back(Point2LL(longitude, latitude));
                     break;
                 case 1:
-                    square_collinear.push_back(::curaengine::geometry::Point2LL(width + latitude, longitude));
+                    square_collinear.push_back(Point2LL(width + latitude, longitude));
                     break;
                 case 2:
-                    square_collinear.push_back(::curaengine::geometry::Point2LL(width - longitude, width + latitude));
+                    square_collinear.push_back(Point2LL(width - longitude, width + latitude));
                     break;
                 case 3:
-                    square_collinear.push_back(::curaengine::geometry::Point2LL(latitude, width - longitude));
+                    square_collinear.push_back(Point2LL(latitude, width - longitude));
                     break;
                 }
             }
         }
 
         sine.clear();
-        const ::curaengine::types::AngleRadians sine_step = 0.01; // How far to continue along the sine curve at every vertex.
-        constexpr ::curaengine::utils::coord_t amplitude = 45;
-        constexpr ::curaengine::utils::coord_t y_step = 100;
+        const AngleRadians sine_step = 0.01; // How far to continue along the sine curve at every vertex.
+        constexpr coord_t amplitude = 45;
+        constexpr coord_t y_step = 100;
         constexpr size_t periods = 10; // How many waves of the sine to construct.
         for (double current_sine = 0; current_sine < std::numbers::pi * periods; current_sine += sine_step)
         {
-            sine.push_back(::curaengine::geometry::Point2LL(std::sin(current_sine) * amplitude, y_step * sine.size()));
+            sine.push_back(Point2LL(std::sin(current_sine) * amplitude, y_step * sine.size()));
         }
 
         spiral.clear();
-        const ::curaengine::types::AngleRadians angle_step = 0.1; // Rotate every next vertex by this amount of radians.
-        constexpr ::curaengine::utils::coord_t radius_step = 100; // Increase the radius by this amount every vertex.
-        constexpr ::curaengine::utils::coord_t vertex_count = 1000;
-        ::curaengine::types::AngleRadians angle = 0;
+        const AngleRadians angle_step = 0.1; // Rotate every next vertex by this amount of radians.
+        constexpr coord_t radius_step = 100; // Increase the radius by this amount every vertex.
+        constexpr coord_t vertex_count = 1000;
+        AngleRadians angle = 0;
         radius = 0;
         for (size_t i = 0; i < vertex_count; ++i)
         {
-            spiral.push_back(::curaengine::geometry::Point2LL(std::cos(angle) * radius, std::sin(angle) * radius));
+            spiral.push_back(Point2LL(std::cos(angle) * radius, std::sin(angle) * radius));
             angle += angle_step;
             radius += radius_step;
         }
 
         zigzag.clear();
-        constexpr ::curaengine::utils::coord_t invfreq = 30;
+        constexpr coord_t invfreq = 30;
         for (size_t i = 0; i < vertex_count; ++i)
         {
-            zigzag.push_back(::curaengine::geometry::Point2LL(-amplitude + (i % 2) * 2 * amplitude, i * invfreq));
+            zigzag.push_back(Point2LL(-amplitude + (i % 2) * 2 * amplitude, i * invfreq));
         }
     }
 };
@@ -129,7 +132,7 @@ TEST_F(SimplifyTest, CircleMaxResolution)
 
     for (size_t point_index = 1; point_index + 1 < circle.size(); point_index++) // Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
-        ::curaengine::utils::coord_t segment_length = ::curaengine::geometry::vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
+        coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
         EXPECT_GE(segment_length, MAX_RESOLUTION) << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
     }
 }
@@ -144,22 +147,22 @@ TEST_F(SimplifyTest, CircleMaxResolution)
 TEST_F(SimplifyTest, CircleMaxDeviation)
 {
     simplifier.max_resolution_ = 999999; // For this test, the maximum resolution should not be an issue.
-    ::curaengine::geometry::Polygon simplified = simplifier.polygon(circle);
+    Polygon simplified = simplifier.polygon(circle);
 
     // Check on each vertex if it didn't deviate too much.
-    for (::curaengine::geometry::Point2LL v : circle)
+    for (Point2LL v : circle)
     {
-        ::curaengine::geometry::Point2LL moved_point = v;
-        ::curaengine::utils::PolygonUtils::moveInside(simplified, moved_point);
-        const ::curaengine::utils::coord_t deviation = ::curaengine::geometry::vSize(moved_point - v);
+        Point2LL moved_point = v;
+        PolygonUtils::moveInside(simplified, moved_point);
+        const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation_);
     }
     // Also check the other way around, since the longest distance may also be on a vertex of the new polygon.
-    for (::curaengine::geometry::Point2LL v : simplified)
+    for (Point2LL v : simplified)
     {
-        ::curaengine::geometry::Point2LL moved_point = v;
-        ::curaengine::utils::PolygonUtils::moveInside(circle, moved_point);
-        const ::curaengine::utils::coord_t deviation = ::curaengine::geometry::vSize(moved_point - v);
+        Point2LL moved_point = v;
+        PolygonUtils::moveInside(circle, moved_point);
+        const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation_);
     }
 }
@@ -174,7 +177,7 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
 TEST_F(SimplifyTest, Zigzag)
 {
     simplifier.max_resolution_ = 9999999;
-    ::curaengine::geometry::ClosedPolyline simplified = simplifier.polyline(zigzag);
+    ClosedPolyline simplified = simplifier.polyline(zigzag);
     EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
@@ -192,14 +195,14 @@ TEST_F(SimplifyTest, LimitedLength)
     size_t limit_vertex;
     for (limit_vertex = 1; limit_vertex < spiral.size(); ++limit_vertex)
     {
-        if (::curaengine::geometry::vSize2(spiral[limit_vertex] - spiral[limit_vertex - 1]) > simplifier.max_resolution_ * simplifier.max_resolution_)
+        if (vSize2(spiral[limit_vertex] - spiral[limit_vertex - 1]) > simplifier.max_resolution_ * simplifier.max_resolution_)
         {
             limit_vertex--;
             break;
         }
     }
 
-    ::curaengine::geometry::ClosedPolyline simplified = simplifier.polyline(spiral);
+    ClosedPolyline simplified = simplifier.polyline(spiral);
 
     // Look backwards until the limit vertex is reached to verify that the polygon is unaltered there.
     for (size_t i = 0; i < simplified.size(); ++i)
@@ -225,20 +228,20 @@ TEST_F(SimplifyTest, LimitedError)
     simplifier.max_resolution_ = 9999999;
 
     // Generate a zig-zag with gradually increasing deviation.
-    ::curaengine::geometry::Polygon increasing_zigzag;
-    increasing_zigzag.push_back(::curaengine::geometry::Point2LL(0, 0));
-    constexpr ::curaengine::utils::coord_t amplitude_step = 1; // Every 2 vertices, the amplitude increases by this much.
-    constexpr ::curaengine::utils::coord_t y_step = 100;
-    const ::curaengine::utils::coord_t amplitude_limit = simplifier.max_deviation_ * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
-    for (::curaengine::utils::coord_t amplitude = 0; amplitude < amplitude_limit; amplitude += amplitude_step)
+    Polygon increasing_zigzag;
+    increasing_zigzag.push_back(Point2LL(0, 0));
+    constexpr coord_t amplitude_step = 1; // Every 2 vertices, the amplitude increases by this much.
+    constexpr coord_t y_step = 100;
+    const coord_t amplitude_limit = simplifier.max_deviation_ * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
+    for (coord_t amplitude = 0; amplitude < amplitude_limit; amplitude += amplitude_step)
     {
-        increasing_zigzag.push_back(::curaengine::geometry::Point2LL(amplitude, increasing_zigzag.size() * y_step));
-        increasing_zigzag.push_back(::curaengine::geometry::Point2LL(0, increasing_zigzag.size() * y_step));
+        increasing_zigzag.push_back(Point2LL(amplitude, increasing_zigzag.size() * y_step));
+        increasing_zigzag.push_back(Point2LL(0, increasing_zigzag.size() * y_step));
     }
 
     size_t limit_vertex = 2 * simplifier.max_deviation_ / amplitude_step + 3; // 2 vertices per zag. Deviation/step zags. Add 3 since deviation equal to max +- epsilon is allowed.
 
-    ::curaengine::geometry::ClosedPolyline simplified = simplifier.polyline(increasing_zigzag);
+    ClosedPolyline simplified = simplifier.polyline(increasing_zigzag);
 
     // Look backwards until the limit vertex is reached to verify that the polygon is unaltered there.
     for (size_t i = 0; i < simplified.size(); ++i)
@@ -261,30 +264,30 @@ TEST_F(SimplifyTest, LimitedError)
  */
 TEST_F(SimplifyTest, LongEdgesNotMoved)
 {
-    ::curaengine::geometry::Polygon polyline;
-    polyline.push_back(::curaengine::geometry::Point2LL(0, 0));
-    polyline.push_back(::curaengine::geometry::Point2LL(10000, 10000)); // Long edge.
-    polyline.push_back(::curaengine::geometry::Point2LL(10010, 10000)); // Short edge.
-    polyline.push_back(::curaengine::geometry::Point2LL(21010, 0)); // Long edge.
+    Polygon polyline;
+    polyline.push_back(Point2LL(0, 0));
+    polyline.push_back(Point2LL(10000, 10000)); // Long edge.
+    polyline.push_back(Point2LL(10010, 10000)); // Short edge.
+    polyline.push_back(Point2LL(21010, 0)); // Long edge.
 
-    ::curaengine::geometry::ClosedPolyline simplified = simplifier.polyline(polyline);
+    ClosedPolyline simplified = simplifier.polyline(polyline);
 
     // Verify that all small segments are removed.
     for (size_t i = 1; i < simplified.size(); ++i)
     {
-        EXPECT_GE(::curaengine::geometry::vSize(simplified[i] - simplified[i - 1]), simplifier.max_resolution_) << "There may not be any segment smaller than max resolution.";
+        EXPECT_GE(vSize(simplified[i] - simplified[i - 1]), simplifier.max_resolution_) << "There may not be any segment smaller than max resolution.";
     }
 
     // Verify that all long segments are still present.
     for (size_t i = 0; i < polyline.size() - 1; ++i)
     {
-        if (::curaengine::geometry::vSize(polyline[i] - polyline[i + 1]) > simplifier.max_resolution_)
+        if (vSize(polyline[i] - polyline[i + 1]) > simplifier.max_resolution_)
         {
             // Both endpoints of this line segment must have a distance to the simplified polygon of 0, theoretically.
             // Due to rounding errors we'll allow up to 1 unit.
-            ::curaengine::geometry::Point2LL moved_point = polyline[i];
-            ::curaengine::utils::PolygonUtils::moveInside(simplified, moved_point);
-            const ::curaengine::utils::coord_t deviation = ::curaengine::geometry::vSize(moved_point - polyline[i]);
+            Point2LL moved_point = polyline[i];
+            PolygonUtils::moveInside(simplified, moved_point);
+            const coord_t deviation = vSize(moved_point - polyline[i]);
             EXPECT_LE(deviation, 1) << "The endpoints of long segments must still be in the simplified result.";
         }
     }
@@ -298,13 +301,13 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
  */
 TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
 {
-    ::curaengine::geometry::Polygon polyline;
-    polyline.push_back(::curaengine::geometry::Point2LL(0, 0));
-    polyline.push_back(::curaengine::geometry::Point2LL(0, 10000)); // Long edge.
-    polyline.push_back(::curaengine::geometry::Point2LL(10, 10000)); // Short edge.
-    polyline.push_back(::curaengine::geometry::Point2LL(20, 0)); // Long edge. Intersection with previous long edge is at 0,20000, which is too far.
+    Polygon polyline;
+    polyline.push_back(Point2LL(0, 0));
+    polyline.push_back(Point2LL(0, 10000)); // Long edge.
+    polyline.push_back(Point2LL(10, 10000)); // Short edge.
+    polyline.push_back(Point2LL(20, 0)); // Long edge. Intersection with previous long edge is at 0,20000, which is too far.
 
-    ::curaengine::geometry::ClosedPolyline simplified = simplifier.polyline(polyline);
+    ClosedPolyline simplified = simplifier.polyline(polyline);
 
     // Verify that the polyline is unchanged.
     ASSERT_EQ(polyline.size(), simplified.size()) << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
@@ -314,7 +317,7 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
     }
 
     polyline.pop_back();
-    polyline.push_back(::curaengine::geometry::Point2LL(10, 0)); // Replace last vertex with one that makes the two long edges exactly parallel.
+    polyline.push_back(Point2LL(10, 0)); // Replace last vertex with one that makes the two long edges exactly parallel.
 
     simplified = simplifier.polyline(polyline);
 
@@ -337,7 +340,7 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
 TEST_F(SimplifyTest, Sine)
 {
     simplifier.max_resolution_ = 9999999;
-    ::curaengine::geometry::ClosedPolyline simplified = simplifier.polyline(sine);
+    ClosedPolyline simplified = simplifier.polyline(sine);
 
     EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
@@ -348,7 +351,7 @@ TEST_F(SimplifyTest, Sine)
  */
 TEST_F(SimplifyTest, Collinear)
 {
-    ::curaengine::geometry::Polygon simplified = simplifier.polygon(square_collinear);
+    Polygon simplified = simplifier.polygon(square_collinear);
     EXPECT_EQ(simplified.size(), 4) << "The square has 4 corners. All other extra vertices deviate by less than the minimum resolution.";
 }
 
@@ -357,7 +360,7 @@ TEST_F(SimplifyTest, Collinear)
  */
 TEST_F(SimplifyTest, IdenticalVertices)
 {
-    ::curaengine::geometry::Polygon polygon; // Make a rudimentary triangle, but with vertices repeated.
+    Polygon polygon; // Make a rudimentary triangle, but with vertices repeated.
     constexpr size_t repeats = 10; // How many copies of each vertex to include.
     for (size_t vertex = 0; vertex < 3; ++vertex)
     {
@@ -366,19 +369,19 @@ TEST_F(SimplifyTest, IdenticalVertices)
             switch (vertex)
             {
             case 0:
-                polygon.push_back(::curaengine::geometry::Point2LL(0, 0));
+                polygon.push_back(Point2LL(0, 0));
                 break;
             case 1:
-                polygon.push_back(::curaengine::geometry::Point2LL(10000, 0));
+                polygon.push_back(Point2LL(10000, 0));
                 break;
             case 2:
-                polygon.push_back(::curaengine::geometry::Point2LL(5000, 10000));
+                polygon.push_back(Point2LL(5000, 10000));
                 break;
             }
         }
     }
 
-    ::curaengine::geometry::Polygon simplified = simplifier.polygon(polygon);
+    Polygon simplified = simplifier.polygon(polygon);
     EXPECT_EQ(simplified.size(), 3) << "Only the actual vertices of the triangle should remain.";
 }
 
@@ -388,18 +391,18 @@ TEST_F(SimplifyTest, IdenticalVertices)
 TEST_F(SimplifyTest, ToDegenerate)
 {
     // Create a triangle where one of the vertices could be removed.
-    ::curaengine::geometry::Polygon triangle;
-    triangle.push_back(::curaengine::geometry::Point2LL(0, 0));
-    triangle.push_back(::curaengine::geometry::Point2LL(1100, 0));
-    triangle.push_back(::curaengine::geometry::Point2LL(550, 50)); // Deviates by 50, and both adjacent edges are just over 550 long. Could be removed.
+    Polygon triangle;
+    triangle.push_back(Point2LL(0, 0));
+    triangle.push_back(Point2LL(1100, 0));
+    triangle.push_back(Point2LL(550, 50)); // Deviates by 50, and both adjacent edges are just over 550 long. Could be removed.
 
     triangle = simplifier.polygon(triangle);
     EXPECT_EQ(triangle.size(), 3) << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
 
     // Create a polyline that is shorter than the minimum resolution.
-    ::curaengine::geometry::ClosedPolyline segment;
-    segment.push_back(::curaengine::geometry::Point2LL(0, 0));
-    segment.push_back(::curaengine::geometry::Point2LL(4, 0)); // Less than 5 micron long, so vertices would always be removed.
+    ClosedPolyline segment;
+    segment.push_back(Point2LL(0, 0));
+    segment.push_back(Point2LL(4, 0)); // Less than 5 micron long, so vertices would always be removed.
 
     segment = simplifier.polyline(segment);
     EXPECT_EQ(segment.size(), 0) << "The segment got removed entirely, because simplification would reduce its vertices to less than 2, making it degenerate.";

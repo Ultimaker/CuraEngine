@@ -7,10 +7,9 @@
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
-using namespace curaengine::utils;
-
 namespace curaengine::plugins
 {
+using namespace utils;
 simplify_request::value_type simplify_request::operator()(
     const simplify_request::native_value_type& polygons,
     const coord_t max_resolution,

@@ -12,10 +12,9 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace utils;
 
 template<class LineType>
 bool LinesSet<LineType>::checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty)

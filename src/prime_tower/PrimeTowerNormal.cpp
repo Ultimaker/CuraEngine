@@ -9,11 +9,10 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::prime_tower
 {
+using namespace types;
+using namespace utils;
 
 PrimeTowerNormal::PrimeTowerNormal(const std::vector<size_t>& used_extruders)
     : PrimeTower()

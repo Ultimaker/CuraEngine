@@ -37,12 +37,11 @@
 
 namespace fs = std::filesystem;
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::communication
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
     : arguments_{ arguments }

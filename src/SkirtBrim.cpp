@@ -23,12 +23,11 @@
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     : storage_(storage)

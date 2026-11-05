@@ -18,11 +18,10 @@
 #include "types/AngleRadians.h"
 #include "types/SlicingTolerance.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::types
 {
+using namespace geometry;
+using namespace utils;
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
     : base_layer_height_{ base_layer_height }

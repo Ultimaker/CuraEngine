@@ -10,11 +10,10 @@
 #include "geometry/Matrix4x3D.h"
 #include "geometry/Point3D.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils;
 
 const int vertex_meld_distance = MM2INT(0.03);
 /*!

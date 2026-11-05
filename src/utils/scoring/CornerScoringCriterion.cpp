@@ -8,12 +8,11 @@
 #include "utils/math.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::utils::scoring
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
     : PositionBasedScoringCriterion(points)

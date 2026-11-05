@@ -27,13 +27,12 @@
     1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
          // performance).
 
-using namespace curaengine::beading_strategy;
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::arachne
 {
+using namespace beading_strategy;
+using namespace geometry;
+using namespace types;
+using namespace utils;
 using types::operator""_r;
 
 

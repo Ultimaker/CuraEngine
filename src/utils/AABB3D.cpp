@@ -7,10 +7,9 @@
 
 #include "utils/AABB.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 AABB3D::AABB3D()
     : min_(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max())

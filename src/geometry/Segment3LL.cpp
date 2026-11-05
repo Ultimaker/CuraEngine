@@ -4,10 +4,9 @@
 #include "geometry/Segment3LL.h"
 
 
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace utils;
 
 Segment3LL::Segment3LL(const Point3LL& start, const Point3LL& end)
     : start_(start)

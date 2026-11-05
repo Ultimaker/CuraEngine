@@ -4,11 +4,10 @@
 
 #include <numeric>
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace types;
+using namespace utils;
 
 DistributedBeadingStrategy::DistributedBeadingStrategy(
     const coord_t optimal_width,

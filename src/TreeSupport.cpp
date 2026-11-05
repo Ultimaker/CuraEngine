@@ -40,13 +40,12 @@
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
 
-using namespace curaengine::geometry;
-using namespace curaengine::progress;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace progress;
+using namespace types;
+using namespace utils;
 
 TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
@@ -1371,8 +1370,8 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
         Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
-    time_keeper.registerTime("Creating influence areas: increase", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
-    time_keeper.registerTime("Creating influence areas: merge", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_merge));
+    time_keeper.registerTime("Creating influence areas: increase", std::chrono::milliseconds{ 10 }, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
+    time_keeper.registerTime("Creating influence areas: merge", std::chrono::milliseconds{ 10 }, std::chrono::duration_cast<std::chrono::milliseconds>(dur_merge));
 }
 
 void TreeSupport::setPointsOnAreas(const TreeSupportElement::Ptr elem)

@@ -7,11 +7,10 @@
 #include "utils/LinearAlg2D.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::bridge
 {
+using namespace geometry;
+using namespace utils;
 
 SegmentOverlappingData::SegmentOverlappingData(
     const coord_t this_min_y,

@@ -10,8 +10,6 @@
 
 #include <spdlog/stopwatch.h>
 
-using namespace std::chrono_literals;
-
 namespace curaengine::utils
 {
 
@@ -37,7 +35,10 @@ public:
 
     std::chrono::milliseconds restart();
 
-    void registerTime(const std::string& stage, const std::chrono::milliseconds threshold = 10ms, const std::optional<std::chrono::milliseconds> duration = std::nullopt);
+    void registerTime(
+        const std::string& stage,
+        const std::chrono::milliseconds threshold = std::chrono::milliseconds{ 10 },
+        const std::optional<std::chrono::milliseconds> duration = std::nullopt);
 
     const RegisteredTimes& getRegisteredTimes() const
     {

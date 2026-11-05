@@ -5,10 +5,9 @@
 
 #include "utils/PolygonUtils.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const
 {

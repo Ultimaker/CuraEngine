@@ -20,14 +20,13 @@
 #include "utils/Simplify.h"
 #include "utils/actions/smooth_fn.h"
 
-using namespace curaengine::arachne;
-using namespace curaengine::beading_strategy;
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace arachne;
+using namespace beading_strategy;
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 WallToolPaths::WallToolPaths(
     const Shape& outline,

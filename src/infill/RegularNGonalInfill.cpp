@@ -8,11 +8,10 @@
 #include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/AABB.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 RegularNGonalInfill::RegularNGonalInfill(RegularNGonType type)
     : type_(type)

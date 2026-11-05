@@ -34,12 +34,11 @@
 
 namespace fs = std::filesystem;
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 /* Custom fgets function to support Mac line-ends in Ascii STL files. OpenSCAD produces this when used on Mac */
 void* fgets_(char* ptr, size_t len, FILE* f)

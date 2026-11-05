@@ -21,10 +21,9 @@
 #include "geometry/Point3D.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle)
 {

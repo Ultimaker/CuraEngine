@@ -7,11 +7,10 @@
 
 #include "SliceDataStorage.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::path_planning
 {
+using namespace geometry;
+using namespace utils;
 
 LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx)
     : poly_idx_(poly_idx)

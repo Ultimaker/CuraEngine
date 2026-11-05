@@ -13,11 +13,10 @@
 #include "utils/math.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::bridge
 {
+using namespace geometry;
+using namespace utils;
 
 TransformedSegment::TransformedSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix)
     : TransformedSegment(matrix.apply(start), matrix.apply(end))

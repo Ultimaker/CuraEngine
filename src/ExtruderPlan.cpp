@@ -9,14 +9,13 @@
 #include "SliceMeshStorage.h"
 #include "gcode_export/GCodeExport.h"
 
-using namespace curaengine::gcode_export;
-using namespace curaengine::geometry;
-using namespace curaengine::path_planning;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace gcode_export;
+using namespace geometry;
+using namespace path_planning;
+using namespace types;
+using namespace utils;
 ExtruderPlan::ExtruderPlan(
     const size_t extruder,
     const LayerIndex layer_nr,

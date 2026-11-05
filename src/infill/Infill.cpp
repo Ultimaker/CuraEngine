@@ -35,12 +35,11 @@
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate

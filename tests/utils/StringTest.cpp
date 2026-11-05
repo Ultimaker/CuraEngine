@@ -8,6 +8,7 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
+using namespace utils;
 
 /*
  * Fixture to allow parameterized tests for writeInt2mm.
@@ -25,7 +26,7 @@ TEST_P(WriteInt2mmTest, WriteInt2mm)
     const int in = GetParam();
 
     std::ostringstream ss;
-    ::curaengine::utils::writeInt2mm(in, ss);
+    writeInt2mm(in, ss);
 
     ss.flush();
     const std::string str = ss.str();
@@ -53,7 +54,7 @@ TEST_P(WriteDoubleToStreamTest, WriteDoubleToStream)
     constexpr unsigned int precision = 4;
 
     std::ostringstream ss;
-    ::curaengine::utils::writeDoubleToStream(precision, in, ss);
+    writeDoubleToStream(precision, in, ss);
     ss.flush();
     const std::string str = ss.str();
 

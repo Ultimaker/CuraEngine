@@ -5,10 +5,9 @@
 
 #include "geometry/Shape.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 template<>
 const Polygon& PathsPointIndex<Shape>::getPolygon() const

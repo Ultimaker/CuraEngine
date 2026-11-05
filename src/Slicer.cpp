@@ -23,12 +23,11 @@
 #include "utils/ThreadPool.h"
 #include "utils/TimeKeeper.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 Slicer::Slicer(
     Mesh* i_mesh,
     const coord_t thickness,

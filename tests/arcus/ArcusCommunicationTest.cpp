@@ -19,6 +19,10 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
+using namespace communication;
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * Test fixtures for an arcus communication class and some polygons to try
@@ -29,22 +33,21 @@ class ArcusCommunicationTest : public testing::Test
 public:
     std::string ip;
     MockSocket* socket;
-    ::curaengine::communication::ArcusCommunication* ac;
+    ArcusCommunication* ac;
 
     // From PolygonConnectorTest
-    ::curaengine::geometry::Polygon test_square;
-    ::curaengine::geometry::Polygon test_square2; // larger and more to the right
-    ::curaengine::geometry::Polygon test_triangle;
-    ::curaengine::geometry::Polygon test_circle;
-    ::curaengine::geometry::Polygon test_convex_shape;
-
-    ::curaengine::geometry::Shape test_shapes; // all above polygons
+    Polygon test_square;
+    Polygon test_square2; // larger and more to the right
+    Polygon test_triangle;
+    Polygon test_circle;
+    Polygon test_convex_shape;
+    Shape test_shapes; // all above polygons
 
     void SetUp() override
     {
         ip = "0.0.0.0";
         socket = new MockSocket();
-        ac = new ::curaengine::communication::ArcusCommunication();
+        ac = new ArcusCommunication();
         ac->setSocketMock(socket);
 
         // from: PolygonConnectorTest
@@ -67,7 +70,7 @@ public:
 
         for (double a = 0; a < 1.0; a += .05)
         {
-            test_circle.push_back(::curaengine::geometry::Point2LL(2050, 2050) + ::curaengine::geometry::Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
+            test_circle.push_back(Point2LL(2050, 2050) + Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
         }
         test_shapes.push_back(test_circle);
 
@@ -123,9 +126,9 @@ TEST_F(ArcusCommunicationTest, SendFinishedSlicingTest)
 
 TEST_F(ArcusCommunicationTest, SendLayerComplete)
 {
-    const ::curaengine::types::LayerIndex layer_nr = 10;
-    constexpr ::curaengine::utils::coord_t layer_z = 20;
-    constexpr ::curaengine::utils::coord_t layer_thickness = 30;
+    const LayerIndex layer_nr = 10;
+    constexpr coord_t layer_z = 20;
+    constexpr coord_t layer_thickness = 30;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
     const std::shared_ptr<::cura::proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
     EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";

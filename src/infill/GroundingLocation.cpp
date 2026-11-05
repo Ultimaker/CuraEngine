@@ -5,10 +5,9 @@
 
 #include <cassert>
 
-using namespace curaengine::geometry;
-
 namespace curaengine::infill
 {
+using namespace geometry;
 
 Point2LL GroundingLocation::p() const
 {

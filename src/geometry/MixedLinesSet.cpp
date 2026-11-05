@@ -11,10 +11,9 @@
 #include "geometry/Shape.h"
 
 
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace utils;
 
 MixedLinesSet::MixedLinesSet(const ClosedLinesSet& lines)
 {

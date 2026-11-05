@@ -20,20 +20,22 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils;
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PolygonTest : public testing::Test
 {
 public:
-    ::curaengine::geometry::Polygon test_square;
-    ::curaengine::geometry::Polygon pointy_square;
-    ::curaengine::geometry::Polygon triangle;
-    ::curaengine::geometry::Polygon clipper_bug;
-    ::curaengine::geometry::Polygon clockwise_large;
-    ::curaengine::geometry::Polygon clockwise_small;
-    ::curaengine::geometry::Shape clockwise_donut;
-    ::curaengine::geometry::Polygon line;
-    ::curaengine::geometry::Polygon small_area;
+    Polygon test_square;
+    Polygon pointy_square;
+    Polygon triangle;
+    Polygon clipper_bug;
+    Polygon clockwise_large;
+    Polygon clockwise_small;
+    Shape clockwise_donut;
+    Polygon line;
+    Polygon small_area;
 
     void SetUp() override
     {
@@ -73,8 +75,8 @@ public:
         clockwise_small.emplace_back(50, 50);
         clockwise_small.emplace_back(50, -50);
 
-        ::curaengine::geometry::Shape outer;
-        ::curaengine::geometry::Shape inner;
+        Shape outer;
+        Shape inner;
         outer.push_back(clockwise_large);
         inner.push_back(clockwise_small);
         clockwise_donut = outer.difference(inner);
@@ -87,16 +89,16 @@ public:
         small_area.emplace_back(10, 10);
         small_area.emplace_back(0, 10);
     }
-    void twoPolygonsAreEqual(::curaengine::geometry::Shape& shape1, ::curaengine::geometry::Shape& shape2) const
+    void twoPolygonsAreEqual(Shape& shape1, Shape& shape2) const
     {
-        auto poly_cmp = [](const ::curaengine::geometry::Polygon& a, const ::curaengine::geometry::Polygon& b)
+        auto poly_cmp = [](const Polygon& a, const Polygon& b)
         {
             return std::lexicographical_compare(
                 a.begin(),
                 a.end(),
                 b.begin(),
                 b.end(),
-                [](const ::curaengine::geometry::Point2LL& p1, const ::curaengine::geometry::Point2LL& p2)
+                [](const Point2LL& p1, const Point2LL& p2)
                 {
                     return p1 < p2;
                 });
@@ -104,7 +106,7 @@ public:
         std::stable_sort(shape1.begin(), shape1.end(), poly_cmp);
         std::stable_sort(shape2.begin(), shape2.end(), poly_cmp);
 
-        ::curaengine::geometry::LinesSet<::curaengine::geometry::Polygon> difference;
+        LinesSet<Polygon> difference;
         std::set_difference(shape1.begin(), shape1.end(), shape2.begin(), shape2.end(), std::back_inserter(difference), poly_cmp);
         ASSERT_TRUE(difference.empty()) << "Paths in polygon1 not found in polygon2:" << difference;
 
@@ -117,32 +119,32 @@ public:
 
 TEST_F(PolygonTest, polygonOffsetTest)
 {
-    ::curaengine::geometry::Shape test_squares;
+    Shape test_squares;
     test_squares.push_back(test_square);
-    const ::curaengine::geometry::Shape expanded = test_squares.offset(25);
-    const ::curaengine::utils::coord_t expanded_length = expanded.length();
+    const Shape expanded = test_squares.offset(25);
+    const coord_t expanded_length = expanded.length();
 
-    ::curaengine::geometry::Shape square_hole;
-    ::curaengine::geometry::Polygon& square_inverted = square_hole.newLine();
+    Shape square_hole;
+    Polygon& square_inverted = square_hole.newLine();
     for (int i = test_square.size() - 1; i >= 0; i--)
     {
         square_inverted.push_back(test_square[i]);
     }
-    const ::curaengine::geometry::Shape contracted = square_hole.offset(25);
-    const ::curaengine::utils::coord_t contracted_length = contracted.length();
+    const Shape contracted = square_hole.offset(25);
+    const coord_t contracted_length = contracted.length();
 
     ASSERT_NEAR(expanded_length, contracted_length, 5) << "Offset on outside poly is different from offset on inverted poly!";
 }
 
 TEST_F(PolygonTest, polygonOffsetBugTest)
 {
-    ::curaengine::geometry::Shape polys;
+    Shape polys;
     polys.push_back(clipper_bug);
-    const ::curaengine::geometry::Shape offsetted = polys.offset(-20);
+    const Shape offsetted = polys.offset(-20);
 
-    for (const ::curaengine::geometry::Polygon& poly : offsetted)
+    for (const Polygon& poly : offsetted)
     {
-        for (const ::curaengine::geometry::Point2LL& p : poly)
+        for (const Point2LL& p : poly)
         {
             ASSERT_TRUE(polys.inside(p)) << "A negative offset should move the point towards the inside!";
         }
@@ -151,96 +153,96 @@ TEST_F(PolygonTest, polygonOffsetBugTest)
 
 TEST_F(PolygonTest, isOutsideTest)
 {
-    ::curaengine::geometry::Shape test_triangle;
+    Shape test_triangle;
     test_triangle.push_back(triangle);
 
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(0, 100))) << "Left point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(100, 100))) << "Middle left point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(300, 100))) << "Middle right point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(500, 100))) << "Right point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(100, 200))) << "Above point should be outside the triangle.";
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(100, -100))) << "Below point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(0, 100))) << "Left point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(100, 100))) << "Middle left point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(300, 100))) << "Middle right point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(500, 100))) << "Right point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(100, 200))) << "Above point should be outside the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(100, -100))) << "Below point should be outside the triangle.";
 }
 
 TEST_F(PolygonTest, isInsideTest)
 {
-    ::curaengine::geometry::Shape test_polys;
-    ::curaengine::geometry::Polygon& poly = test_polys.newLine();
-    poly.push_back(::curaengine::geometry::Point2LL(82124, 98235));
-    poly.push_back(::curaengine::geometry::Point2LL(83179, 98691));
-    poly.push_back(::curaengine::geometry::Point2LL(83434, 98950));
-    poly.push_back(::curaengine::geometry::Point2LL(82751, 99026));
-    poly.push_back(::curaengine::geometry::Point2LL(82528, 99019));
-    poly.push_back(::curaengine::geometry::Point2LL(81605, 98854));
-    poly.push_back(::curaengine::geometry::Point2LL(80401, 98686));
-    poly.push_back(::curaengine::geometry::Point2LL(79191, 98595));
-    poly.push_back(::curaengine::geometry::Point2LL(78191, 98441));
-    poly.push_back(::curaengine::geometry::Point2LL(78998, 98299));
-    poly.push_back(::curaengine::geometry::Point2LL(79747, 98179));
-    poly.push_back(::curaengine::geometry::Point2LL(80960, 98095));
+    Shape test_polys;
+    Polygon& poly = test_polys.newLine();
+    poly.push_back(Point2LL(82124, 98235));
+    poly.push_back(Point2LL(83179, 98691));
+    poly.push_back(Point2LL(83434, 98950));
+    poly.push_back(Point2LL(82751, 99026));
+    poly.push_back(Point2LL(82528, 99019));
+    poly.push_back(Point2LL(81605, 98854));
+    poly.push_back(Point2LL(80401, 98686));
+    poly.push_back(Point2LL(79191, 98595));
+    poly.push_back(Point2LL(78191, 98441));
+    poly.push_back(Point2LL(78998, 98299));
+    poly.push_back(Point2LL(79747, 98179));
+    poly.push_back(Point2LL(80960, 98095));
 
-    EXPECT_TRUE(test_polys.inside(::curaengine::geometry::Point2LL(78315, 98440))) << "Point should be inside the polygons!";
+    EXPECT_TRUE(test_polys.inside(Point2LL(78315, 98440))) << "Point should be inside the polygons!";
 }
 
 TEST_F(PolygonTest, isOnBorderTest)
 {
-    ::curaengine::geometry::Shape test_triangle;
+    Shape test_triangle;
     test_triangle.push_back(triangle);
 
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(200, 0), false)) << "Point is on the bottom edge of the triangle.";
-    EXPECT_TRUE(test_triangle.inside(::curaengine::geometry::Point2LL(200, 0), true)) << "Point is on the bottom edge of the triangle.";
-    EXPECT_FALSE(test_triangle.inside(::curaengine::geometry::Point2LL(150, 50), false)) << "Point is on a diagonal side of the triangle.";
-    EXPECT_TRUE(test_triangle.inside(::curaengine::geometry::Point2LL(150, 50), true)) << "Point is on a diagonal side of the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(200, 0), false)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point2LL(200, 0), true)) << "Point is on the bottom edge of the triangle.";
+    EXPECT_FALSE(test_triangle.inside(Point2LL(150, 50), false)) << "Point is on a diagonal side of the triangle.";
+    EXPECT_TRUE(test_triangle.inside(Point2LL(150, 50), true)) << "Point is on a diagonal side of the triangle.";
 }
 
 TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails due to a bug in Clipper.
 {
-    ::curaengine::geometry::Shape polys;
+    Shape polys;
     polys.push_back(line);
 
-    EXPECT_FALSE(polys.inside(::curaengine::geometry::Point2LL(50, 0), false)) << "Should be outside since it is on the border and border is considered outside.";
-    EXPECT_TRUE(polys.inside(::curaengine::geometry::Point2LL(50, 0), true)) << "Should be inside since it is on the border and border is considered inside.";
+    EXPECT_FALSE(polys.inside(Point2LL(50, 0), false)) << "Should be outside since it is on the border and border is considered outside.";
+    EXPECT_TRUE(polys.inside(Point2LL(50, 0), true)) << "Should be inside since it is on the border and border is considered inside.";
 }
 
 TEST_F(PolygonTest, splitIntoPartsWithHoleTest)
 {
-    const std::vector<::curaengine::geometry::SingleShape> parts = clockwise_donut.splitIntoParts();
+    const std::vector<SingleShape> parts = clockwise_donut.splitIntoParts();
 
     EXPECT_EQ(parts.size(), 1) << "Difference between two polygons should be one SingleShape!";
 }
 
 TEST_F(PolygonTest, differenceContainsOriginalPointTest)
 {
-    const ::curaengine::geometry::SingleShape part = clockwise_donut.splitIntoParts()[0];
-    const ::curaengine::geometry::Polygon& outer = part.outerPolygon();
+    const SingleShape part = clockwise_donut.splitIntoParts()[0];
+    const Polygon& outer = part.outerPolygon();
     EXPECT_NE(std::find(outer.begin(), outer.end(), clockwise_large[0]), outer.end()) << "Outer vertex must be in polygons difference.";
-    const ::curaengine::geometry::Polygon& inner = part[1];
+    const Polygon& inner = part[1];
     EXPECT_NE(std::find(inner.begin(), inner.end(), clockwise_small[0]), inner.end()) << "Inner vertex must be in polygons difference.";
 }
 
 TEST_F(PolygonTest, differenceClockwiseTest)
 {
-    const ::curaengine::geometry::SingleShape part = clockwise_donut.splitIntoParts()[0];
+    const SingleShape part = clockwise_donut.splitIntoParts()[0];
 
-    const ::curaengine::geometry::Polygon& outer = part.outerPolygon();
+    const Polygon& outer = part.outerPolygon();
     // Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
-    ::curaengine::utils::coord_t area = 0;
+    coord_t area = 0;
     for (size_t point_index = 0; point_index < outer.size(); point_index++)
     {
         const size_t next_index = (point_index + 1) % outer.size();
-        const ::curaengine::geometry::Point2LL point = outer[point_index];
-        const ::curaengine::geometry::Point2LL next = outer[next_index];
+        const Point2LL point = outer[point_index];
+        const Point2LL next = outer[next_index];
         area += (next.X - point.X) * (point.Y + next.Y);
     }
     EXPECT_LT(area, 0) << "Outer polygon should be counter-clockwise.";
 
-    const ::curaengine::geometry::Polygon& inner = part[1];
+    const Polygon& inner = part[1];
     area = 0;
     for (size_t point_index = 0; point_index < inner.size(); point_index++)
     {
         const size_t next_index = (point_index + 1) % inner.size();
-        const ::curaengine::geometry::Point2LL point = inner[point_index];
-        const ::curaengine::geometry::Point2LL next = inner[next_index];
+        const Point2LL point = inner[point_index];
+        const Point2LL next = inner[next_index];
         area += (next.X - point.X) * (point.Y + next.Y);
     }
     EXPECT_GT(area, 0) << "Inner polygon should be clockwise.";
@@ -251,20 +253,20 @@ TEST_F(PolygonTest, differenceClockwiseTest)
  */
 TEST_F(PolygonTest, convexTestCube)
 {
-    ::curaengine::geometry::Shape d_polygons;
-    ::curaengine::geometry::Polygon& d = d_polygons.newLine();
-    d.push_back(::curaengine::geometry::Point2LL(0, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 10));
-    d.push_back(::curaengine::geometry::Point2LL(0, 10));
+    Shape d_polygons;
+    Polygon& d = d_polygons.newLine();
+    d.push_back(Point2LL(0, 0));
+    d.push_back(Point2LL(10, 0));
+    d.push_back(Point2LL(10, 10));
+    d.push_back(Point2LL(0, 10));
 
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), 4);
-    EXPECT_EQ(d[0], ::curaengine::geometry::Point2LL(0, 0));
-    EXPECT_EQ(d[1], ::curaengine::geometry::Point2LL(10, 0));
-    EXPECT_EQ(d[2], ::curaengine::geometry::Point2LL(10, 10));
-    EXPECT_EQ(d[3], ::curaengine::geometry::Point2LL(0, 10));
+    EXPECT_EQ(d[0], Point2LL(0, 0));
+    EXPECT_EQ(d[1], Point2LL(10, 0));
+    EXPECT_EQ(d[2], Point2LL(10, 10));
+    EXPECT_EQ(d[3], Point2LL(0, 10));
 }
 
 /*
@@ -272,8 +274,8 @@ TEST_F(PolygonTest, convexTestCube)
  */
 TEST_F(PolygonTest, convexHullStar)
 {
-    ::curaengine::geometry::Shape d_polygons;
-    ::curaengine::geometry::Polygon& d = d_polygons.newLine();
+    Shape d_polygons;
+    Polygon& d = d_polygons.newLine();
 
     const int num_points = 10;
     const int outer_radius = 20;
@@ -281,13 +283,13 @@ TEST_F(PolygonTest, convexHullStar)
     const double angle_step = std::numbers::pi * 2.0 / num_points;
     for (int i = 0; i < num_points; ++i)
     {
-        ::curaengine::utils::coord_t x_outer = -std::cos(angle_step * i) * outer_radius;
-        ::curaengine::utils::coord_t y_outer = -std::sin(angle_step * i) * outer_radius;
-        d.push_back(::curaengine::geometry::Point2LL(x_outer, y_outer));
+        coord_t x_outer = -std::cos(angle_step * i) * outer_radius;
+        coord_t y_outer = -std::sin(angle_step * i) * outer_radius;
+        d.push_back(Point2LL(x_outer, y_outer));
 
-        ::curaengine::utils::coord_t x_inner = -std::cos(angle_step * (i + 0.5)) * inner_radius;
-        ::curaengine::utils::coord_t y_inner = -std::sin(angle_step * (i + 0.5)) * inner_radius;
-        d.push_back(::curaengine::geometry::Point2LL(x_inner, y_inner));
+        coord_t x_inner = -std::cos(angle_step * (i + 0.5)) * inner_radius;
+        coord_t y_inner = -std::sin(angle_step * (i + 0.5)) * inner_radius;
+        d.push_back(Point2LL(x_inner, y_inner));
     }
 
     d_polygons.makeConvex();
@@ -296,15 +298,15 @@ TEST_F(PolygonTest, convexHullStar)
     for (int i = 0; i < num_points; ++i)
     {
         double angle = angle_step * i;
-        ::curaengine::utils::coord_t x = -std::cos(angle) * outer_radius;
-        ::curaengine::utils::coord_t y = -std::sin(angle) * outer_radius;
-        EXPECT_EQ(d[i], ::curaengine::geometry::Point2LL(x, y));
+        coord_t x = -std::cos(angle) * outer_radius;
+        coord_t y = -std::sin(angle) * outer_radius;
+        EXPECT_EQ(d[i], Point2LL(x, y));
     }
 }
 
 TEST_F(PolygonTest, makeConvexPolygon)
 {
-    ::curaengine::geometry::Polygon polygon;
+    Polygon polygon;
     polygon.setPoints({
         { 110139, 106039 }, { 111866, 106001 }, { 114033, 106017 }, { 114409, 106046 }, { 114739, 106087 }, { 114982, 106136 }, { 115131, 106193 }, { 115113, 106326 },
         { 115118, 106460 }, { 114915, 106496 }, { 114540, 106512 }, { 114198, 106505 }, { 112338, 106507 }, { 112045, 106531 }, { 111795, 106577 }, { 111609, 106643 },
@@ -318,13 +320,13 @@ TEST_F(PolygonTest, makeConvexPolygon)
         { 105121, 106427 }, { 105131, 106159 }, { 105363, 106096 }, { 105596, 106056 }, { 106030, 106015 }, { 106345, 105999 }, { 107698, 105990 }, { 110139, 106039 },
     });
 
-    auto shape = ::curaengine::geometry::Shape(polygon);
+    auto shape = Shape(polygon);
     shape.makeConvex();
     const auto convex_hull = shape[0];
 
     // test that all corners are convex
-    EXPECT_TRUE(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
-    EXPECT_TRUE(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
+    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
+    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
 
     for (const auto window : convex_hull | ranges::views::sliding(3))
     {
@@ -332,7 +334,7 @@ TEST_F(PolygonTest, makeConvexPolygon)
         const auto& b = window[1];
         const auto& c = window[2];
 
-        EXPECT_TRUE(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0);
+        EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0);
     }
 }
 
@@ -342,12 +344,12 @@ TEST_F(PolygonTest, makeConvexPolygon)
  */
 TEST_F(PolygonTest, convexHullMultipleMinX)
 {
-    ::curaengine::geometry::Shape d_polygons;
-    ::curaengine::geometry::Polygon& d = d_polygons.newLine();
-    d.push_back(::curaengine::geometry::Point2LL(0, 0));
-    d.push_back(::curaengine::geometry::Point2LL(0, -10));
-    d.push_back(::curaengine::geometry::Point2LL(10, 0));
-    d.push_back(::curaengine::geometry::Point2LL(0, 10));
+    Shape d_polygons;
+    Polygon& d = d_polygons.newLine();
+    d.push_back(Point2LL(0, 0));
+    d.push_back(Point2LL(0, -10));
+    d.push_back(Point2LL(10, 0));
+    d.push_back(Point2LL(0, 10));
 
     /*
      *   x\                          x\
@@ -368,24 +370,24 @@ TEST_F(PolygonTest, convexHullMultipleMinX)
  */
 TEST_F(PolygonTest, convexTestCubeColinear)
 {
-    ::curaengine::geometry::Shape d_polygons;
-    ::curaengine::geometry::Polygon& d = d_polygons.newLine();
-    d.push_back(::curaengine::geometry::Point2LL(0, 0));
-    d.push_back(::curaengine::geometry::Point2LL(5, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 5));
-    d.push_back(::curaengine::geometry::Point2LL(10, 10));
-    d.push_back(::curaengine::geometry::Point2LL(5, 10));
-    d.push_back(::curaengine::geometry::Point2LL(0, 10));
-    d.push_back(::curaengine::geometry::Point2LL(0, 5));
+    Shape d_polygons;
+    Polygon& d = d_polygons.newLine();
+    d.push_back(Point2LL(0, 0));
+    d.push_back(Point2LL(5, 0));
+    d.push_back(Point2LL(10, 0));
+    d.push_back(Point2LL(10, 5));
+    d.push_back(Point2LL(10, 10));
+    d.push_back(Point2LL(5, 10));
+    d.push_back(Point2LL(0, 10));
+    d.push_back(Point2LL(0, 5));
 
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), 4);
-    EXPECT_EQ(d[0], ::curaengine::geometry::Point2LL(0, 0));
-    EXPECT_EQ(d[1], ::curaengine::geometry::Point2LL(10, 0));
-    EXPECT_EQ(d[2], ::curaengine::geometry::Point2LL(10, 10));
-    EXPECT_EQ(d[3], ::curaengine::geometry::Point2LL(0, 10));
+    EXPECT_EQ(d[0], Point2LL(0, 0));
+    EXPECT_EQ(d[1], Point2LL(10, 0));
+    EXPECT_EQ(d[2], Point2LL(10, 10));
+    EXPECT_EQ(d[3], Point2LL(0, 10));
 }
 
 /*
@@ -393,24 +395,24 @@ TEST_F(PolygonTest, convexTestCubeColinear)
  */
 TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
 {
-    ::curaengine::geometry::Shape d_polygons;
-    ::curaengine::geometry::Polygon& d = d_polygons.newLine();
-    d.push_back(::curaengine::geometry::Point2LL(0, 0));
-    d.push_back(::curaengine::geometry::Point2LL(0, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 0));
-    d.push_back(::curaengine::geometry::Point2LL(10, 10));
-    d.push_back(::curaengine::geometry::Point2LL(10, 10));
-    d.push_back(::curaengine::geometry::Point2LL(0, 10));
-    d.push_back(::curaengine::geometry::Point2LL(0, 10));
+    Shape d_polygons;
+    Polygon& d = d_polygons.newLine();
+    d.push_back(Point2LL(0, 0));
+    d.push_back(Point2LL(0, 0));
+    d.push_back(Point2LL(10, 0));
+    d.push_back(Point2LL(10, 0));
+    d.push_back(Point2LL(10, 10));
+    d.push_back(Point2LL(10, 10));
+    d.push_back(Point2LL(0, 10));
+    d.push_back(Point2LL(0, 10));
 
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), 4);
-    EXPECT_EQ(d[0], ::curaengine::geometry::Point2LL(0, 0));
-    EXPECT_EQ(d[1], ::curaengine::geometry::Point2LL(10, 0));
-    EXPECT_EQ(d[2], ::curaengine::geometry::Point2LL(10, 10));
-    EXPECT_EQ(d[3], ::curaengine::geometry::Point2LL(0, 10));
+    EXPECT_EQ(d[0], Point2LL(0, 0));
+    EXPECT_EQ(d[1], Point2LL(10, 0));
+    EXPECT_EQ(d[2], Point2LL(10, 10));
+    EXPECT_EQ(d[3], Point2LL(0, 10));
 }
 
 /*
@@ -421,8 +423,8 @@ TEST_F(PolygonTest, removeSmallAreas_simple)
 {
     // basic set of polygons
     auto test_square_2 = test_square;
-    test_square_2.translate(::curaengine::geometry::Point2LL(0, 500));
-    auto d_polygons = ::curaengine::geometry::Shape{};
+    test_square_2.translate(Point2LL(0, 500));
+    auto d_polygons = Shape{};
     d_polygons.push_back(test_square);
     d_polygons.push_back(test_square_2);
     d_polygons.push_back(triangle);
@@ -446,21 +448,21 @@ TEST_F(PolygonTest, removeSmallAreas_small_area)
 {
     // make some areas.
     auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    small_area_1.translate(::curaengine::geometry::Point2LL(350, 450));
+    small_area_1.translate(Point2LL(350, 450));
     auto small_area_2 = small_area;
-    small_area_2.translate(::curaengine::geometry::Point2LL(450, 350));
+    small_area_2.translate(Point2LL(450, 350));
     auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
-    triangle_1.translate(::curaengine::geometry::Point2LL(50, 0));
+    triangle_1.translate(Point2LL(50, 0));
 
     // add areas to polygons
-    auto d_polygons = ::curaengine::geometry::Shape{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(small_area_1);
     d_polygons.push_back(small_area_2);
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     d_polygons.push_back(triangle_1);
 
     // make an expected Shape
-    auto exp_polygons = ::curaengine::geometry::Shape{};
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     exp_polygons.push_back(triangle_1);
 
@@ -484,10 +486,10 @@ TEST_F(PolygonTest, removeSmallAreas_hole)
     // make some areas.
     auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
     small_hole_1.reverse();
-    small_hole_1.translate(::curaengine::geometry::Point2LL(10, 10));
+    small_hole_1.translate(Point2LL(10, 10));
 
     // add areas to polygons
-    auto d_polygons = ::curaengine::geometry::Shape{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     d_polygons.push_back(small_hole_1);
 
@@ -499,7 +501,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole)
 
     // for remove_holes == true there should be one less poly.
     // make an expected Shape
-    auto exp_polygons = ::curaengine::geometry::Shape{};
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     act_polygons = d_polygons;
     act_polygons.removeSmallAreas(1e-3, true);
@@ -515,17 +517,17 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
     auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
     small_hole_1.reverse();
     auto small_hole_2 = small_hole_1;
-    small_hole_1.translate(::curaengine::geometry::Point2LL(10, 10));
-    small_hole_2.translate(::curaengine::geometry::Point2LL(160, 160));
-    auto med_square_1 = ::curaengine::geometry::Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
-    med_square_1.push_back(::curaengine::geometry::Point2LL(0, 0));
-    med_square_1.push_back(::curaengine::geometry::Point2LL(50, 0));
-    med_square_1.push_back(::curaengine::geometry::Point2LL(50, 50));
-    med_square_1.push_back(::curaengine::geometry::Point2LL(0, 50));
-    med_square_1.translate(::curaengine::geometry::Point2LL(150, 150));
+    small_hole_1.translate(Point2LL(10, 10));
+    small_hole_2.translate(Point2LL(160, 160));
+    auto med_square_1 = Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
+    med_square_1.push_back(Point2LL(0, 0));
+    med_square_1.push_back(Point2LL(50, 0));
+    med_square_1.push_back(Point2LL(50, 50));
+    med_square_1.push_back(Point2LL(0, 50));
+    med_square_1.translate(Point2LL(150, 150));
 
     // add areas to polygons
-    auto d_polygons = ::curaengine::geometry::Shape{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     d_polygons.push_back(small_hole_1);
     d_polygons.push_back(med_square_1);
@@ -534,7 +536,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
     // for remove_holes == false, two polygons removed.
     auto act_polygons = d_polygons;
     // make an expected Shape
-    auto exp_polygons = ::curaengine::geometry::Shape{};
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     exp_polygons.push_back(small_hole_1);
     act_polygons.removeSmallAreas(3e-3, false);
@@ -543,7 +545,7 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
     // for remove_holes == true, three polygons removed.
     act_polygons = d_polygons;
     // make an expected Polygons
-    exp_polygons = ::curaengine::geometry::Shape{};
+    exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     act_polygons.removeSmallAreas(3e-3, true);
     twoPolygonsAreEqual(act_polygons, exp_polygons);
@@ -559,19 +561,19 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
 {
     // make some areas.
     auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    small_area_1.translate(::curaengine::geometry::Point2LL(350, 450));
+    small_area_1.translate(Point2LL(350, 450));
     auto small_area_2 = small_area;
-    small_area_2.translate(::curaengine::geometry::Point2LL(450, 350));
+    small_area_2.translate(Point2LL(450, 350));
     auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
     small_hole_1.reverse();
     auto small_hole_2 = small_hole_1;
-    small_hole_1.translate(::curaengine::geometry::Point2LL(3, 3));
-    small_hole_2.translate(::curaengine::geometry::Point2LL(22, 50));
+    small_hole_1.translate(Point2LL(3, 3));
+    small_hole_2.translate(Point2LL(22, 50));
     auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
-    triangle_1.translate(::curaengine::geometry::Point2LL(600, 0));
+    triangle_1.translate(Point2LL(600, 0));
 
     // add areas to polygons
-    auto d_polygons = ::curaengine::geometry::Shape{};
+    auto d_polygons = Shape{};
     d_polygons.push_back(small_area_1);
     d_polygons.push_back(small_area_2);
     d_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
@@ -582,7 +584,7 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
     // for remove_holes == false there should be 2 small areas removed.
     auto act_polygons = d_polygons;
     // make an expected Shape
-    auto exp_polygons = ::curaengine::geometry::Shape{};
+    auto exp_polygons = Shape{};
     exp_polygons.push_back(test_square); // area = 10000 micron^2 = 1e-2 mm^2
     exp_polygons.push_back(small_hole_1);
     exp_polygons.push_back(small_hole_2);
@@ -593,7 +595,7 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
     // for remove_holes == true there should be 2 small areas and 2 small holes removed.
     act_polygons = d_polygons;
     // make an expected Polygons
-    exp_polygons = ::curaengine::geometry::Shape{};
+    exp_polygons = Shape{};
     exp_polygons.push_back(test_square);
     exp_polygons.push_back(triangle_1); // area = 10000 micron^2 = 1e-2 mm^2
     act_polygons.removeSmallAreas(1e-3, true);
@@ -606,7 +608,7 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
 TEST_F(PolygonTest, openCloseLines)
 {
     // make some line
-    ::curaengine::geometry::OpenPolyline open_polyline;
+    OpenPolyline open_polyline;
     open_polyline.emplace_back(0, 0);
     open_polyline.emplace_back(1000, 0);
     open_polyline.emplace_back(1000, 1000);
@@ -615,10 +617,10 @@ TEST_F(PolygonTest, openCloseLines)
     // Make some casts and check that the results are consistent
     EXPECT_EQ(open_polyline.length(), 3000);
 
-    ::curaengine::geometry::ClosedPolyline closed_polyline(open_polyline.getPoints(), false);
+    ClosedPolyline closed_polyline(open_polyline.getPoints(), false);
     EXPECT_EQ(closed_polyline.length(), 4000);
 
-    ::curaengine::geometry::Polygon polygon(closed_polyline.getPoints(), false);
+    Polygon polygon(closed_polyline.getPoints(), false);
     EXPECT_EQ(polygon.area(), 1000000);
 
     // Check advanced calculations on segment length

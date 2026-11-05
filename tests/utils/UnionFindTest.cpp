@@ -6,6 +6,7 @@
 
 namespace curaengine
 {
+using namespace utils;
 
 /*
  * Fixture that contains an empty, pre-constructed union-find data structure of
@@ -14,7 +15,7 @@ namespace curaengine
 class UnionFindTest : public testing::Test
 {
 public:
-    ::curaengine::utils::UnionFind<char> union_find;
+    UnionFind<char> union_find;
 };
 
 TEST_F(UnionFindTest, FindSimple)

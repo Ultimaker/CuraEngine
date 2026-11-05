@@ -12,11 +12,10 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::arachne
 {
+using namespace geometry;
+using namespace utils;
 
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {

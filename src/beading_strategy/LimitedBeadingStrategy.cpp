@@ -9,10 +9,9 @@
 
 #include "utils/macros.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace utils;
 
 std::string LimitedBeadingStrategy::toString() const
 {

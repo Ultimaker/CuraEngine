@@ -19,10 +19,9 @@
 #include "Slice.h"
 #include "utils/string.h"
 
-using namespace curaengine::types;
-
 namespace curaengine::communication
 {
+using namespace types;
 
 EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>& arguments)
     : CommandLine(arguments)

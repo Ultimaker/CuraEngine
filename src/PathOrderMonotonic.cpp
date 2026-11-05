@@ -10,11 +10,11 @@
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils;
+using namespace utils::sparse_point_grid_inclusive_impl;
 
 template<typename PathType>
 void PathOrderMonotonic<PathType>::optimize()
@@ -125,19 +125,19 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
     polyline->start_vertex_ = 0;
     Point2LL first_endpoint = polyline->converted_->front();
     Point2LL last_endpoint = polyline->converted_->back();
-    std::vector<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance_);
+    std::vector<SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance_);
     auto close_line_before = std::find_if(
         lines_before.begin(),
         lines_before.end(),
-        [first_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+        [first_endpoint](SparsePointGridInclusiveElem<Path*> found_path)
         {
             return canConnectToPolyline(first_endpoint, found_path);
         });
-    std::vector<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance_);
+    std::vector<SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance_);
     auto close_line_after = std::find_if(
         lines_after.begin(),
         lines_after.end(),
-        [last_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+        [last_endpoint](SparsePointGridInclusiveElem<Path*> found_path)
         {
             return canConnectToPolyline(last_endpoint, found_path);
         });
@@ -154,7 +154,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
         close_line_before = std::find_if(
             lines_before.begin(),
             lines_before.end(),
-            [first_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+            [first_endpoint](SparsePointGridInclusiveElem<Path*> found_path)
             {
                 return canConnectToPolyline(first_endpoint, found_path);
             });
@@ -171,7 +171,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
         close_line_after = std::find_if(
             lines_after.begin(),
             lines_after.end(),
-            [last_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+            [last_endpoint](SparsePointGridInclusiveElem<Path*> found_path)
             {
                 return canConnectToPolyline(last_endpoint, found_path);
             });

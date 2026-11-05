@@ -53,16 +53,15 @@
 #include "utils/Simplify.h"
 #include "utils/math.h"
 
-using namespace curaengine::arachne;
-using namespace curaengine::beading_strategy;
-using namespace curaengine::gcode_export;
-using namespace curaengine::geometry;
-using namespace curaengine::path_planning;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace arachne;
+using namespace beading_strategy;
+using namespace gcode_export;
+using namespace geometry;
+using namespace path_planning;
+using namespace types;
+using namespace utils;
 using types::operator""_r;
 using types::operator""_s;
 

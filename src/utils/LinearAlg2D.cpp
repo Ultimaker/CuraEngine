@@ -12,10 +12,9 @@
 #include "geometry/PointMatrix.h"
 #include "utils/math.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c)
 {

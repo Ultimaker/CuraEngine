@@ -32,6 +32,12 @@
 #include "SliceLayerPart.h"
 
 
+namespace curaengine
+{
+using namespace geometry;
+using namespace types;
+using namespace utils;
+
 constexpr std::string_view USAGE = R"(Stress Benchmark.
 
 Executes a Stress Benchmark on CuraEngine.
@@ -57,7 +63,7 @@ struct Resource
         return wkt_file.stem().string();
     }
 
-    std::vector<::curaengine::geometry::Shape> polygons() const
+    std::vector<Shape> polygons() const
     {
         using point_type = boost::geometry::model::d2::point_xy<double>;
         using polygon_type = boost::geometry::model::polygon<point_type>;
@@ -75,25 +81,25 @@ struct Resource
 
         boost::geometry::read_wkt(buffer.str(), boost_polygons);
 
-        std::vector<::curaengine::geometry::Shape> polygons;
+        std::vector<Shape> polygons;
 
         for (const auto& boost_polygon : boost_polygons)
         {
-            ::curaengine::geometry::Shape polygon;
+            Shape polygon;
 
-            ::curaengine::geometry::Polygon outer;
+            Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.push_back(::curaengine::geometry::Point2LL(point.x(), point.y()));
+                outer.push_back(Point2LL(point.x(), point.y()));
             }
             polygon.push_back(outer);
 
             for (const auto& hole : boost_polygon.inners())
             {
-                ::curaengine::geometry::Polygon inner;
+                Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.push_back(::curaengine::geometry::Point2LL(point.x(), point.y()));
+                    inner.push_back(Point2LL(point.x(), point.y()));
                 }
                 polygon.push_back(inner);
             }
@@ -103,9 +109,9 @@ struct Resource
         return polygons;
     }
 
-    curaengine::Settings settings() const
+    Settings settings() const
     {
-        curaengine::Settings settings;
+        Settings settings;
         std::ifstream file{ settings_file };
         if (! file)
         {
@@ -148,16 +154,16 @@ std::vector<Resource> getResources()
 
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
-    curaengine::SliceLayer layer;
-    for (const ::curaengine::geometry::Shape& shape : shapes)
+    SliceLayer layer;
+    for (const Shape& shape : shapes)
     {
         layer.parts.emplace_back();
-        curaengine::SliceLayerPart& part = layer.parts.back();
+        SliceLayerPart& part = layer.parts.back();
         part.outline.push_back(shape);
     }
-    ::curaengine::types::LayerIndex layer_idx(100);
-    curaengine::WallsComputation walls_computation(settings, layer_idx);
-    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
+    LayerIndex layer_idx(100);
+    WallsComputation walls_computation(settings, layer_idx);
+    walls_computation.generateWalls(&layer, SectionType::WALL);
     exit(EXIT_SUCCESS);
 }
 
@@ -220,7 +226,7 @@ void createAndWriteJson(const std::filesystem::path& out_file, double stress_lev
     file.close();
 }
 
-int main(int argc, const char** argv)
+int runStressBenchmark(int argc, const char** argv)
 {
     constexpr bool show_help = true;
     constexpr std::string_view version = "0.1.0";
@@ -247,6 +253,7 @@ int main(int argc, const char** argv)
             handleChildProcess(shapes, settings);
             return EXIT_SUCCESS;
         }
+
         else
         {
             pid_t waiter_pid = fork();
@@ -261,6 +268,7 @@ int main(int argc, const char** argv)
                 kill(engine_pid, SIGKILL);
                 return EXIT_SUCCESS;
             }
+
             else
             {
                 int status;
@@ -279,4 +287,11 @@ int main(int argc, const char** argv)
 
     createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level, fmt::format("Crashes in: {}", fmt::join(extra_infos, ", ")), resources.size());
     return EXIT_SUCCESS;
+}
+
+} // namespace curaengine
+
+int main(int argc, const char** argv)
+{
+    return curaengine::runStressBenchmark(argc, argv);
 }

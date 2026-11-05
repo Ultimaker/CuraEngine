@@ -69,14 +69,13 @@
 #include "utils/Simplify.h"
 // clang-format on
 
-using namespace curaengine::geometry;
-using namespace curaengine::infill;
-using namespace curaengine::progress;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace infill;
+using namespace progress;
+using namespace types;
+using namespace utils;
 
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)

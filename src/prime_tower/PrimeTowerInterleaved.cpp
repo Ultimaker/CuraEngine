@@ -9,12 +9,11 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::prime_tower
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 PrimeTowerInterleaved::PrimeTowerInterleaved()
     : PrimeTower()

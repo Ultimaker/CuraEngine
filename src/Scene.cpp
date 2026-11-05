@@ -13,11 +13,10 @@
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
 
-using namespace curaengine::progress;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace progress;
+using namespace utils;
 
 Scene::Scene(const size_t num_mesh_groups)
     : mesh_groups(num_mesh_groups)

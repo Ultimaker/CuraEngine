@@ -61,14 +61,14 @@
 #include "utils/math.h"
 #include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::infill;
-using namespace curaengine::progress;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace infill;
+using namespace progress;
+using namespace types;
+using namespace utils;
+using namespace utils::sparse_point_grid_inclusive_impl;
 using types::operator""_r;
 
 
@@ -1464,7 +1464,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
     const auto smart_brim_ordering = train.settings_.get<bool>("brim_smart_ordering") && train.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM;
     std::unordered_multimap<const Polyline*, const Polyline*> order_requirements;
-    for (const std::pair<SquareGrid::GridPoint, utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
+    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
         const BrimLineReference& here = p.second.val;
         Point2LL loc_here = p.second.point;

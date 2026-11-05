@@ -6,11 +6,10 @@
 #include <algorithm>
 #include <numeric>
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace types;
+using namespace utils;
 
 RedistributeBeadingStrategy::RedistributeBeadingStrategy(const coord_t optimal_width_outer, const Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)

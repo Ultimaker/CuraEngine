@@ -6,10 +6,9 @@
 #include <algorithm>
 #include <iterator>
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 MinimumSpanningTree::MinimumSpanningTree(std::vector<Point2LL> vertices)
     : adjacency_graph(prim(vertices))

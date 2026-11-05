@@ -13,13 +13,12 @@
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::infill;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace infill;
+using namespace types;
+using namespace utils;
 
 TopSurface::TopSurface()
 {

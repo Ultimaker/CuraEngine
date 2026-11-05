@@ -3,10 +3,9 @@
 
 #include "beading_strategy/WideningBeadingStrategy.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace utils;
 
 WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategyPtr parent, const coord_t min_input_width, const coord_t min_output_width)
     : BeadingStrategy(*parent)

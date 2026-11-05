@@ -15,10 +15,9 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-using namespace curaengine::types;
-
 namespace curaengine::gcode_export
 {
+using namespace types;
 
 
 void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_global_settings)

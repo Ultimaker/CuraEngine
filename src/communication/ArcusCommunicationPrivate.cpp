@@ -23,11 +23,10 @@
 #include "types/LayerIndex.h"
 #include "utils/MeshUtils.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-
 namespace curaengine::communication
 {
+using namespace geometry;
+using namespace types;
 
 ArcusCommunication::Private::Private()
     : socket(nullptr)

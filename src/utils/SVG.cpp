@@ -25,11 +25,10 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/VoronoiUtils.h"
 
-using namespace curaengine::arachne;
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace arachne;
+using namespace geometry;
 
 
 std::string SVG::toString(const Color color)

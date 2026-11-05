@@ -9,10 +9,9 @@
 #include "TextureDataProvider.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils::scoring
 {
+using namespace geometry;
 
 TextureScoringCriterion::TextureScoringCriterion(const PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name)
     : PositionBasedScoringCriterion(points)

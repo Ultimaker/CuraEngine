@@ -8,10 +8,9 @@
 #include "arachne/STHalfEdgeNode.h"
 #include "utils/LinearAlg2D.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::arachne
 {
+using namespace utils;
 
 STHalfEdge::STHalfEdge(const SkeletalTrapezoidationEdge& data)
     : data_(data)

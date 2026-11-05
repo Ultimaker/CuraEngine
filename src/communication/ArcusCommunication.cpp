@@ -39,12 +39,11 @@
 #include "types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::communication
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * \brief A computation class that formats layer view data in a way that the

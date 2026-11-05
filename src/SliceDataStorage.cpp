@@ -17,13 +17,12 @@
 #include "types/ESurfaceMode.h"
 #include "utils/PolygonUtils.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::prime_tower;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace prime_tower;
+using namespace types;
+using namespace utils;
 
 std::vector<RetractionAndWipeConfig> SliceDataStorage::initializeRetractionAndWipeConfigs()
 {

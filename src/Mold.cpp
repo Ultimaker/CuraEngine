@@ -17,12 +17,11 @@
 #include "geometry/Point2LL.h"
 #include "types/Ratio.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 void Mold::process(std::vector<Slicer*>& slicer_list)
 {

@@ -5,10 +5,9 @@
 
 #include "gcode_export/GCodeExport.h"
 
-using namespace curaengine::gcode_export;
-
 namespace curaengine::path_planning
 {
+using namespace gcode_export;
 
 void NozzleTempInsert::write(GCodeExport& gcode)
 {

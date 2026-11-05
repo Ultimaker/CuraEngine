@@ -32,12 +32,11 @@
 namespace rg = ranges;
 namespace rv = ranges::views;
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 using types::operator""_r;
 
 

@@ -6,10 +6,9 @@
 #include "geometry/Shape.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::bridge
 {
+using namespace geometry;
 
 TransformedShape::TransformedShape(const PointMatrix& matrix)
     : matrix_(matrix)

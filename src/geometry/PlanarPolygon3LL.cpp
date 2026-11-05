@@ -11,10 +11,9 @@
 #include "geometry/Segment3LL.h"
 
 
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace utils;
 
 PlanarPolygon3LL::PlanarPolygon3LL(std::vector<Segment3LL>&& segments)
     : segments_(std::move(segments))

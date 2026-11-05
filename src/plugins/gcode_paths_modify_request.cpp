@@ -6,10 +6,9 @@
 
 #include "SliceMeshStorage.h"
 
-using namespace curaengine::types;
-
 namespace curaengine::plugins
 {
+using namespace types;
 [[nodiscard]] constexpr ::cura::plugins::v0::SpaceFillType gcode_paths_modify_request::getSpaceFillType(const SpaceFillType space_fill_type) noexcept
 {
     switch (space_fill_type)

@@ -16,11 +16,10 @@
 #include "utils/AABB3D.h"
 #include "utils/SVG.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;

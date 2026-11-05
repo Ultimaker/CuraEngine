@@ -10,10 +10,9 @@
 #include "Slice.h"
 #include "types/Ratio.h"
 
-using namespace curaengine::types;
-
 namespace curaengine
 {
+using namespace types;
 
 
 Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)

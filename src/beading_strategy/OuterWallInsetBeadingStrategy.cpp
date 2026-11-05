@@ -5,10 +5,9 @@
 
 #include <algorithm>
 
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace utils;
 OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
     , parent_(std::move(parent))

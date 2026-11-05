@@ -12,9 +12,12 @@
 
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils;
+
 // Read multiple files to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
-bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<::curaengine::geometry::Shape>& polygons_out)
+bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Shape>& polygons_out)
 {
     for (const std::string& filename : filenames)
     {
@@ -28,7 +31,7 @@ bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<::c
 
 // Read a single file to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
-bool readTestPolygons(const std::string& filename, std::vector<::curaengine::geometry::Shape>& polygons_out)
+bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_out)
 {
     FILE* handle = std::fopen(filename.c_str(), "r");
     if (! handle)
@@ -36,8 +39,8 @@ bool readTestPolygons(const std::string& filename, std::vector<::curaengine::geo
         return false;
     }
 
-    ::curaengine::geometry::Polygon next_path;
-    ::curaengine::geometry::Shape next_shape;
+    Polygon next_path;
+    Shape next_shape;
 
     char command = '_';
     int read = 0;
@@ -55,8 +58,8 @@ bool readTestPolygons(const std::string& filename, std::vector<::curaengine::geo
         switch (command)
         {
         case 'v': // read next coordinate
-            ::curaengine::utils::coord_t coord_x;
-            ::curaengine::utils::coord_t coord_y;
+            coord_t coord_x;
+            coord_t coord_y;
             read = std::fscanf(handle, " %lld %lld ", &coord_x, &coord_y);
             if (read == EOF || read <= 0)
             {
@@ -71,7 +74,7 @@ bool readTestPolygons(const std::string& filename, std::vector<::curaengine::geo
         case '#': // end of file
             if (! next_path.empty())
             {
-                next_shape.push_back(::curaengine::geometry::Polygon(next_path)); // copy and add
+                next_shape.push_back(Polygon(next_path)); // copy and add
                 next_path.clear();
             }
             if (command != 'x' && ! next_shape.empty())

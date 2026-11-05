@@ -6,10 +6,9 @@
 #include "geometry/Shape.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils::scoring
 {
+using namespace geometry;
 
 ExclusionAreaScoringCriterion::ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area)
     : PositionBasedScoringCriterion(points)

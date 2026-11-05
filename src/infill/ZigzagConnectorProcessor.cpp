@@ -11,11 +11,10 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 
 void ZigzagConnectorProcessor::registerVertex(const Point2LL& vertex)

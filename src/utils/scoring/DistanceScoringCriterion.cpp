@@ -6,10 +6,9 @@
 #include "geometry/PointsSet.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils::scoring
 {
+using namespace geometry;
 
 DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type, const double distance_divider)
     : PositionBasedScoringCriterion(points)

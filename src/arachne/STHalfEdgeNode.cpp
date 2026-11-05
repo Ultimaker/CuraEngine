@@ -12,10 +12,9 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::arachne
 {
+using namespace geometry;
 
 STHalfEdgeNode::STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const Point2LL& p)
     : data_(data)

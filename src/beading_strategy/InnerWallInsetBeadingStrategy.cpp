@@ -7,10 +7,9 @@
 
 #include <range/v3/view/drop.hpp>
 
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace utils;
 InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(coord_t inner_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
     , parent_(std::move(parent))

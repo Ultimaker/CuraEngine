@@ -21,12 +21,11 @@
 #define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 // 1 / sqrt(6)
 #define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 // sqrt(2 / 3)
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step_;
 coord_t SubDivCube::radius_addition_ = 0;

@@ -37,13 +37,12 @@
 #include "utils/VoxelGrid.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::progress;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::mesh_material_splitter
 {
+using namespace geometry;
+using namespace progress;
+using namespace types;
+using namespace utils;
 
 /*!
  * Utility structure that contains pre-calculated data to generate the multi-material modifiers of a mesh

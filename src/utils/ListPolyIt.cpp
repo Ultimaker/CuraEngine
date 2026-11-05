@@ -11,10 +11,9 @@
 #include "geometry/Shape.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 
 void ListPolyIt::convertPolygonsToLists(const Shape& shape, ListPolygons& result)

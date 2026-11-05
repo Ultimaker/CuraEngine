@@ -25,12 +25,11 @@
 #include "utils/LinearAlg2D.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::prime_tower
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 PrimeTower::PrimeTower()
     : wipe_from_middle_(false)

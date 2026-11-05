@@ -6,7 +6,8 @@
 #include "LayerPlan.h"
 
 
-using namespace curaengine;
+namespace curaengine
+{
 
 void PrintInformation::updateWithLayer(const LayerPlan* layer_plan)
 {
@@ -21,3 +22,5 @@ void PrintInformation::updateWithLayer(const LayerPlan* layer_plan)
         initial_layer_bb.include(layer_plan->calculateExtrusionBoundingBox());
     }
 }
+
+} // namespace curaengine

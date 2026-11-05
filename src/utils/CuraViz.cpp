@@ -25,10 +25,9 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 CuraViz* CuraViz::instance_ = nullptr;
 std::mutex CuraViz::mutex_;

@@ -17,13 +17,12 @@
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"
 
-using namespace curaengine::gcode_export;
-using namespace curaengine::geometry;
-using namespace curaengine::path_planning;
-using namespace curaengine::types;
-
 namespace curaengine
 {
+using namespace gcode_export;
+using namespace geometry;
+using namespace path_planning;
+using namespace types;
 using types::operator""_s;
 
 

@@ -11,10 +11,9 @@
 #include "utils/AABB3D.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
 {

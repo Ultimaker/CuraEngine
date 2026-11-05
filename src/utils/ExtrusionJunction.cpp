@@ -3,10 +3,9 @@
 
 #include "utils/ExtrusionJunction.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 bool ExtrusionJunction::operator==(const ExtrusionJunction& other) const
 {

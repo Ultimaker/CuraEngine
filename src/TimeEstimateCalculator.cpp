@@ -12,11 +12,10 @@
 #include "types/Acceleration.h"
 #include "utils/math.h"
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace types;
+using namespace utils;
 
 #define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
 

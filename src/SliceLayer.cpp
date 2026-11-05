@@ -3,10 +3,9 @@
 
 #include "SliceLayer.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine
 {
+using namespace geometry;
 SliceLayer::~SliceLayer()
 {
 }

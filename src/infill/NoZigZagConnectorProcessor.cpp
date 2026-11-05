@@ -6,11 +6,10 @@
 #include "utils/macros.h"
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 void NoZigZagConnectorProcessor::registerVertex(const Point2LL&)
 {

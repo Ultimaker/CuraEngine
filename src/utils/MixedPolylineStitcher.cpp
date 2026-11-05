@@ -10,10 +10,9 @@
 #include "geometry/Shape.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 void MixedPolylineStitcher::stitch(const OpenLinesSet& lines, MixedLinesSet& result, coord_t max_stitch_distance, coord_t snap_distance)
 {

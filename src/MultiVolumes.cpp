@@ -16,12 +16,11 @@
 #include "types/LayerIndex.h"
 #include "utils/OpenPolylineStitcher.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 void carveMultipleVolumes(std::vector<Slicer*>& volumes)
 {

@@ -5,11 +5,10 @@
 
 #include <cassert>
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::beading_strategy
 {
+using namespace types;
+using namespace utils;
 
 BeadingStrategy::BeadingStrategy(
     coord_t optimal_width,

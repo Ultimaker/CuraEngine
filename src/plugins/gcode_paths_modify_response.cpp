@@ -13,11 +13,10 @@
 #include "SliceMeshStorage.h"
 #include "path_planning/SpeedDerivatives.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::path_planning;
-
 namespace curaengine::plugins
 {
+using namespace geometry;
+using namespace path_planning;
 [[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept
 {
     switch (feature)

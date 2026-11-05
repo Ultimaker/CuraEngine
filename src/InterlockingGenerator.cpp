@@ -20,12 +20,11 @@
 #include "utils/PolygonUtils.h"
 #include "utils/VoxelUtils.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
 

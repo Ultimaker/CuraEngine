@@ -26,12 +26,11 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
-using namespace curaengine::communication;
-using namespace curaengine::progress;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace communication;
+using namespace progress;
+using namespace utils;
 
 Application::Application()
     : instance_uuid_(boost::uuids::to_string(boost::uuids::random_generator()()))

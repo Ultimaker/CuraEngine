@@ -12,10 +12,9 @@
 #include "types/Acceleration.h"
 #include "types/Velocity.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::types
 {
+using namespace utils;
 
 MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder)
     : inset0_config{ .type = PrintFeatureType::OuterWall,

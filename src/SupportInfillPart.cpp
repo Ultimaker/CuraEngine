@@ -5,11 +5,10 @@
 
 #include "AreaSupport.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils;
 
 
 SupportInfillPart::SupportInfillPart(

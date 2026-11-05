@@ -13,11 +13,10 @@
 #include "types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace types;
+using namespace utils;
 
 void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
 {

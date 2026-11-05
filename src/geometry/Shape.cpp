@@ -38,11 +38,10 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::geometry
 {
+using namespace types;
+using namespace utils;
 using utils::operator""_mu;
 
 

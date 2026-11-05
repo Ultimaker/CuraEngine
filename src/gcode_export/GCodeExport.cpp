@@ -44,13 +44,12 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-using namespace curaengine::communication;
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine::gcode_export
 {
+using namespace communication;
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 std::string transliterate(const std::string& text)
 {

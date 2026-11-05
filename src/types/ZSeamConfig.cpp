@@ -3,11 +3,10 @@
 
 #include "types/ZSeamConfig.h" //The definitions we're implementing.
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::types
 {
+using namespace geometry;
+using namespace utils;
 
 ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point2LL pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature)
     : type_(type)

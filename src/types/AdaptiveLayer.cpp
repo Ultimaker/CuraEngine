@@ -3,10 +3,9 @@
 
 #include "types/AdaptiveLayer.h"
 
-using namespace curaengine::utils;
-
 namespace curaengine::types
 {
+using namespace utils;
 
 AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
     : layer_height_{ layer_height }

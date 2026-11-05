@@ -9,10 +9,9 @@
 #include "TextureArea.h"
 #include "TextureBitField.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine
 {
+using namespace geometry;
 
 TextureDataProvider::TextureDataProvider(
     const std::shared_ptr<SlicedUVCoordinates>& uv_coordinates,

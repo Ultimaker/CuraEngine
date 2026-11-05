@@ -7,10 +7,9 @@
 #include "geometry/Point3LL.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 void ToolpathVisualizer::outline(const Shape& input)
 {

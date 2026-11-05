@@ -101,7 +101,7 @@ public:
         const types::LayerIndex layer_nr,
         const size_t total_layers,
         const utils::TimeKeeper& time_keeper,
-        const std::chrono::milliseconds skip_threshold = 100ms);
+        const std::chrono::milliseconds skip_threshold = std::chrono::milliseconds{ 100 });
 };
 
 

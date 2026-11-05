@@ -31,13 +31,12 @@
 #include "utils/math.h" //For round_up_divide and PI.
 
 
-using namespace curaengine::geometry;
-using namespace curaengine::infill;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace infill;
+using namespace types;
+using namespace utils;
 
 TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
     : config_(mesh.settings)

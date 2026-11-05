@@ -5,11 +5,10 @@
 
 #include "utils/PolygonUtils.h" //For spreadDotsArea helper function.
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 constexpr coord_t radius_per_cell_size = 6; // The cell-size should be small compared to the radius, but not so small as to be inefficient.
 

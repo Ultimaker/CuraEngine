@@ -5,11 +5,10 @@
 
 #include "utils/ExtrusionLine.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils;
 
 template<>
 const Point2LL& PathAdapter<ExtrusionLine>::pointAt(size_t index) const

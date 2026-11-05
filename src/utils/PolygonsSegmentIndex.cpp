@@ -3,10 +3,9 @@
 
 #include "utils/PolygonsSegmentIndex.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 PolygonsSegmentIndex::PolygonsSegmentIndex()
     : PolygonsPointIndex()

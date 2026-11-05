@@ -9,10 +9,9 @@
 #include "types/AngleRadians.h"
 
 
-using namespace curaengine::types;
-
 namespace curaengine::geometry
 {
+using namespace types;
 
 PointMatrix::PointMatrix(double rotation)
 {

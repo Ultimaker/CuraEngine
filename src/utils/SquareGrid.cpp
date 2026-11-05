@@ -5,10 +5,9 @@
 
 #include "utils/LinearAlg2D.h"
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils
 {
+using namespace geometry;
 
 
 SquareGrid::SquareGrid(coord_t cell_size)

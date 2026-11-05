@@ -3,10 +3,9 @@
 
 #include "path_planning/SpeedDerivatives.h"
 
-using namespace curaengine::types;
-
 namespace curaengine::path_planning
 {
+using namespace types;
 
 void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer_nr)
 {

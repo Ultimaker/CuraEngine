@@ -10,12 +10,11 @@
 #include "Settings.h"
 #include "types/ESurfaceMode.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
     , mesh_name(mesh->mesh_name_)

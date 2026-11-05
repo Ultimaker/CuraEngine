@@ -12,11 +12,10 @@
 #include "types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-
 namespace curaengine::utils
 {
+using namespace geometry;
+using namespace types;
 
 
 AABB::AABB()

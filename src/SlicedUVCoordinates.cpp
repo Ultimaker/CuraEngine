@@ -7,11 +7,10 @@
 #include "SlicerSegment.h"
 #include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils::sparse_point_grid_inclusive_impl;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace utils::sparse_point_grid_inclusive_impl;
 
 SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segments)
     : located_uv_coordinates_(cell_size)

@@ -9,11 +9,10 @@
 #include "geometry/Shape.h"
 #include "utils/AABB.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::utils;
-
 namespace curaengine::infill
 {
+using namespace geometry;
+using namespace utils;
 
 OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const
 {

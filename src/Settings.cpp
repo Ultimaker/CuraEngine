@@ -55,12 +55,11 @@
 #include "types/string_switch.h" //For string switch.
 #include "utils/Escaped.h"
 
-using namespace curaengine::geometry;
-using namespace curaengine::types;
-using namespace curaengine::utils;
-
 namespace curaengine
 {
+using namespace geometry;
+using namespace types;
+using namespace utils;
 
 Settings::Settings()
 {

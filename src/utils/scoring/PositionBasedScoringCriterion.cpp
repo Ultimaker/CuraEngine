@@ -6,10 +6,9 @@
 #include "geometry/PointsSet.h"
 
 
-using namespace curaengine::geometry;
-
 namespace curaengine::utils::scoring
 {
+using namespace geometry;
 
 PositionBasedScoringCriterion::PositionBasedScoringCriterion(const PointsSet& points)
     : points_(points)
