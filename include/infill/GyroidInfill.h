@@ -33,8 +33,9 @@ protected:
      * \param line_width Unused in this context.
      * \return The list of raw gyroid lines.
      */
-    geometry::OpenLinesSet
-        generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const override;
+    types::geometry::OpenLinesSet
+        generateParallelLines(const types::coord_t line_distance, const types::geometry::AABB& bounding_box, const types::coord_t z, const types::coord_t line_width)
+            const override;
 };
 
 } // namespace curaengine::infill

@@ -20,26 +20,26 @@
 #include "Slice.h"
 #include "Slicer.h"
 #include "TextureDataProvider.h"
-#include "geometry/ClosedLinesSet.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Point3D.h"
-#include "geometry/Shape.h"
-#include "geometry/Triangle2F.h"
-#include "geometry/Triangle3LL.h"
 #include "progress/Progress.h"
 #include "types/SlicingTolerance.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/ClosedLinesSet.h"
+#include "types/geometry/OccupiedPosition.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/Point3D.h"
+#include "types/geometry/Shape.h"
+#include "types/geometry/Simplify.h"
+#include "types/geometry/SpatialLookup.h"
+#include "types/geometry/Triangle2F.h"
+#include "types/geometry/Triangle3LL.h"
+#include "types/geometry/VoxelGrid.h"
 #include "utils/MeshUtils.h"
-#include "utils/OccupiedPosition.h"
-#include "utils/OpenPolylineStitcher.h"
-#include "utils/Simplify.h"
-#include "utils/SpatialLookup.h"
-#include "utils/ThreadPool.h"
-#include "utils/VoxelGrid.h"
 
 
 namespace curaengine::mesh_material_splitter
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace progress;
 using namespace types;
 using namespace utils;

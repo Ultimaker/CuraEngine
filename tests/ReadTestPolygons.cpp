@@ -1,18 +1,19 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ReadTestPolygons.h"
 
 #include <cstdio>
 
-#include "geometry/Shape.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Shape.h"
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 // Read multiple files to the collection of polygons.

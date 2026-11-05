@@ -7,7 +7,7 @@
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
 
 Point2LL GroundingLocation::p() const
 {

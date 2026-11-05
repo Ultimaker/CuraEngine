@@ -40,7 +40,7 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    const geometry::Point2LL start_point_;
+    const types::geometry::Point2LL start_point_;
 
     /*!
      * Seam settings.
@@ -93,14 +93,14 @@ protected:
      * pretend they are the same point.
      * This is used for detecting loops and chaining lines together.
      */
-    constexpr static utils::coord_t coincident_point_distance_ = 10;
+    constexpr static types::coord_t coincident_point_distance_ = 10;
 
     /*!
      * \brief Basic constructor with a given start point
      * \param start_point The location where the nozzle is assumed to start
      * from before printing these parts.
      */
-    PathOrder(const geometry::Point2LL& start_point)
+    PathOrder(const types::geometry::Point2LL& start_point)
         : start_point_(start_point)
     {
     }
@@ -124,7 +124,7 @@ protected:
             {
                 continue;
             }
-            if (geometry::vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance_ * coincident_point_distance_)
+            if (types::geometry::vSize2(path.converted_->back() - path.converted_->front()) < coincident_point_distance_ * coincident_point_distance_)
             {
                 // Endpoints are really close to one another. Consider it a closed loop.
                 path.is_closed_ = true;

@@ -9,6 +9,8 @@
 
 namespace curaengine::plugins
 {
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 simplify_request::value_type simplify_request::operator()(
     const simplify_request::native_value_type& polygons,

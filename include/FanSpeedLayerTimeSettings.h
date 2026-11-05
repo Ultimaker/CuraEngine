@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <utils/Coord_t.h>
+#include <types/Coord_t.h>
 
 #include "types/Duration.h"
 #include "types/LayerIndex.h"
@@ -37,7 +37,7 @@ public:
     /*!
      * The specific minimum layer time for overhanging will be applied only if there is at least one overhanging segment longer that this threshold
      */
-    utils::coord_t cool_min_layer_time_overhang_min_segment_length;
+    types::coord_t cool_min_layer_time_overhang_min_segment_length;
 
     /*!
      * "Regular/Maximum Fan Speed Threshold". If the layers take longer to print

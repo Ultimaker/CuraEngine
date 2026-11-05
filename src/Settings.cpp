@@ -21,9 +21,6 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "beading_strategy/BeadingStrategyFactory.h"
-#include "geometry/Matrix4x3D.h"
-#include "geometry/Polygon.h"
-#include "geometry/Shape.h"
 #include "types/Acceleration.h"
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"
@@ -41,6 +38,7 @@
 #include "types/ESurfaceMode.h"
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
+#include "types/Escaped.h"
 #include "types/FillPerimeterGapMode.h"
 #include "types/InfillStartEndPreference.h"
 #include "types/InsetDirection.h"
@@ -52,12 +50,14 @@
 #include "types/SupportDistPriority.h"
 #include "types/Temperature.h" //For temperature settings.
 #include "types/Velocity.h" //For velocity settings.
+#include "types/geometry/Matrix4x3D.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
 #include "types/string_switch.h" //For string switch.
-#include "utils/Escaped.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

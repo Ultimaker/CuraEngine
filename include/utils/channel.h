@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-#include "utils/ChannelSetupConfiguration.h"
+#include "types/ChannelSetupConfiguration.h"
 
 #ifndef ENABLE_REMOTE_PLUGINS
 #define ENABLE_REMOTE_PLUGINS false
@@ -16,7 +16,7 @@
 
 namespace curaengine::utils
 {
-std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& config = { "localhost", 50010UL });
+std::shared_ptr<grpc::Channel> createChannel(const types::ChannelSetupConfiguration& config = { "localhost", 50010UL });
 
 } // namespace curaengine::utils
 

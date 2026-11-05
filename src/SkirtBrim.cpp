@@ -12,20 +12,20 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SupportLayer.h"
-#include "geometry/ClosedLinesSet.h"
-#include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Shape.h"
 #include "types/BrimLocation.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/Ratio.h"
-#include "utils/MixedPolylineStitcher.h"
-#include "utils/PolygonUtils.h"
-#include "utils/Simplify.h"
+#include "types/geometry/ClosedLinesSet.h"
+#include "types/geometry/MixedPolylineStitcher.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/PolygonUtils.h"
+#include "types/geometry/Shape.h"
+#include "types/geometry/Simplify.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

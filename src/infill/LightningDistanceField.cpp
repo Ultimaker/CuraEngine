@@ -3,11 +3,12 @@
 
 #include "infill/LightningDistanceField.h" //Class we're implementing.
 
-#include "utils/PolygonUtils.h" //For spreadDotsArea helper function.
+#include "types/geometry/PolygonUtils.h" //For spreadDotsArea helper function.
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 constexpr coord_t radius_per_cell_size = 6; // The cell-size should be small compared to the radius, but not so small as to be inefficient.
@@ -23,7 +24,7 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Shap
     for (const auto& p : regular_dots)
     {
         const ClosestPointPolygon cpp = PolygonUtils::findClosest(p, current_outline);
-        const coord_t dist_to_boundary = geometry::vSize(p - cpp.p());
+        const coord_t dist_to_boundary = types::geometry::vSize(p - cpp.p());
         unsupported_points_.emplace_back(p, dist_to_boundary);
     }
     unsupported_points_.sort(
@@ -60,7 +61,7 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
         {
             std::list<UnsupCell>::iterator& list_it = it->second;
             UnsupCell& cell = *list_it;
-            if (geometry::shorterThen(cell.loc_ - added_leaf, supporting_radius_))
+            if (types::geometry::shorterThen(cell.loc_ - added_leaf, supporting_radius_))
             {
                 unsupported_points_.erase(list_it);
                 unsupported_points_grid_.erase(it);
@@ -71,8 +72,8 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
     const Point2LL a = to_node;
     const Point2LL b = added_leaf;
     Point2LL ab = b - a;
-    Point2LL ab_T = geometry::turn90CCW(ab);
-    Point2LL extent = geometry::normal(ab_T, supporting_radius_);
+    Point2LL ab_T = types::geometry::turn90CCW(ab);
+    Point2LL extent = types::geometry::normal(ab_T, supporting_radius_);
     // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
     grid_.processLineCells(
         std::make_pair(a + extent, a - extent),

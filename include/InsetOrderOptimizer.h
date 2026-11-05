@@ -21,7 +21,7 @@ class TextureDataProvider;
 class InsetOrderOptimizer
 {
 public:
-    using value_type = std::unordered_multimap<const utils::ExtrusionLine*, const utils::ExtrusionLine*>;
+    using value_type = std::unordered_multimap<const types::geometry::ExtrusionLine*, const types::geometry::ExtrusionLine*>;
 
     /*!
      * Constructor for inset ordering optimizer.
@@ -51,17 +51,17 @@ public:
         const GCodePathConfig& inset_X_flooring_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
-        const utils::coord_t wall_0_wipe_dist,
-        const utils::coord_t wall_x_wipe_dist,
+        const types::coord_t wall_0_wipe_dist,
+        const types::coord_t wall_x_wipe_dist,
         const size_t wall_0_extruder_nr,
         const size_t wall_x_extruder_nr,
         const types::ZSeamConfig& z_seam_config,
-        const std::vector<utils::VariableWidthLines>& paths,
-        const geometry::Point2LL& model_center_point,
-        const geometry::Shape& disallowed_areas_for_seams = {},
+        const std::vector<types::geometry::VariableWidthLines>& paths,
+        const types::geometry::Point2LL& model_center_point,
+        const types::geometry::Shape& disallowed_areas_for_seams = {},
         const bool scarf_seam = false,
         const bool smooth_speed = false,
-        const geometry::Shape& overhang_areas = geometry::Shape(),
+        const types::geometry::Shape& overhang_areas = types::geometry::Shape(),
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
         const bool start_width_longest_wall = false);
 
@@ -86,7 +86,7 @@ public:
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static value_type getRegionOrder(const std::vector<utils::ExtrusionLine>& input, const bool outer_to_inner);
+    static value_type getRegionOrder(const std::vector<types::geometry::ExtrusionLine>& input, const bool outer_to_inner);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.
@@ -99,7 +99,7 @@ public:
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
 
     /*! Get the start position of the planned paths, or nullopt if optimize() has not been called yet or the paths are empty */
-    std::optional<geometry::Point2LL> getStartPosition() const;
+    std::optional<types::geometry::Point2LL> getStartPosition() const;
 
 private:
     const SliceDataStorage& storage_;
@@ -114,26 +114,26 @@ private:
     const GCodePathConfig& inset_X_flooring_config_;
     const GCodePathConfig& inset_0_bridge_config_;
     const GCodePathConfig& inset_X_bridge_config_;
-    const utils::coord_t wall_0_wipe_dist_;
-    const utils::coord_t wall_x_wipe_dist_;
+    const types::coord_t wall_0_wipe_dist_;
+    const types::coord_t wall_x_wipe_dist_;
     const size_t wall_0_extruder_nr_;
     const size_t wall_x_extruder_nr_;
     const types::ZSeamConfig& z_seam_config_;
-    const std::vector<utils::VariableWidthLines>& paths_;
+    const std::vector<types::geometry::VariableWidthLines>& paths_;
     const types::LayerIndex layer_nr_;
-    const geometry::Point2LL model_center_point_; // Center of the model (= all meshes) axis-aligned bounding-box.
-    geometry::Shape disallowed_areas_for_seams_;
+    const types::geometry::Point2LL model_center_point_; // Center of the model (= all meshes) axis-aligned bounding-box.
+    types::geometry::Shape disallowed_areas_for_seams_;
     const bool scarf_seam_;
     const bool smooth_speed_;
-    geometry::Shape overhang_areas_;
+    types::geometry::Shape overhang_areas_;
     const std::shared_ptr<TextureDataProvider> texture_data_provider_;
     const bool start_width_longest_wall_;
-    std::vector<utils::ExtrusionLine> walls_to_be_added_;
-    std::shared_ptr<PathOrderOptimizer<const utils::ExtrusionLine*>> path_optimizer_;
+    std::vector<types::geometry::ExtrusionLine> walls_to_be_added_;
+    std::shared_ptr<PathOrderOptimizer<const types::geometry::ExtrusionLine*>> path_optimizer_;
 
-    std::vector<std::vector<const geometry::Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
-    geometry::Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
-                                        // retraction_region_calculated).
+    std::vector<std::vector<const types::geometry::Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
+    types::geometry::Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed
+                                               // (see retraction_region_calculated).
 
     /*!
      * Given a closed polygon, insert a seam point at the point where the seam should be placed.
@@ -146,7 +146,7 @@ private:
      *
      * \return The index of the inserted seam point, or the index of the closest point if an existing one can be used.
      */
-    std::optional<size_t> insertSeamPoint(utils::ExtrusionLine& closed_line);
+    std::optional<size_t> insertSeamPoint(types::geometry::ExtrusionLine& closed_line);
 
     /*!
      * Determine if the paths should be reversed
@@ -173,6 +173,6 @@ private:
      *
      * \return A vector of ExtrusionLines with walls that should be printed
      */
-    std::vector<utils::ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
+    std::vector<types::geometry::ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
 };
 } // namespace curaengine

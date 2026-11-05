@@ -5,16 +5,16 @@
 
 #include <vector>
 
-#include "geometry/Point2LL.h"
+#include "types/geometry/Point2LL.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class OpenLinesSet;
 class OpenPolyline;
 class PointMatrix;
 class Polygon;
 class Shape;
-} // namespace curaengine::geometry
+} // namespace curaengine::types::geometry
 
 namespace curaengine::infill
 {
@@ -120,8 +120,8 @@ public:
      * \param zag_skip_count Skip 1 zag in every N zags
      */
     ZigzagConnectorProcessor(
-        const geometry::PointMatrix& rotation_matrix,
-        geometry::OpenLinesSet& result,
+        const types::geometry::PointMatrix& rotation_matrix,
+        types::geometry::OpenLinesSet& result,
         bool use_endpieces,
         bool connected_endpieces,
         bool skip_some_zags,
@@ -146,7 +146,7 @@ public:
      * Handle the next vertex on the outer boundary.
      * \param vertex The vertex
      */
-    virtual void registerVertex(const geometry::Point2LL& vertex);
+    virtual void registerVertex(const types::geometry::Point2LL& vertex);
 
     /*!
      * Handle the next intersection between a scanline and the outer boundary.
@@ -154,7 +154,7 @@ public:
      * \param intersection The intersection
      * \param scanline_index Index of the current scanline
      */
-    virtual void registerScanlineSegmentIntersection(const geometry::Point2LL& intersection, int scanline_index, utils::coord_t min_distance_to_scanline);
+    virtual void registerScanlineSegmentIntersection(const types::geometry::Point2LL& intersection, int scanline_index, types::coord_t min_distance_to_scanline);
 
     /*!
      * Handle the end of a polygon and prepare for the next.
@@ -173,7 +173,7 @@ protected:
      *
      * \param polyline The polyline to add
      */
-    void addPolyline(const geometry::OpenPolyline& polyline);
+    void addPolyline(const types::geometry::OpenPolyline& polyline);
 
     /*!
      * Checks whether the current connector should be added or not.
@@ -190,13 +190,13 @@ protected:
      * \param points All the points on this connector
      * \param is_endpiece Whether this connector is an end piece
      */
-    void addZagConnector(std::vector<geometry::Point2LL>& points, bool is_endpiece);
+    void addZagConnector(std::vector<types::geometry::Point2LL>& points, bool is_endpiece);
 
-    bool handleConnectorTooCloseToSegment(const utils::coord_t scanline_x, const utils::coord_t min_distance_to_scanline);
+    bool handleConnectorTooCloseToSegment(const types::coord_t scanline_x, const types::coord_t min_distance_to_scanline);
 
 protected:
-    const geometry::PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
-    geometry::OpenLinesSet& result_; //!< The result of the computation
+    const types::geometry::PointMatrix& rotation_matrix_; //!< The rotation matrix used to enforce the infill angle
+    types::geometry::OpenLinesSet& result_; //!< The result of the computation
 
     const bool use_endpieces_; //!< Whether to include end pieces or not
     const bool connected_endpieces_; //!< Whether the end pieces should be connected with the rest part of the infill
@@ -213,11 +213,11 @@ protected:
      *
      * Because the boundary polygon may start in in the middle of a zigzag connector,
      */
-    std::vector<geometry::Point2LL> first_connector_;
+    std::vector<types::geometry::Point2LL> first_connector_;
     /*!
      * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
      */
-    std::vector<geometry::Point2LL> current_connector_;
+    std::vector<types::geometry::Point2LL> current_connector_;
 };
 
 } // namespace curaengine::infill

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/math.h"
@@ -9,6 +9,7 @@
 
 namespace curaengine
 {
+using namespace types;
 using namespace utils;
 // NOLINTBEGIN(*-magic-numbers)
 

@@ -5,7 +5,7 @@
 
 #include "DensityProvider.h"
 
-namespace curaengine::utils
+namespace curaengine::types::geometry
 {
 struct AABB3D;
 }
@@ -26,7 +26,7 @@ public:
     {
     }
 
-    virtual double operator()(const utils::AABB3D&) const
+    virtual double operator()(const types::geometry::AABB3D&) const
     {
         return density_;
     }

@@ -1,5 +1,5 @@
-// Copyright (C) 2026 Tim Kuipers
 // Copyright (c) 2026 UltiMaker
+// Copyright (C) 2026 Tim Kuipers
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
@@ -9,7 +9,7 @@
 #include "SierpinskiFill.h"
 #include "types/EFillMethod.h" //For EFillMethod.
 
-namespace curaengine::utils
+namespace curaengine::types::geometry
 {
 struct AABB3D;
 }
@@ -37,7 +37,7 @@ protected:
     struct FractalConfig
     {
         int depth; //!< max recursion depth
-        utils::AABB aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
+        types::geometry::AABB aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
     };
 
 public:
@@ -45,11 +45,11 @@ public:
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
 
-    SierpinskiFillProvider(const utils::AABB3D aabb_3d, utils::coord_t min_line_distance, const utils::coord_t line_width);
+    SierpinskiFillProvider(const types::geometry::AABB3D aabb_3d, types::coord_t min_line_distance, const types::coord_t line_width);
 
-    SierpinskiFillProvider(const utils::AABB3D aabb_3d, utils::coord_t min_line_distance, utils::coord_t line_width, std::string cross_subdisivion_spec_image_file);
+    SierpinskiFillProvider(const types::geometry::AABB3D aabb_3d, types::coord_t min_line_distance, types::coord_t line_width, std::string cross_subdisivion_spec_image_file);
 
-    geometry::Polygon generate(types::EFillMethod pattern, utils::coord_t z, utils::coord_t line_width, utils::coord_t pocket_size) const;
+    types::geometry::Polygon generate(types::EFillMethod pattern, types::coord_t z, types::coord_t line_width, types::coord_t pocket_size) const;
 
     ~SierpinskiFillProvider();
 
@@ -57,6 +57,6 @@ protected:
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object
      */
-    FractalConfig getFractalConfig(const utils::AABB3D aabb_3d, utils::coord_t min_line_distance);
+    FractalConfig getFractalConfig(const types::geometry::AABB3D aabb_3d, types::coord_t min_line_distance);
 };
 } // namespace curaengine::infill

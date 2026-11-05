@@ -34,7 +34,7 @@ namespace curaengine::path_planning
  */
 struct GCodePath
 {
-    utils::coord_t z_offset{}; //<! Actual vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
+    types::coord_t z_offset{}; //<! Actual vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     GCodePathConfig config{}; //!< The configuration settings of the path.
     std::shared_ptr<const SliceMeshStorage> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type{}; //!< The type of space filling of which this path is a part
@@ -50,7 +50,7 @@ struct GCodePath
                                                      //!< an outer wall
     bool perform_z_hop{ false }; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime{ false }; //!< Whether this path is preceded by a prime (blob)
-    std::vector<geometry::Point3LL>
+    std::vector<types::geometry::Point3LL>
         points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
@@ -78,7 +78,7 @@ struct GCodePath
      * Get the actual line width (modulated by the flow)
      * \return the actual line width as shown in layer view
      */
-    [[nodiscard]] utils::coord_t getLineWidthForLayerView() const noexcept;
+    [[nodiscard]] types::coord_t getLineWidthForLayerView() const noexcept;
 
     /*!
      * Set fan_speed

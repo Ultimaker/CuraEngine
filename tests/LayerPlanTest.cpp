@@ -10,15 +10,15 @@
 #include "Application.h" //To provide settings for the layer plan.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
+#include "SliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "path_planning/Comb.h" //To create a combing path around the layer plan.
 #include "path_planning/NozzleTempInsert.h" //To provide nozzle temperature commands.
-#include "SliceDataStorage.h" //To provide slice data as input for the planning stage.
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace path_planning;
 using namespace types;
 using namespace utils;

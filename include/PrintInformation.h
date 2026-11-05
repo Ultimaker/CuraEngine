@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "ExtruderPrintInformation.h"
-#include "utils/AABB.h"
+#include "types/geometry/AABB.h"
 
 namespace curaengine
 {
@@ -18,7 +18,7 @@ struct PrintInformation
 {
     std::vector<std::optional<ExtruderPrintInformation>> extruders_info; // One per extruder, but no value if the extruder is unused
     std::optional<size_t> initial_extruder_nr;
-    utils::AABB initial_layer_bb;
+    types::geometry::AABB initial_layer_bb;
 
     /*!
      * Update the print information with the given processed layer

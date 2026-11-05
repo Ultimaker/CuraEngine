@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "geometry/Shape.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine
 {
 struct FakeRoofArea
 {
-    FakeRoofArea(geometry::Shape area, utils::coord_t line_distance, bool fractional)
+    FakeRoofArea(types::geometry::Shape area, types::coord_t line_distance, bool fractional)
         : area_(area)
         , line_distance_(line_distance)
         , fractional_(fractional)
@@ -19,12 +19,12 @@ struct FakeRoofArea
     /*!
      * \brief Area that should be a fake roof.
      */
-    geometry::Shape area_;
+    types::geometry::Shape area_;
 
     /*!
      * \brief Distance between support lines
      */
-    utils::coord_t line_distance_;
+    types::coord_t line_distance_;
 
     /*!
      * \brief If the area should be added as a fractional support area.

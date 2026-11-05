@@ -1,0 +1,125 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#pragma once
+#ifdef ENABLE_CURAVIZ
+
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+
+#include "types/geometry/ExtrusionLine.h"
+#include "types/geometry/Point2LL.h"
+
+namespace cura_viz
+{
+class Message;
+class GeometricElement;
+class Polyline2LL;
+class Segment2LL;
+} // namespace cura_viz
+
+namespace curaengine::types::geometry
+{
+class OpenLinesSet;
+class MixedLinesSet;
+class Shape;
+class Polyline;
+class Point3LL;
+} // namespace curaengine::types::geometry
+
+namespace curaengine::types
+{
+
+
+/*!
+ * Interface to send internal CuraEngine data to an external visualization tool. All the public methods are static and can be used directly, without
+ * having to care about any kind of initialization or even multi-threading context. Just do something like:
+ *
+ * Shape outer_contour;
+ * std::vector<MixedLinesSet> final_print_lines;
+ * ....
+ * ....
+ * CuraViz::send(outer_contour, "contour");
+ * CuraViz::send(final_print_lines, "final_lines");
+ *
+ * Geometric objects (or sequence of objects) can be named using the "name" argument of each function. The "step_name" can be used to differentiate a same logical object that
+ * has changed over time, or to mention that multiple objects have been added in a batch:
+ *
+ * Shape outer_contour;
+ * CuraViz::send(outer_contour, "contour", "start");
+ *
+ * outer_contour = outer_contour.offset(100);
+ * CuraViz::send(outer_contour, "contour", "enlargement");
+ *
+ * Shape disallowed_areas = makeDisallowedAreas();
+ * outer_contour = outer_contour.difference(disallowed_areas);
+ * CuraViz::send(outer_contour, "contour", "remove_disallowed");
+ * CuraViz::send(disallowed_areas, "disallowed", "remove_disallowed");
+ *
+ */
+class CuraViz
+{
+public:
+    static void send(const types::geometry::Point2LL& point, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const types::geometry::Point2LL& start, const types::geometry::Point2LL& end, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const types::geometry::Point3LL& start, const types::geometry::Point3LL& end, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const types::geometry::Polyline& line, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const types::geometry::Shape& shape, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const std::vector<types::geometry::Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const types::geometry::OpenLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const types::geometry::MixedLinesSet& lines_set, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const std::vector<types::geometry::MixedLinesSet>& lines_sets, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const std::vector<geometry::VariableWidthLines>& lines, const std::string& name = "", const std::string& step_name = "");
+
+private:
+    /*! Convenience class that stores the message and handles its actual sending and destruction when appropriate */
+    class MessageToSend
+    {
+    public:
+        explicit MessageToSend(const std::string& step_name);
+
+        virtual ~MessageToSend();
+
+        cura_viz::GeometricElement* addGeometricElement(const std::string& element_name);
+
+    private:
+        std::shared_ptr<cura_viz::Message> message_;
+    };
+
+    CuraViz();
+
+    void send(const cura_viz::Message& message, const bool should_lock = true);
+
+    static CuraViz* getInstance();
+
+    static void setup(const types::geometry::Shape& shape, cura_viz::GeometricElement* element);
+
+    static void setup(const types::geometry::MixedLinesSet& lines, cura_viz::GeometricElement* element);
+
+    static void setup(const types::geometry::Point2LL& point, cura_viz::GeometricElement* element);
+
+    static void setup(const types::geometry::Polyline& polyline, cura_viz::Polyline2LL* polyline_message);
+
+    static void setup(const geometry::ExtrusionLine& line, cura_viz::Polyline2LL* polyline_message);
+
+    static void setup(const types::geometry::Point2LL& start, const types::geometry::Point2LL& end, cura_viz::Segment2LL* segment_message);
+
+private:
+    static CuraViz* instance_;
+    static std::mutex mutex_;
+
+    boost::asio::io_context io_context_;
+    boost::asio::ip::tcp::socket socket_;
+};
+
+} // namespace curaengine::types
+#endif

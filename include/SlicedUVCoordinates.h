@@ -5,9 +5,9 @@
 
 #include <optional>
 
-#include "geometry/Point2F.h"
-#include "geometry/Point2LL.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "types/geometry/Point2F.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/SparsePointGridInclusive.h"
 
 namespace curaengine
 {
@@ -20,18 +20,18 @@ class SlicedUVCoordinates
 public:
     explicit SlicedUVCoordinates(const std::vector<SlicerSegment>& segments);
 
-    std::optional<geometry::Point2F> getClosestUVCoordinates(const geometry::Point2LL& position) const;
+    std::optional<types::geometry::Point2F> getClosestUVCoordinates(const types::geometry::Point2LL& position) const;
 
 private:
     struct Segment
     {
-        geometry::Point2LL start, end;
-        geometry::Point2F uv_start, uv_end;
+        types::geometry::Point2LL start, end;
+        types::geometry::Point2F uv_start, uv_end;
     };
 
-    static constexpr utils::coord_t cell_size{ 1000 };
-    static constexpr utils::coord_t search_radius{ 1000 };
-    utils::SparsePointGridInclusive<geometry::Point2F> located_uv_coordinates_;
+    static constexpr types::coord_t cell_size{ 1000 };
+    static constexpr types::coord_t search_radius{ 1000 };
+    types::geometry::SparsePointGridInclusive<types::geometry::Point2F> located_uv_coordinates_;
     std::vector<Segment> segments_;
 };
 

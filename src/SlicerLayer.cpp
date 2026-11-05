@@ -7,14 +7,14 @@
 
 #include "Mesh.h"
 #include "SlicedUVCoordinates.h"
-#include "geometry/OpenPolyline.h"
 #include "types/ESurfaceMode.h"
-#include "utils/Simplify.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Simplify.h"
+#include "types/geometry/SparsePointGridInclusive.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
@@ -64,7 +64,7 @@ int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, const int f
         const int segment_idx = (*it).second;
         Point2LL p1 = segments_[segment_idx].start;
         Point2LL diff = segment.end - p1;
-        if (geometry::shorterThen(diff, largest_neglected_gap_first_phase))
+        if (types::geometry::shorterThen(diff, largest_neglected_gap_first_phase))
         {
             if (segment_idx == static_cast<int>(start_segment_idx))
             {
@@ -260,7 +260,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
         for (const auto& nearby_end : nearby_ends)
         {
             Point2LL diff = nearby_end.polyline_term_pt - polyline_1[0];
-            int64_t dist2 = geometry::vSize2(diff);
+            int64_t dist2 = types::geometry::vSize2(diff);
             if (dist2 < max_dist2)
             {
                 PossibleStitch poss_stitch;
@@ -286,7 +286,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
                 }
 
                 Point2LL diff = nearby_end.polyline_term_pt - polyline_1.back();
-                int64_t dist2 = geometry::vSize2(diff);
+                int64_t dist2 = types::geometry::vSize2(diff);
                 if (dist2 < max_dist2)
                 {
                     PossibleStitch poss_stitch;
@@ -310,7 +310,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
                 }
 
                 Point2LL diff = nearby_start.polyline_term_pt - polyline_1[0];
-                int64_t dist2 = geometry::vSize2(diff);
+                int64_t dist2 = types::geometry::vSize2(diff);
                 if (dist2 < max_dist2)
                 {
                     PossibleStitch poss_stitch;
@@ -650,30 +650,30 @@ std::optional<GapCloserResult> SlicerLayer::findPolygonGapCloser(Point2LL ip0, P
     if (ret.pointIdxA == ret.pointIdxB)
     {
         // Connection points are on the same line segment.
-        ret.len = geometry::vSize(ip0 - ip1);
+        ret.len = types::geometry::vSize(ip0 - ip1);
     }
     else
     {
         // Find out if we have should go from A to B or the other way around.
         Point2LL p0 = polygons_[ret.polygonIdx][ret.pointIdxA];
-        int64_t lenA = geometry::vSize(p0 - ip0);
+        int64_t lenA = types::geometry::vSize(p0 - ip0);
         for (unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygons_[ret.polygonIdx].size())
         {
             Point2LL p1 = polygons_[ret.polygonIdx][i];
-            lenA += geometry::vSize(p0 - p1);
+            lenA += types::geometry::vSize(p0 - p1);
             p0 = p1;
         }
-        lenA += geometry::vSize(p0 - ip1);
+        lenA += types::geometry::vSize(p0 - ip1);
 
         p0 = polygons_[ret.polygonIdx][ret.pointIdxB];
-        int64_t lenB = geometry::vSize(p0 - ip1);
+        int64_t lenB = types::geometry::vSize(p0 - ip1);
         for (unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygons_[ret.polygonIdx].size())
         {
             Point2LL p1 = polygons_[ret.polygonIdx][i];
-            lenB += geometry::vSize(p0 - p1);
+            lenB += types::geometry::vSize(p0 - p1);
             p0 = p1;
         }
-        lenB += geometry::vSize(p0 - ip0);
+        lenB += types::geometry::vSize(p0 - ip0);
 
         if (lenA < lenB)
         {
@@ -700,14 +700,14 @@ std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(Point2L
 
             // Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
             Point2LL pDiff = p1 - p0;
-            int64_t lineLength = geometry::vSize(pDiff);
+            int64_t lineLength = types::geometry::vSize(pDiff);
             if (lineLength > 1)
             {
-                int64_t distOnLine = geometry::dot(pDiff, input - p0) / lineLength;
+                int64_t distOnLine = types::geometry::dot(pDiff, input - p0) / lineLength;
                 if (distOnLine >= 0 && distOnLine <= lineLength)
                 {
                     Point2LL q = p0 + pDiff * distOnLine / lineLength;
-                    if (geometry::shorterThen(q - input, MM2INT(0.1)))
+                    if (types::geometry::shorterThen(q - input, MM2INT(0.1)))
                     {
                         ClosePolygonResult ret;
                         ret.polygonIdx = n;

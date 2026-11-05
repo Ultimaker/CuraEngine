@@ -7,11 +7,12 @@
 #include "SliceDataStorage.h" //For SliceLayerPart.
 #include "SliceLayerPart.h"
 #include "WallToolPaths.h"
-#include "geometry/OpenPolyline.h"
+#include "types/geometry/OpenPolyline.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 template<typename PathType>

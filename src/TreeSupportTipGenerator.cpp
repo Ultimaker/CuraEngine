@@ -19,21 +19,21 @@
 #include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportUtils.h"
-#include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "types/EFillMethod.h"
 #include "types/SupportDistPriority.h"
-#include "utils/ClosestPoint.h"
-#include "utils/GivenDistPoint.h"
-#include "utils/PolygonUtils.h" //For moveInside.
-#include "utils/ThreadPool.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/ClosestPoint.h"
+#include "types/geometry/GivenDistPoint.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/PolygonUtils.h" //For moveInside.
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
 
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace types;
 using namespace utils;
@@ -295,11 +295,11 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
                 {
                     for (auto [inner_idx, p_b] : part | ranges::views::enumerate | ranges::views::drop_last(1))
                     {
-                        if (geometry::vSize2(p_a - p_b) > max_dist2_between_vertices)
+                        if (types::geometry::vSize2(p_a - p_b) > max_dist2_between_vertices)
                         {
                             optimal_start_index = idx;
                             optimal_end_index = inner_idx;
-                            max_dist2_between_vertices = geometry::vSize2(p_a - p_b);
+                            max_dist2_between_vertices = types::geometry::vSize2(p_a - p_b);
                         }
                     }
                 }
@@ -314,7 +314,7 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
                 Point2LL current_point = part[0];
                 line.push_back(part[0]);
 
-                bool should_add_endpoint = min_points > 1 || geometry::vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance);
+                bool should_add_endpoint = min_points > 1 || types::geometry::vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance);
                 bool added_endpoint = ! should_add_endpoint; // If no endpoint should be added all endpoints are already added.
 
                 size_t current_index = 0;
@@ -342,7 +342,7 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
                     {
                         for (Point2LL p : line)
                         {
-                            min_distance_to_existing_point_sqd = std::min(min_distance_to_existing_point_sqd, geometry::vSize2(p - next_point.location));
+                            min_distance_to_existing_point_sqd = std::min(min_distance_to_existing_point_sqd, types::geometry::vSize2(p - next_point.location));
                         }
                     }
                     if (! enforce_distance || min_distance_to_existing_point_sqd >= (current_distance * current_distance))
@@ -834,7 +834,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
                         // Remove branches should have interface above them, but dont. Should never happen.
                         if (roof_on_layer_above.empty()
                             || (! roof_on_layer_above.inside(elem->result_on_layer_)
-                                && geometry::vSize2(from - elem->result_on_layer_) > config_.getRadius(0) * config_.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
+                                && types::geometry::vSize2(from - elem->result_on_layer_) > config_.getRadius(0) * config_.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
                         {
                             to_be_removed.emplace_back(elem);
                             spdlog::warn("Removing already placed tip that should have roof above it?");

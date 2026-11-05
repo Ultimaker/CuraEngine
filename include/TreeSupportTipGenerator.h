@@ -9,7 +9,7 @@
 #include "TreeSupportElement.h"
 #include "TreeSupportSettings.h"
 #include "polyclipping/clipper.hpp"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 namespace curaengine
 {
@@ -36,7 +36,7 @@ public:
         SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
-        std::vector<geometry::Shape>& additional_support_areas,
+        std::vector<types::geometry::Shape>& additional_support_areas,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas);
 
 private:
@@ -50,7 +50,7 @@ private:
         TO_BP_SAFE
     };
 
-    using LineInformation = std::vector<std::pair<geometry::Point2LL, TreeSupportTipGenerator::LineStatus>>;
+    using LineInformation = std::vector<std::pair<types::geometry::Point2LL, TreeSupportTipGenerator::LineStatus>>;
 
     /*!
      * \brief Converts a Polygons object representing a line into the internal format.
@@ -59,7 +59,7 @@ private:
      * \param layer_idx[in] The current layer.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
-    std::vector<LineInformation> convertLinesToInternal(const geometry::OpenLinesSet& polylines, types::LayerIndex layer_idx);
+    std::vector<LineInformation> convertLinesToInternal(const types::geometry::OpenLinesSet& polylines, types::LayerIndex layer_idx);
 
     /*!
      * \brief Converts lines in internal format into a Polygons object representing these lines.
@@ -67,7 +67,7 @@ private:
      * \param lines[in] The lines that will be converted.
      * \return All lines of the \p lines object as a Polygons object.
      */
-    geometry::OpenLinesSet convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines);
+    types::geometry::OpenLinesSet convertInternalToLines(std::vector<TreeSupportTipGenerator::LineInformation> lines);
 
     /*!
      * \brief Returns a function, evaluating if a point has to be added now. Required for a splitLines call in generateInitialAreas.
@@ -75,7 +75,7 @@ private:
      * \param current_layer[in] The layer on which the point lies
      * \return A function that can be called to evaluate a point.
      */
-    std::function<bool(std::pair<geometry::Point2LL, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
+    std::function<bool(std::pair<types::geometry::Point2LL, TreeSupportTipGenerator::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
 
     /*!
      * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using
@@ -87,7 +87,7 @@ private:
      */
     std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines(
         std::vector<LineInformation> lines,
-        std::function<bool(std::pair<geometry::Point2LL, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
+        std::function<bool(std::pair<types::geometry::Point2LL, TreeSupportTipGenerator::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
 
     /*!
      * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
@@ -98,7 +98,8 @@ private:
      * \param enforce_distance[in] If points should not be added if they are closer than distance to other points.
      * \return A Polygons object containing the evenly spaced points. Does not represent an area, more a collection of points on lines.
      */
-    geometry::OpenLinesSet ensureMaximumDistancePolyline(const geometry::OpenLinesSet& input, utils::coord_t distance, size_t min_points, bool enforce_distance) const;
+    types::geometry::OpenLinesSet
+        ensureMaximumDistancePolyline(const types::geometry::OpenLinesSet& input, types::coord_t distance, size_t min_points, bool enforce_distance) const;
 
     /*!
      * \brief Creates a valid CrossInfillProvider
@@ -108,7 +109,7 @@ private:
      * \param line_width[in] What is the width of a line used in the infill.
      * \return A valid CrossInfillProvider. Has to be freed manually to avoid a memory leak.
      */
-    std::shared_ptr<infill::SierpinskiFillProvider> generateCrossFillProvider(const SliceMeshStorage& mesh, utils::coord_t line_distance, utils::coord_t line_width) const;
+    std::shared_ptr<infill::SierpinskiFillProvider> generateCrossFillProvider(const SliceMeshStorage& mesh, types::coord_t line_distance, types::coord_t line_width) const;
 
 
     /*!
@@ -117,7 +118,7 @@ private:
      * \param result[out] The dropped overhang ares
      * \param roof[in] Whether the result is for roof generation.
      */
-    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<geometry::Shape>& result, bool roof);
+    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<types::geometry::Shape>& result, bool roof);
 
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
@@ -137,13 +138,13 @@ private:
      */
     void addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
-        std::pair<geometry::Point2LL, LineStatus> p,
+        std::pair<types::geometry::Point2LL, LineStatus> p,
         size_t dtt,
         types::LayerIndex insert_layer,
         size_t dont_move_until,
         bool roof,
         bool skip_ovalisation,
-        std::vector<geometry::Point2LL> additional_ovalization_targets = std::vector<geometry::Point2LL>());
+        std::vector<types::geometry::Point2LL> additional_ovalization_targets = std::vector<types::geometry::Point2LL>());
 
 
     /*!
@@ -170,7 +171,10 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, std::vector<geometry::Shape>& additional_support_areas);
+    void removeUselessAddedPoints(
+        std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
+        SliceDataStorage& storage,
+        std::vector<types::geometry::Shape>& additional_support_areas);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
@@ -205,28 +209,28 @@ private:
     /*!
      * \brief Distance between tips, so that the tips form a lime. Is smaller than Tip Diameter.
      */
-    const utils::coord_t connect_length_;
+    const types::coord_t connect_length_;
 
     /*!
      * \brief Distance between tips, if the tips support an overhang.
      */
-    const utils::coord_t support_tree_branch_distance_;
+    const types::coord_t support_tree_branch_distance_;
 
     /*!
      * \brief Distance between support roof lines. Is required for generating roof patterns.
      */
-    const utils::coord_t support_roof_line_distance_;
+    const types::coord_t support_roof_line_distance_;
 
 
     /*!
      * \brief Amount of offset to each overhang for support with regular branches (as opposed to roof).
      */
-    const utils::coord_t support_outset_;
+    const types::coord_t support_outset_;
 
     /*!
      * \brief Amount of offset to each overhang for support with roof (as opposed to regular branches).
      */
-    const utils::coord_t roof_outset_;
+    const types::coord_t roof_outset_;
 
     /*!
      * \brief Whether tips should be printed as roof
@@ -241,7 +245,7 @@ private:
     /*!
      * \brief Maximum distance a branch should from a point they support (in the xy plane). Can be violated if required.
      */
-    const utils::coord_t support_tree_branch_reach_limit_;
+    const types::coord_t support_tree_branch_reach_limit_;
 
     /*!
      * \brief Distance in layers from the overhang to the first layer with support. This is the z distance in layers+1
@@ -277,7 +281,7 @@ private:
     /*!
      * \brief Distance between branches when the branches support a support pattern
      */
-    utils::coord_t support_supporting_branch_distance_;
+    types::coord_t support_supporting_branch_distance_;
 
     /*!
      * \brief Required to generate cross infill patterns
@@ -287,22 +291,22 @@ private:
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
      */
-    std::vector<std::unordered_set<geometry::Point2LL>> already_inserted_;
+    std::vector<std::unordered_set<types::geometry::Point2LL>> already_inserted_;
 
     /*!
      * \brief Areas that will be saved as support roof
      */
-    std::vector<geometry::Shape> support_roof_drawn_;
+    std::vector<types::geometry::Shape> support_roof_drawn_;
 
     /*!
      * \brief Areas that require fractional roof above it.
      */
-    std::vector<geometry::Shape> support_roof_drawn_fractional_;
+    std::vector<types::geometry::Shape> support_roof_drawn_fractional_;
 
     /*!
      * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
      */
-    std::vector<geometry::Shape> roof_tips_drawn_;
+    std::vector<types::geometry::Shape> roof_tips_drawn_;
 
     std::mutex critical_move_bounds_;
     std::mutex critical_roof_tips_;

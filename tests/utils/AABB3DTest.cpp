@@ -1,17 +1,21 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/AABB3D.h"
-#include "utils/AABB.h"
-#include "utils/Coord_t.h"
-#include "geometry/Polygon.h"
-#include <gtest/gtest.h>
+#include "types/geometry/AABB3D.h"
+
 #include <polyclipping/clipper.hpp>
+
+#include <gtest/gtest.h>
+
+#include "types/Coord_t.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/Polygon.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 inline AABB3D toBox(const coord_t& x, const coord_t& y, const coord_t& z)

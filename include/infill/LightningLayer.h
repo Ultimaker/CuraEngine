@@ -6,12 +6,12 @@
 #include <memory>
 #include <vector>
 
-#include "geometry/LinesSet.h"
 #include "infill/GroundingLocation.h"
 #include "infill/LightningTreeNode.h"
-#include "utils/PolygonUtils.h"
+#include "types/geometry/LinesSet.h"
+#include "types/geometry/PolygonUtils.h"
 
-namespace curaengine::utils
+namespace curaengine::types::geometry
 {
 template<class Val>
 class SparsePointGridInclusive;
@@ -21,7 +21,7 @@ namespace curaengine::infill
 {
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
-using SparseLightningTreeNodeGrid = utils::SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>;
+using SparseLightningTreeNodeGrid = types::geometry::SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>;
 
 /*!
  * A layer of the lightning fill.
@@ -34,21 +34,21 @@ public:
     std::vector<LightningTreeNodeSPtr> tree_roots;
 
     void generateNewTrees(
-        const geometry::Shape& current_overhang,
-        const geometry::Shape& current_outlines,
-        const utils::LocToLineGrid& outline_locator,
-        const utils::coord_t supporting_radius,
-        const utils::coord_t wall_supporting_radius);
+        const types::geometry::Shape& current_overhang,
+        const types::geometry::Shape& current_outlines,
+        const types::geometry::LocToLineGrid& outline_locator,
+        const types::coord_t supporting_radius,
+        const types::coord_t wall_supporting_radius);
 
     /*! Determine & connect to connection point in tree/outline.
      * \param min_dist_from_boundary_for_tree If the unsupported point is closer to the boundary than this then don't consider connecting it to a tree
      */
     GroundingLocation getBestGroundingLocation(
-        const geometry::Point2LL& unsupported_location,
-        const geometry::Shape& current_outlines,
-        const utils::LocToLineGrid& outline_locator,
-        const utils::coord_t supporting_radius,
-        const utils::coord_t wall_supporting_radius,
+        const types::geometry::Point2LL& unsupported_location,
+        const types::geometry::Shape& current_outlines,
+        const types::geometry::LocToLineGrid& outline_locator,
+        const types::coord_t supporting_radius,
+        const types::coord_t wall_supporting_radius,
         const SparseLightningTreeNodeGrid& tree_node_locator,
         const LightningTreeNodeSPtr& exclude_tree = nullptr);
 
@@ -57,18 +57,18 @@ public:
      * \param[out] new_root The new root node if one had been made
      * \return Whether a new root was added
      */
-    bool attach(const geometry::Point2LL& unsupported_location, const GroundingLocation& ground, LightningTreeNodeSPtr& new_child, LightningTreeNodeSPtr& new_root);
+    bool attach(const types::geometry::Point2LL& unsupported_location, const GroundingLocation& ground, LightningTreeNodeSPtr& new_child, LightningTreeNodeSPtr& new_root);
 
     void reconnectRoots(
         std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
-        const geometry::Shape& current_outlines,
-        const utils::LocToLineGrid& outline_locator,
-        const utils::coord_t supporting_radius,
-        const utils::coord_t wall_supporting_radius);
+        const types::geometry::Shape& current_outlines,
+        const types::geometry::LocToLineGrid& outline_locator,
+        const types::coord_t supporting_radius,
+        const types::coord_t wall_supporting_radius);
 
-    geometry::OpenLinesSet convertToLines(const geometry::Shape& limit_to_outline, const utils::coord_t line_width) const;
+    types::geometry::OpenLinesSet convertToLines(const types::geometry::Shape& limit_to_outline, const types::coord_t line_width) const;
 
-    utils::coord_t getWeightedDistance(const geometry::Point2LL& boundary_loc, const geometry::Point2LL& unsupported_location);
+    types::coord_t getWeightedDistance(const types::geometry::Point2LL& boundary_loc, const types::geometry::Point2LL& unsupported_location);
 
     void fillLocator(SparseLightningTreeNodeGrid& tree_node_locator);
 };

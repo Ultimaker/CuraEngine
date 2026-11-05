@@ -4,21 +4,22 @@
 #include "infill/LightningLayer.h" //The class we're implementing.
 
 #include "SliceDataStorage.h"
-#include "geometry/OpenLinesSet.h"
 #include "infill/GroundingLocation.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
-#include "utils/LinearAlg2D.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/SparsePointGridInclusive.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 coord_t LightningLayer::getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location)
 {
-    return geometry::vSize(boundary_loc - unsupported_location);
+    return types::geometry::vSize(boundary_loc - unsupported_location);
 }
 
 void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
@@ -78,7 +79,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
 {
     ClosestPointPolygon cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point2LL node_location = cpp.p();
-    const coord_t within_dist = geometry::vSize(node_location - unsupported_location);
+    const coord_t within_dist = types::geometry::vSize(node_location - unsupported_location);
 
     PolygonsPointIndex dummy;
 

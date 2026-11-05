@@ -8,9 +8,9 @@
 
 #include "SliceLayerPart.h"
 #include "TopSurface.h"
-#include "geometry/OpenLinesSet.h"
-#include "geometry/Shape.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine
 {
@@ -22,10 +22,10 @@ class TextureDataProvider;
 class SliceLayer
 {
 public:
-    utils::coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
-    utils::coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
+    types::coord_t printZ; //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
+    types::coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    geometry::OpenLinesSet open_polylines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    types::geometry::OpenLinesSet open_polylines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
     std::shared_ptr<TextureDataProvider> texture_data_provider_; //!< Accessor to pre-sliced texture data
 
     /*!
@@ -41,7 +41,7 @@ public:
      *
      * Note: Filled only when needed.
      */
-    geometry::Shape bottom_surface;
+    types::geometry::Shape bottom_surface;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -49,7 +49,7 @@ public:
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \return A collection of all the outline polygons
      */
-    geometry::Shape getOutlines(bool external_polys_only = false) const;
+    types::geometry::Shape getOutlines(bool external_polys_only = false) const;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -58,7 +58,7 @@ public:
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \param result The result: a collection of all the outline polygons
      */
-    void getOutlines(geometry::Shape& result, bool external_polys_only = false) const;
+    void getOutlines(types::geometry::Shape& result, bool external_polys_only = false) const;
 
     ~SliceLayer();
 };

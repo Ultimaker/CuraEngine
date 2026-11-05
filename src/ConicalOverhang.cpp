@@ -1,5 +1,5 @@
-// Copyright (c) 2026 Tim Kuipers
 // Copyright (c) 2026 UltiMaker
+// Copyright (c) 2026 Tim Kuipers
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ConicalOverhang.h"
@@ -7,15 +7,15 @@
 #include "Mesh.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "geometry/Polygon.h"
-#include "geometry/SingleShape.h"
 #include "types/AngleRadians.h" //To process the overhang angle.
 #include "types/LayerIndex.h"
-#include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
+#include "types/geometry/SingleShape.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

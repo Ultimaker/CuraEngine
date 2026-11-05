@@ -5,15 +5,15 @@
 
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
-#include "utils/NoCopy.h"
-#include "utils/TimeKeeper.h"
+#include "types/NoCopy.h"
+#include "types/TimeKeeper.h"
 
 
 namespace curaengine
 {
 
 // FusedFilamentFabrication processor. Singleton class
-class FffProcessor : public utils::NoCopy
+class FffProcessor : public types::NoCopy
 {
 private:
     /*!
@@ -44,7 +44,7 @@ public:
     /*!
      * The stop watch used to time how long the different stages take to compute.
      */
-    utils::TimeKeeper time_keeper; // TODO: use singleton time keeper
+    types::TimeKeeper time_keeper; // TODO: use singleton time keeper
 
     /*!
      * Add the end gcode and set all temperatures to zero.

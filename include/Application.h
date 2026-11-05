@@ -9,7 +9,7 @@
 #endif
 #include <string>
 
-#include "utils/NoCopy.h"
+#include "types/NoCopy.h"
 
 
 namespace curaengine::communication
@@ -17,7 +17,7 @@ namespace curaengine::communication
 class Communication;
 }
 
-namespace curaengine::utils
+namespace curaengine::types
 {
 class ThreadPool;
 }
@@ -37,7 +37,7 @@ struct PluginSetupConfiguration;
  * maintains communication with other applications and uses that to schedule
  * slices.
  */
-class Application : utils::NoCopy
+class Application : types::NoCopy
 {
 public:
     /*
@@ -61,7 +61,7 @@ public:
     /*!
      * \brief ThreadPool with lifetime tied to Application
      */
-    utils::ThreadPool* thread_pool_ = nullptr;
+    types::ThreadPool* thread_pool_ = nullptr;
 
     /*! Controller used to set the maximum number of threads used by the OneTBB library */
 #ifndef __EMSCRIPTEN__

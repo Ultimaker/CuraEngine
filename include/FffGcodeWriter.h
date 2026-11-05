@@ -14,9 +14,9 @@
 #include "PrintInformation.h"
 #include "gcode_export/GCodeExport.h"
 #include "types/EFillMethod.h"
-#include "utils/LayerVector.h"
-#include "utils/NoCopy.h"
-#include "utils/TimeKeeper.h"
+#include "types/LayerVector.h"
+#include "types/NoCopy.h"
+#include "types/TimeKeeper.h"
 
 namespace curaengine::types
 {
@@ -24,7 +24,7 @@ class AngleDegrees;
 struct MeshPathConfigs;
 } // namespace curaengine::types
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Shape;
 }
@@ -48,13 +48,13 @@ class InsetOrderOptimizer;
  *
  * The main function of this class is FffGcodeWriter::writeGCode().
  */
-class FffGcodeWriter : public utils::NoCopy
+class FffGcodeWriter : public types::NoCopy
 {
     friend class FffProcessor; // Because FffProcessor exposes finalize (TODO)
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
 
 private:
-    utils::coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
+    types::coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
     /*
      * Buffer for all layer plans (of type LayerPlan)
@@ -72,7 +72,7 @@ private:
     gcode_export::GCodeExport gcode;
 
     //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
-    utils::LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
+    types::LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
@@ -109,13 +109,13 @@ public:
      * \param[in] storage The data storage from which to get the polygons to print and the areas to fill.
      * \param timeKeeper The stop watch to see how long it takes for each of the stages in the slicing process.
      */
-    void writeGCode(SliceDataStorage& storage, utils::TimeKeeper& timeKeeper);
+    void writeGCode(SliceDataStorage& storage, types::TimeKeeper& timeKeeper);
 
 private:
     struct ProcessLayerResult
     {
         LayerPlan* layer_plan;
-        utils::TimeKeeper time_keeper;
+        types::TimeKeeper time_keeper;
     };
 
     struct RoofingFlooringSettingsNames
@@ -393,7 +393,7 @@ private:
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const std::optional<geometry::Point2LL>& near_end_location = std::nullopt) const;
+        const std::optional<types::geometry::Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -417,9 +417,9 @@ private:
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const utils::coord_t start_move_inwards_length = 0,
-        const utils::coord_t end_move_inwards_length = 0,
-        const std::optional<geometry::Point2LL>& near_end_location = std::nullopt,
+        const types::coord_t start_move_inwards_length = 0,
+        const types::coord_t end_move_inwards_length = 0,
+        const std::optional<types::geometry::Point2LL>& near_end_location = std::nullopt,
         const bool split_near_end_location = false) const;
 
     /*!
@@ -443,9 +443,9 @@ private:
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const utils::coord_t start_move_inwards_length = 0,
-        const utils::coord_t end_move_inwards_length = 0,
-        const std::optional<geometry::Point2LL>& near_end_location = std::nullopt,
+        const types::coord_t start_move_inwards_length = 0,
+        const types::coord_t end_move_inwards_length = 0,
+        const std::optional<types::geometry::Point2LL>& near_end_location = std::nullopt,
         const bool split_near_end_location = false) const;
 
     /*!
@@ -579,7 +579,7 @@ private:
         const types::MeshPathConfigs& mesh_config,
         const GCodePathConfig& default_config,
         const std::vector<types::AngleDegrees>& angles,
-        const geometry::Shape& skin_fill,
+        const types::geometry::Shape& skin_fill,
         const bool is_roofing_flooring,
         bool& added_something) const;
 
@@ -609,18 +609,18 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const geometry::Shape& area,
+        const types::geometry::Shape& area,
         const GCodePathConfig& config,
         const GCodePathConfig* bridge_config,
         types::EFillMethod pattern,
         const types::AngleDegrees skin_angle,
-        const utils::coord_t skin_overlap,
+        const types::coord_t skin_overlap,
         const types::Ratio skin_density,
         const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        std::optional<utils::coord_t> forced_small_area_width = std::nullopt,
+        std::optional<types::coord_t> forced_small_area_width = std::nullopt,
         const OverrideAreas& override_areas = {}) const;
 
     /*!
@@ -646,7 +646,7 @@ private:
      * \param last_position The position the print head is in before going to fill the part
      * \return The location near where to start filling the part
      */
-    std::optional<geometry::Point2LL> getSeamAvoidingLocation(const geometry::Shape& filling_part, int filling_angle, geometry::Point2LL last_position) const;
+    std::optional<types::geometry::Point2LL> getSeamAvoidingLocation(const types::geometry::Shape& filling_part, int filling_angle, types::geometry::Point2LL last_position) const;
 
     /*!
      * Add the g-code for ironing the top surface.
@@ -691,8 +691,11 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const geometry::Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
-        const;
+    bool addSupportRoofsToGCode(
+        const SliceDataStorage& storage,
+        const types::geometry::Shape& support_roof_outlines,
+        const GCodePathConfig& current_roof_config,
+        LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current
@@ -756,7 +759,7 @@ private:
      * \param part [in] The part that we're currently checking.
      * \param skin_layer_nr [in] A layer that is adjacent to the part (so either above or below the layer of the part).
      */
-    static void getCombinedSkinForSkinSupport(geometry::Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr);
+    static void getCombinedSkinForSkinSupport(types::geometry::Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr);
 
     /*!
      * Partition the Infill regions by the skin at N layers above.
@@ -775,13 +778,13 @@ private:
      * \param infill_line_width line width of the infill
      */
     static void partitionInfillBySkinAbove(
-        geometry::Shape& infill_below_skin,
-        geometry::Shape& infill_not_below_skin,
-        geometry::Shape& infill_sandwiched,
+        types::geometry::Shape& infill_below_skin,
+        types::geometry::Shape& infill_not_below_skin,
+        types::geometry::Shape& infill_sandwiched,
         const LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
-        utils::coord_t infill_line_width);
+        types::coord_t infill_line_width);
 
     /*!
      * Find the first or last extruder used at the given layer. This may loop to lower layers if

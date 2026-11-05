@@ -9,12 +9,13 @@
 
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
-#include "utils/LinearAlg2D.h"
+#include "types/geometry/LinearAlg2D.h"
 #include "utils/macros.h"
 
 namespace curaengine::arachne
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
@@ -47,7 +48,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 
     auto should_collapse = [snap_dist](node_t* a, node_t* b)
     {
-        return geometry::shorterThen(a->p_ - b->p_, snap_dist);
+        return types::geometry::shorterThen(a->p_ - b->p_, snap_dist);
     };
 
     for (auto edge_it = edges_.begin(); edge_it != edges_.end();)
@@ -152,7 +153,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point2LL start_source_point, Point2LL end_source_point)
 {
     Point2LL p = LinearAlg2D::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
-    coord_t dist = geometry::vSize(prev_edge->to_->p_ - p);
+    coord_t dist = types::geometry::vSize(prev_edge->to_->p_ - p);
     prev_edge->to_->data_.distance_to_boundary_ = dist;
     assert(dist >= 0);
 
@@ -189,7 +190,7 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
 
     std::pair<Point2LL, Point2LL> source_segment = getSource(edge);
     Point2LL px = LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
-    coord_t dist = geometry::vSize(p - px);
+    coord_t dist = types::geometry::vSize(p - px);
     assert(dist > 0);
     mid_node->data_.distance_to_boundary_ = dist;
     mid_node->data_.transition_ratio_ = 0; // Both transition end should have rest = 0, because at the ends a whole number of beads fits without rest

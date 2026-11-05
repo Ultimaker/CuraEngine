@@ -4,7 +4,7 @@
 #pragma once
 
 #include "GCodePathConfig.h"
-#include "geometry/Shape.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine
 {
@@ -54,7 +54,7 @@ public:
     /*!
      * \brief The areas of top surface, for each layer.
      */
-    geometry::Shape areas;
+    types::geometry::Shape areas;
 };
 
 } // namespace curaengine

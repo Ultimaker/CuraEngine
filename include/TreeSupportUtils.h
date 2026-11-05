@@ -8,13 +8,13 @@
 #include "SliceDataStorage.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupportSettings.h"
-#include "geometry/LinesSet.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
 #include "infill/Infill.h"
 #include "polyclipping/clipper.hpp"
+#include "types/Coord_t.h"
 #include "types/EFillMethod.h"
-#include "utils/Coord_t.h"
+#include "types/geometry/LinesSet.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine
 {
@@ -28,9 +28,9 @@ public:
      * \param poly[in] The Polygons object, of which its lines should be extended.
      * \return A Polygons object with explicit line from the last vertex of a Polygon to the first one added.
      */
-    static geometry::OpenLinesSet toPolylines(const geometry::Shape& poly)
+    static types::geometry::OpenLinesSet toPolylines(const types::geometry::Shape& poly)
     {
-        geometry::OpenLinesSet result;
+        types::geometry::OpenLinesSet result;
         for (const auto& path : poly)
         {
             result.push_back(path.toPseudoOpenPolyline());
@@ -45,20 +45,20 @@ public:
      * \param toolpaths[in] The toolpaths.
      * \return A Polygons object.
      */
-    [[nodiscard]] static geometry::OpenLinesSet toPolylines(const std::vector<utils::VariableWidthLines> toolpaths)
+    [[nodiscard]] static types::geometry::OpenLinesSet toPolylines(const std::vector<types::geometry::VariableWidthLines> toolpaths)
     {
-        geometry::OpenLinesSet result;
-        for (const utils::VariableWidthLines& lines : toolpaths)
+        types::geometry::OpenLinesSet result;
+        for (const types::geometry::VariableWidthLines& lines : toolpaths)
         {
-            for (const utils::ExtrusionLine& line : lines)
+            for (const types::geometry::ExtrusionLine& line : lines)
             {
                 if (line.empty())
                 {
                     continue;
                 }
 
-                geometry::OpenPolyline result_line;
-                for (const utils::ExtrusionJunction& junction : line)
+                types::geometry::OpenPolyline result_line;
+                for (const types::geometry::ExtrusionJunction& junction : line)
                 {
                     result_line.push_back(junction.p_);
                 }
@@ -88,17 +88,17 @@ public:
      * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static geometry::OpenLinesSet generateSupportInfillLines(
-        const geometry::Shape& area,
+    [[nodiscard]] static types::geometry::OpenLinesSet generateSupportInfillLines(
+        const types::geometry::Shape& area,
         const TreeSupportSettings& config,
         bool roof,
         types::LayerIndex layer_idx,
-        utils::coord_t support_infill_distance,
+        types::coord_t support_infill_distance,
         std::shared_ptr<infill::SierpinskiFillProvider> cross_fill_provider,
         bool include_walls,
         bool generate_support_supporting = false)
     {
-        geometry::Shape gaps;
+        types::geometry::Shape gaps;
         // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
         const types::EFillMethod pattern = generate_support_supporting ? types::EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
@@ -112,25 +112,25 @@ public:
 
         const bool zig_zaggify_infill = roof ? pattern == types::EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
         const bool connect_polygons = false;
-        constexpr utils::coord_t support_roof_overlap = 0;
+        constexpr types::coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
-        const utils::coord_t wall_line_count
-            = include_walls ? (! roof ? config.support_wall_thickness : static_cast<utils::coord_t>(config.support_roof_wall_count) * config.support_roof_line_width)
-                            : utils::coord_t{ 0 };
-        constexpr utils::coord_t narrow_area_width = 0;
-        const geometry::Point2LL infill_origin;
+        const types::coord_t wall_line_count
+            = include_walls ? (! roof ? config.support_wall_thickness : static_cast<types::coord_t>(config.support_roof_wall_count) * config.support_roof_line_width)
+                            : types::coord_t{ 0 };
+        constexpr types::coord_t narrow_area_width = 0;
+        const types::geometry::Point2LL infill_origin;
         constexpr bool skip_stitching = false;
         constexpr bool fill_gaps = true;
         constexpr bool use_endpieces = true;
         const bool connected_zigzags = roof ? false : config.connect_zigzags;
         const bool skip_some_zags = roof ? false : config.skip_some_zags;
         const size_t zag_skip_count = roof ? 0 : config.zag_skip_count;
-        constexpr utils::coord_t pocket_size = 0;
+        constexpr types::coord_t pocket_size = 0;
         std::vector<types::AngleDegrees> angles = roof ? config.support_roof_angles : config.support_infill_angles;
-        std::vector<utils::VariableWidthLines> toolpaths;
+        std::vector<types::geometry::VariableWidthLines> toolpaths;
 
-        const utils::coord_t z = config.getActualZ(layer_idx);
+        const types::coord_t z = config.getActualZ(layer_idx);
         const size_t divisor = angles.size();
         const size_t index = ((layer_idx % divisor) + divisor) % divisor;
         const types::AngleDegrees fill_angle = angles[index];
@@ -159,9 +159,9 @@ public:
             zag_skip_count,
             pocket_size);
 
-        geometry::Shape areas;
-        geometry::OpenLinesSet lines;
-        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, utils::SectionType::SUPPORT, cross_fill_provider);
+        types::geometry::Shape areas;
+        types::geometry::OpenLinesSet lines;
+        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, types::SectionType::SUPPORT, cross_fill_provider);
         lines.push_back(toPolylines(areas));
         lines.push_back(toPolylines(toolpaths));
         return lines;
@@ -173,7 +173,7 @@ public:
      * \param second[in] The second Polygon.
      * \return The union of both Shape
      */
-    [[nodiscard]] static geometry::Shape safeUnion(const geometry::Shape& first, const geometry::Shape& second = geometry::Shape())
+    [[nodiscard]] static types::geometry::Shape safeUnion(const types::geometry::Shape& first, const types::geometry::Shape& second = types::geometry::Shape())
     {
         // The unionPolygons function can slowly remove Polygons under certain circumstances, because of rounding issues (Polygons that have a thin area).
         // This does not cause a problem when actually using it on large areas, but as influence areas (representing centerpoints) can be very thin, this does occur so this ugly
@@ -188,7 +188,7 @@ public:
         */
 
         const bool was_empty = first.empty() && second.empty();
-        geometry::Shape result = first.unionPolygons(second);
+        types::geometry::Shape result = first.unionPolygons(second);
 
         if (result.empty() && ! was_empty) // Some error occurred.
         {
@@ -211,18 +211,18 @@ public:
      * min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy. \param simplifier[in] Pointer to Simplify object if
      * the offset operation also simplify the Polygon. Improves performance. \return The resulting Shape object.
      */
-    [[nodiscard]] static geometry::Shape safeOffsetInc(
-        const geometry::Shape& me,
-        utils::coord_t distance,
-        const geometry::Shape& collision,
-        utils::coord_t safe_step_size,
-        utils::coord_t last_step_offset_without_check,
+    [[nodiscard]] static types::geometry::Shape safeOffsetInc(
+        const types::geometry::Shape& me,
+        types::coord_t distance,
+        const types::geometry::Shape& collision,
+        types::coord_t safe_step_size,
+        types::coord_t last_step_offset_without_check,
         size_t min_amount_offset,
-        utils::coord_t min_offset_per_step,
-        utils::Simplify* simplifier)
+        types::coord_t min_offset_per_step,
+        types::geometry::Simplify* simplifier)
     {
         bool do_final_difference = last_step_offset_without_check == 0;
-        geometry::Shape ret = safeUnion(me); // Ensure sane input.
+        types::geometry::Shape ret = safeUnion(me); // Ensure sane input.
         if (distance == 0)
         {
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
@@ -233,7 +233,7 @@ public:
             return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
         }
 
-        utils::coord_t step_size = std::max(min_offset_per_step, safe_step_size);
+        types::coord_t step_size = std::max(min_offset_per_step, safe_step_size);
         size_t steps = distance > last_step_offset_without_check ? (distance - last_step_offset_without_check) / step_size : 0;
         if (distance - steps * step_size > last_step_offset_without_check)
         {
@@ -292,26 +292,27 @@ public:
      * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the
      * provided area. \return A Polyline object containing the moved points.
      */
-    [[nodiscard]] static geometry::OpenLinesSet movePointsOutside(const geometry::OpenLinesSet& polylines, const geometry::Shape& area, utils::coord_t max_allowed_distance)
+    [[nodiscard]] static types::geometry::OpenLinesSet
+        movePointsOutside(const types::geometry::OpenLinesSet& polylines, const types::geometry::Shape& area, types::coord_t max_allowed_distance)
     {
-        geometry::OpenLinesSet result;
+        types::geometry::OpenLinesSet result;
 
-        for (const geometry::OpenPolyline& line : polylines)
+        for (const types::geometry::OpenPolyline& line : polylines)
         {
-            geometry::OpenPolyline next_line;
-            for (const geometry::Point2LL& p : line)
+            types::geometry::OpenPolyline next_line;
+            for (const types::geometry::Point2LL& p : line)
             {
                 if (area.inside(p))
                 {
-                    geometry::Point2LL next_outside = p;
-                    utils::PolygonUtils::moveOutside(area, next_outside);
-                    if (geometry::vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
+                    types::geometry::Point2LL next_outside = p;
+                    types::geometry::PolygonUtils::moveOutside(area, next_outside);
+                    if (types::geometry::vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
                     {
                         next_line.push_back(next_outside);
                     }
                     else // move point as far as allowed.
                     {
-                        double max_partial_move_proportion = double(max_allowed_distance) / double(geometry::vSize(p - next_outside));
+                        double max_partial_move_proportion = double(max_allowed_distance) / double(types::geometry::vSize(p - next_outside));
                         next_outside = p + (next_outside - p) * max_partial_move_proportion;
                         next_line.push_back(next_outside);
                     }
@@ -330,14 +331,14 @@ public:
         return result;
     }
 
-    [[nodiscard]] static utils::VariableWidthLines polyLineToVWL(const geometry::Shape& polylines, utils::coord_t line_width)
+    [[nodiscard]] static types::geometry::VariableWidthLines polyLineToVWL(const types::geometry::Shape& polylines, types::coord_t line_width)
     {
-        utils::VariableWidthLines result;
+        types::geometry::VariableWidthLines result;
         for (auto path : polylines)
         {
-            utils::ExtrusionLine vwl_line(1, true);
+            types::geometry::ExtrusionLine vwl_line(1, true);
 
-            for (geometry::Point2LL p : path)
+            for (types::geometry::Point2LL p : path)
             {
                 vwl_line.emplace_back(p, line_width, 1);
             }

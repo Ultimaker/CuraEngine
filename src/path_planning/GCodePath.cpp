@@ -1,10 +1,12 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "path_planning/GCodePath.h"
 
 namespace curaengine::path_planning
 {
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 [[nodiscard]] bool GCodePath::isTravelPath() const noexcept

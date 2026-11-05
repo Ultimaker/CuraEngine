@@ -1,13 +1,13 @@
-//  Copyright (c) 2026 UltiMaker
+// Copyright (c) 2026 UltiMaker
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
 
 #include "PrintInformation.h"
 #include "PrintSegmentAttribute.h"
-#include "geometry/Point2LL.h"
 #include "types/LayerIndex.h"
 #include "types/Velocity.h"
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine
 {
@@ -15,11 +15,11 @@ enum class PrintFeatureType : unsigned char;
 class ExtruderTrain;
 } // namespace curaengine
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Shape;
 class Polygon;
-} // namespace curaengine::geometry
+} // namespace curaengine::types::geometry
 
 namespace curaengine::types
 {
@@ -65,7 +65,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    virtual void sendLayerComplete(const types::LayerIndex::value_type& layer_nr, const utils::coord_t& z, const utils::coord_t& thickness) = 0;
+    virtual void sendLayerComplete(const types::LayerIndex::value_type& layer_nr, const types::coord_t& z, const types::coord_t& thickness) = 0;
 
     /*
      * \brief Send a line to the user to visualise.
@@ -82,9 +82,9 @@ public:
      */
     virtual void sendLineTo(
         const PrintFeatureType& type,
-        const geometry::Point3LL& to,
-        const utils::coord_t& line_width,
-        const utils::coord_t& line_thickness,
+        const types::geometry::Point3LL& to,
+        const types::coord_t& line_width,
+        const types::coord_t& line_thickness,
         const types::Velocity& velocity,
         const PrintSegmentAttributes& print_attributes = {})
         = 0;
@@ -95,7 +95,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    virtual void sendCurrentPosition(const geometry::Point3LL& position) = 0;
+    virtual void sendCurrentPosition(const types::geometry::Point3LL& position) = 0;
 
     /*
      * \brief Set which extruder is being used for the following calls to

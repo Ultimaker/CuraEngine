@@ -1,4 +1,4 @@
-// Copyright (C) 2026 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
@@ -7,7 +7,7 @@
 
 #include "Mesh.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Matrix4x3D;
 }
@@ -46,8 +46,8 @@ public:
     Settings settings;
     bool has_painted_support = false;
 
-    geometry::Point3LL min() const; //! minimal corner of bounding box
-    geometry::Point3LL max() const; //! maximal corner of bounding box
+    types::geometry::Point3LL min() const; //! minimal corner of bounding box
+    types::geometry::Point3LL max() const; //! maximal corner of bounding box
 
     void clear();
 
@@ -72,8 +72,8 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& filename, const geometry::Matrix4x3D& transformation, Settings& object_parent_settings);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& filename, const types::geometry::Matrix4x3D& transformation, Settings& object_parent_settings);
 
-bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const geometry::Matrix4x3D& matrix);
+bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const types::geometry::Matrix4x3D& matrix);
 
 } // namespace curaengine

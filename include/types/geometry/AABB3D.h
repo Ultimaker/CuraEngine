@@ -1,0 +1,117 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#pragma once
+
+#include "types/geometry/AABB.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Point3LL.h"
+
+namespace curaengine::types::geometry
+{
+
+/*!
+An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
+*/
+struct AABB3D
+{
+    types::geometry::Point3LL min_; //!< The minimal coordinates in x, y and z direction
+    types::geometry::Point3LL max_; //!< The maximal coordinates in x, y and z direction
+
+    /*!
+     * Create an AABB3D with coordinates at the numeric limits.
+     */
+    AABB3D();
+
+    /*!
+     * Create an AABB3D with given limits
+     */
+    AABB3D(types::geometry::Point3LL min, types::geometry::Point3LL max);
+
+    /*!
+     * Get the middle of the bounding box
+     */
+    types::geometry::Point3LL getMiddle() const;
+
+    /*!
+     * Creates a 2D version of this bounding box by leaving away the Z
+     * component.
+     *
+     * \return A 2D version of this bounding box.
+     */
+    AABB flatten() const;
+
+    /*!
+     * Check whether this aabb overlaps with another.
+     *
+     * In the boundary case false is returned.
+     *
+     * \param other the aabb to check for overlaps with
+     * \return Whether the two aabbs overlap
+     */
+    bool hit(const AABB3D& other) const;
+
+    /*!
+     * Expand the AABB3D to include the point \p p.
+     * \param p The point to include with the bounding box.
+     * \return this object (which has changed)
+     */
+    AABB3D include(const types::geometry::Point3LL& p);
+
+    /*!
+     * Expand the AABB3D to include the bounding box \p aabb.
+     * \param aabb The aabb to include with this bounding box.
+     * \return this object (which has changed)
+     */
+    AABB3D include(const AABB3D& aabb);
+
+    /*!
+     * Expand the AABB3D to include a z-coordinate.
+     *
+     * This is for including a point of which the X and Y coordinates are
+     * unknown but known to already be included in the bounding box.
+     * \return this object (which has changed)
+     */
+    AABB3D includeZ(coord_t z);
+
+    /*!
+     * Offset the coordinates of the bounding box.
+     * \param offset The offset with which to offset the AABB3D.
+     * \return this object (which has changed)
+     */
+    AABB3D translate(const types::geometry::Point3LL& offset);
+
+    /*!
+     * Offset the coordinates of the bounding box.
+     * \param offset The offset with which to offset the AABB3D.
+     * \return this object (which has changed)
+     */
+    AABB3D translate(const types::geometry::Point2LL& offset);
+
+    /*!
+     * Offset the bounding box in the horizontal direction; outward or inward.
+     *
+     * \param outset the distance (positive or negative) to expand the bounding box outward
+     * \return this object (which has changed)
+     */
+    AABB3D expand(coord_t outset);
+
+    /*!
+     * Offset the bounding box in the horizontal direction; outward or inward.
+     *
+     * \param outset the distance (positive or negative) to expand the bounding box outward
+     * \return this object (which has changed)
+     */
+    AABB3D expandXY(coord_t outset);
+
+    /*! Return the bounding box span in the X direction */
+    coord_t spanX() const;
+
+    /*! Return the bounding box span in the Y direction */
+    coord_t spanY() const;
+
+    /*! Return the bounding box span in the Z direction */
+    coord_t spanZ() const;
+};
+
+} // namespace curaengine::types::geometry

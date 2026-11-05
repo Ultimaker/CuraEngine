@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
@@ -14,12 +14,14 @@
 #include "ExtruderTrain.h"
 #include "MockSocket.h"
 #include "Slice.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
 using namespace communication;
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 constexpr size_t GK_TEST_NUM_MESH_GROUPS = 1;

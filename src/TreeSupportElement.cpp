@@ -4,12 +4,13 @@
 #include "TreeSupportElement.h"
 
 #include "TreeSupportBaseCircle.h"
-#include "utils/OBJ.h"
+#include "types/OBJ.h"
 
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 TreeSupportElement::TreeSupportElement(

@@ -22,6 +22,7 @@
 namespace curaengine::types
 {
 using namespace path_planning;
+using namespace types::geometry;
 using namespace utils;
 
 std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerIndex& layer_nr)

@@ -10,15 +10,15 @@
 #include "Slice.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
 #include "types/ESurfaceMode.h"
 #include "types/LayerIndex.h"
-#include "utils/OpenPolylineStitcher.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

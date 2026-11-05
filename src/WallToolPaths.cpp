@@ -15,16 +15,16 @@
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "beading_strategy/BeadingStrategyFactory.h"
-#include "utils/ExtrusionLineStitcher.h"
-#include "utils/PolygonUtils.h"
-#include "utils/Simplify.h"
-#include "utils/actions/smooth_fn.h"
+#include "types/actions/smooth_fn.h"
+#include "types/geometry/ExtrusionLineStitcher.h"
+#include "types/geometry/PolygonUtils.h"
+#include "types/geometry/Simplify.h"
 
 namespace curaengine
 {
 using namespace arachne;
 using namespace beading_strategy;
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

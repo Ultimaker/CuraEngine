@@ -1,19 +1,19 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SierpinskiFillProvider.h"
 
 #include <spdlog/spdlog.h>
 
-#include "geometry/Polygon.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
-#include "utils/AABB3D.h"
+#include "types/geometry/AABB3D.h"
+#include "types/geometry/Polygon.h"
 #include "utils/math.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

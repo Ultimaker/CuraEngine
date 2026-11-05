@@ -1,21 +1,24 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "types/geometry/VoxelUtils.h"
 
 #include <unordered_set>
 
 #include <gtest/gtest.h>
-#include <../src/utils/VoxelUtils.h>
 
 // #define TEST_SVG_OUTPUT
 #ifdef TEST_SVG_OUTPUT
-#include "../src/utils/polygon.h"
 #include <cstdlib>
-#include "../src/utils/SVG.h"
+
+#include "types/SVG.h"
+#include "types/geometry/Shape.h"
 #endif //TEST_SVG_OUTPUT
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 class VoxelUtilsTest: public testing::Test

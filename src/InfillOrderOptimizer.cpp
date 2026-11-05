@@ -10,15 +10,15 @@
 
 #include "LayerPlan.h"
 #include "SliceMeshStorage.h"
-#include "geometry/OpenLinesSet.h"
 #include "types/EFillMethod.h"
 #include "types/EZSeamType.h"
 #include "types/InfillStartEndPreference.h"
+#include "types/geometry/OpenLinesSet.h"
 
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 using types::operator""_r;
@@ -562,7 +562,7 @@ bool InfillOrderOptimizer::isCloserTo(
     {
         for (const auto& [point_index, point] : line | ranges::views::enumerate)
         {
-            const coord_t distance_squared = geometry::vSize2(point - location);
+            const coord_t distance_squared = types::geometry::vSize2(point - location);
             if (! closest_point.has_value() || distance_squared < closest_distance_squared)
             {
                 closer_found = true;

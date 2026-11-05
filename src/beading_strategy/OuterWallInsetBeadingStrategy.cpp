@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "beading_strategy/OuterWallInsetBeadingStrategy.h"
@@ -7,6 +7,7 @@
 
 namespace curaengine::beading_strategy
 {
+using namespace types;
 using namespace utils;
 OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)

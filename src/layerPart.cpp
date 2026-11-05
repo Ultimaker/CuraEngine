@@ -9,12 +9,12 @@
 #include "SliceMeshStorage.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "geometry/OpenPolyline.h"
 #include "progress/Progress.h"
 #include "types/ESurfaceMode.h" //For ESurfaceMode.
-#include "utils/OpenPolylineStitcher.h"
-#include "utils/Simplify.h" //Simplifying the layers after creating them.
-#include "utils/ThreadPool.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/Simplify.h" //Simplifying the layers after creating them.
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -30,7 +30,7 @@ It's also the first step that stores the result in the "data storage" so all oth
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

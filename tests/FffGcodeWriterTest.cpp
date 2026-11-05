@@ -16,20 +16,20 @@
 
 #include "Application.h"
 #include "LayerPlan.h"
-#include "Slice.h"
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h" //To create example polygons.
-#include "Settings.h" //Settings to generate walls with.
-#include "SliceDataStorage.h" //Sl
 #include "Mesh.h"
+#include "Settings.h" //Settings to generate walls with.
+#include "Slice.h"
+#include "SliceDataStorage.h" //Sl
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
+#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h" //To create example polygons.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 /*!

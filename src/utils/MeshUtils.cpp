@@ -17,13 +17,14 @@
 #include "Image.h"
 #include "Mesh.h"
 #include "TextureBitField.h"
-#include "geometry/Point2F.h"
-#include "geometry/Point3D.h"
+#include "types/geometry/Point2F.h"
+#include "types/geometry/Point3D.h"
 
 
 namespace curaengine::utils
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 
 std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle)
 {

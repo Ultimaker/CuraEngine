@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-#include "utils/Flags.h"
+#include "types/Flags.h"
 
 namespace curaengine
 {
@@ -24,6 +24,6 @@ enum class PrintSegmentAttribute : uint8_t
     // clang-format on
 };
 
-using PrintSegmentAttributes = utils::Flags<PrintSegmentAttribute>;
+using PrintSegmentAttributes = types::Flags<PrintSegmentAttribute>;
 
 } // namespace curaengine

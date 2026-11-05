@@ -1,21 +1,26 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/Coord_t.h"
 #include <cmath>
-#include <gtest/gtest.h>
 #include <polyclipping/clipper.hpp>
+
+#include <gtest/gtest.h>
+
+#include "types/Coord_t.h"
 
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
-#include "utils/SVG.h"
-#include "geometry/Polygon.h"
 #include <cstdlib>
+
+#include "types/SVG.h"
+#include "types/geometry/Polygon.h"
 #endif // TEST_INFILL_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test
@@ -80,12 +85,12 @@ public:
 
     static Paths intersectPolylines(const Paths& outlines, const Paths& polylines);
 
-    static utils::coord_t sq(utils::coord_t i)
+    static types::coord_t sq(types::coord_t i)
     {
         return i * i;
     };
 
-    static utils::coord_t calculateLength(const Paths& polylines);
+    static types::coord_t calculateLength(const Paths& polylines);
 
     static void outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename);
 };
@@ -104,7 +109,7 @@ DISABLED_ClipperTest::Paths DISABLED_ClipperTest::intersectPolylines(const Paths
 
 DISABLED_ClipperTest::coord_t DISABLED_ClipperTest::calculateLength(const Paths& polylines)
 {
-    utils::coord_t polyline_length = 0;
+    types::coord_t polyline_length = 0;
     for (const Path& path : polylines)
     {
         const Point* last = nullptr;

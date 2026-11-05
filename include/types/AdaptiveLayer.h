@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 namespace curaengine::types
 {
@@ -14,19 +14,19 @@ public:
     /*!
      * Height of the layer in microns.
      */
-    utils::coord_t layer_height_;
+    types::coord_t layer_height_;
 
     /*!
      * The absolute z position of the layer.
      */
-    utils::coord_t z_position_;
+    types::coord_t z_position_;
 
     /*!
      * Temperature to use for this layer.
      */
     int temperature_;
 
-    explicit AdaptiveLayer(const utils::coord_t layer_height);
+    explicit AdaptiveLayer(const types::coord_t layer_height);
 };
 
 } // namespace curaengine::types

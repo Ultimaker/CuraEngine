@@ -7,8 +7,8 @@
 #include <numbers>
 
 #include "types/AngleRadians.h"
+#include "types/Coord_t.h"
 #include "types/Ratio.h" //For the wall transition threshold.
-#include "utils/Coord_t.h"
 
 namespace curaengine::beading_strategy
 {
@@ -30,17 +30,17 @@ public:
      */
     struct Beading
     {
-        utils::coord_t total_thickness;
-        std::vector<utils::coord_t> bead_widths; //! The line width of each bead from the outer inset inward
-        std::vector<utils::coord_t> toolpath_locations; //! The distance of the toolpath location of each bead from the outline
-        utils::coord_t left_over; //! The distance not covered by any bead; gap area.
+        types::coord_t total_thickness;
+        std::vector<types::coord_t> bead_widths; //! The line width of each bead from the outer inset inward
+        std::vector<types::coord_t> toolpath_locations; //! The distance of the toolpath location of each bead from the outline
+        types::coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
     BeadingStrategy(
-        utils::coord_t optimal_width,
+        types::coord_t optimal_width,
         types::Ratio wall_split_middle_threshold,
         types::Ratio wall_add_middle_threshold,
-        utils::coord_t default_transition_length,
+        types::coord_t default_transition_length,
         double transitioning_angle = std::numbers::pi / 3.0);
 
     BeadingStrategy(const BeadingStrategy& other);
@@ -54,36 +54,36 @@ public:
      *
      * \note The \p bead_count might be different from the \ref BeadingStrategy::optimal_bead_count
      */
-    virtual Beading compute(utils::coord_t thickness, utils::coord_t bead_count) const = 0;
+    virtual Beading compute(types::coord_t thickness, types::coord_t bead_count) const = 0;
 
     /*!
      * The ideal thickness for a given \param bead_count
      */
-    virtual utils::coord_t getOptimalThickness(utils::coord_t bead_count) const;
+    virtual types::coord_t getOptimalThickness(types::coord_t bead_count) const;
 
     /*!
      * The model thickness at which \ref BeadingStrategy::optimal_bead_count transitions from \p lower_bead_count to \p lower_bead_count + 1
      */
-    virtual utils::coord_t getTransitionThickness(utils::coord_t lower_bead_count) const;
+    virtual types::coord_t getTransitionThickness(types::coord_t lower_bead_count) const;
 
     /*!
      * The number of beads should we ideally usefor a given model thickness
      */
-    virtual utils::coord_t getOptimalBeadCount(utils::coord_t thickness) const = 0;
+    virtual types::coord_t getOptimalBeadCount(types::coord_t thickness) const = 0;
 
     /*!
      * The length of the transitioning region along the marked / significant regions of the skeleton.
      *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps with some incline defined by their length.
      */
-    virtual utils::coord_t getTransitioningLength(utils::coord_t lower_bead_count) const;
+    virtual types::coord_t getTransitioningLength(types::coord_t lower_bead_count) const;
 
     /*!
      * The fraction of the transition length to put between the lower end of the transition and the point where the unsmoothed bead count jumps.
      *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
      */
-    virtual double getTransitionAnchorPos(utils::coord_t lower_bead_count) const;
+    virtual double getTransitionAnchorPos(types::coord_t lower_bead_count) const;
 
     /*!
      * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.
@@ -91,26 +91,26 @@ public:
      *
      * This is used to insert extra support bones into the skeleton, so that the resulting beads in long trapezoids don't linearly change between the two ends.
      */
-    virtual std::vector<utils::coord_t> getNonlinearThicknesses(utils::coord_t lower_bead_count) const;
+    virtual std::vector<types::coord_t> getNonlinearThicknesses(types::coord_t lower_bead_count) const;
 
     virtual std::string toString() const;
 
-    utils::coord_t getOptimalWidth() const;
+    types::coord_t getOptimalWidth() const;
     types::Ratio getSplitMiddleThreshold() const;
     types::Ratio getAddMiddleThreshold() const;
-    utils::coord_t getDefaultTransitionLength() const;
+    types::coord_t getDefaultTransitionLength() const;
     types::AngleRadians getTransitioningAngle() const;
 
 protected:
     std::string name_;
 
-    utils::coord_t optimal_width_; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
+    types::coord_t optimal_width_; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
 
     types::Ratio wall_split_middle_threshold_; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
 
     types::Ratio wall_add_middle_threshold_; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
 
-    utils::coord_t default_transition_length_; //! The length of the region to smoothly transfer between bead counts
+    types::coord_t default_transition_length_; //! The length of the region to smoothly transfer between bead counts
 
     /*!
      * The maximum angle between outline segments smaller than which we are going to add transitions

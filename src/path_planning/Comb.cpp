@@ -13,12 +13,12 @@
 #include "SliceDataStorage.h"
 #include "path_planning/CombPaths.h"
 #include "path_planning/LinePolygonsCrossings.h"
-#include "utils/LinearAlg2D.h"
-#include "utils/PathsPointIndex.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/PathsPointIndex.h"
 
 namespace curaengine::path_planning
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
@@ -101,7 +101,7 @@ bool Comb::calc(
     bool& unretract_before_last_travel_move,
     bool& do_retracted_move)
 {
-    if (geometry::shorterThen(end_point - start_point, max_comb_distance_ignored))
+    if (types::geometry::shorterThen(end_point - start_point, max_comb_distance_ignored))
     {
         return true;
     }
@@ -241,7 +241,7 @@ bool Comb::calc(
     }
 
     bool skip_avoid_other_parts_path = false;
-    if (geometry::vSize2(start_crossing.in_or_mid_ - end_crossing.in_or_mid_) < offset_from_inside_to_outside_ * offset_from_inside_to_outside_ * 4)
+    if (types::geometry::vSize2(start_crossing.in_or_mid_ - end_crossing.in_or_mid_) < offset_from_inside_to_outside_ * offset_from_inside_to_outside_ * 4)
     { // parts are next to each other, i.e. the direct crossing will always be smaller than two crossings via outside
         skip_avoid_other_parts_path = true;
     }
@@ -306,8 +306,8 @@ bool Comb::calc(
     {
         comb_paths.emplace_back();
         comb_paths.throughAir = true;
-        if (geometry::vSize(start_crossing.in_or_mid_ - end_crossing.in_or_mid_)
-            < geometry::vSize(start_crossing.in_or_mid_ - start_crossing.out_) + geometry::vSize(end_crossing.in_or_mid_ - end_crossing.out_))
+        if (types::geometry::vSize(start_crossing.in_or_mid_ - end_crossing.in_or_mid_)
+            < types::geometry::vSize(start_crossing.in_or_mid_ - start_crossing.out_) + types::geometry::vSize(end_crossing.in_or_mid_ - end_crossing.out_))
         { // via outside is moving more over the in-between zone
             comb_paths.back().push_back(start_crossing.in_or_mid_);
             comb_paths.back().push_back(end_crossing.in_or_mid_);
@@ -507,7 +507,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         std::function<int(Point2LL)> close_towards_start_penalty_function(
             [_dest_point](Point2LL candidate)
             {
-                return geometry::vSize2((candidate - _dest_point) / 10);
+                return types::geometry::vSize2((candidate - _dest_point) / 10);
             });
         dest_part_ = partsView_inside.assemblePart(dest_part_idx_);
 
@@ -527,7 +527,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
                     return true; // a.k.a. continue;
                 }
                 Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
-                coord_t dist2_score_here = geometry::vSize2(close_to - closest_here) + geometry::vSize2(_dest_point - closest_here) / 10;
+                coord_t dist2_score_here = types::geometry::vSize2(close_to - closest_here) + types::geometry::vSize2(_dest_point - closest_here) / 10;
                 if (dist2_score_here < dist2_score)
                 {
                     dist2_score = dist2_score_here;
@@ -573,11 +573,11 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outsid
     out_ = in_or_mid_;
     if (dest_is_inside_ || outside.inside(in_or_mid_, true)) // start in_between
     { // move outside
-        Point2LL preferred_crossing_1_out = in_or_mid_ + geometry::normal(close_to - in_or_mid_, comber.offset_from_inside_to_outside_);
+        Point2LL preferred_crossing_1_out = in_or_mid_ + types::geometry::normal(close_to - in_or_mid_, comber.offset_from_inside_to_outside_);
         std::function<int(Point2LL)> close_to_penalty_function(
             [preferred_crossing_1_out](Point2LL candidate)
             {
-                return geometry::vSize2((candidate - preferred_crossing_1_out) / 2);
+                return types::geometry::vSize2((candidate - preferred_crossing_1_out) / 2);
             });
         std::optional<ClosestPointPolygon> crossing_1_out_cpp = PolygonUtils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
         if (crossing_1_out_cpp)
@@ -589,7 +589,7 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outsid
             PolygonUtils::moveOutside(outside, out_, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
     }
-    int64_t in_out_dist2_1 = geometry::vSize2(out_ - in_or_mid_);
+    int64_t in_out_dist2_1 = types::geometry::vSize2(out_ - in_or_mid_);
     if (dest_is_inside_ && in_out_dist2_1 > comber.max_crossing_dist2_) // moveInside moved too far
     { // if move is too far over in_between
         // find crossing closer by
@@ -600,7 +600,7 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outsid
             in_or_mid_ = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
             out_ = PolygonUtils::moveOutside(best->second, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
-        if (fail_on_unavoidable_obstacles && geometry::vSize2(out_ - in_or_mid_) > comber.max_crossing_dist2_) // moveInside moved still too far
+        if (fail_on_unavoidable_obstacles && types::geometry::vSize2(out_ - in_or_mid_) > comber.max_crossing_dist2_) // moveInside moved still too far
         {
             return false;
         }
@@ -625,15 +625,15 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
     bool seen_close_enough_connection = false;
     for (std::pair<ClosestPointPolygon, ClosestPointPolygon>& crossing_candidate : crossing_out_candidates)
     {
-        const coord_t crossing_dist2 = geometry::vSize2(crossing_candidate.first.location_ - crossing_candidate.second.location_);
+        const coord_t crossing_dist2 = types::geometry::vSize2(crossing_candidate.first.location_ - crossing_candidate.second.location_);
         if (crossing_dist2 > comber.max_crossing_dist2_ * 2)
         { // preliminary filtering
             continue;
         }
 
         const coord_t dist_to_start
-            = geometry::vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
-        const coord_t dist_to_end = geometry::vSize(crossing_candidate.second.location_ - estimated_end);
+            = types::geometry::vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
+        const coord_t dist_to_end = types::geometry::vSize(crossing_candidate.second.location_ - estimated_end);
         const coord_t detour_dist = dist_to_start + dist_to_end;
         const coord_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
         // The detour distance is generally large compared to the crossing distance.
@@ -664,7 +664,7 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
     if (best_crossing_dist2 > comber.max_crossing_dist2_)
     { // find closer point on line segments, rather than moving between vertices of the polygons only
         PolygonUtils::walkToNearestSmallestConnection(*best_in, *best_out);
-        best_crossing_dist2 = geometry::vSize2(best_in->location_ - best_out->location_);
+        best_crossing_dist2 = types::geometry::vSize2(best_in->location_ - best_out->location_);
         if (best_crossing_dist2 > comber.max_crossing_dist2_)
         {
             return std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>>();

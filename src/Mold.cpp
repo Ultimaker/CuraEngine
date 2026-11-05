@@ -13,13 +13,13 @@
 #include "SliceDataStorage.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Point2LL.h"
 #include "types/Ratio.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

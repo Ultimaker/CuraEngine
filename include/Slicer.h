@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "SlicerLayer.h"
-#include "geometry/Point2F.h"
 #include "types/SlicingTolerance.h"
+#include "types/geometry/Point2F.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -20,7 +20,7 @@ namespace curaengine::types
 class AdaptiveLayer;
 }
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Point3D;
 }
@@ -40,12 +40,12 @@ public:
 
     Slicer(
         Mesh* mesh,
-        const utils::coord_t thickness,
+        const types::coord_t thickness,
         const size_t slice_layer_count,
         bool use_variable_layer_heights,
         std::vector<types::AdaptiveLayer>* adaptive_layers,
         const types::SlicingTolerance slicing_tolerance,
-        const utils::coord_t initial_layer_thickness);
+        const types::coord_t initial_layer_thickness);
 
 
 private:
@@ -61,7 +61,7 @@ private:
      * \param y1 The Y coordinate of the second end point of the line segment.
      * \return The Y coordinate of the point to find.
      */
-    static utils::coord_t interpolate(const utils::coord_t x, const utils::coord_t x0, const utils::coord_t x1, const utils::coord_t y0, const utils::coord_t y1);
+    static types::coord_t interpolate(const types::coord_t x, const types::coord_t x0, const types::coord_t x1, const types::coord_t y0, const types::coord_t y1);
 
     /*!
      * Interpolate the UV coordinates at the 3 points of the given triangle to the given position in barycentric coordinates
@@ -71,8 +71,11 @@ private:
      * @param uv2 The UV coordinates at point 2 of the triangle
      * @return The interpolated UV coordinates at the given position
      */
-    static geometry::Point2F
-        interpolateUV(const geometry::Point3D& barycentric_coordinates, const geometry::Point2F& uv0, const geometry::Point2F& uv1, const geometry::Point2F& uv2);
+    static types::geometry::Point2F interpolateUV(
+        const types::geometry::Point3D& barycentric_coordinates,
+        const types::geometry::Point2F& uv0,
+        const types::geometry::Point2F& uv1,
+        const types::geometry::Point2F& uv2);
 
     /*!
      * Get the barycentric coordinates of the given point in the given triangle
@@ -82,8 +85,11 @@ private:
      * @param p2 The coordinates of point 2 of the triangle
      * @return The barycentric coordinates of the given point
      */
-    static std::optional<geometry::Point3D>
-        getBarycentricCoordinates(const geometry::Point3LL& point, const geometry::Point3LL& p0, const geometry::Point3LL& p1, const geometry::Point3LL& p2);
+    static std::optional<types::geometry::Point3D> getBarycentricCoordinates(
+        const types::geometry::Point3LL& point,
+        const types::geometry::Point3LL& p0,
+        const types::geometry::Point3LL& p1,
+        const types::geometry::Point3LL& p2);
 
     /*!
      * \brief Project a triangle onto a 2D layer.
@@ -98,13 +104,13 @@ private:
      * \return A slicer segment.
      */
     static SlicerSegment project2D(
-        const geometry::Point3LL& p0,
-        const geometry::Point3LL& p1,
-        const geometry::Point3LL& p2,
-        const std::optional<geometry::Point2F>& uv0,
-        const std::optional<geometry::Point2F>& uv1,
-        const std::optional<geometry::Point2F>& uv2,
-        const utils::coord_t z);
+        const types::geometry::Point3LL& p0,
+        const types::geometry::Point3LL& p1,
+        const types::geometry::Point3LL& p2,
+        const std::optional<types::geometry::Point2F>& uv0,
+        const std::optional<types::geometry::Point2F>& uv1,
+        const std::optional<types::geometry::Point2F>& uv2,
+        const types::coord_t z);
 
     /*! Creates an array of "z bounding boxes" for each face.
      * \param[in] mesh The mesh which is analyzed.
@@ -132,8 +138,8 @@ private:
     static std::vector<SlicerLayer> buildLayersWithHeight(
         size_t slice_layer_count,
         types::SlicingTolerance slicing_tolerance,
-        utils::coord_t initial_layer_thickness,
-        utils::coord_t thickness,
+        types::coord_t initial_layer_thickness,
+        types::coord_t thickness,
         bool use_variable_layer_heights,
         const std::vector<types::AdaptiveLayer>* adaptive_layers);
 

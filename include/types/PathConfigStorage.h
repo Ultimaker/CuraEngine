@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "GCodePathConfig.h"
+#include "types/Coord_t.h"
 #include "types/LayerIndex.h"
 #include "types/MeshPathConfigs.h"
 #include "types/Ratio.h"
-#include "utils/Coord_t.h"
 
 namespace curaengine
 {
@@ -62,7 +62,7 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const utils::coord_t layer_thickness);
+    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const types::coord_t layer_thickness);
 
 private:
     void handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);

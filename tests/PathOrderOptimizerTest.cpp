@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderOptimizer.h" //The code under test.
@@ -8,7 +8,7 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PathOrderOptimizerTest : public testing::Test

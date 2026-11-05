@@ -14,6 +14,7 @@
 
 namespace curaengine::types
 {
+using namespace types::geometry;
 using namespace utils;
 
 MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder)

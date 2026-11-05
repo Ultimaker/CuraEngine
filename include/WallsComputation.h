@@ -4,9 +4,9 @@
 #pragma once
 
 #include "Settings.h"
+#include "types/Coord_t.h"
 #include "types/LayerIndex.h"
-#include "utils/Coord_t.h"
-#include "utils/SectionType.h"
+#include "types/SectionType.h"
 
 namespace curaengine
 {
@@ -36,7 +36,7 @@ public:
      *
      * \param layer The layer for which to generate the walls and inner area.
      */
-    void generateWalls(SliceLayer* layer, utils::SectionType section);
+    void generateWalls(SliceLayer* layer, types::SectionType section);
 
 private:
     /*!
@@ -56,7 +56,7 @@ private:
      *
      * \param part The part for which to generate the insets.
      */
-    void generateWalls(SliceLayerPart* part, utils::SectionType section);
+    void generateWalls(SliceLayerPart* part, types::SectionType section);
 
     /*!
      * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
@@ -68,6 +68,6 @@ private:
      * \param recompute_outline_based_on_outer_wall Whether we need to recompute the print outline according to the
      *        generated spiral inset.
      */
-    void generateSpiralInsets(SliceLayerPart* part, utils::coord_t line_width_0, utils::coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
+    void generateSpiralInsets(SliceLayerPart* part, types::coord_t line_width_0, types::coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
 } // namespace curaengine

@@ -5,7 +5,7 @@
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 SliceLayer::~SliceLayer()
 {
 }

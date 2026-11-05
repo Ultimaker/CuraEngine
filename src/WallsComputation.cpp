@@ -20,11 +20,11 @@
 #include "SliceLayerPart.h"
 #include "WallToolPaths.h"
 #include "types/Ratio.h"
-#include "utils/Simplify.h" // We're simplifying the spiralized insets.
+#include "types/geometry/Simplify.h" // We're simplifying the spiralized insets.
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

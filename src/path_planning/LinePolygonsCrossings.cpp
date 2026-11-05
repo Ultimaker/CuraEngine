@@ -9,7 +9,8 @@
 
 namespace curaengine::path_planning
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx)
@@ -106,7 +107,7 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
 
 bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
 {
-    if (geometry::shorterThen(end_point_ - start_point_, max_comb_distance_ignored) || ! lineSegmentCollidesWithBoundary())
+    if (types::geometry::shorterThen(end_point_ - start_point_, max_comb_distance_ignored) || ! lineSegmentCollidesWithBoundary())
     {
         // We're not crossing any boundaries. So skip the comb generation.
         combPath.push_back(start_point_);
@@ -164,7 +165,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     {
         const Point2LL p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside_);
         fwd_points.push_back(p);
-        fwd_len += geometry::vSize(p - prev);
+        fwd_len += types::geometry::vSize(p - prev);
         prev = p;
     }
 
@@ -172,7 +173,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
 
     if (fwd_points.size() > 0)
     {
-        fwd_len += geometry::vSize(last - fwd_points.back());
+        fwd_len += types::geometry::vSize(last - fwd_points.back());
     }
 
     // follow the path in the opposite direction of the winding order of the boundary polygon
@@ -185,7 +186,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
     {
         const Point2LL p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside_);
         rev_points.push_back(p);
-        rev_len += geometry::vSize(p - prev);
+        rev_len += types::geometry::vSize(p - prev);
         prev = p;
         if (rev_len > fwd_len)
         {
@@ -196,7 +197,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const 
 
     if (rev_points.size() > 0)
     {
-        rev_len += geometry::vSize(last - rev_points.back());
+        rev_len += types::geometry::vSize(last - rev_points.back());
     }
 
     // use the points from the shortest path

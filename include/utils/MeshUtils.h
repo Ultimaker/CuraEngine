@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#include "geometry/Triangle2F.h"
-#include "geometry/Triangle3LL.h"
+#include "types/geometry/Triangle2F.h"
+#include "types/geometry/Triangle3LL.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Point3D;
 }
@@ -25,9 +25,9 @@ class Mesh;
 namespace utils
 {
 
-std::optional<geometry::Point3D> getBarycentricCoordinates(const geometry::Point3LL& point, const geometry::Triangle3LL& triangle);
+std::optional<types::geometry::Point3D> getBarycentricCoordinates(const types::geometry::Point3LL& point, const types::geometry::Triangle3LL& triangle);
 
-geometry::Point2F getUVCoordinates(const geometry::Point3D& barycentric_coordinates, const geometry::Triangle2F& uv_coordinates);
+types::geometry::Point2F getUVCoordinates(const types::geometry::Point3D& barycentric_coordinates, const types::geometry::Triangle2F& uv_coordinates);
 
 /*!
  * Load texture data from PNG binary data and attach it to a mesh.

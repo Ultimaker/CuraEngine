@@ -7,8 +7,8 @@
 
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
-#include "geometry/Point2LL.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine::arachne
 {
@@ -32,16 +32,16 @@ public:
      * |    | > Don't collapse this edge only.
      * o    o
      */
-    void collapseSmallEdges(utils::coord_t snap_dist = 5);
+    void collapseSmallEdges(types::coord_t snap_dist = 5);
 
-    void makeRib(edge_t*& prev_edge, geometry::Point2LL start_source_point, geometry::Point2LL end_source_point);
+    void makeRib(edge_t*& prev_edge, types::geometry::Point2LL start_source_point, types::geometry::Point2LL end_source_point);
 
     /*!
      * Insert a node into the graph and connect it to the input polygon using ribs
      *
      * \return the last edge which replaced [edge], which points to the same [to] node
      */
-    edge_t* insertNode(edge_t* edge, geometry::Point2LL mid, utils::coord_t mide_node_bead_count);
+    edge_t* insertNode(edge_t* edge, types::geometry::Point2LL mid, types::coord_t mide_node_bead_count);
 
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node
@@ -49,7 +49,7 @@ public:
     std::pair<edge_t*, edge_t*> insertRib(edge_t& edge, node_t* mid_node);
 
 private:
-    std::pair<geometry::Point2LL, geometry::Point2LL> getSource(const edge_t& edge);
+    std::pair<types::geometry::Point2LL, types::geometry::Point2LL> getSource(const edge_t& edge);
 };
 
 } // namespace curaengine::arachne

@@ -6,10 +6,10 @@
 #include "PrintFeatureType.h"
 #include "path_planning/SpeedDerivatives.h"
 #include "types/Acceleration.h"
+#include "types/Coord_t.h"
 #include "types/Ratio.h"
 #include "types/Temperature.h"
 #include "types/Velocity.h"
-#include "utils/Coord_t.h"
 
 namespace curaengine
 {
@@ -21,10 +21,10 @@ struct GCodePathConfig
 {
     static constexpr double FAN_SPEED_DEFAULT = -1.0;
 
-    utils::coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
+    types::coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
     PrintFeatureType type{}; //!< name of the feature type
-    utils::coord_t line_width{}; //!< width of the line extruded
-    utils::coord_t layer_thickness{}; //!< current layer height in micron
+    types::coord_t line_width{}; //!< width of the line extruded
+    types::coord_t layer_thickness{}; //!< current layer height in micron
     types::Ratio flow{}; //!< extrusion flow modifier.
     path_planning::SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
@@ -55,7 +55,7 @@ struct GCodePathConfig
      */
     [[nodiscard]] types::Velocity getJerk() const noexcept;
 
-    [[nodiscard]] utils::coord_t getLineWidth() const noexcept;
+    [[nodiscard]] types::coord_t getLineWidth() const noexcept;
 
     [[nodiscard]] bool isTravelPath() const noexcept;
 
@@ -65,7 +65,7 @@ struct GCodePathConfig
 
     [[nodiscard]] types::Ratio getFlowRatio() const noexcept;
 
-    [[nodiscard]] utils::coord_t getLayerThickness() const noexcept;
+    [[nodiscard]] types::coord_t getLayerThickness() const noexcept;
 
     [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
 

@@ -14,15 +14,19 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportSettings.h"
-#include "utils/Coord_t.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "types/Coord_t.h"
+#include "types/geometry/SparsePointGridInclusive.h"
 
-namespace curaengine::utils
+namespace curaengine::types
 {
 class OBJ;
-class AABB;
 class TimeKeeper;
-} // namespace curaengine::utils
+} // namespace curaengine::types
+
+namespace curaengine::types::geometry
+{
+class AABB;
+}
 
 namespace curaengine
 {
@@ -50,13 +54,13 @@ constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS = 1;
 constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
 constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
 constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
-constexpr utils::coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
+constexpr types::coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
 constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
-constexpr utils::coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
+constexpr types::coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-using PropertyAreasUnordered = std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>;
-using PropertyAreas = std::map<TreeSupportElement::Ptr, geometry::Shape>;
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement::Ptr, types::geometry::Shape>;
+using PropertyAreas = std::map<TreeSupportElement::Ptr, types::geometry::Shape>;
 
 /*!
  * \brief Generates a tree structure to support your models.
@@ -90,7 +94,7 @@ private:
      * \param time_keeper The object used to record the duration of the sub-steps
      * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    types::LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, utils::TimeKeeper& time_keeper);
+    types::LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, types::TimeKeeper& time_keeper);
 
 
     /*!
@@ -122,8 +126,8 @@ private:
      * of avoidance) \param erase[out] Elements that should be deleted from the above dictionaries. \param layer_idx[in] The Index of the current Layer.
      */
     void mergeHelper(
-        std::map<TreeSupportElement::Ptr, utils::AABB>& reduced_aabb,
-        std::map<TreeSupportElement::Ptr, utils::AABB>& input_aabb,
+        std::map<TreeSupportElement::Ptr, types::geometry::AABB>& reduced_aabb,
+        std::map<TreeSupportElement::Ptr, types::geometry::AABB>& input_aabb,
         const PropertyAreasUnordered& to_bp_areas,
         const PropertyAreas& to_model_areas,
         const PropertyAreas& influence_areas,
@@ -174,11 +178,11 @@ private:
         AreaIncreaseSettings settings,
         types::LayerIndex layer_idx,
         TreeSupportElement::Ptr parent,
-        const geometry::Shape& relevant_offset,
-        geometry::Shape& to_bp_data,
-        geometry::Shape& to_model_data,
-        geometry::Shape& increased,
-        const utils::coord_t overspeed,
+        const types::geometry::Shape& relevant_offset,
+        types::geometry::Shape& to_bp_data,
+        types::geometry::Shape& to_model_data,
+        types::geometry::Shape& increased,
+        const types::coord_t overspeed,
         const bool mergelayer);
 
     /*!
@@ -215,7 +219,7 @@ private:
      * \param move_bounds[in,out] All currently existing influence areas
      * \param time_keeper The object used to record the duration of the sub-steps
      */
-    void createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, utils::TimeKeeper& time_keeper);
+    void createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, types::TimeKeeper& time_keeper);
 
 
     /*!
@@ -252,7 +256,7 @@ private:
      */
     void generateBranchAreas(
         std::vector<std::pair<types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
-        std::vector<std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>>& layer_tree_polygons,
+        std::vector<std::unordered_map<TreeSupportElement::Ptr, types::geometry::Shape>>& layer_tree_polygons,
         const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order);
 
     /*!
@@ -260,7 +264,7 @@ private:
      *
      * \param layer_tree_polygons[in,out] Resulting branch areas with the layerindex they appear on.
      */
-    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>>& layer_tree_polygons);
+    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, types::geometry::Shape>>& layer_tree_polygons);
 
     /*!
      * Smoothes the skeleton of the tree structure according to the smoothing factor
@@ -277,15 +281,15 @@ private:
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void dropNonGraciousAreas(
-        std::vector<std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>>& layer_tree_polygons,
+        std::vector<std::unordered_map<TreeSupportElement::Ptr, types::geometry::Shape>>& layer_tree_polygons,
         const std::vector<std::pair<types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
-        std::vector<std::vector<std::pair<types::LayerIndex, geometry::Shape>>>& dropped_down_areas,
+        std::vector<std::vector<std::pair<types::LayerIndex, types::geometry::Shape>>>& dropped_down_areas,
         const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order);
 
 
-    void filterFloatingLines(std::vector<geometry::Shape>& support_layer_storage);
+    void filterFloatingLines(std::vector<types::geometry::Shape>& support_layer_storage);
 
-    using CenterGrid = std::vector<std::unique_ptr<utils::SparsePointGridInclusive<std::pair<utils::coord_t, float>>>>;
+    using CenterGrid = std::vector<std::unique_ptr<types::geometry::SparsePointGridInclusive<std::pair<types::coord_t, float>>>>;
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *
@@ -294,9 +298,9 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      */
     void finalizeInterfaceAndSupportAreas(
-        std::vector<geometry::Shape>& support_layer_storage,
-        const std::vector<geometry::Shape>& support_roof_storage,
-        const std::vector<geometry::Shape>& support_layer_storage_fractional,
+        std::vector<types::geometry::Shape>& support_layer_storage,
+        const std::vector<types::geometry::Shape>& support_roof_storage,
+        const std::vector<types::geometry::Shape>& support_layer_storage_fractional,
         const CenterGrid& center_locator_per_layer,
         SliceDataStorage& storage);
 
@@ -307,13 +311,13 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      * \param time_keeper The object used to record the duration of the sub-steps
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, utils::TimeKeeper& time_keeper);
+    void drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, types::TimeKeeper& time_keeper);
 
     /*!
      * Saves the influence areas and the resulting positions of all the given elements to a 3D object
      * @para move_bounds The elements to be saved, sorted per layer
      */
-    void saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, utils::OBJ& obj) const;
+    void saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, types::OBJ& obj) const;
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.
@@ -323,7 +327,7 @@ private:
     /*!
      * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated.
      */
-    std::vector<geometry::Shape> additional_required_support_area;
+    std::vector<types::geometry::Shape> additional_required_support_area;
 
     /*!
      * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).

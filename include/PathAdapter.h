@@ -5,8 +5,8 @@
 
 #include <stddef.h>
 
-#include "geometry/Point2LL.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine
 {
@@ -22,7 +22,7 @@ public:
      * \param fixed_line_width The fixed line width in case the stored path doesn't handle information about a variable
      *                         line width. Can be omitted otherwise.
      */
-    PathAdapter(const PathType& path, const utils::coord_t fixed_line_width = 0)
+    PathAdapter(const PathType& path, const types::coord_t fixed_line_width = 0)
         : path_(path)
         , fixed_line_width_(fixed_line_width)
     {
@@ -38,14 +38,14 @@ public:
         return path_.size();
     }
 
-    utils::coord_t length() const
+    types::coord_t length() const
     {
         return path_.length();
     }
 
-    const geometry::Point2LL& pointAt(size_t index) const;
+    const types::geometry::Point2LL& pointAt(size_t index) const;
 
-    utils::coord_t lineWidthAt(size_t index) const;
+    types::coord_t lineWidthAt(size_t index) const;
 
     const PathType& getPath() const
     {
@@ -54,7 +54,7 @@ public:
 
 private:
     const PathType& path_;
-    const utils::coord_t fixed_line_width_;
+    const types::coord_t fixed_line_width_;
 };
 
 } // namespace curaengine

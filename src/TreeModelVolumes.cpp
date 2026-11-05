@@ -21,12 +21,12 @@
 #include "types/ESupportType.h"
 #include "types/ESurfaceMode.h"
 #include "types/SupportDistPriority.h"
-#include "utils/ThreadPool.h"
+#include "types/ThreadPool.h"
 #include "utils/algorithm.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace progress;
 using namespace types;
 using namespace utils;

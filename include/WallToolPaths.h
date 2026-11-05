@@ -5,9 +5,9 @@
 
 #include "Settings.h"
 #include "WallToolPathGenerator.h"
-#include "geometry/Polygon.h"
-#include "utils/ExtrusionLine.h"
-#include "utils/SectionType.h"
+#include "types/SectionType.h"
+#include "types/geometry/ExtrusionLine.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine
 {
@@ -29,14 +29,14 @@ public:
      * \param generator Indicates whether to use Arachne to generate variable-line-width walls, or a naive insetting
      */
     WallToolPaths(
-        const geometry::Shape& outline,
-        const utils::coord_t nominal_bead_width,
+        const types::geometry::Shape& outline,
+        const types::coord_t nominal_bead_width,
         const size_t inset_count,
-        const utils::coord_t wall_0_inset,
-        const utils::coord_t wall_x_inset,
+        const types::coord_t wall_0_inset,
+        const types::coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
-        utils::SectionType section_type,
+        types::SectionType section_type,
         WallToolPathGenerator generator);
 
     /*!
@@ -52,33 +52,33 @@ public:
      * \param section_type The type of element being printed
      */
     WallToolPaths(
-        const geometry::Shape& outline,
-        const utils::coord_t bead_width_0,
-        const utils::coord_t bead_width_x,
+        const types::geometry::Shape& outline,
+        const types::coord_t bead_width_0,
+        const types::coord_t bead_width_x,
         const size_t inset_count,
-        const utils::coord_t wall_0_inset,
-        const utils::coord_t wall_x_inset,
+        const types::coord_t wall_0_inset,
+        const types::coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
-        utils::SectionType section_type);
+        types::SectionType section_type);
 
     /*!
      * Generates the Toolpaths
      * \return A reference to the newly created ToolPaths. Binned by inset_idx.
      */
-    const std::vector<utils::VariableWidthLines>& generate();
+    const std::vector<types::geometry::VariableWidthLines>& generate();
 
     /*!
      * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
      * \return a reference to the toolpaths. Binned by inset_idx.
      */
-    const std::vector<utils::VariableWidthLines>& getToolPaths();
+    const std::vector<types::geometry::VariableWidthLines>& getToolPaths();
 
     /*!
      * Alternate 'get', for when the vector that'll be inserted in already exists.
      * \param paths The already existing (or empty) paths these new toolpaths are pushed into. Binned by inset_idx.
      */
-    void pushToolPaths(std::vector<utils::VariableWidthLines>& paths);
+    void pushToolPaths(std::vector<types::geometry::VariableWidthLines>& paths);
 
     /*!
      * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
@@ -99,14 +99,14 @@ public:
      * If there are no walls, the outline will be returned.
      * \return The inner contour of the generated walls.
      */
-    const geometry::Shape& getInnerContour();
+    const types::geometry::Shape& getInnerContour();
 
     /*!
      * Removes empty paths from the toolpaths
      * \param toolpaths the toolpaths binned by inset_idx generated with \p generate()
      * \return true if there are still paths left. If all toolpaths were removed it returns false
      */
-    static bool removeEmptyToolPaths(std::vector<utils::VariableWidthLines>& toolpaths);
+    static bool removeEmptyToolPaths(std::vector<types::geometry::VariableWidthLines>& toolpaths);
 
 protected:
     /*!
@@ -116,19 +116,19 @@ protected:
      *
      * \param stitch_distance The stitch distance to be used
      */
-    static void stitchToolPaths(std::vector<utils::VariableWidthLines>& toolpaths, const utils::coord_t stitch_distance);
+    static void stitchToolPaths(std::vector<types::geometry::VariableWidthLines>& toolpaths, const types::coord_t stitch_distance);
 
     /*!
      * Remove polylines shorter than half the smallest line width along that polyline, if that polyline isn't part of an outer wall.
      */
-    static void removeSmallFillLines(std::vector<utils::VariableWidthLines>& toolpaths);
+    static void removeSmallFillLines(std::vector<types::geometry::VariableWidthLines>& toolpaths);
 
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.
      * \param settings The settings as provided by the user
      */
-    static void simplifyToolPaths(std::vector<utils::VariableWidthLines>& toolpaths, const Settings& settings);
+    static void simplifyToolPaths(std::vector<types::geometry::VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
     /*! Generates the toolpaths using the Arachne engine, which produces extrusions paths with variable line width */
@@ -138,34 +138,34 @@ private:
     void generateNaiveInset();
 
 private:
-    const geometry::Shape& outline_; //<! A reference to the outline polygon that is the designated area
-    utils::coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
-    utils::coord_t
+    const types::geometry::Shape& outline_; //<! A reference to the outline polygon that is the designated area
+    types::coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
+    types::coord_t
         bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
                        // this is the same as bead_width_0
     size_t inset_count_; //<! The maximum number of walls to generate
-    utils::coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
-    utils::coord_t wall_x_inset_; //<! How far to inset the inner walls
+    types::coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
+    types::coord_t wall_x_inset_; //<! How far to inset the inner walls
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
-    utils::coord_t
+    types::coord_t
         min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     const types::AngleRadians wall_transition_angle_;
-    const utils::coord_t wall_transition_length_;
+    const types::coord_t wall_transition_length_;
     const double min_even_wall_line_width_;
     const double wall_line_width_0_;
     const double min_odd_wall_line_width_;
-    utils::coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
+    types::coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const double wall_line_width_x_;
     const int wall_distribution_count_;
-    const utils::coord_t wall_transition_filter_distance_;
-    const utils::coord_t wall_transition_filter_deviation_;
-    const utils::coord_t stitch_distance_;
+    const types::coord_t wall_transition_filter_distance_;
+    const types::coord_t wall_transition_filter_deviation_;
+    const types::coord_t stitch_distance_;
     bool toolpaths_generated_; //<! Are the toolpaths generated
-    std::vector<utils::VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
-    geometry::Shape inner_contour_; //<! The inner contour of the generated toolpaths
+    std::vector<types::geometry::VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
+    types::geometry::Shape inner_contour_; //<! The inner contour of the generated toolpaths
     const Settings& settings_;
     int layer_idx_;
-    utils::SectionType section_type_;
+    types::SectionType section_type_;
     const WallToolPathGenerator generator_{ WallToolPathGenerator::Arachne };
 };
 } // namespace curaengine

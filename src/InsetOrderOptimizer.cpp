@@ -26,7 +26,7 @@
 #include "types/EZSeamType.h"
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"
-#include "utils/LinearAlg2D.h"
+#include "types/geometry/LinearAlg2D.h"
 #include "utils/actions/dfs.h"
 
 namespace rg = ranges;
@@ -34,7 +34,7 @@ namespace rv = ranges::views;
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 using types::operator""_r;
@@ -274,7 +274,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
             {
                 const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-                const coord_t distance_sqd = geometry::vSize2(request_point - intersection);
+                const coord_t distance_sqd = types::geometry::vSize2(request_point - intersection);
                 if (distance_sqd < closest_distance_sqd)
                 {
                     closest_point = intersection;
@@ -312,21 +312,21 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
         closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
-    if (geometry::vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
+    if (types::geometry::vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the start point, just use it instead.
         return closest_junction_idx;
     }
-    if (geometry::vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    if (types::geometry::vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the end point, just use it instead.
         return (closest_junction_idx + 1) % closed_line.junctions_.size();
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-    const coord_t total_dist = geometry::vSize(end_pt.p_ - start_pt.p_);
-    const coord_t start_dist = geometry::vSize(closest_point - start_pt.p_);
-    const coord_t end_dist = geometry::vSize(closest_point - end_pt.p_);
+    const coord_t total_dist = types::geometry::vSize(end_pt.p_ - start_pt.p_);
+    const coord_t start_dist = types::geometry::vSize(closest_point - start_pt.p_);
+    const coord_t end_dist = types::geometry::vSize(closest_point - end_pt.p_);
     const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
 
     closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));

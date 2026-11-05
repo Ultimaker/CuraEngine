@@ -33,12 +33,12 @@
 #include "plugins/Slots.h"
 #include "types/Acceleration.h"
 #include "types/CoolDuringExtruderSwitch.h"
+#include "types/Date.h"
 #include "types/EGCodeFlavor.h"
 #include "types/LayerIndex.h"
-#include "utils/Date.h"
-#include "utils/MMtoStream.h"
-#include "utils/PrecisionedDouble.h"
-#include "utils/ThreadPool.h"
+#include "types/MMtoStream.h"
+#include "types/PrecisionedDouble.h"
+#include "types/ThreadPool.h"
 #include "utils/math.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
@@ -47,7 +47,7 @@ namespace cfe = CuraFormulaeEngine;
 namespace curaengine::gcode_export
 {
 using namespace communication;
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

@@ -12,7 +12,7 @@
 namespace curaengine
 {
 using namespace gcode_export;
-using namespace geometry;
+using namespace types::geometry;
 using namespace path_planning;
 using namespace types;
 using namespace utils;
@@ -170,7 +170,7 @@ coord_t ExtruderPlan::calculateMaxOverhangLength() const
             {
                 if (current_position.has_value())
                 {
-                    current_overhang_length += geometry::vSize(position.toPoint2LL() - current_position.value());
+                    current_overhang_length += types::geometry::vSize(position.toPoint2LL() - current_position.value());
                 }
                 current_position = position.toPoint2LL();
             }

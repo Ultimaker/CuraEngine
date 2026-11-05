@@ -5,15 +5,15 @@
 
 #include <boost/polygon/polygon.hpp>
 
-#include "geometry/Point2LL.h"
-#include "utils/PolygonsSegmentIndex.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/PolygonsSegmentIndex.h"
 
 
 namespace curaengine
 {
 
-using CSegment = utils::PolygonsSegmentIndex;
-using CPolygon = boost::polygon::polygon_data<utils::coord_t>;
+using CSegment = types::geometry::PolygonsSegmentIndex;
+using CPolygon = boost::polygon::polygon_data<types::coord_t>;
 using CPolygonSet = std::vector<CPolygon>;
 
 } // namespace curaengine
@@ -25,17 +25,17 @@ namespace polygon
 
 
 template<>
-struct geometry_concept<::curaengine::geometry::Point2LL>
+struct geometry_concept<::curaengine::types::geometry::Point2LL>
 {
     typedef point_concept type;
 };
 
 template<>
-struct point_traits<::curaengine::geometry::Point2LL>
+struct point_traits<::curaengine::types::geometry::Point2LL>
 {
-    typedef ::curaengine::utils::coord_t coordinate_type;
+    typedef ::curaengine::types::coord_t coordinate_type;
 
-    static inline coordinate_type get(const ::curaengine::geometry::Point2LL& point, orientation_2d orient)
+    static inline coordinate_type get(const ::curaengine::types::geometry::Point2LL& point, orientation_2d orient)
     {
         return (orient == HORIZONTAL) ? point.X : point.Y;
     }
@@ -50,8 +50,8 @@ struct geometry_concept<curaengine::CSegment>
 template<>
 struct segment_traits<curaengine::CSegment>
 {
-    typedef ::curaengine::utils::coord_t coordinate_type;
-    typedef ::curaengine::geometry::Point2LL point_type;
+    typedef ::curaengine::types::coord_t coordinate_type;
+    typedef ::curaengine::types::geometry::Point2LL point_type;
     static inline point_type get(const curaengine::CSegment& CSegment, direction_1d dir)
     {
         return dir.to_int() ? CSegment.p() : CSegment.next().p();

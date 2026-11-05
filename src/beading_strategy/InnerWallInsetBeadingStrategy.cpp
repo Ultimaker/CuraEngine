@@ -9,6 +9,7 @@
 
 namespace curaengine::beading_strategy
 {
+using namespace types;
 using namespace utils;
 InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(coord_t inner_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)

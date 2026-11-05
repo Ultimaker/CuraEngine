@@ -7,15 +7,15 @@
 
 #include "Settings.h"
 #include "WallToolPathGenerator.h"
-#include "geometry/LinesSet.h"
-#include "geometry/Point2LL.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "types/AngleDegrees.h"
 #include "types/EFillMethod.h" //For infill types.
-#include "utils/AABB.h"
-#include "utils/ExtrusionLine.h"
-#include "utils/SectionType.h"
+#include "types/SectionType.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/ExtrusionLine.h"
+#include "types/geometry/LinesSet.h"
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine
 {
@@ -40,27 +40,27 @@ class Infill
     // We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
     // Cubic Subdivision ends lines in the center of the infill so it won't be effective.
     bool connect_polygons_{}; //!< Whether to connect as much polygons together into a single path
-    geometry::Shape outer_contour_{}; //!< The area that originally needs to be filled with infill. The input of the algorithm.
-    geometry::Shape inner_contour_{}; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
-    utils::coord_t infill_line_width_{}; //!< The line width of the infill lines to generate
-    utils::coord_t line_distance_{}; //!< The distance between two infill lines / polygons
-    utils::coord_t infill_overlap_{}; //!< The distance by which to overlap the inner infill pattern with the infill walls
+    types::geometry::Shape outer_contour_{}; //!< The area that originally needs to be filled with infill. The input of the algorithm.
+    types::geometry::Shape inner_contour_{}; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
+    types::coord_t infill_line_width_{}; //!< The line width of the infill lines to generate
+    types::coord_t line_distance_{}; //!< The distance between two infill lines / polygons
+    types::coord_t infill_overlap_{}; //!< The distance by which to overlap the inner infill pattern with the infill walls
     size_t infill_multiplier_{}; //!< the number of infill lines next to each other
     types::AngleDegrees fill_angle_{}; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
-    utils::coord_t z_{}; //!< height of the layer for which we generate infill
-    utils::coord_t shift_{}; //!< shift of the scanlines in the direction perpendicular to the fill_angle
-    utils::coord_t max_resolution_{}; //!< Min feature size of the output
-    utils::coord_t max_deviation_{}; //!< Max deviation fro the original poly when enforcing max_resolution
-    utils::coord_t wall_thickness_{}; //!< Thickness of walls to generate at the boundary of the infill region
-    utils::coord_t small_area_width_{}; //!< Maximum width of a small infill region to be filled with walls
-    geometry::Point2LL infill_origin_{}; //!< origin of the infill pattern
+    types::coord_t z_{}; //!< height of the layer for which we generate infill
+    types::coord_t shift_{}; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    types::coord_t max_resolution_{}; //!< Min feature size of the output
+    types::coord_t max_deviation_{}; //!< Max deviation fro the original poly when enforcing max_resolution
+    types::coord_t wall_thickness_{}; //!< Thickness of walls to generate at the boundary of the infill region
+    types::coord_t small_area_width_{}; //!< Maximum width of a small infill region to be filled with walls
+    types::geometry::Point2LL infill_origin_{}; //!< origin of the infill pattern
     bool skip_line_stitching_{ false }; //!< Whether to bypass the line stitching normally performed for polyline type infills
     bool fill_gaps_{ true }; //!< Whether to fill gaps in strips of infill that would be too thin to fit the infill lines. If disabled, those areas are left empty.
     bool connected_zigzags_{ false }; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces_{ false }; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags_{ false }; //!< (ZigZag) Whether to skip some zags
     size_t zag_skip_count_{}; //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
-    utils::coord_t pocket_size_{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
+    types::coord_t pocket_size_{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset_{}; //!< Indication in which offset direction the extra infill lines are made
 
     static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
@@ -79,16 +79,16 @@ public:
         types::EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        geometry::Shape in_outline,
-        utils::coord_t infill_line_width,
-        utils::coord_t line_distance,
-        utils::coord_t infill_overlap,
+        types::geometry::Shape in_outline,
+        types::coord_t infill_line_width,
+        types::coord_t line_distance,
+        types::coord_t infill_overlap,
         size_t infill_multiplier,
         types::AngleDegrees fill_angle,
-        utils::coord_t z,
-        utils::coord_t shift,
-        utils::coord_t max_resolution,
-        utils::coord_t max_deviation) noexcept
+        types::coord_t z,
+        types::coord_t shift,
+        types::coord_t max_resolution,
+        types::coord_t max_deviation) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
         , connect_polygons_{ connect_polygons }
@@ -109,19 +109,19 @@ public:
         types::EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        geometry::Shape in_outline,
-        utils::coord_t infill_line_width,
-        utils::coord_t line_distance,
-        utils::coord_t infill_overlap,
+        types::geometry::Shape in_outline,
+        types::coord_t infill_line_width,
+        types::coord_t line_distance,
+        types::coord_t infill_overlap,
         size_t infill_multiplier,
         types::AngleDegrees fill_angle,
-        utils::coord_t z,
-        utils::coord_t shift,
-        utils::coord_t max_resolution,
-        utils::coord_t max_deviation,
-        std::variant<size_t, utils::coord_t> walls,
-        utils::coord_t small_area_width,
-        geometry::Point2LL infill_origin,
+        types::coord_t z,
+        types::coord_t shift,
+        types::coord_t max_resolution,
+        types::coord_t max_deviation,
+        std::variant<size_t, types::coord_t> walls,
+        types::coord_t small_area_width,
+        types::geometry::Point2LL infill_origin,
         bool skip_line_stitching) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
@@ -136,8 +136,8 @@ public:
         , shift_{ shift }
         , max_resolution_{ max_resolution }
         , max_deviation_{ max_deviation }
-        , wall_thickness_{ std::holds_alternative<utils::coord_t>(walls) ? std::get<utils::coord_t>(walls)
-                                                                         : static_cast<utils::coord_t>(std::get<size_t>(walls) * infill_line_width) }
+        , wall_thickness_{ std::holds_alternative<types::coord_t>(walls) ? std::get<types::coord_t>(walls)
+                                                                         : static_cast<types::coord_t>(std::get<size_t>(walls) * infill_line_width) }
         , small_area_width_{ small_area_width }
         , infill_origin_{ infill_origin }
         , skip_line_stitching_{ skip_line_stitching }
@@ -148,26 +148,26 @@ public:
         types::EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        geometry::Shape in_outline,
-        utils::coord_t infill_line_width,
-        utils::coord_t line_distance,
-        utils::coord_t infill_overlap,
+        types::geometry::Shape in_outline,
+        types::coord_t infill_line_width,
+        types::coord_t line_distance,
+        types::coord_t infill_overlap,
         size_t infill_multiplier,
         types::AngleDegrees fill_angle,
-        utils::coord_t z,
-        utils::coord_t shift,
-        utils::coord_t max_resolution,
-        utils::coord_t max_deviation,
-        std::variant<size_t, utils::coord_t> walls,
-        utils::coord_t small_area_width,
-        geometry::Point2LL infill_origin,
+        types::coord_t z,
+        types::coord_t shift,
+        types::coord_t max_resolution,
+        types::coord_t max_deviation,
+        std::variant<size_t, types::coord_t> walls,
+        types::coord_t small_area_width,
+        types::geometry::Point2LL infill_origin,
         bool skip_line_stitching,
         bool fill_gaps,
         bool connected_zigzags,
         bool use_endpieces,
         bool skip_some_zags,
         size_t zag_skip_count,
-        utils::coord_t pocket_size) noexcept
+        types::coord_t pocket_size) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
         , connect_polygons_{ connect_polygons }
@@ -181,8 +181,8 @@ public:
         , shift_{ shift }
         , max_resolution_{ max_resolution }
         , max_deviation_{ max_deviation }
-        , wall_thickness_{ std::holds_alternative<utils::coord_t>(walls) ? std::get<utils::coord_t>(walls)
-                                                                         : static_cast<utils::coord_t>(std::get<size_t>(walls) * infill_line_width) }
+        , wall_thickness_{ std::holds_alternative<types::coord_t>(walls) ? std::get<types::coord_t>(walls)
+                                                                         : static_cast<types::coord_t>(std::get<size_t>(walls) * infill_line_width) }
         , small_area_width_{ small_area_width }
         , infill_origin_{ infill_origin }
         , skip_line_stitching_{ skip_line_stitching }
@@ -210,20 +210,20 @@ public:
      * \param wall_generator The generator to use for outer "walls"
      */
     void generate(
-        std::vector<utils::VariableWidthLines>& toolpaths,
-        geometry::Shape& result_polygons,
-        geometry::OpenLinesSet& result_lines,
+        std::vector<types::geometry::VariableWidthLines>& toolpaths,
+        types::geometry::Shape& result_polygons,
+        types::geometry::OpenLinesSet& result_lines,
         const Settings& settings,
         int layer_idx,
-        utils::SectionType section_type,
+        types::SectionType section_type,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const geometry::Shape& prevent_small_exposed_to_air = geometry::Shape(),
-        const utils::coord_t minimum_line_length = 0,
+        const types::geometry::Shape& prevent_small_exposed_to_air = types::geometry::Shape(),
+        const types::coord_t minimum_line_length = 0,
         WallToolPathGenerator wall_generator = WallToolPathGenerator::Arachne);
 
-    utils::coord_t getLineDistance() const
+    types::coord_t getLineDistance() const
     {
         return line_distance_;
     }
@@ -240,21 +240,21 @@ public:
      * \param generator The generator to use for outer "walls"
      * \return The inner contour of the wall toolpaths
      */
-    static geometry::Shape generateWallToolPaths(
-        std::vector<utils::VariableWidthLines>& toolpaths,
-        const geometry::Shape& outer_contour,
-        const utils::coord_t wall_thickness,
-        const utils::coord_t line_width,
+    static types::geometry::Shape generateWallToolPaths(
+        std::vector<types::geometry::VariableWidthLines>& toolpaths,
+        const types::geometry::Shape& outer_contour,
+        const types::coord_t wall_thickness,
+        const types::coord_t line_width,
         const Settings& settings,
         int layer_idx,
-        utils::SectionType section_type,
+        types::SectionType section_type,
         WallToolPathGenerator generator = WallToolPathGenerator::Arachne);
 
     /*!
      * Get the inner infill contour
      * @warning The contour is generated when calling generate() so the returned value won't be valid before
      */
-    const geometry::Shape& getInnerContour() const
+    const types::geometry::Shape& getInnerContour() const
     {
         return inner_contour_;
     }
@@ -271,10 +271,10 @@ private:
          * \param end Where the line segment ends.
          */
         InfillLineSegment(
-            const geometry::Point2LL start,
+            const types::geometry::Point2LL start,
             const size_t start_segment,
             const size_t start_polygon,
-            const geometry::Point2LL end,
+            const types::geometry::Point2LL end,
             const size_t end_segment,
             const size_t end_polygon)
             : start_(start)
@@ -293,14 +293,14 @@ private:
         /*!
          * Where the line segment starts.
          */
-        geometry::Point2LL start_;
+        types::geometry::Point2LL start_;
 
         /*!
          * If the line-segment starts at a different point due to prevention of crossing near the boundary, it gets saved here.
          *
          * The original start-point is still used to determine ordering then, so it can't just be overwritten.
          */
-        geometry::Point2LL altered_start_;
+        types::geometry::Point2LL altered_start_;
 
         /*!
          * Which polygon line segment the start of this infill line belongs to.
@@ -322,19 +322,19 @@ private:
         /*!
          * If the line-segment needs to prevent crossing with another line near its start, a point is inserted near the start.
          */
-        std::optional<geometry::Point2LL> start_bend_;
+        std::optional<types::geometry::Point2LL> start_bend_;
 
         /*!
          * Where the line segment ends.
          */
-        geometry::Point2LL end_;
+        types::geometry::Point2LL end_;
 
         /*!
          * If the line-segment ends at a different point due to prevention of crossing near the boundary, it gets saved here.
          *
          * The original end-point is still used to determine ordering then, so it can't just be overwritten.
          */
-        geometry::Point2LL altered_end_;
+        types::geometry::Point2LL altered_end_;
 
         /*!
          * Which polygon line segment the end of this infill line belongs to.
@@ -356,7 +356,7 @@ private:
         /*!
          * If the line-segment needs to prevent crossing with another line near its end, a point is inserted near the end.
          */
-        std::optional<geometry::Point2LL> end_bend_;
+        std::optional<types::geometry::Point2LL> end_bend_;
 
         /*!
          * The previous line segment that this line segment is connected to, if
@@ -389,31 +389,31 @@ private:
          *
          * \param include_start Wether to include the start point or not, useful when tracing a poly-line.
          */
-        void appendTo(geometry::OpenPolyline& result_polyline, const bool include_start = true);
+        void appendTo(types::geometry::OpenPolyline& result_polyline, const bool include_start = true);
     };
 
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
     void _generate(
-        std::vector<utils::VariableWidthLines>& toolpaths,
-        geometry::Shape& result_polygons,
-        geometry::OpenLinesSet& result_lines,
+        std::vector<types::geometry::VariableWidthLines>& toolpaths,
+        types::geometry::Shape& result_polygons,
+        types::geometry::OpenLinesSet& result_lines,
         const Settings& settings,
         const int layer_idx,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
         const std::shared_ptr<LightningLayer>& lightning_layer,
         const SliceMeshStorage* mesh,
-        const utils::coord_t minimum_line_length);
+        const types::coord_t minimum_line_length);
 
     /*!
      * Generate the infill pattern for the given island
      */
     void generateForIsland(
-        const geometry::Shape& outline,
-        std::vector<utils::VariableWidthLines>& toolpaths,
-        geometry::Shape& result_polygons,
-        geometry::OpenLinesSet& result_lines,
+        const types::geometry::Shape& outline,
+        std::vector<types::geometry::VariableWidthLines>& toolpaths,
+        types::geometry::Shape& result_polygons,
+        types::geometry::OpenLinesSet& result_lines,
         const Settings& settings,
         const int layer_idx,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
@@ -431,35 +431,35 @@ private:
      * \param[in,out] result_polygons The polygons to be multiplied (input and output)
      * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
-    void multiplyInfill(geometry::Shape& result_polygons, geometry::OpenLinesSet& result_lines);
+    void multiplyInfill(types::geometry::Shape& result_polygons, types::geometry::OpenLinesSet& result_lines);
 
     /*!
      * Generate gyroid infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect gyroid lines in a circle.
      */
-    void generateGyroidInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result_polylines, geometry::Shape& result_polygons);
+    void generateGyroidInfill(const types::geometry::Shape& outline, types::geometry::OpenLinesSet& result_polylines, types::geometry::Shape& result_polygons);
 
     /*!
      * Generate honeycomb infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect lines in a circle.
      */
-    void generateHoneycombInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result_polylines, geometry::Shape& result_polygons);
+    void generateHoneycombInfill(const types::geometry::Shape& outline, types::geometry::OpenLinesSet& result_polylines, types::geometry::Shape& result_polygons);
 
     /*!
      * Generate octagon infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect lines in a circle.
      */
-    void generateOctagonInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result_polylines, geometry::Shape& result_polygons);
+    void generateOctagonInfill(const types::geometry::Shape& outline, types::geometry::OpenLinesSet& result_polylines, types::geometry::Shape& result_polygons);
 
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
      * see https://hal.archives-ouvertes.fr/hal-02155929/document
      * \param result (output) The resulting polygons
      */
-    void generateLightningInfill(const geometry::Shape& outline, const std::shared_ptr<LightningLayer>& lightning_layer, geometry::OpenLinesSet& result_lines);
+    void generateLightningInfill(const types::geometry::Shape& outline, const std::shared_ptr<LightningLayer>& lightning_layer, types::geometry::OpenLinesSet& result_lines);
 
     /*!
      * Generate sparse concentric infill
@@ -468,31 +468,44 @@ private:
      * \param settings The settings to be used for processing
      * \param layer_idx The current layer index
      */
-    void generateConcentricInfill(const geometry::Shape& outline, std::vector<utils::VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx);
+    void
+        generateConcentricInfill(const types::geometry::Shape& outline, std::vector<types::geometry::VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx);
 
     /*!
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateGridInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void generateGridInfill(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a shifting triangular grid of infill lines, which combine with consecutive layers into a cubic pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateCubicInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void generateCubicInfill(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateTetrahedralInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void generateTetrahedralInfill(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a quarter cubic pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateQuarterCubicInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void generateQuarterCubicInfill(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a single shifting square grid of infill lines.
@@ -503,30 +516,36 @@ private:
      * \param[out] result (output) The resulting lines
      */
     void generateHalfTetrahedralInfill(
-        const geometry::Shape& outline,
+        const types::geometry::Shape& outline,
         double pattern_z_shift,
         int angle_shift,
-        geometry::OpenLinesSet& result,
+        types::geometry::OpenLinesSet& result,
         std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateTriangleInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void generateTriangleInfill(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateTrihexagonInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void generateTrihexagonInfill(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
      * \param[out] result The resulting lines
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
-    void generateCubicSubDivInfill(const geometry::Shape& outline, geometry::OpenLinesSet& result, const SliceMeshStorage& mesh);
+    void generateCubicSubDivInfill(const types::geometry::Shape& outline, types::geometry::OpenLinesSet& result, const SliceMeshStorage& mesh);
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
@@ -535,10 +554,10 @@ private:
      * \param[out] result_lines The resulting lines
      */
     void generateCrossInfill(
-        const geometry::Shape& outline,
+        const types::geometry::Shape& outline,
         const SierpinskiFillProvider& cross_fill_provider,
-        geometry::Shape& result_polygons,
-        geometry::OpenLinesSet& result_lines);
+        types::geometry::Shape& result_polygons,
+        types::geometry::OpenLinesSet& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
@@ -551,13 +570,13 @@ private:
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
     void addLineInfill(
-        geometry::OpenLinesSet& result,
-        const geometry::PointMatrix& rotation_matrix,
+        types::geometry::OpenLinesSet& result,
+        const types::geometry::PointMatrix& rotation_matrix,
         const int scanline_min_idx,
         const int line_distance,
-        const utils::AABB boundary,
-        std::vector<std::vector<utils::coord_t>>& cut_list,
-        utils::coord_t total_shift);
+        const types::geometry::AABB boundary,
+        std::vector<std::vector<types::coord_t>>& cut_list,
+        types::coord_t total_shift);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
@@ -571,11 +590,11 @@ private:
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the infill_rotation
      */
     void generateLineInfill(
-        const geometry::Shape& outline,
-        geometry::OpenLinesSet& result,
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
         int line_distance,
         const double& infill_rotation,
-        utils::coord_t extra_shift,
+        types::coord_t extra_shift,
         std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
@@ -594,13 +613,13 @@ private:
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
     void generateLinearBasedInfill(
-        const geometry::Shape& outline,
-        geometry::OpenLinesSet& result,
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
         const int line_distance,
-        const geometry::PointMatrix& rotation_matrix,
+        const types::geometry::PointMatrix& rotation_matrix,
         ZigzagConnectorProcessor& zigzag_connector_processor,
         const bool connected_zigzags,
-        utils::coord_t extra_shift,
+        types::coord_t extra_shift,
         std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
@@ -651,9 +670,9 @@ private:
      * \param infill_rotation The angle of the generated lines
      */
     void generateZigZagInfill(
-        const geometry::Shape& outline,
-        geometry::OpenLinesSet& result,
-        const utils::coord_t line_distance,
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result,
+        const types::coord_t line_distance,
         const double& infill_rotation,
         std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
@@ -664,7 +683,7 @@ private:
      *
      * \return the distance the infill pattern should be shifted
      */
-    utils::coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+    types::coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
 
     /*!
      * Used to prevent intersections of linear-based infill.
@@ -688,10 +707,10 @@ private:
      * \param b The second line-segment.
      */
     void resolveIntersection(
-        const utils::coord_t at_distance,
-        const geometry::Point2LL& intersect,
-        geometry::Point2LL& connect_start,
-        geometry::Point2LL& connect_end,
+        const types::coord_t at_distance,
+        const types::geometry::Point2LL& intersect,
+        types::geometry::Point2LL& connect_start,
+        types::geometry::Point2LL& connect_end,
         InfillLineSegment* a,
         InfillLineSegment* b);
 
@@ -703,7 +722,10 @@ private:
      * border of the infill area, similar to the zigzag pattern.
      * \param[in/out] result_lines The lines to connect together.
      */
-    void connectLines(const geometry::Shape& outline, geometry::OpenLinesSet& result_lines, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
+    void connectLines(
+        const types::geometry::Shape& outline,
+        types::geometry::OpenLinesSet& result_lines,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Check whether the generated lines for a single island should be included for printing, based on their total length. Tiny lines don't contribute to printing a proper infill
@@ -715,10 +737,10 @@ private:
      * \return True if the lines should be included, false to discard them
      */
     bool includeLines(
-        const std::vector<utils::VariableWidthLines>& toolpaths,
-        const geometry::Shape& result_polygons,
-        const geometry::OpenLinesSet& result_lines,
-        const utils::coord_t minimum_line_length);
+        const std::vector<types::geometry::VariableWidthLines>& toolpaths,
+        const types::geometry::Shape& result_polygons,
+        const types::geometry::OpenLinesSet& result_lines,
+        const types::coord_t minimum_line_length);
 };
 
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");

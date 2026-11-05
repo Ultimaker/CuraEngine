@@ -14,13 +14,13 @@
 #include "MeshGroup.h"
 #include "MeshVertex.h"
 #include "Slice.h"
-#include "geometry/Point3D.h"
 #include "types/AngleRadians.h"
 #include "types/SlicingTolerance.h"
+#include "types/geometry/Point3D.h"
 
 namespace curaengine::types
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace utils;
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)

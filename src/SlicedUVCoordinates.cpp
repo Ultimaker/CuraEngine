@@ -5,12 +5,12 @@
 
 #include "Slicer.h"
 #include "SlicerSegment.h"
-#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
+#include "types/geometry/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
 namespace curaengine
 {
-using namespace geometry;
-using namespace utils::sparse_point_grid_inclusive_impl;
+using namespace types::geometry;
+using namespace types::geometry::sparse_point_grid_inclusive_impl;
 
 SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segments)
     : located_uv_coordinates_(cell_size)
@@ -44,37 +44,37 @@ std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2
 
     for (const Segment& segment : segments_)
     {
-        const double segment_length = geometry::vSizef(segment.end - segment.start);
+        const double segment_length = types::geometry::vSizef(segment.end - segment.start);
         if (std::abs(segment_length) < 0.001)
         {
             continue;
         }
 
-        const double dot_product = geometry::dot((position - segment.start), (segment.end - segment.start)) / segment_length;
+        const double dot_product = types::geometry::dot((position - segment.start), (segment.end - segment.start)) / segment_length;
         double distance_to_segment;
         double interpolate_factor;
 
         if (dot_product > segment_length)
         {
             interpolate_factor = 1.0;
-            distance_to_segment = geometry::vSizef(position - segment.end);
+            distance_to_segment = types::geometry::vSizef(position - segment.end);
         }
         else if (dot_product < 0.0)
         {
             interpolate_factor = 0.0;
-            distance_to_segment = geometry::vSizef(position - segment.start);
+            distance_to_segment = types::geometry::vSizef(position - segment.start);
         }
         else
         {
             interpolate_factor = dot_product / segment_length;
-            const Point2LL projected_position = geometry::lerp(segment.start, segment.end, interpolate_factor);
-            distance_to_segment = geometry::vSizef(position - projected_position);
+            const Point2LL projected_position = types::geometry::lerp(segment.start, segment.end, interpolate_factor);
+            distance_to_segment = types::geometry::vSizef(position - projected_position);
         }
 
         if (distance_to_segment < closest_distance)
         {
             closest_distance = distance_to_segment;
-            closest_uv_coordinates = geometry::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
+            closest_uv_coordinates = types::geometry::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
         }
     }
 

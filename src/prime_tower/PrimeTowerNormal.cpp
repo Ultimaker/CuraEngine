@@ -12,6 +12,7 @@
 namespace curaengine::prime_tower
 {
 using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 PrimeTowerNormal::PrimeTowerNormal(const std::vector<size_t>& used_extruders)

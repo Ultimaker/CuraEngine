@@ -5,13 +5,13 @@
 
 #include <range/v3/algorithm/stable_sort.hpp>
 
-#include "bridge/TransformedShape.h"
-#include "utils/LinearAlg2D.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/TransformedShape.h"
 
 
 namespace curaengine::bridge
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

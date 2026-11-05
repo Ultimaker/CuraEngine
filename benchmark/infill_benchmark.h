@@ -6,10 +6,10 @@
 
 #include <benchmark/benchmark.h>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/LinesSet.h"
 #include "infill/Infill.h"
+#include "types/geometry/LinesSet.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/OpenPolyline.h"
 
 namespace curaengine
 {
@@ -17,27 +17,27 @@ class InfillTest : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    geometry::Shape square_shape;
-    geometry::Shape ff_holes;
+    types::geometry::Shape square_shape;
+    types::geometry::Shape ff_holes;
 
 
-    std::vector<utils::ExtrusionLine> all_paths;
+    std::vector<types::geometry::ExtrusionLine> all_paths;
 
 
-    geometry::Shape outline_polygons;
+    types::geometry::Shape outline_polygons;
     types::EFillMethod pattern{ types::EFillMethod::LINES };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
-    utils::coord_t line_distance{ 800 };
+    types::coord_t line_distance{ 800 };
 
-    utils::coord_t INFILL_LINE_WIDTH = 350;
-    utils::coord_t INFILL_OVERLAP = 0;
+    types::coord_t INFILL_LINE_WIDTH = 350;
+    types::coord_t INFILL_OVERLAP = 0;
     size_t INFILL_MULTIPLIER = 1;
     types::AngleDegrees FILL_ANGLE = 0.;
-    utils::coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
-    utils::coord_t SHIFT = 0;
-    utils::coord_t MAX_RESOLUTION = 10;
-    utils::coord_t MAX_DEVIATION = 5;
+    types::coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
+    types::coord_t SHIFT = 0;
+    types::coord_t MAX_RESOLUTION = 10;
+    types::coord_t MAX_DEVIATION = 5;
 
     void SetUp(const ::benchmark::State& state)
     {
@@ -114,10 +114,10 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 
     for (auto _ : st)
     {
-        std::vector<utils::VariableWidthLines> result_paths;
-        geometry::Shape result_polygons;
-        geometry::OpenLinesSet result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, 0, utils::SectionType::INFILL, nullptr, nullptr);
+        std::vector<types::geometry::VariableWidthLines> result_paths;
+        types::geometry::Shape result_polygons;
+        types::geometry::OpenLinesSet result_lines;
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, types::SectionType::INFILL, nullptr, nullptr);
     }
 }
 

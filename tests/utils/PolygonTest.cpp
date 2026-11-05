@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/Polygon.h" // The class under test.
+#include "types/geometry/Polygon.h" // The class under test.
 
 #include <numbers>
 
@@ -10,17 +10,18 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/OpenPolyline.h"
-#include "geometry/SingleShape.h"
-#include "utils/Coord_t.h"
-#include "utils/SVG.h" // helper functions
-#include "utils/LinearAlg2D.h"
-#include "utils/PolygonUtils.h" // helper functions
+#include "types/Coord_t.h"
+#include "types/SVG.h" // helper functions
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/PolygonUtils.h" // helper functions
+#include "types/geometry/SingleShape.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)

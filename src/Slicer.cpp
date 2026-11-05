@@ -14,18 +14,18 @@
 
 #include "Mesh.h"
 #include "Raft.h"
-#include "geometry/Point3D.h"
-#include "geometry/SingleShape.h"
 #include "types/AdaptiveLayer.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/LayerIndex.h"
-#include "utils/SectionType.h"
-#include "utils/ThreadPool.h"
-#include "utils/TimeKeeper.h"
+#include "types/SectionType.h"
+#include "types/ThreadPool.h"
+#include "types/TimeKeeper.h"
+#include "types/geometry/Point3D.h"
+#include "types/geometry/SingleShape.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 Slicer::Slicer(

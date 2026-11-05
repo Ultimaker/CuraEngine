@@ -22,13 +22,13 @@
 #include <spdlog/spdlog.h>
 
 #include "Mesh.h"
-#include "geometry/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
-#include "geometry/Point2F.h"
-#include "geometry/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "types/Ratio.h" //For the shrinkage percentage and scale factor.
+#include "types/SectionType.h"
+#include "types/TimeKeeper.h"
+#include "types/geometry/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "types/geometry/Point2F.h"
+#include "types/geometry/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "utils/MeshUtils.h"
-#include "utils/SectionType.h"
-#include "utils/TimeKeeper.h"
 #include "utils/string.h"
 
 
@@ -36,7 +36,7 @@ namespace fs = std::filesystem;
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

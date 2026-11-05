@@ -4,7 +4,7 @@
 #pragma once
 
 #include "AvoidanceType.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 namespace curaengine
 {
@@ -14,7 +14,7 @@ struct AreaIncreaseSettings
 
     AreaIncreaseSettings(
         const AvoidanceType type,
-        const utils::coord_t increase_speed,
+        const types::coord_t increase_speed,
         const bool increase_radius,
         const bool simplify,
         const bool use_min_distance,
@@ -29,7 +29,7 @@ struct AreaIncreaseSettings
     }
 
     AvoidanceType type_{ AvoidanceType::FAST };
-    utils::coord_t increase_speed_{ 0 };
+    types::coord_t increase_speed_{ 0 };
     bool increase_radius_{ false };
     bool no_error_{ false };
     bool use_min_distance_{ false };

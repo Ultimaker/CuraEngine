@@ -8,11 +8,11 @@
 
 #include "Settings.h"
 #include "SliceMeshStorage.h"
-#include "utils/AABB.h"
+#include "types/geometry/AABB.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)

@@ -56,7 +56,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const geometry::Point3LL&) override;
+    void sendCurrentPosition(const types::geometry::Point3LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -78,14 +78,14 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const types::LayerIndex::value_type&, const utils::coord_t&, const utils::coord_t&) override;
+    void sendLayerComplete(const types::LayerIndex::value_type&, const types::coord_t&, const types::coord_t&) override;
 
     /*
      * \brief Send a line for display.
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const geometry::Point3LL&, const utils::coord_t&, const utils::coord_t&, const types::Velocity&, const PrintSegmentAttributes&)
+    void sendLineTo(const PrintFeatureType&, const types::geometry::Point3LL&, const types::coord_t&, const types::coord_t&, const types::Velocity&, const PrintSegmentAttributes&)
         override;
 
     /*

@@ -1,21 +1,20 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "utils/actions/smooth_fn.h"
-
 #include <numbers>
 
 #include <range/v3/all.hpp>
 
 #include <gtest/gtest.h>
 
-#include "geometry/Point2LL.h"
-#include "geometry/Polygon.h"
+#include "types/actions/smooth_fn.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine
 {
-using namespace geometry;
-using namespace utils::actions;
+using namespace types::geometry;
+using namespace types::actions;
 
 TEST(SmoothTest, TestSmooth)
 {

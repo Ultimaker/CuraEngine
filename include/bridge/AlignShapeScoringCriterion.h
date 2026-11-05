@@ -6,9 +6,9 @@
 #include <optional>
 
 #include "bridge/BridgeAngleScoringCriterion.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Shape;
 }
@@ -21,13 +21,16 @@ namespace curaengine::bridge
 class AlignShapeScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
-    explicit AlignShapeScoringCriterion(const std::vector<types::AngleDegrees>& candidates, const geometry::Shape& skin_outline, const geometry::Shape& supported_regions);
+    explicit AlignShapeScoringCriterion(
+        const std::vector<types::AngleDegrees>& candidates,
+        const types::geometry::Shape& skin_outline,
+        const types::geometry::Shape& supported_regions);
 
 protected:
-    double computeScore(const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area) const override;
+    double computeScore(const types::geometry::TransformedShape& transformed_skin_area, const types::geometry::TransformedShape& transformed_supported_area) const override;
 
 private:
-    std::optional<utils::coord_t> total_segments_length_;
+    std::optional<types::coord_t> total_segments_length_;
 };
 
 } // namespace curaengine::bridge

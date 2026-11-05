@@ -16,9 +16,6 @@
 #include "SliceMeshStorage.h"
 #include "WallToolPaths.h"
 #include "arachne/SkeletalTrapezoidation.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Point2D.h"
-#include "geometry/PointMatrix.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/LightningGenerator.h"
@@ -29,15 +26,18 @@
 #include "infill/SubDivCube.h"
 #include "plugins/Slots.h"
 #include "types/EFillMethod.h"
-#include "utils/LinearAlg2D.h"
-#include "utils/OpenPolylineStitcher.h"
-#include "utils/PolygonConnector.h"
-#include "utils/Simplify.h"
-#include "utils/UnionFind.h"
+#include "types/UnionFind.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/Point2D.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/PolygonConnector.h"
+#include "types/geometry/Simplify.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
@@ -975,7 +975,7 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
                     const bool choose_right = (right_hand_side->start_segment_ == vertex_index && right_hand_side->start_polygon_ == polygon_index);
                     const Point2LL left_hand_point = choose_left ? left_hand_side->start_ : left_hand_side->end_;
                     const Point2LL right_hand_point = choose_right ? right_hand_side->start_ : right_hand_side->end_;
-                    return geometry::vSize(left_hand_point - vertex_before) < geometry::vSize(right_hand_point - vertex_before);
+                    return types::geometry::vSize(left_hand_point - vertex_before) < types::geometry::vSize(right_hand_point - vertex_before);
                 });
 
             for (InfillLineSegment* crossing : crossings_on_polygon_segment)
@@ -1017,11 +1017,11 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
 
                         // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop'.
                         Point2LL intersect;
-                        if (geometry::vSize2(previous_point - next_point) < half_line_distance_squared
+                        if (types::geometry::vSize2(previous_point - next_point) < half_line_distance_squared
                             && LinearAlg2D::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
                             && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
                             && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0
-                            && geometry::vSize2(previous_point - intersect) > epsilon_sqd && geometry::vSize2(next_point - intersect) > epsilon_sqd)
+                            && types::geometry::vSize2(previous_point - intersect) > epsilon_sqd && types::geometry::vSize2(next_point - intersect) > epsilon_sqd)
                         {
                             resolveIntersection(infill_line_width_, intersect, previous_point, next_point, previous_segment, crossing);
                         }

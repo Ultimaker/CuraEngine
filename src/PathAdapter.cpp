@@ -1,13 +1,14 @@
-// Copyright (c) 2024 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathAdapter.h"
 
-#include "utils/ExtrusionLine.h"
+#include "types/geometry/ExtrusionLine.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 template<>

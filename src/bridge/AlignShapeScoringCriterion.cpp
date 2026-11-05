@@ -1,15 +1,18 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "bridge/AlignShapeScoringCriterion.h"
 
 #include <range/v3/numeric/accumulate.hpp>
 #include <spdlog/spdlog.h>
 
-#include "bridge/TransformedSegment.h"
-#include "bridge/TransformedShape.h"
+#include "types/geometry/TransformedSegment.h"
+#include "types/geometry/TransformedShape.h"
 
 
 namespace curaengine::bridge
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

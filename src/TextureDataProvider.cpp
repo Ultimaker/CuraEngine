@@ -11,7 +11,7 @@
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 
 TextureDataProvider::TextureDataProvider(
     const std::shared_ptr<SlicedUVCoordinates>& uv_coordinates,

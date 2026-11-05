@@ -22,15 +22,15 @@
 #include "types/AngleRadians.h" //For the infill support angle.
 #include "types/EFillMethod.h" //For EFillMethod.
 #include "types/Ratio.h"
-#include "utils/PolygonUtils.h"
-#include "utils/Simplify.h"
+#include "types/geometry/PolygonUtils.h"
+#include "types/geometry/Simplify.h"
 #include "utils/math.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace types;
 using namespace utils;

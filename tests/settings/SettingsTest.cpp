@@ -12,22 +12,22 @@
 #include "Application.h" //To test extruder train settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "types/EFillMethod.h"
 #include "settings/FlowTempGraph.h"
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"
+#include "types/Coord_t.h"
 #include "types/Duration.h"
+#include "types/EFillMethod.h"
 #include "types/LayerIndex.h"
 #include "types/Ratio.h"
 #include "types/Temperature.h"
 #include "types/Velocity.h"
-#include "utils/Coord_t.h"
-#include "geometry/Matrix4x3D.h" //Testing matrix transformation settings.
+#include "types/geometry/Matrix4x3D.h" //Testing matrix transformation settings.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

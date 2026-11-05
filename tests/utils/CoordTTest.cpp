@@ -1,14 +1,15 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdexcept>
 
 #include <gtest/gtest.h>
 
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 namespace curaengine
 {
+using namespace types;
 using namespace utils;
 // NOLINTBEGIN(*-magic-numbers)
 

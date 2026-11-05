@@ -6,10 +6,12 @@
 #include <spdlog/spdlog.h>
 
 #include "arachne/STHalfEdgeNode.h"
-#include "utils/LinearAlg2D.h"
+#include "types/geometry/LinearAlg2D.h"
 
 namespace curaengine::arachne
 {
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 STHalfEdge::STHalfEdge(const SkeletalTrapezoidationEdge& data)
@@ -112,7 +114,7 @@ std::optional<coord_t> STHalfEdge::distToGoUp() const
     }
     if (ret)
     {
-        ret = *ret + geometry::vSize(to_->p_ - from_->p_);
+        ret = *ret + types::geometry::vSize(to_->p_ - from_->p_);
     }
     return ret;
 }

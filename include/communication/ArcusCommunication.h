@@ -18,7 +18,7 @@ namespace Arcus
 class Socket;
 }
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Polygon;
 }
@@ -85,7 +85,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    void sendCurrentPosition(const geometry::Point3LL& position) override;
+    void sendCurrentPosition(const types::geometry::Point3LL& position) override;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
@@ -112,7 +112,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    void sendLayerComplete(const types::LayerIndex::value_type& layer_nr, const utils::coord_t& z, const utils::coord_t& thickness) override;
+    void sendLayerComplete(const types::LayerIndex::value_type& layer_nr, const types::coord_t& z, const types::coord_t& thickness) override;
 
     /*
      * \brief Send a line to the front-end to display in layer view.
@@ -128,9 +128,9 @@ public:
      */
     void sendLineTo(
         const PrintFeatureType& type,
-        const geometry::Point3LL& to,
-        const utils::coord_t& line_width,
-        const utils::coord_t& line_thickness,
+        const types::geometry::Point3LL& to,
+        const types::coord_t& line_width,
+        const types::coord_t& line_thickness,
         const types::Velocity& velocity,
         const PrintSegmentAttributes& print_attributes) override;
 

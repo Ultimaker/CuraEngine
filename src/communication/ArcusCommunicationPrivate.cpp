@@ -18,14 +18,14 @@
 #include "Mesh.h"
 #include "MeshGroup.h"
 #include "Slice.h"
-#include "geometry/Matrix4x3D.h" //To convert vertices to integer-points.
-#include "geometry/Point3F.h" //To accept vertices (which are provided in floating point).
 #include "types/LayerIndex.h"
+#include "types/geometry/Matrix4x3D.h" //To convert vertices to integer-points.
+#include "types/geometry/Point3F.h" //To accept vertices (which are provided in floating point).
 #include "utils/MeshUtils.h"
 
 namespace curaengine::communication
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 
 ArcusCommunication::Private::Private()

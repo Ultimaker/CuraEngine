@@ -5,14 +5,14 @@
 
 #include <cstddef>
 
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 namespace curaengine
 {
 class GapCloserResult
 {
 public:
-    utils::coord_t len = 0;
+    types::coord_t len = 0;
     size_t polygonIdx = 0;
     size_t pointIdxA = 0;
     size_t pointIdxB = 0;

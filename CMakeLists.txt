@@ -117,10 +117,10 @@ set(engine_SRCS # Except main.cpp.
         src/beading_strategy/InnerWallInsetBeadingStrategy.cpp
 
         src/bridge/bridge.cpp
-        src/bridge/ExpansionRange.cpp
-        src/bridge/SegmentOverlappingData.cpp
-        src/bridge/TransformedSegment.cpp
-        src/bridge/TransformedShape.cpp
+        src/types/geometry/ExpansionRange.cpp
+        src/types/geometry/SegmentOverlappingData.cpp
+        src/types/geometry/TransformedSegment.cpp
+        src/types/geometry/TransformedShape.cpp
         src/bridge/LineAnchoringScoringCriterion.cpp
         src/bridge/BridgeAngleScoringCriterion.cpp
         src/bridge/AlignShapeScoringCriterion.cpp
@@ -181,66 +181,66 @@ set(engine_SRCS # Except main.cpp.
         src/Settings.cpp
         src/types/ZSeamConfig.cpp
 
-        src/utils/AABB.cpp
-        src/utils/AABB3D.cpp
+        src/types/geometry/AABB.cpp
+        src/types/geometry/AABB3D.cpp
         src/utils/channel.cpp
-        src/geometry/Segment3LL.cpp
-        src/utils/CuraViz.cpp
-        src/utils/Date.cpp
-        src/utils/DilationKernel.cpp
-        src/utils/ExtrusionJunction.cpp
-        src/utils/ExtrusionLine.cpp
-        src/utils/ExtrusionSegment.cpp
-        src/utils/TimeKeeper.cpp
-        src/utils/LinearAlg2D.cpp
-        src/utils/ListPolyIt.cpp
-        src/geometry/Matrix4x3D.cpp
+        src/types/geometry/Segment3LL.cpp
+        src/types/CuraViz.cpp
+        src/types/Date.cpp
+        src/types/geometry/DilationKernel.cpp
+        src/types/geometry/ExtrusionJunction.cpp
+        src/types/geometry/ExtrusionLine.cpp
+        src/types/geometry/ExtrusionSegment.cpp
+        src/types/TimeKeeper.cpp
+        src/types/geometry/LinearAlg2D.cpp
+        src/types/geometry/ListPolyIt.cpp
+        src/types/geometry/Matrix4x3D.cpp
         src/utils/MeshUtils.cpp
-        src/utils/MinimumSpanningTree.cpp
-        src/utils/OBJ.cpp
-        src/geometry/PlanarPolygon3LL.cpp
-        src/utils/PolygonConnector.cpp
-        src/utils/PathsPointIndex.cpp
-        src/utils/PolygonsPointIndexSegmentLocator.cpp
-        src/utils/PolygonsSegmentIndex.cpp
-        src/utils/PolygonUtils.cpp
-        src/utils/PolylineStitcher.cpp
-        src/utils/Simplify.cpp
-        src/utils/SVG.cpp
-        src/utils/SpatialLookup.cpp
-        src/utils/SquareGrid.cpp
-        src/utils/ThreadPool.cpp
-        src/utils/ToolpathVisualizer.cpp
-        src/utils/VoronoiUtils.cpp
-        src/utils/VoxelGrid.cpp
-        src/utils/VoxelUtils.cpp
-        src/utils/MixedPolylineStitcher.cpp
+        src/types/geometry/MinimumSpanningTree.cpp
+        src/types/OBJ.cpp
+        src/types/geometry/PlanarPolygon3LL.cpp
+        src/types/geometry/PolygonConnector.cpp
+        src/types/geometry/PathsPointIndex.cpp
+        src/types/geometry/PolygonsPointIndexSegmentLocator.cpp
+        src/types/geometry/PolygonsSegmentIndex.cpp
+        src/types/geometry/PolygonUtils.cpp
+        src/types/geometry/PolylineStitcher.cpp
+        src/types/geometry/Simplify.cpp
+        src/types/SVG.cpp
+        src/types/geometry/SpatialLookup.cpp
+        src/types/geometry/SquareGrid.cpp
+        src/types/ThreadPool.cpp
+        src/types/ToolpathVisualizer.cpp
+        src/types/geometry/VoronoiUtils.cpp
+        src/types/geometry/VoxelGrid.cpp
+        src/types/geometry/VoxelUtils.cpp
+        src/types/geometry/MixedPolylineStitcher.cpp
 
-        src/utils/scoring/BestElementFinder.cpp
-        src/utils/scoring/CornerScoringCriterion.cpp
-        src/utils/scoring/DistanceScoringCriterion.cpp
-        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
-        src/utils/scoring/PositionBasedScoringCriterion.cpp
-        src/utils/scoring/RandomScoringCriterion.cpp
-        src/utils/scoring/TextureScoringCriterion.cpp
+        src/types/scoring/BestElementFinder.cpp
+        src/types/scoring/CornerScoringCriterion.cpp
+        src/types/scoring/DistanceScoringCriterion.cpp
+        src/types/scoring/ExclusionAreaScoringCriterion.cpp
+        src/types/scoring/PositionBasedScoringCriterion.cpp
+        src/types/scoring/RandomScoringCriterion.cpp
+        src/types/scoring/TextureScoringCriterion.cpp
 
-        src/geometry/ClosedLinesSet.cpp
-        src/geometry/OpenLinesSet.cpp
-        src/geometry/Point2LL.cpp
-        src/geometry/Point3LL.cpp
-        src/geometry/Polygon.cpp
-        src/geometry/Shape.cpp
-        src/geometry/PointMatrix.cpp
-        src/geometry/PointsSet.cpp
-        src/geometry/SingleShape.cpp
-        src/geometry/PartsView.cpp
-        src/geometry/LinesSet.cpp
-        src/geometry/Polyline.cpp
-        src/geometry/ClosedPolyline.cpp
-        src/geometry/MixedLinesSet.cpp
-        src/geometry/MendedShape.cpp
+        src/types/geometry/ClosedLinesSet.cpp
+        src/types/geometry/OpenLinesSet.cpp
+        src/types/geometry/Point2LL.cpp
+        src/types/geometry/Point3LL.cpp
+        src/types/geometry/Polygon.cpp
+        src/types/geometry/Shape.cpp
+        src/types/geometry/PointMatrix.cpp
+        src/types/geometry/PointsSet.cpp
+        src/types/geometry/SingleShape.cpp
+        src/types/geometry/PartsView.cpp
+        src/types/geometry/LinesSet.cpp
+        src/types/geometry/Polyline.cpp
+        src/types/geometry/ClosedPolyline.cpp
+        src/types/geometry/MixedLinesSet.cpp
+        src/types/geometry/MendedShape.cpp
 
-        src/geometry/conversions/Point2D_Point2LL.cpp
+        src/types/geometry/conversions/Point2D_Point2LL.cpp
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})

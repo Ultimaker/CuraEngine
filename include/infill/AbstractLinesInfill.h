@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "geometry/Point2LL.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Point2LL.h"
 
-namespace curaengine::utils
+namespace curaengine::types::geometry
 {
 class AABB;
 }
@@ -16,11 +16,11 @@ namespace curaengine::types
 class AngleDegrees;
 }
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class OpenLinesSet;
 class Shape;
-} // namespace curaengine::geometry
+} // namespace curaengine::types::geometry
 
 namespace curaengine::infill
 {
@@ -47,13 +47,13 @@ public:
      * @param rotation The rotation angle of the infill to be applied.
      */
     void generateInfill(
-        geometry::OpenLinesSet& result_polylines,
-        geometry::Shape& result_polygons,
+        types::geometry::OpenLinesSet& result_polylines,
+        types::geometry::Shape& result_polygons,
         const bool zig_zaggify,
-        const utils::coord_t line_distance,
-        const geometry::Shape& in_outline,
-        const utils::coord_t z,
-        const utils::coord_t line_width,
+        const types::coord_t line_distance,
+        const types::geometry::Shape& in_outline,
+        const types::coord_t z,
+        const types::coord_t line_width,
         const types::AngleDegrees& rotation) const;
 
 protected:
@@ -69,15 +69,15 @@ protected:
      * @return A set containing the raw parallel lines to be included. Each line of the set should be a complete line on a column, even if goes out of the model
      *         one or multiple times.
      */
-    virtual geometry::OpenLinesSet
-        generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const
+    virtual types::geometry::OpenLinesSet
+        generateParallelLines(const types::coord_t line_distance, const types::geometry::AABB& bounding_box, const types::coord_t z, const types::coord_t line_width) const
         = 0;
 
 private:
     /*! Helper structure that contain data about the split lines to be joined */
     struct SplitLines
     {
-        std::array<geometry::Point2LL, 2> chain; // The start and end positions of the intersected polyline
+        std::array<types::geometry::Point2LL, 2> chain; // The start and end positions of the intersected polyline
         size_t column_id; // The ID of the original polyline this one is a part from
     };
 
@@ -87,7 +87,7 @@ private:
      * @param in_outline The outline in which to print the pattern. The input shape, so to say.
      * @return The joining segments to be added
      */
-    static geometry::OpenLinesSet zigZaggify(std::vector<SplitLines>& split_lines, const geometry::Shape& in_outline);
+    static types::geometry::OpenLinesSet zigZaggify(std::vector<SplitLines>& split_lines, const types::geometry::Shape& in_outline);
 
     /*!
      * Cut the given raw lines so that they fit inside the model outer contour
@@ -96,7 +96,7 @@ private:
      * @param in_outline The outline in which to print the pattern. The input shape, so to say.
      * @return The (unconnected) set of proper infill lines to be printed
      */
-    static geometry::OpenLinesSet fitLines(const geometry::OpenLinesSet& raw_lines, const bool zig_zaggify, const geometry::Shape& in_outline);
+    static types::geometry::OpenLinesSet fitLines(const types::geometry::OpenLinesSet& raw_lines, const bool zig_zaggify, const types::geometry::Shape& in_outline);
 };
 
 } // namespace curaengine::infill

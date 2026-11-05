@@ -5,12 +5,12 @@
 
 #include "ZigzagConnectorProcessor.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class OpenPolyline;
 template<class T>
 class LinesSet;
-} // namespace curaengine::geometry
+} // namespace curaengine::types::geometry
 
 namespace curaengine::infill
 {
@@ -22,7 +22,7 @@ namespace curaengine::infill
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(const geometry::PointMatrix& rotation_matrix, geometry::OpenLinesSet& result)
+    NoZigZagConnectorProcessor(const types::geometry::PointMatrix& rotation_matrix, types::geometry::OpenLinesSet& result)
         : ZigzagConnectorProcessor(
               rotation_matrix,
               result,
@@ -33,8 +33,8 @@ public:
     {
     }
 
-    void registerVertex(const geometry::Point2LL& vertex);
-    void registerScanlineSegmentIntersection(const geometry::Point2LL& intersection, int scanline_index, utils::coord_t min_distance_to_scanline);
+    void registerVertex(const types::geometry::Point2LL& vertex);
+    void registerScanlineSegmentIntersection(const types::geometry::Point2LL& intersection, int scanline_index, types::coord_t min_distance_to_scanline);
     void registerPolyFinished();
 };
 

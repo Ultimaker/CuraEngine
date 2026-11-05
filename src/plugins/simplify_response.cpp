@@ -4,11 +4,11 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/simplify_response.h"
 
-#include "geometry/Polygon.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine::plugins
 {
-using namespace geometry;
+using namespace types::geometry;
 simplify_response::native_value_type
     simplify_response::operator()([[maybe_unused]] const simplify_response::native_value_type& original_value, const simplify_response::value_type& message) const
 {

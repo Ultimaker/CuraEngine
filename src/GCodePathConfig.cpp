@@ -3,12 +3,13 @@
 
 #include "GCodePathConfig.h"
 
-#include "geometry/Point2LL.h" // INT2MM
 #include "types/Acceleration.h"
+#include "types/geometry/Point2LL.h" // INT2MM
 
 namespace curaengine
 {
 using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 [[nodiscard]] double GCodePathConfig::getExtrusionMM3perMM() const noexcept

@@ -12,7 +12,7 @@
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)

@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "types/EFillMethod.h"
-#include "utils/ExtrusionLine.h"
+#include "types/geometry/ExtrusionLine.h"
 
 namespace curaengine::types
 {
@@ -15,11 +15,11 @@ enum class EFillMethod;
 struct MeshPathConfigs;
 } // namespace curaengine::types
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class OpenLinesSet;
 class Shape;
-} // namespace curaengine::geometry
+} // namespace curaengine::types::geometry
 
 namespace curaengine
 {
@@ -54,16 +54,16 @@ public:
     InfillOrderOptimizer();
 
     /*! Add a set of open polylines to be printed consecutively. */
-    void addPart(InfillPartArea part_area, geometry::OpenLinesSet& lines);
+    void addPart(InfillPartArea part_area, types::geometry::OpenLinesSet& lines);
 
     /*! Add a set of closed polylines to be printed consecutively. */
-    void addPart(InfillPartArea part_area, const geometry::Shape& polygons);
+    void addPart(InfillPartArea part_area, const types::geometry::Shape& polygons);
 
     /*! Add a set of extrusion lines to be printed consecutively. */
-    void addPart(InfillPartArea part_area, const std::vector<std::vector<utils::VariableWidthLines>>& walls);
+    void addPart(InfillPartArea part_area, const std::vector<std::vector<types::geometry::VariableWidthLines>>& walls);
 
     /*! Process the paths ordering optimization. */
-    void optimize(const bool skin_support_interlace_lines, const std::optional<geometry::Point2LL>& near_end_location = std::nullopt);
+    void optimize(const bool skin_support_interlace_lines, const std::optional<types::geometry::Point2LL>& near_end_location = std::nullopt);
 
     /*!
      * Adds the ordered infill parts to the given layer plan.
@@ -72,17 +72,17 @@ public:
     bool addToLayer(
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<geometry::Point2LL>& near_end_location,
+        const std::optional<types::geometry::Point2LL>& near_end_location,
         const types::EFillMethod infill_pattern,
         const types::MeshPathConfigs& mesh_config,
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const utils::coord_t start_move_inwards_length,
-        const utils::coord_t end_move_inwards_length,
-        const geometry::Shape& infill_inner_contour,
-        const utils::coord_t skin_support_line_distance,
-        const geometry::Shape& infill_below_skin,
+        const types::coord_t start_move_inwards_length,
+        const types::coord_t end_move_inwards_length,
+        const types::geometry::Shape& infill_inner_contour,
+        const types::coord_t skin_support_line_distance,
+        const types::geometry::Shape& infill_below_skin,
         const types::AngleDegrees& skin_support_angle) const;
 
 private:
@@ -101,9 +101,9 @@ private:
         InfillPartType type;
         union
         {
-            const geometry::Shape* polygons;
-            geometry::OpenLinesSet* lines;
-            const std::vector<std::vector<utils::VariableWidthLines>>* extrusion_lines;
+            const types::geometry::Shape* polygons;
+            types::geometry::OpenLinesSet* lines;
+            const std::vector<std::vector<types::geometry::VariableWidthLines>>* extrusion_lines;
         } paths;
     };
 
@@ -119,56 +119,56 @@ private:
     template<class LinesSetType>
     bool isCloserTo(
         const LinesSetType& line_set,
-        const geometry::Point2LL& location,
+        const types::geometry::Point2LL& location,
         std::optional<std::pair<size_t, size_t>>& closest_point,
-        utils::coord_t& closest_distance_squared);
+        types::coord_t& closest_distance_squared);
 
     /*! Add the given part to the layer plan using the given settings */
     void addToLayer(
         const InfillPart& part,
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<geometry::Point2LL>& near_start_location,
+        const std::optional<types::geometry::Point2LL>& near_start_location,
         const bool reverse_print_direction,
         const types::EFillMethod infill_pattern,
         const types::MeshPathConfigs& mesh_config,
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const utils::coord_t start_move_inwards_length,
-        const utils::coord_t end_move_inwards_length,
-        const geometry::Shape& infill_inner_contour,
-        const utils::coord_t skin_support_line_distance,
-        const geometry::Shape& infill_below_skin,
+        const types::coord_t start_move_inwards_length,
+        const types::coord_t end_move_inwards_length,
+        const types::geometry::Shape& infill_inner_contour,
+        const types::coord_t skin_support_line_distance,
+        const types::geometry::Shape& infill_below_skin,
         const types::AngleDegrees& skin_support_angle) const;
 
     /*! Add the given infill lines to the layer plan using the given settings */
     void addInfillLinesToLayer(
-        const geometry::OpenLinesSet& lines,
+        const types::geometry::OpenLinesSet& lines,
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<geometry::Point2LL>& near_start_location,
+        const std::optional<types::geometry::Point2LL>& near_start_location,
         const bool reverse_print_direction,
         const types::EFillMethod infill_pattern,
         const types::MeshPathConfigs& mesh_config,
-        const utils::coord_t start_move_inwards_length,
-        const utils::coord_t end_move_inwards_length,
-        const geometry::Shape& infill_inner_contour,
+        const types::coord_t start_move_inwards_length,
+        const types::coord_t end_move_inwards_length,
+        const types::geometry::Shape& infill_inner_contour,
         const bool enable_travel_optimization,
         const types::Ratio& flow_ratio,
         const double fan_speed,
-        const std::unordered_multimap<const geometry::Polyline*, const geometry::Polyline*>& order_requirements) const;
+        const std::unordered_multimap<const types::geometry::Polyline*, const types::geometry::Polyline*>& order_requirements) const;
 
     /*! Add the given skin support lines to the layer plan using the given settings */
     void addSkinSupportLinesToLayer(
-        const geometry::OpenLinesSet& lines,
+        const types::geometry::OpenLinesSet& lines,
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<geometry::Point2LL>& near_start_location,
+        const std::optional<types::geometry::Point2LL>& near_start_location,
         const bool reverse_print_direction,
         const types::MeshPathConfigs& mesh_config,
-        const utils::coord_t skin_support_line_distance,
-        const geometry::Shape& infill_below_skin,
+        const types::coord_t skin_support_line_distance,
+        const types::geometry::Shape& infill_below_skin,
         const types::AngleDegrees& skin_support_angle,
         const bool enable_travel_optimization,
         const types::Ratio& flow_ratio) const;

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/ZigzagConnectorProcessor.h"
@@ -6,14 +6,15 @@
 #include <algorithm>
 #include <cassert>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/PointMatrix.h"
-#include "geometry/Polygon.h"
-#include "geometry/Shape.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 

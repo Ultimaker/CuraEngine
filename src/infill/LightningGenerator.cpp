@@ -17,8 +17,8 @@
 #include "SupportStorage.h"
 #include "infill/LightningLayer.h"
 #include "infill/LightningTreeNode.h"
-#include "utils/LinearAlg2D.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/SparsePointGridInclusive.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees
@@ -36,7 +36,7 @@
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

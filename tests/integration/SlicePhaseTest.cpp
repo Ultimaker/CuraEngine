@@ -7,14 +7,14 @@
 #include <gtest/gtest.h>
 
 #include "Application.h" // To set up a slice with settings.
-#include "Slice.h" // To set up a scene to slice.
 #include "Mesh.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
+#include "Slice.h" // To set up a scene to slice.
 #include "Slicer.h" // Starts the slicing phase that we want to test.
-#include "utils/Coord_t.h"
-#include "geometry/Matrix4x3D.h" // To load STL files.
-#include "utils/PolygonUtils.h" // Comparing similarity of polygons_.
+#include "types/Coord_t.h"
+#include "types/geometry/Matrix4x3D.h" // To load STL files.
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h" // Creating polygons to compare to sliced layers.
+#include "types/geometry/PolygonUtils.h" // Comparing similarity of polygons_.
 
 namespace curaengine::types
 {
@@ -23,7 +23,7 @@ class AdaptiveLayer;
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

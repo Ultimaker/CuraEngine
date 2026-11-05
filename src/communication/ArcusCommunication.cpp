@@ -33,15 +33,15 @@
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
-#include "geometry/Polygon.h"
 #include "plugins/Slots.h"
 #include "types/LayerIndex.h" //To point to layers.
 #include "types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "types/geometry/Polygon.h"
 #include "utils/channel.h"
 
 namespace curaengine::communication
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

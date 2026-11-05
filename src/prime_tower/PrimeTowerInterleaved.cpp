@@ -11,7 +11,7 @@
 
 namespace curaengine::prime_tower
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

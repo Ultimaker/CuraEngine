@@ -8,9 +8,9 @@
 
 #include <range/v3/view/iota.hpp>
 
-#include "geometry/Polygon.h"
 #include "types/AngleRadians.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine
 {
@@ -18,26 +18,26 @@ namespace curaengine
 class TreeSupportBaseCircle
 {
 protected:
-    inline static geometry::Polygon base_circle;
+    inline static types::geometry::Polygon base_circle;
     inline static std::once_flag flag;
 
 public:
     inline static constexpr int64_t base_radius = 50;
 
-    static geometry::Polygon getBaseCircle()
+    static types::geometry::Polygon getBaseCircle()
     {
         std::call_once(
             flag,
             [&]()
             {
                 constexpr auto support_tree_circle_resolution = 12; // The number of vertices in each circle.
-                geometry::Polygon circle;
+                types::geometry::Polygon circle;
                 for (const uint64_t i : ranges::views::iota(0, support_tree_circle_resolution))
                 {
                     const types::AngleRadians angle = static_cast<double>(i) / support_tree_circle_resolution * TAU;
-                    circle.emplace_back(static_cast<utils::coord_t>(std::cos(angle) * base_radius), static_cast<utils::coord_t>(std::sin(angle) * base_radius));
+                    circle.emplace_back(static_cast<types::coord_t>(std::cos(angle) * base_radius), static_cast<types::coord_t>(std::sin(angle) * base_radius));
                 }
-                base_circle = geometry::Polygon(circle);
+                base_circle = types::geometry::Polygon(circle);
             });
         return base_circle;
     }

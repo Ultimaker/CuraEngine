@@ -9,11 +9,11 @@
 
 #include "RetractionAndWipeConfig.h"
 #include "SliceLayer.h"
-#include "geometry/Point2LL.h"
-#include "geometry/Shape.h"
 #include "types/AngleDegrees.h"
 #include "types/LayerIndex.h"
-#include "utils/AABB3D.h"
+#include "types/geometry/AABB3D.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine::infill
 {
@@ -42,12 +42,12 @@ public:
     std::vector<types::AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
     std::vector<types::AngleDegrees> flooring_angles; //!< a list of angle values which is cycled through to determine the flooring angle of each layer
     std::vector<types::AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
-    std::vector<geometry::Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
-    std::vector<geometry::Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins
-                                                      //!< the areas of the next layers.
-    std::vector<std::vector<geometry::Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface
-                                                               //!< area, such as a corner pointing downwards.
-    utils::AABB3D bounding_box; //!< the mesh's bounding box
+    std::vector<types::geometry::Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
+    std::vector<types::geometry::Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area
+                                                             //!< adjoins the areas of the next layers.
+    std::vector<std::vector<types::geometry::Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any
+                                                                      //!< surface area, such as a corner pointing downwards.
+    types::geometry::AABB3D bounding_box; //!< the mesh's bounding box
 
     std::shared_ptr<infill::SubDivCube> base_subdiv_cube;
     std::shared_ptr<infill::SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
@@ -93,7 +93,7 @@ public:
     /*!
      * \return the mesh's user specified z seam hint
      */
-    geometry::Point2LL getZSeamHint() const;
+    types::geometry::Point2LL getZSeamHint() const;
 };
 
 } // namespace curaengine

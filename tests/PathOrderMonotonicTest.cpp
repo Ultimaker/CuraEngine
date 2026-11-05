@@ -13,11 +13,11 @@
 #include <gtest/gtest.h>
 
 #include "ReadTestPolygons.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
-#include "infill/Infill.h"
 #include "Slicer.h"
-#include "utils/Coord_t.h"
+#include "infill/Infill.h"
+#include "types/Coord_t.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
 #include "utils/math.h"
 
 // To diagnose failing tests with visual images, uncomment the following line:
@@ -25,12 +25,12 @@
 #ifdef TEST_PATHS_SVG_OUTPUT
 #include <cstdlib>
 
-#include "utils/SVG.h"
+#include "types/SVG.h"
 #endif // TEST_PATHS_SVG_OUTPUT
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace types;
 using namespace utils;

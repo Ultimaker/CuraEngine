@@ -9,6 +9,8 @@
 
 namespace curaengine::plugins
 {
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 infill_generate_request::value_type
     infill_generate_request::operator()(const infill_generate_request::native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const coord_t z)

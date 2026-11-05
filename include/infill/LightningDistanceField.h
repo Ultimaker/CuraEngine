@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "../utils/SquareGrid.h" //Tracking for each location the distance to overhang.
-#include "geometry/Polygon.h" //Using outlines to fill and tracking overhang.
+#include "types/geometry/Polygon.h" //Using outlines to fill and tracking overhang.
+#include "types/geometry/SquareGrid.h" //Tracking for each location the distance to overhang.
 
 namespace curaengine::infill
 {
@@ -28,7 +28,7 @@ public:
      * \param current_overhang The overhang that needs to be supported on this
      * layer.
      */
-    LightningDistanceField(const utils::coord_t& radius, const geometry::Shape& current_outline, const geometry::Shape& current_overhang);
+    LightningDistanceField(const types::coord_t& radius, const types::geometry::Shape& current_outline, const types::geometry::Shape& current_overhang);
 
     /*!
      * Gets the next unsupported location to be supported by a new branch.
@@ -36,7 +36,7 @@ public:
      * \return ``true`` if successful, or ``false`` if there are no more points
      * to consider.
      */
-    bool tryGetNextPoint(geometry::Point2LL* p) const;
+    bool tryGetNextPoint(types::geometry::Point2LL* p) const;
 
     /*!
      * Update the distance field with a newly added branch.
@@ -50,38 +50,38 @@ public:
      * \param added_leaf The location of the leaf of the newly added branch,
      * drawing a straight line to the node.
      */
-    void update(const geometry::Point2LL& to_node, const geometry::Point2LL& added_leaf);
+    void update(const types::geometry::Point2LL& to_node, const types::geometry::Point2LL& added_leaf);
 
 protected:
-    using GridPoint = utils::SquareGrid::GridPoint;
+    using GridPoint = types::geometry::SquareGrid::GridPoint;
 
     /*!
      * Spacing between grid points to consider supporting.
      */
-    utils::coord_t cell_size_;
+    types::coord_t cell_size_;
 
     /*!
      * Grid points to consider supporting, with each point maintaining its
      * distance to the nearest support point.
      */
-    utils::SquareGrid grid_;
+    types::geometry::SquareGrid grid_;
 
     /*!
      * The radius of the area of the layer above supported by a point on a
      * branch of a tree.
      */
-    utils::coord_t supporting_radius_;
+    types::coord_t supporting_radius_;
 
     /*!
      * The total infill area on the current layer.
      */
-    const geometry::Shape& current_outline_;
+    const types::geometry::Shape& current_outline_;
 
     /*!
      * The overhang that gets introduced on this layer, which the infill will
      * need to support.
      */
-    const geometry::Shape& current_overhang_;
+    const types::geometry::Shape& current_overhang_;
 
     /*!
      * Represents a small discrete area of infill that needs to be supported.
@@ -91,15 +91,15 @@ protected:
         /*!
          * The position of the center of this cell.
          */
-        geometry::Point2LL loc_;
+        types::geometry::Point2LL loc_;
 
         /*!
          * How far this cell is removed from the ``current_outline`` polygon,
          * the edge of the infill area.
          */
-        utils::coord_t dist_to_boundary_;
+        types::coord_t dist_to_boundary_;
 
-        UnsupCell(utils::SquareGrid::GridPoint loc, utils::coord_t dist_to_boundary)
+        UnsupCell(types::geometry::SquareGrid::GridPoint loc, types::coord_t dist_to_boundary)
             : loc_(loc)
             , dist_to_boundary_(dist_to_boundary)
         {
@@ -115,7 +115,7 @@ protected:
      * Links the unsupported points to a grid point, so that we can quickly look
      * up the cell belonging to a certain position in the grid.
      */
-    std::unordered_map<utils::SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid_;
+    std::unordered_map<types::geometry::SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid_;
 };
 
 } // namespace curaengine::infill

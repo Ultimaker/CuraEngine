@@ -1,13 +1,17 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/string.h" // The file under test.
-#include "geometry/Point2LL.h"
+
 #include <gtest/gtest.h>
+
+#include "types/geometry/Point2LL.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 /*

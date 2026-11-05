@@ -11,14 +11,14 @@
 #include "WipeScriptConfig.h" // For wipe script tests.
 #include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "gcode_export/GCodePart.h"
-#include "utils/Coord_t.h"
-#include "utils/Date.h" // To check the Griffin header.
+#include "types/Coord_t.h"
+#include "types/Date.h" // To check the Griffin header.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
 using namespace gcode_export;
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

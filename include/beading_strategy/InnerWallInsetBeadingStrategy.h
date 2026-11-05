@@ -13,21 +13,21 @@ namespace curaengine::beading_strategy
 class InnerWallInsetBeadingStrategy : public BeadingStrategy
 {
 public:
-    InnerWallInsetBeadingStrategy(utils::coord_t inner_wall_offset, BeadingStrategyPtr parent);
+    InnerWallInsetBeadingStrategy(types::coord_t inner_wall_offset, BeadingStrategyPtr parent);
 
     virtual ~InnerWallInsetBeadingStrategy() = default;
 
-    Beading compute(utils::coord_t thickness, utils::coord_t bead_count) const override;
+    Beading compute(types::coord_t thickness, types::coord_t bead_count) const override;
 
-    utils::coord_t getOptimalThickness(utils::coord_t bead_count) const override;
-    utils::coord_t getTransitionThickness(utils::coord_t lower_bead_count) const override;
-    utils::coord_t getOptimalBeadCount(utils::coord_t thickness) const override;
-    utils::coord_t getTransitioningLength(utils::coord_t lower_bead_count) const override;
+    types::coord_t getOptimalThickness(types::coord_t bead_count) const override;
+    types::coord_t getTransitionThickness(types::coord_t lower_bead_count) const override;
+    types::coord_t getOptimalBeadCount(types::coord_t thickness) const override;
+    types::coord_t getTransitioningLength(types::coord_t lower_bead_count) const override;
 
     std::string toString() const override;
 
 private:
     BeadingStrategyPtr parent_;
-    utils::coord_t inner_wall_offset_;
+    types::coord_t inner_wall_offset_;
 };
 } // namespace curaengine::beading_strategy

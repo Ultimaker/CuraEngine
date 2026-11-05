@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "geometry/Point2LL.h" //To store the preferred seam position.
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
+#include "types/geometry/Point2LL.h" //To store the preferred seam position.
 
 namespace curaengine::types
 {
@@ -28,7 +28,7 @@ struct ZSeamConfig
      * When using a user-specified position for the seam, this is the position
      * that the user specified.
      */
-    geometry::Point2LL pos_;
+    types::geometry::Point2LL pos_;
 
     /*!
      * Corner preference type, if using the sharpest corner strategy.
@@ -40,7 +40,7 @@ struct ZSeamConfig
      * by simplifying the polygon that the corners are detected on by this ammount.
      * This does _not_ influence the path, the simplified polygon is a temporary constructed within the algorithm.
      */
-    utils::coord_t simplify_curvature_;
+    types::coord_t simplify_curvature_;
 
     /*!
      * Create a seam configuration with a custom configuration.
@@ -51,9 +51,9 @@ struct ZSeamConfig
      */
     ZSeamConfig(
         const EZSeamType type = EZSeamType::SHORTEST,
-        const geometry::Point2LL pos = geometry::Point2LL(0, 0),
+        const types::geometry::Point2LL pos = types::geometry::Point2LL(0, 0),
         const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
-        const utils::coord_t simplify_curvature = 0);
+        const types::coord_t simplify_curvature = 0);
 };
 
 } // namespace curaengine::types

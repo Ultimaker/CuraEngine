@@ -13,27 +13,27 @@
 #include "SliceMeshStorage.h"
 #include "SupportLayer.h"
 #include "bridge/AlignShapeScoringCriterion.h"
-#include "bridge/ExpansionRange.h"
 #include "bridge/LineAnchoringScoringCriterion.h"
-#include "bridge/SegmentOverlapping.h"
-#include "bridge/TransformedShape.h"
-#include "geometry/PointMatrix.h"
-#include "geometry/Polygon.h"
 #include "types/EFillMethod.h"
 #include "types/Ratio.h"
 #include "types/geometry.h"
-#include "utils/AABB.h"
-#include "utils/LinearAlg2D.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/ExpansionRange.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/SegmentOverlapping.h"
+#include "types/geometry/TransformedShape.h"
+#include "types/scoring/BestElementFinder.h"
 #include "utils/math.h"
-#include "utils/scoring/BestElementFinder.h"
 
 
 namespace curaengine::bridge
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
-using namespace utils::scoring;
+using namespace types::scoring;
 
 /*!
  * Gets the proper angle when bridging over infill

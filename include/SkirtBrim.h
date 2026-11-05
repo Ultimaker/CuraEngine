@@ -7,10 +7,10 @@
 
 #include "ExtruderTrain.h"
 #include "SliceDataStorage.h"
+#include "types/Coord_t.h"
 #include "types/EPlatformAdhesion.h"
-#include "utils/Coord_t.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Shape;
 }
@@ -21,7 +21,7 @@ namespace curaengine
 
 class SliceDataStorage;
 
-constexpr utils::coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
+constexpr types::coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
 
 class SkirtBrim
 {
@@ -31,8 +31,8 @@ private:
      */
     struct Outline
     {
-        geometry::Shape gapped; //!< Outlines for which we want to start a brim by applying the gap for easy detaching
-        geometry::Shape touching; //!< Outlines for which we want the brim to touch, so that it has better adhesion
+        types::geometry::Shape gapped; //!< Outlines for which we want to start a brim by applying the gap for easy detaching
+        types::geometry::Shape touching; //!< Outlines for which we want the brim to touch, so that it has better adhesion
     };
 
     /*!
@@ -44,9 +44,9 @@ private:
             const std::variant<Outline*, int>& reference_outline_or_index,
             const bool outside,
             const bool inside,
-            const utils::coord_t offset_value_gapped,
-            const utils::coord_t offset_value_touching,
-            const utils::coord_t total_offset,
+            const types::coord_t offset_value_gapped,
+            const types::coord_t offset_value_touching,
+            const types::coord_t total_offset,
             const size_t inset_idx,
             const size_t extruder_nr,
             const bool is_last)
@@ -65,9 +65,9 @@ private:
         std::variant<Outline*, int> reference_outline_or_index_;
         bool outside_; //!< Wether to offset outward from the reference polygons
         bool inside_; //!< Wether to offset inward from the reference polygons
-        utils::coord_t offset_value_gapped_; //!< Distance by which to offset from the reference, for outlines with gap applied
-        utils::coord_t offset_value_touching_; //!< Distance by which to offset from the reference, for outlines with no gap applied
-        utils::coord_t total_offset_; //!< Total distance from the model
+        types::coord_t offset_value_gapped_; //!< Distance by which to offset from the reference, for outlines with gap applied
+        types::coord_t offset_value_touching_; //!< Distance by which to offset from the reference, for outlines with no gap applied
+        types::coord_t total_offset_; //!< Total distance from the model
         int inset_idx_; //!< The outset index of this brimline
         size_t extruder_nr_; //!< The extruder by which to print this brim line
         bool is_last_; //!< Whether this is the last planned offset for this extruder.
@@ -81,10 +81,10 @@ private:
         bool extruder_is_used_; //!< Whether the extruder is actually used in this print
         bool outside_polys_; //!< Whether to generate brim on the outside
         bool inside_polys_; //!< Whether to generate brim on the inside
-        utils::coord_t line_width_; //!< The skirt/brim line width
-        utils::coord_t skirt_brim_minimal_length_; //!< The minimal brim length
+        types::coord_t line_width_; //!< The skirt/brim line width
+        types::coord_t skirt_brim_minimal_length_; //!< The minimal brim length
         int line_count_; //!< The (minimal) number of brim lines to generate
-        utils::coord_t gap_; //!< The gap between the part and the first brim/skirt line
+        types::coord_t gap_; //!< The gap between the part and the first brim/skirt line
     };
 
     /*!
@@ -150,7 +150,8 @@ private:
      * \param[in,out] allowed_areas_per_extruder The difference between the machine bed area (offsetted by the nozzle offset) and the covered_area.
      * \return The total length of the brim lines added by this method per extruder.
      */
-    std::vector<utils::coord_t> generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, geometry::Shape& covered_area, std::vector<geometry::Shape>& allowed_areas_per_extruder);
+    std::vector<types::coord_t>
+        generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, types::geometry::Shape& covered_area, std::vector<types::geometry::Shape>& allowed_areas_per_extruder);
 
     /*!
      * Generate the brim inside the ooze shield and draft shield
@@ -161,7 +162,7 @@ private:
      * \param[in,out] brim_covered_area The area that was covered with brim before (in) and after (out) adding the shield brims
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      */
-    void generateShieldBrim(geometry::Shape& brim_covered_area, std::vector<geometry::Shape>& allowed_areas_per_extruder);
+    void generateShieldBrim(types::geometry::Shape& brim_covered_area, std::vector<types::geometry::Shape>& allowed_areas_per_extruder);
 
     /*!
      * \brief Get the reference outline of the first layer around which to
@@ -186,7 +187,7 @@ private:
      * \param extruder_nr The extruder for which to compute disallowed areas
      * \return The disallowed areas
      */
-    geometry::Shape getInternalHoleExclusionArea(const geometry::Shape& outline, const int extruder_nr) const;
+    types::geometry::Shape getInternalHoleExclusionArea(const types::geometry::Shape& outline, const int extruder_nr) const;
 
     /*!
      * Generate a brim line with offset parameters given by \p offset from the \p starting_outlines and store it in the \ref storage.
@@ -199,7 +200,11 @@ private:
      * \param[out] result Where to store the resulting brim line
      * \return The length of the added lines
      */
-    utils::coord_t generateOffset(const Offset& offset, geometry::Shape& covered_area, std::vector<geometry::Shape>& allowed_areas_per_extruder, geometry::MixedLinesSet& result);
+    types::coord_t generateOffset(
+        const Offset& offset,
+        types::geometry::Shape& covered_area,
+        std::vector<types::geometry::Shape>& allowed_areas_per_extruder,
+        types::geometry::MixedLinesSet& result);
 
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
@@ -212,7 +217,10 @@ private:
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      * \param[in,out] total_length The total length of the brim lines for each extruder.
      */
-    void generateSecondarySkirtBrim(geometry::Shape& covered_area, std::vector<geometry::Shape>& allowed_areas_per_extruder, std::vector<utils::coord_t>& total_length);
+    void generateSecondarySkirtBrim(
+        types::geometry::Shape& covered_area,
+        std::vector<types::geometry::Shape>& allowed_areas_per_extruder,
+        std::vector<types::coord_t>& total_length);
 
     /*!
      * Generate the allowed areas for each extruder. Allowed areas represent where the brim/skirt is allowed to grow
@@ -222,7 +230,7 @@ private:
      * \param[in] starting_outlines The previously generated starting outlines for each extruder
      * \return The list of allowed areas for each extruder
      */
-    std::vector<geometry::Shape> generateAllowedAreas(const std::vector<Outline>& starting_outlines) const;
+    std::vector<types::geometry::Shape> generateAllowedAreas(const std::vector<Outline>& starting_outlines) const;
 
     /*!
      * Generates the inside part of the support brim
@@ -231,7 +239,7 @@ private:
      * @param width The maximum inside brim width to be generated
      * @param line_width The line width used to print the support inside brim
      */
-    void generateSupportInsideBrim(const Settings& settings, const geometry::Shape& support_outline, const utils::coord_t width, const utils::coord_t line_width);
+    void generateSupportInsideBrim(const Settings& settings, const types::geometry::Shape& support_outline, const types::coord_t width, const types::coord_t line_width);
 
     /*!
      * Generates the outside part of the support brim
@@ -240,7 +248,11 @@ private:
      * @param line_width The line width used to print the support inside brim
      * @param exclusion_area The exclusion areas on which the brim is not allowed to grow
      */
-    void generateSupportOutsideBrim(const geometry::Shape& support_outline, const utils::coord_t width, const utils::coord_t line_width, const geometry::Shape& exclusion_area);
+    void generateSupportOutsideBrim(
+        const types::geometry::Shape& support_outline,
+        const types::coord_t width,
+        const types::coord_t line_width,
+        const types::geometry::Shape& exclusion_area);
 
 public:
     /*!

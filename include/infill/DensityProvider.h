@@ -1,10 +1,10 @@
-// Copyright (c) 2026 Tim Kuipers
 // Copyright (c) 2026 UltiMaker
+// Copyright (c) 2026 Tim Kuipers
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
 
-namespace curaengine::utils
+namespace curaengine::types::geometry
 {
 struct AABB3D;
 }
@@ -24,7 +24,7 @@ public:
     /*!
      * \return the approximate required density of a cube
      */
-    virtual double operator()(const utils::AABB3D& aabb) const = 0;
+    virtual double operator()(const types::geometry::AABB3D& aabb) const = 0;
     virtual ~DensityProvider()
     {
     }

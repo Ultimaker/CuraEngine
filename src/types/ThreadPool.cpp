@@ -1,0 +1,57 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "types/ThreadPool.h"
+
+namespace curaengine::types
+{
+
+using namespace utils;
+
+ThreadPool::ThreadPool(size_t nthreads)
+    : wait_for_new_tasks(true)
+{
+    for (size_t i = 0; i < nthreads; i++)
+    {
+        threads.emplace_back(&ThreadPool::worker, this);
+    }
+}
+
+void ThreadPool::worker()
+{
+    lock_t lock = get_lock();
+    work_while(
+        lock,
+        [this, &lock]()
+        {
+            while (tasks.empty() && wait_for_new_tasks)
+            { // Wait for a task. Signaled by ThreadPool::push() and ThreadPool::join()
+                condition.wait(lock);
+            }
+            // Returns false if the queue is empty and the pool is being disposed
+            return ! tasks.empty() || wait_for_new_tasks;
+        });
+}
+
+void ThreadPool::join()
+{
+    { // Joinning thread becomes a worker while there is remaining tasks
+        lock_t lock = get_lock();
+        wait_for_new_tasks = false;
+        condition.notify_all();
+        work_while(
+            lock,
+            []
+            {
+                return true;
+            });
+    }
+    assert(tasks.empty());
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+    threads.clear();
+}
+
+} // namespace curaengine::types

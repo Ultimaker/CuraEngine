@@ -15,7 +15,7 @@
 
 namespace curaengine::plugins
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace path_planning;
 [[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept
 {

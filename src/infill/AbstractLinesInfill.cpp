@@ -6,17 +6,17 @@
 #include <fmt/format.h>
 #include <range/v3/view/enumerate.hpp>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/PointMatrix.h"
-#include "geometry/Shape.h"
 #include "types/AngleDegrees.h"
-#include "utils/AABB.h"
-#include "utils/LinearAlg2D.h"
-#include "utils/OpenPolylineStitcher.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
@@ -102,7 +102,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 }
             }
 
-            if (outline_point_index == 0 || geometry::vSize2(op0 - cur_point) > MM2INT(0.1))
+            if (outline_point_index == 0 || types::geometry::vSize2(op0 - cur_point) > MM2INT(0.1))
             {
                 // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -128,7 +128,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 double nearest_point_dist2 = std::numeric_limits<float>::infinity();
                 for (size_t pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
                 {
-                    double dist2 = geometry::vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
+                    double dist2 = types::geometry::vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
                     if (dist2 < nearest_point_dist2)
                     {
                         nearest_point_dist2 = dist2;
@@ -141,7 +141,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 // make the chain end the current point and add it to the connector line
                 cur_point = split_lines[chain_index].chain[point_index];
 
-                if (drawing && connector_points.size() > 0 && geometry::vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
+                if (drawing && connector_points.size() > 0 && types::geometry::vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
                 {
                     // this chain end will be too close to the last connector point so throw away the last connector point
                     connector_points.pop_back();

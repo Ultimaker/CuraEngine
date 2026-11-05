@@ -33,7 +33,6 @@
 #include "SlicerLayer.h"
 #include "SupportLayer.h"
 #include "arachne/SkeletalTrapezoidation.h"
-#include "geometry/ClosedLinesSet.h"
 #include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
@@ -46,14 +45,15 @@
 #include "types/ESupportType.h"
 #include "types/Ratio.h"
 #include "types/SupportDistPriority.h" //For EFillMethod.
-#include "utils/LinearAlg2D.h"
-#include "utils/Simplify.h"
-#include "utils/ThreadPool.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/ClosedLinesSet.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/Simplify.h"
 #include "utils/math.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace progress;
 using namespace types;
@@ -1868,7 +1868,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Shape& supportLayer
             int best_length2 = -1;
             for (unsigned int i = 0; i < poly.size(); i++)
             {
-                int length2 = geometry::vSize2(poly[i] - poly[(i + 1) % poly.size()]);
+                int length2 = types::geometry::vSize2(poly[i] - poly[(i + 1) % poly.size()]);
                 if (length2 > best_length2)
                 {
                     best = i;

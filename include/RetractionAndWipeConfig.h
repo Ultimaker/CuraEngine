@@ -5,7 +5,7 @@
 
 #include "RetractionConfig.h"
 #include "WipeScriptConfig.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
 
 namespace curaengine
 {
@@ -14,7 +14,7 @@ struct RetractionAndWipeConfig
     WipeScriptConfig wipe_config;
 
     RetractionConfig retraction_config;
-    utils::coord_t retraction_hop_after_extruder_switch;
+    types::coord_t retraction_hop_after_extruder_switch;
     double switch_extruder_extra_prime_amount;
     RetractionConfig extruder_switch_retraction_config;
 };

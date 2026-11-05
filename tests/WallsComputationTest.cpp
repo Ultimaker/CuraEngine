@@ -11,24 +11,24 @@
 #include <gtest/gtest.h>
 
 #include "InsetOrderOptimizer.h" //Unit also under test.
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h" //To create example polygons.
 #include "Settings.h" //Settings to generate walls with.
 #include "SliceDataStorage.h" //Sl
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 #include "Slicer.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h" //To create example polygons.
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include <cstdlib>
 
-#include "utils/SVG.h"
+#include "types/SVG.h"
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 /*!

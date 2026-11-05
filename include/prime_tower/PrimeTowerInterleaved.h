@@ -29,9 +29,9 @@ public:
         const types::LayerIndex& layer_nr) const override;
 
 protected:
-    virtual void polishExtrudersUses(utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder) override;
+    virtual void polishExtrudersUses(types::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder) override;
 
-    virtual std::map<types::LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const utils::LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
+    virtual std::map<types::LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const types::LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
 };
 
 } // namespace curaengine::prime_tower

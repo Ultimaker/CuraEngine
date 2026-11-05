@@ -3,13 +3,13 @@
 
 #include "bridge/BridgeAngleScoringCriterion.h"
 
-#include "bridge/TransformedShape.h"
-#include "geometry/PointMatrix.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/TransformedShape.h"
 
 
 namespace curaengine::bridge
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 
 BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)

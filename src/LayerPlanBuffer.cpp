@@ -20,7 +20,7 @@
 namespace curaengine
 {
 using namespace gcode_export;
-using namespace geometry;
+using namespace types::geometry;
 using namespace path_planning;
 using namespace types;
 using types::operator""_s;

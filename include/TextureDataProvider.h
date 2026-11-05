@@ -8,9 +8,9 @@
 
 #include "TextureArea.h"
 #include "TextureBitField.h"
-#include "geometry/Point2LL.h"
+#include "types/geometry/Point2LL.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Point2F;
 }
@@ -37,11 +37,11 @@ public:
 
     std::optional<uint32_t> getValue(const size_t pixel_x, const size_t pixel_y, const std::string& feature) const;
 
-    std::optional<uint32_t> getValue(const geometry::Point2F& uv_coordinates, const std::string& feature) const;
+    std::optional<uint32_t> getValue(const types::geometry::Point2F& uv_coordinates, const std::string& feature) const;
 
-    std::optional<uint32_t> getValue(const geometry::Point2LL& position, const std::string& feature) const;
+    std::optional<uint32_t> getValue(const types::geometry::Point2LL& position, const std::string& feature) const;
 
-    std::optional<TextureArea> getAreaPreference(const geometry::Point2LL& position, const std::string& feature) const;
+    std::optional<TextureArea> getAreaPreference(const types::geometry::Point2LL& position, const std::string& feature) const;
 
 private:
     std::shared_ptr<SlicedUVCoordinates> uv_coordinates_;

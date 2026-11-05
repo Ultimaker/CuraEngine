@@ -5,10 +5,10 @@
 
 #include <optional>
 
+#include "types/Coord_t.h"
 #include "types/LayerIndex.h"
-#include "utils/Coord_t.h"
 
-namespace curaengine::geometry
+namespace curaengine::types::geometry
 {
 class Shape;
 }
@@ -102,7 +102,7 @@ protected:
      * above. The input is the area within the inner walls (or an empty Polygons
      * object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, geometry::Shape& upskin);
+    void calculateTopSkin(const SliceLayerPart& part, types::geometry::Shape& upskin);
 
     /*!
      * \brief Calculate the basic areas which have air below.
@@ -111,7 +111,7 @@ protected:
      * layers above. The input is the area within the inner walls (or an empty
      * Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, geometry::Shape& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, types::geometry::Shape& downskin);
 
     /*!
      * Apply skin expansion:
@@ -122,14 +122,14 @@ protected:
      * \param[in,out] upskin The top skin areas to grow
      * \param[in,out] downskin The bottom skin areas to grow
      */
-    void applySkinExpansion(const geometry::Shape& original_outline, geometry::Shape& upskin, geometry::Shape& downskin);
+    void applySkinExpansion(const types::geometry::Shape& original_outline, types::geometry::Shape& upskin, types::geometry::Shape& downskin);
 
     /*!
      * Allow small gaps in infill areas to grow over infill areas. This helps keeping the skin areas consistent.
      * @param skin[in, out] The skin area to be possibly expanded
      * @param infill[in, out] The infill area to be possibly shrunk
      */
-    void applySkinFillSmallInfillGaps(geometry::Shape& skin, geometry::Shape& infill) const;
+    void applySkinFillSmallInfillGaps(types::geometry::Shape& skin, types::geometry::Shape& infill) const;
 
     /*!
      * Generate infill of a given part
@@ -158,7 +158,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param roofing_layer_count The number of layers above the layer which we are looking into
      */
-    geometry::Shape generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
+    types::geometry::Shape generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' above air.
@@ -167,7 +167,7 @@ protected:
      * \param flooring_layer_count The number of layers below the layer which we are looking into
      * \return The area that contains mesh parts below, or nullopt if the build plate is below, which actually means everything is considered supported
      */
-    std::optional<geometry::Shape> generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
+    std::optional<types::geometry::Shape> generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
 protected:
     types::LayerIndex layer_nr_; //!< The index of the layer for which to generate the skins and infill.
@@ -176,18 +176,18 @@ protected:
     size_t initial_bottom_layer_count_; //!< Whether to make bottom skin for the initial layer
     size_t top_layer_count_; //!< The number of layers of top skin
     size_t wall_line_count_; //!< The number of walls, i.e. the number of the wall from which to offset.
-    utils::coord_t skin_line_width_; //!< The line width of the skin.
+    types::coord_t skin_line_width_; //!< The line width of the skin.
     size_t skin_inset_count_; //!< The number of perimeters to surround the skin
     bool no_small_gaps_heuristic_; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     bool process_infill_; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
-    utils::coord_t top_skin_preshrink_; //!< The top skin removal width, to remove thin strips of skin along nearly-vertical walls.
-    utils::coord_t bottom_skin_preshrink_; //!< The bottom skin removal width, to remove thin strips of skin along nearly-vertical walls.
-    utils::coord_t top_skin_expand_distance_; //!< The distance by which the top skins should be larger than the original top skins.
-    utils::coord_t bottom_skin_expand_distance_; //!< The distance by which the bottom skins should be larger than the original bottom skins.
+    types::coord_t top_skin_preshrink_; //!< The top skin removal width, to remove thin strips of skin along nearly-vertical walls.
+    types::coord_t bottom_skin_preshrink_; //!< The bottom skin removal width, to remove thin strips of skin along nearly-vertical walls.
+    types::coord_t top_skin_expand_distance_; //!< The distance by which the top skins should be larger than the original top skins.
+    types::coord_t bottom_skin_expand_distance_; //!< The distance by which the bottom skins should be larger than the original bottom skins.
 
 private:
-    static utils::coord_t
+    static types::coord_t
         getSkinLineWidth(const SliceMeshStorage& mesh, const types::LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
 
     /*!
@@ -201,7 +201,7 @@ private:
      * \param part_here The part for which to check.
      * \param layer2_nr The layer index from which to gather the outlines.
      */
-    geometry::Shape getOutlineOnLayer(const SliceLayerPart& part_here, const types::LayerIndex layer2_nr);
+    types::geometry::Shape getOutlineOnLayer(const SliceLayerPart& part_here, const types::LayerIndex layer2_nr);
 };
 
 } // namespace curaengine

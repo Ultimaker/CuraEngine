@@ -4,14 +4,14 @@
 #pragma once
 
 #include "types/LayerIndex.h"
-#include "utils/NoCopy.h"
+#include "types/NoCopy.h"
 
 namespace curaengine::progress
 {
 class ProgressStageEstimator;
 }
 
-namespace curaengine::utils
+namespace curaengine::types
 {
 class TimeKeeper;
 }
@@ -33,7 +33,7 @@ class SliceMeshStorage;
  *
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public utils::NoCopy
+class FffPolygonGenerator : public types::NoCopy
 {
 public:
     /*!
@@ -43,7 +43,7 @@ public:
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
      */
-    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, utils::TimeKeeper& timeKeeper);
+    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, types::TimeKeeper& timeKeeper);
 
 private:
     /*!
@@ -68,7 +68,7 @@ private:
      *
      * \return Whether the process succeeded (always true).
      */
-    bool sliceModel(MeshGroup* object, utils::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
+    bool sliceModel(MeshGroup* object, types::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, support area polygons, etc.
@@ -76,7 +76,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
-    void slices2polygons(SliceDataStorage& storage, utils::TimeKeeper& timeKeeper);
+    void slices2polygons(SliceDataStorage& storage, types::TimeKeeper& timeKeeper);
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill

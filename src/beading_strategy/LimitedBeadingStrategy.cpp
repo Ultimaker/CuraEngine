@@ -11,6 +11,7 @@
 
 namespace curaengine::beading_strategy
 {
+using namespace types;
 using namespace utils;
 
 std::string LimitedBeadingStrategy::toString() const

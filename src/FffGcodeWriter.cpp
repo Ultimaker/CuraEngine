@@ -37,9 +37,6 @@
 #include "WallToolPaths.h"
 #include "bridge/bridge.h"
 #include "communication/Communication.h" //To send layer view data.
-#include "geometry/LinesSet.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/PointMatrix.h"
 #include "infill/Infill.h"
 #include "prime_tower/PrimeTower.h"
 #include "progress/Progress.h"
@@ -53,22 +50,25 @@
 #include "types/EZSeamType.h"
 #include "types/InfillStartEndPreference.h"
 #include "types/RetractBeforeOuterWall.h"
-#include "utils/LinearAlg2D.h"
-#include "utils/OrderOptimizer.h"
-#include "utils/PolygonUtils.h"
-#include "utils/Simplify.h" //Removing micro-segments created by offsetting.
-#include "utils/ThreadPool.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/LinearAlg2D.h"
+#include "types/geometry/LinesSet.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/OrderOptimizer.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/PolygonUtils.h"
+#include "types/geometry/Simplify.h" //Removing micro-segments created by offsetting.
+#include "types/geometry/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 #include "utils/math.h"
-#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace progress;
 using namespace types;
 using namespace utils;
-using namespace utils::sparse_point_grid_inclusive_impl;
+using namespace types::geometry::sparse_point_grid_inclusive_impl;
 using types::operator""_r;
 
 
@@ -251,7 +251,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
         // and if it isn't, we move forward
 
-        if (geometry::vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
+        if (types::geometry::vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             // get the inward normal of the last layer seam vertex
             Point2LL last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
@@ -3043,7 +3043,7 @@ std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& fil
     // create a vector from the middle of the BB whose length is such that it can be rotated
     // around the middle of the BB and the end will always be a long way outside of the part's outline
     // and rotate the vector so that it is normal to the skin angle
-    const Point2LL vec = rot.apply(Point2LL(0, geometry::vSize(skin_part_bb.max_ - bb_middle) * 100));
+    const Point2LL vec = rot.apply(Point2LL(0, types::geometry::vSize(skin_part_bb.max_ - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
     const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
@@ -3053,7 +3053,7 @@ std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& fil
         return std::optional<Point2LL>();
     }
     // now go to whichever of those vertices that is closest to where we are now
-    if (geometry::vSize2(pa.p() - last_position) < geometry::vSize2(pb.p() - last_position))
+    if (types::geometry::vSize2(pa.p() - last_position) < types::geometry::vSize2(pb.p() - last_position))
     {
         return std::optional<Point2LL>(std::in_place, pa.p());
     }

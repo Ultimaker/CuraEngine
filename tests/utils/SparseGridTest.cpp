@@ -1,7 +1,7 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/SparseGrid.h"
+#include "types/geometry/SparseGrid.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -9,12 +9,13 @@
 
 #include <gtest/gtest.h>
 
-#include "utils/Coord_t.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "types/Coord_t.h"
+#include "types/geometry/SparsePointGridInclusive.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 struct GetNearbyParameters

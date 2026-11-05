@@ -20,21 +20,21 @@
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
-#include "WallsComputation.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
 #include "Settings.h"
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
+#include "WallsComputation.h"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
 
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

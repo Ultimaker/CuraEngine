@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -23,13 +23,15 @@
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
 #include "progress/Progress.h"
-#include "utils/ThreadPool.h"
+#include "types/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
 namespace curaengine
 {
 using namespace communication;
 using namespace progress;
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 Application::Application()
@@ -200,7 +202,7 @@ void Application::printHeader() const
 void Application::printLicense() const
 {
     fmt::print("\n");
-    fmt::print("Copyright (C) 2024 Ultimaker\n");
+    fmt::print("Copyright (C) 2026 UltiMaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");

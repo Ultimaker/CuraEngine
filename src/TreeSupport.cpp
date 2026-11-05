@@ -32,17 +32,17 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
 #include "types/ESupportStructure.h"
-#include "utils/OBJ.h"
-#include "utils/PolygonUtils.h" //For moveInside.
-#include "utils/SectionType.h"
-#include "utils/Simplify.h"
-#include "utils/ThreadPool.h"
+#include "types/OBJ.h"
+#include "types/SectionType.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/PolygonUtils.h" //For moveInside.
+#include "types/geometry/Simplify.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace progress;
 using namespace types;
 using namespace utils;
@@ -1695,7 +1695,7 @@ void TreeSupport::generateBranchAreas(
 
                 for (std::pair<Point2LL, coord_t> movement : movement_directions)
                 {
-                    max_speed_sqd = std::max(max_speed_sqd, geometry::vSize2(movement.first));
+                    max_speed_sqd = std::max(max_speed_sqd, types::geometry::vSize2(movement.first));
 
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
@@ -1761,7 +1761,7 @@ void TreeSupport::generateBranchAreas(
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
                                 Point2LL from = elem->result_on_layer_;
                                 PolygonUtils::moveInside(part, from, 0);
-                                if (geometry::vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
+                                if (types::geometry::vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
                                 {
                                     polygons_with_correct_center = polygons_with_correct_center.unionPolygons(part);
                                 }
@@ -1819,7 +1819,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                         do_something = true;
                         max_outer_wall_distance = std::max(
                             max_outer_wall_distance,
-                            geometry::vSize(data_pair.first->result_on_layer_ - parent->result_on_layer_) - (config.getRadius(data_pair.first) - config.getRadius(parent)));
+                            types::geometry::vSize(data_pair.first->result_on_layer_ - parent->result_on_layer_) - (config.getRadius(data_pair.first) - config.getRadius(parent)));
                     }
                 }
                 max_outer_wall_distance

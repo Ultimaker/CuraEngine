@@ -6,7 +6,7 @@
 #ifdef ENABLE_PLUGINS
 #include <utility>
 
-#include "utils/Simplify.h" // TODO: Remove once the simplify slot has been removed
+#include "types/geometry/Simplify.h" // TODO: Remove once the simplify slot has been removed
 
 namespace curaengine::plugins::details
 {
@@ -14,7 +14,7 @@ struct simplify_default
 {
     auto operator()(auto&& arg, auto&&... args)
     {
-        const utils::Simplify simplify{ std::forward<decltype(args)>(args)... };
+        const types::geometry::Simplify simplify{ std::forward<decltype(args)>(args)... };
         return simplify.polygon(std::forward<decltype(arg)>(arg));
     }
 };

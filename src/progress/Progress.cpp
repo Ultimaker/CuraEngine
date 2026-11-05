@@ -12,11 +12,12 @@
 
 #include "Application.h" //To get the communication channel to send progress through.
 #include "communication/Communication.h" //To send progress through the communication channel.
-#include "utils/TimeKeeper.h"
+#include "types/TimeKeeper.h"
 
 namespace curaengine::progress
 {
 using namespace types;
+using namespace types::geometry;
 using namespace utils;
 std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;

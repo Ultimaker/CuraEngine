@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "geometry/Point3LL.h"
+#include "types/geometry/Point3LL.h"
 
 namespace curaengine
 {
@@ -18,10 +18,10 @@ Keeps track of which faces connect to it.
 class MeshVertex
 {
 public:
-    geometry::Point3LL p_; //!< location of the vertex
+    types::geometry::Point3LL p_; //!< location of the vertex
     std::vector<uint32_t> connected_faces_; //!< list of the indices of connected faces
 
-    MeshVertex(geometry::Point3LL p)
+    MeshVertex(types::geometry::Point3LL p)
         : p_(p)
     {
         connected_faces_.reserve(8);

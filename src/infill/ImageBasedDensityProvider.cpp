@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #define STBI_FAILURE_USERMSG // enable user friendly bug messages for STB lib
@@ -10,11 +10,12 @@
 #include <spdlog/spdlog.h>
 
 #include "infill/SierpinskiFill.h"
-#include "utils/AABB3D.h"
+#include "types/geometry/AABB3D.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 static constexpr bool diagonal = true;

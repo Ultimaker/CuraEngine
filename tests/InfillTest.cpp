@@ -12,21 +12,21 @@
 #include <gtest/gtest.h>
 
 #include "ReadTestPolygons.h"
-#include "geometry/OpenPolyline.h"
 #include "Slicer.h"
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/OpenPolyline.h"
 
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
 #include <cstdlib>
 
-#include "utils/SVG.h"
+#include "types/SVG.h"
 #endif // TEST_INFILL_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace types;
 using namespace utils;

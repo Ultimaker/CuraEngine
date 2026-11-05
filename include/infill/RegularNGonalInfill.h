@@ -33,14 +33,15 @@ protected:
      * @param line_width The line width at which the infill will be printed.
      * @return The raw parallel lines to be included.
      */
-    geometry::OpenLinesSet
-        generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const override;
+    types::geometry::OpenLinesSet
+        generateParallelLines(const types::coord_t line_distance, const types::geometry::AABB& bounding_box, const types::coord_t z, const types::coord_t line_width)
+            const override;
 
 private:
     struct SegmentsPattern
     {
-        std::array<geometry::Point2LL, 4> segments;
-        utils::coord_t delta_x;
+        std::array<types::geometry::Point2LL, 4> segments;
+        types::coord_t delta_x;
     };
 
     /*!
@@ -58,12 +59,12 @@ private:
      * @param pattern_height The total height of the pattern that will be repeated along the Y axis.
      * @return The raw parallel lines to be included.
      */
-    static geometry::OpenLinesSet generateRegularNGonalLines(
-        const utils::AABB& bounding_box,
+    static types::geometry::OpenLinesSet generateRegularNGonalLines(
+        const types::geometry::AABB& bounding_box,
         const std::array<SegmentsPattern, 2>& patterns,
-        const utils::coord_t delta_y,
-        const utils::coord_t pattern_width,
-        const utils::coord_t pattern_height);
+        const types::coord_t delta_y,
+        const types::coord_t pattern_width,
+        const types::coord_t pattern_height);
 
     /*!
      * Generate the base segments pattern given the base coordinates. @sa generateRegularNGonalLines()
@@ -74,7 +75,7 @@ private:
      * @return The segment pattern to be applied repeatedly to generate the N-gonal shape.
      */
     static std::array<SegmentsPattern, 2>
-        generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const utils::coord_t absolute_delta_x);
+        generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const types::coord_t absolute_delta_x);
 
 private:
     const RegularNGonType type_;

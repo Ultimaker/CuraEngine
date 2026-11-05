@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "types/Coord_t.h"
 #include "types/Ratio.h"
 #include "types/Velocity.h"
-#include "utils/Coord_t.h"
 
 namespace curaengine
 {
@@ -23,8 +23,8 @@ public:
     types::Velocity speed; //!< The speed with which to retract (in mm/s)
     types::Velocity primeSpeed; //!< the speed with which to unretract (in mm/s)
     double prime_volume; //!< the amount of material primed after unretracting (in mm^3)
-    utils::coord_t zHop; //!< the amount with which to lift the head during a retraction-travel
-    utils::coord_t retraction_min_travel_distance; //!< Minimal distance traversed to even consider retracting (in micron)
+    types::coord_t zHop; //!< the amount with which to lift the head during a retraction-travel
+    types::coord_t retraction_min_travel_distance; //!< Minimal distance traversed to even consider retracting (in micron)
     double retraction_extrusion_window; //!< Window of mm extruded filament in which to limit the amount of retractions
     size_t retraction_count_max; //!< The maximum amount of retractions allowed to occur in the RetractionConfig::retraction_extrusion_window
 };

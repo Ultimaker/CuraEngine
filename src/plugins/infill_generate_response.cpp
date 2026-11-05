@@ -4,12 +4,13 @@
 #ifdef ENABLE_PLUGINS
 #include "plugins/infill_generate_response.h"
 
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine::plugins
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 infill_generate_response::native_value_type infill_generate_response::operator()(const infill_generate_response::value_type& message) const
 {

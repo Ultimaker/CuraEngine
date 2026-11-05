@@ -1,10 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "beading_strategy/WideningBeadingStrategy.h"
 
 namespace curaengine::beading_strategy
 {
+using namespace types;
 using namespace utils;
 
 WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategyPtr parent, const coord_t min_input_width, const coord_t min_output_width)

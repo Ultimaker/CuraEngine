@@ -16,6 +16,8 @@
 namespace curaengine
 {
 using namespace progress;
+using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 Scene::Scene(const size_t num_mesh_groups)

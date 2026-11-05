@@ -9,11 +9,11 @@
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
-#include "geometry/Shape.h"
 #include "types/AngleDegrees.h" //For the infill angle.
-#include "utils/PolygonUtils.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/PolygonUtils.h"
+#include "types/geometry/Shape.h"
 #include "utils/math.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 // 1 / sqrt(2)
@@ -23,7 +23,7 @@
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
@@ -248,7 +248,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
     bool inside = collide.inside(centerpoint);
     ClosestPointPolygon border_point = PolygonUtils::moveInside2(collide, centerpoint);
     Point2LL diff = border_point.location_ - location;
-    *distance2 = geometry::vSize2(diff);
+    *distance2 = types::geometry::vSize2(diff);
     if (inside)
     {
         return 1;

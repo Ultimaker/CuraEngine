@@ -22,12 +22,12 @@
 #include "prime_tower/PrimeTowerInterleaved.h"
 #include "prime_tower/PrimeTowerNormal.h"
 #include "types/PrimeTowerMode.h"
-#include "utils/LinearAlg2D.h"
+#include "types/geometry/LinearAlg2D.h"
 
 
 namespace curaengine::prime_tower
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

@@ -5,12 +5,12 @@
 
 #include "FanSpeedLayerTimeSettings.h"
 #include "RetractionConfig.h"
-#include "geometry/Point2LL.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
 #include "path_planning/TimeMaterialEstimates.h"
 #include "types/LayerIndex.h"
 #include "types/Ratio.h"
+#include "types/geometry/Point2LL.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
@@ -70,7 +70,7 @@ public:
         const types::LayerIndex layer_nr,
         const bool is_initial_layer,
         const bool is_raft_layer,
-        const utils::coord_t layer_thickness,
+        const types::coord_t layer_thickness,
         const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
         const RetractionConfig& retraction_config);
 
@@ -146,16 +146,16 @@ public:
      *       move happens to be an extrusion move and the start position is the outermost of the bounding box, it will not be accounted
      *       for and the bounding box will be approximate.
      */
-    utils::AABB calculateExtrusionBoundingBox() const;
+    types::geometry::AABB calculateExtrusionBoundingBox() const;
 
-    utils::coord_t calculateMaxOverhangLength() const;
+    types::coord_t calculateMaxOverhangLength() const;
 
 private:
     types::LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
     bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
     bool is_raft_layer_{ false }; //!< Whether this is a layer which is part of the raft
 
-    utils::coord_t layer_thickness_{ 200 }; //!< The thickness of this layer in Z-direction
+    types::coord_t layer_thickness_{ 200 }; //!< The thickness of this layer in Z-direction
 
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings_{}; //!< The fan speed and layer time settings used to limit this extruder plan
 
@@ -218,7 +218,7 @@ private:
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const geometry::Point3LL& p0, const geometry::Point3LL& p1, const path_planning::GCodePath& path) const;
+    std::pair<double, double> getPointToPointTime(const types::geometry::Point3LL& p0, const types::geometry::Point3LL& p1, const path_planning::GCodePath& path) const;
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
@@ -227,7 +227,7 @@ private:
      * \param starting_position The position the head was in before starting this layer
      * \return the total estimates of this layer
      */
-    path_planning::TimeMaterialEstimates computeNaiveTimeEstimates(geometry::Point2LL starting_position);
+    path_planning::TimeMaterialEstimates computeNaiveTimeEstimates(types::geometry::Point2LL starting_position);
 };
 
 } // namespace curaengine

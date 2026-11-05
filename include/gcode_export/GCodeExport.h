@@ -18,14 +18,14 @@
 #include "ZHopAntiOozing.h"
 #include "gcode_export/DynamicExtruderContext.h"
 #include "gcode_export/GCodePartType.h"
-#include "geometry/Point2LL.h"
 #include "types/Acceleration.h"
 #include "types/EGCodeFlavor.h"
 #include "types/LayerIndex.h"
+#include "types/NoCopy.h"
 #include "types/Temperature.h" //Bed temperature.
 #include "types/Velocity.h"
-#include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
-#include "utils/NoCopy.h"
+#include "types/geometry/AABB3D.h" //To track the used build volume for the Griffin header.
+#include "types/geometry/Point2LL.h"
 #include "utils/string.h"
 
 namespace curaengine
@@ -81,7 +81,7 @@ class GcodeTemplateResolver;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //   Any customizations on GCodes flavors are done in this class.
-class GCodeExport : public utils::NoCopy
+class GCodeExport : public types::NoCopy
 {
 #ifdef BUILD_TESTS
     friend class ::curaengine::GCodeExportTest;
@@ -142,7 +142,7 @@ private:
         double last_e_value_after_wipe_; //!< The current material amount extruded since last wipe
 
         size_t fan_number_; // nozzle print cooling fan number
-        geometry::Point2LL nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
+        types::geometry::Point2LL nozzle_offset_; //!< Cache of setting machine_nozzle_offset_[xy]
         bool machine_firmware_retract_; //!< Cache of setting machine_firmware_retract
 
         std::deque<double> extruded_volume_at_previous_n_retractions_; // in mm^3
@@ -196,8 +196,8 @@ private:
     double max_extrusion_offset_; //!< 0 to turn it off, normally 4
     double extrusion_offset_factor_; //!< default 1
 
-    geometry::Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder
-                                          //!< offset is encoded in the gcode)
+    types::geometry::Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the
+                                                 //!< extruder offset is encoded in the gcode)
     types::Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
     types::Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have
                                                      //!< separate travel acceleration)
@@ -205,7 +205,7 @@ private:
         current_travel_acceleration_; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     types::Velocity current_jerk_; //!< The current jerk in the XY direction (in mm/s^3)
 
-    utils::AABB3D total_bounding_box_; //!< The bounding box of all g-code.
+    types::geometry::AABB3D total_bounding_box_; //!< The bounding box of all g-code.
 
     /*!
      * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
@@ -214,8 +214,8 @@ private:
      *
      * \note After GCodeExport::writeExtrusion(Point, double, double) has been called currentPosition.z coincides with this value
      */
-    utils::coord_t current_layer_z_;
-    utils::coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid
+    types::coord_t current_layer_z_;
+    types::coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid
                                  //!< collision with other layer parts)
     std::optional<ZHopAntiOozing> z_hop_prime_leftover_; //!< The leftover priming from a previous travel move that should be processed while z-hopping down
 
@@ -295,9 +295,9 @@ public:
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
-    geometry::Point2LL getGcodePos(const utils::coord_t x, const utils::coord_t y, const int extruder_train) const;
+    types::geometry::Point2LL getGcodePos(const types::coord_t x, const types::coord_t y, const int extruder_train) const;
 
-    geometry::Point2LL getNozzleOffset(const int extruder_train) const;
+    types::geometry::Point2LL getNozzleOffset(const int extruder_train) const;
 
     void setFlavor(types::EGCodeFlavor flavor);
     types::EGCodeFlavor getFlavor() const;
@@ -313,15 +313,15 @@ public:
      */
     void addExtraPrimeAmount(double extra_prime_volume);
 
-    const geometry::Point3LL& getPosition() const;
+    const types::geometry::Point3LL& getPosition() const;
 
-    geometry::Point2LL getPositionXY() const;
+    types::geometry::Point2LL getPositionXY() const;
 
-    utils::coord_t getPositionZ() const;
+    types::coord_t getPositionZ() const;
 
     size_t getExtruderNr() const;
 
-    void setFilamentDiameter(size_t extruder, const utils::coord_t diameter);
+    void setFilamentDiameter(size_t extruder, const types::coord_t diameter);
 
     double getCurrentExtrudedVolume() const;
 
@@ -392,7 +392,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const geometry::Point2LL& p, const types::Velocity& speed);
+    void writeTravel(const types::geometry::Point2LL& p, const types::Velocity& speed);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -402,7 +402,12 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const geometry::Point2LL& p, const types::Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(
+        const types::geometry::Point2LL& p,
+        const types::Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -412,7 +417,7 @@ public:
      * \param speed movement speed
      *  \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const geometry::Point3LL& p, const types::Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
+    void writeTravel(const types::geometry::Point3LL& p, const types::Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -426,7 +431,12 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const geometry::Point3LL& p, const types::Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(
+        const types::geometry::Point3LL& p,
+        const types::Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        bool update_extrusion_offset = false);
 
     /*!
      * Initialize the extruder trains.
@@ -504,9 +514,9 @@ private:
      * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
     void writeTravel(
-        const utils::coord_t x,
-        const utils::coord_t y,
-        const utils::coord_t z,
+        const types::coord_t x,
+        const types::coord_t y,
+        const types::coord_t z,
         const types::Velocity& speed,
         const std::optional<double> retract_distance = std::nullopt);
 
@@ -525,9 +535,9 @@ private:
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
     void writeExtrusion(
-        const utils::coord_t x,
-        const utils::coord_t y,
-        const utils::coord_t z,
+        const types::coord_t x,
+        const types::coord_t y,
+        const types::coord_t z,
         const types::Velocity& speed,
         const double extrusion_mm3_per_mm,
         const PrintFeatureType& feature,
@@ -545,9 +555,9 @@ private:
      */
     void writeFXYZE(
         const types::Velocity& speed,
-        const utils::coord_t x,
-        const utils::coord_t y,
-        const utils::coord_t z,
+        const types::coord_t x,
+        const types::coord_t y,
+        const types::coord_t z,
         const double e,
         const PrintFeatureType& feature,
         const std::optional<RetractionAmounts>& retraction_amounts = std::nullopt);
@@ -597,10 +607,10 @@ private:
      * \param height The actual height to be reached, relative to the current layer height
      * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move, or nullopt to leave it unchanged
      */
-    void writeZhop(types::Velocity speed = 0.0, const utils::coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
+    void writeZhop(types::Velocity speed = 0.0, const types::coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
 
     static PrintFeatureType sendTravel(
-        const geometry::Point3LL& p,
+        const types::geometry::Point3LL& p,
         const types::Velocity& speed,
         const ExtruderTrainAttributes& extruder_attr,
         const std::optional<RetractionAmounts>& retraction_amounts);
@@ -639,7 +649,7 @@ public:
      *                      will actually be split in two part, one with retraction and one without.
      */
     void writeZhopStart(
-        const utils::coord_t hop_height,
+        const types::coord_t hop_height,
         types::Velocity speed = 0.0,
         std::optional<double> retract_distance = std::nullopt,
         const types::Ratio& retract_ratio = 0.0_r);
@@ -654,7 +664,7 @@ public:
      */
     void writeZhopEnd(
         types::Velocity speed = 0.0,
-        const utils::coord_t height = 0,
+        const types::coord_t height = 0,
         const std::optional<double> prime_distance = std::nullopt,
         const types::Ratio& prime_ratio = 0.0_r);
 
@@ -680,7 +690,7 @@ public:
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
      * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
-    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, utils::coord_t perform_z_hop = 0);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, types::coord_t perform_z_hop = 0);
 
     void writeCode(const std::string& str);
 

@@ -1,15 +1,18 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/MinimumSpanningTree.h"
+#include "types/geometry/MinimumSpanningTree.h"
+
 #include <algorithm>
-#include <gtest/gtest.h>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 bool has(const Point2LL& pt, const std::vector<Point2LL>& list)

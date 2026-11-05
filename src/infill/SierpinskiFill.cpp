@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SierpinskiFill.h"
@@ -10,15 +10,16 @@
 
 #include <spdlog/spdlog.h>
 
-#include "geometry/Polygon.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
-#include "utils/AABB3D.h"
-#include "utils/SVG.h"
+#include "types/SVG.h"
+#include "types/geometry/AABB3D.h"
+#include "types/geometry/Polygon.h"
 
 namespace curaengine::infill
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 static constexpr bool diagonal = true;
@@ -122,9 +123,9 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 {
     Point2LL ac = triangle.straight_corner_ - triangle.a_;
-    double area = 0.5 * INT2MM2(geometry::vSize2(ac));
-    double short_length = .5 * geometry::vSizeMM(ac);
-    double long_length = .5 * geometry::vSizeMM(triangle.b_ - triangle.a_);
+    double area = 0.5 * INT2MM2(types::geometry::vSize2(ac));
+    double short_length = .5 * types::geometry::vSizeMM(ac);
+    double long_length = .5 * types::geometry::vSizeMM(triangle.b_ - triangle.a_);
     triangle.area_ = area;
     triangle.realized_length_ = (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_BC) ? long_length : short_length;
     for (SierpinskiTriangle& child : triangle.children)
@@ -741,10 +742,10 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         {
             from_l = period * 2 - from_l;
         }
-        from_l = from_l * geometry::vSize(e.l - e.r) / period;
+        from_l = from_l * types::geometry::vSize(e.l - e.r) / period;
         from_l = std::max(min_dist_to_side, from_l);
-        from_l = std::min(geometry::vSize(e.l - e.r) - min_dist_to_side, from_l);
-        return e.l + geometry::normal(e.r - e.l, from_l);
+        from_l = std::min(types::geometry::vSize(e.l - e.r) - min_dist_to_side, from_l);
+        return e.l + types::geometry::normal(e.r - e.l, from_l);
     };
 
     SierpinskiTriangle* last_triangle = nullptr;
@@ -760,13 +761,13 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         Cross pattern because the other side is sliding along the straight
         sides. The steeper overhang is then only in the corner, which is deemed
         acceptable since the corners are never too sharp. */
-        const coord_t period = geometry::vSize(triangle.straight_corner_ - triangle.a_);
+        const coord_t period = types::geometry::vSize(triangle.straight_corner_ - triangle.a_);
         ret.push_back(get_edge_crossing_location(period, triangle.getFromEdge()));
 
         last_triangle = &triangle;
     }
     assert(last_triangle);
-    const coord_t period = geometry::vSize(last_triangle->straight_corner_ - last_triangle->a_);
+    const coord_t period = types::geometry::vSize(last_triangle->straight_corner_ - last_triangle->a_);
     ret.push_back(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
     if (pocket_size > 10)
@@ -789,15 +790,16 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
             Point2LL v0 = p0 - p1;
             Point2LL v1 = p2 - p1;
 
-            coord_t prod = std::abs(geometry::dot(v0, v1));
-            bool is_straight_corner = prod < sqrt(geometry::vSize(v0) * geometry::vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
+            coord_t prod = std::abs(types::geometry::dot(v0, v1));
+            bool is_straight_corner
+                = prod < sqrt(types::geometry::vSize(v0) * types::geometry::vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
             if (is_straight_corner)
             {
                 coord_t pocket_rounding = std::min(
-                    std::min(pocket_size_side, geometry::vSize(v0) / 3),
-                    geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
-                pocketed.push_back(p1 + geometry::normal(v0, pocket_rounding));
-                pocketed.push_back(p1 + geometry::normal(v1, pocket_rounding));
+                    std::min(pocket_size_side, types::geometry::vSize(v0) / 3),
+                    types::geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
+                pocketed.push_back(p1 + types::geometry::normal(v0, pocket_rounding));
+                pocketed.push_back(p1 + types::geometry::normal(v1, pocket_rounding));
             }
             else
             {

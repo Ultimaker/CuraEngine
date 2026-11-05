@@ -10,16 +10,16 @@
 #include "Raft.h"
 #include "Slice.h"
 #include "SliceMeshStorage.h"
-#include "geometry/OpenPolyline.h"
 #include "prime_tower/PrimeTower.h"
 #include "types/BuildPlateShape.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/ESurfaceMode.h"
-#include "utils/PolygonUtils.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/PolygonUtils.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace prime_tower;
 using namespace types;
 using namespace utils;

@@ -1,11 +1,11 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "types/ZSeamConfig.h" //The definitions we're implementing.
 
 namespace curaengine::types
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace utils;
 
 ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point2LL pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature)

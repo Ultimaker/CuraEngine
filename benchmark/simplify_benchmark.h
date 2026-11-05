@@ -4,14 +4,14 @@
 #ifndef CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H
 #define CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H
 
-#include "../tests/ReadTestPolygons.h"
-#include "utils/Simplify.h"
-#include "utils/channel.h"
+#include <benchmark/benchmark.h>
+#include <filesystem>
 
 #include <fmt/format.h>
 
-#include <benchmark/benchmark.h>
-#include <filesystem>
+#include "../tests/ReadTestPolygons.h"
+#include "types/geometry/Simplify.h"
+#include "utils/channel.h"
 
 #ifdef ENABLE_PLUGINS
 #include "plugins/Slots.h"
@@ -34,7 +34,7 @@ public:
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_3.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_4.txt").string() };
 
-    std::vector<geometry::Shape> shapes;
+    std::vector<types::geometry::Shape> shapes;
 
     void SetUp(const ::benchmark::State& state)
     {
@@ -48,10 +48,10 @@ public:
 
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
 {
-    utils::Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
+    types::geometry::Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
     for (auto _ : st)
     {
-        geometry::Shape simplified;
+        types::geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
             benchmark::DoNotOptimize(simplified = simplify.polygon(polys));
@@ -66,7 +66,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 {
     for (auto _ : st)
     {
-        geometry::Shape simplified;
+        types::geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
             benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));

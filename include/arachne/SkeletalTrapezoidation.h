@@ -13,13 +13,13 @@
 #include "SkeletalTrapezoidationGraph.h"
 #include "SkeletalTrapezoidationJoint.h"
 #include "beading_strategy/BeadingStrategy.h"
-#include "geometry/MendedShape.h"
 #include "types/Ratio.h"
-#include "utils/ExtrusionJunction.h"
-#include "utils/ExtrusionLine.h"
-#include "utils/PolygonsSegmentIndex.h"
-#include "utils/SectionType.h"
-#include "utils/VoronoiUtils.h"
+#include "types/SectionType.h"
+#include "types/geometry/ExtrusionJunction.h"
+#include "types/geometry/ExtrusionLine.h"
+#include "types/geometry/MendedShape.h"
+#include "types/geometry/PolygonsSegmentIndex.h"
+#include "types/geometry/VoronoiUtils.h"
 
 namespace curaengine::arachne
 {
@@ -45,8 +45,8 @@ deposition modeling" by Kuipers et al.
  */
 class SkeletalTrapezoidation
 {
-    using pos_t = utils::VoronoiUtils::voronoi_data_t;
-    using vd_t = utils::VoronoiUtils::vd_t;
+    using pos_t = types::geometry::VoronoiUtils::voronoi_data_t;
+    using vd_t = types::geometry::VoronoiUtils::vd_t;
     using graph_t = SkeletalTrapezoidationGraph;
     using edge_t = STHalfEdge;
     using node_t = STHalfEdgeNode;
@@ -59,14 +59,14 @@ class SkeletalTrapezoidation
     using ptr_vector_t = std::vector<std::shared_ptr<T>>;
 
     types::AngleRadians transitioning_angle_; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
-    utils::coord_t discretization_step_size_; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
-    utils::coord_t transition_filter_dist_; //!< Filter transition mids (i.e. anchors) closer together than this
-    utils::coord_t allowed_filter_deviation_; //!< The allowed line width deviation induced by filtering
-    utils::coord_t beading_propagation_transition_dist_; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    static constexpr utils::coord_t central_filter_dist_ = 20; //!< Filter areas marked as 'central' smaller than this
-    static constexpr utils::coord_t snap_dist_ = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    types::coord_t discretization_step_size_; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
+    types::coord_t transition_filter_dist_; //!< Filter transition mids (i.e. anchors) closer together than this
+    types::coord_t allowed_filter_deviation_; //!< The allowed line width deviation induced by filtering
+    types::coord_t beading_propagation_transition_dist_; //!< When there are different beadings propagated from below and from above, use this transitioning distance
+    static constexpr types::coord_t central_filter_dist_ = 20; //!< Filter areas marked as 'central' smaller than this
+    static constexpr types::coord_t snap_dist_ = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
     int layer_idx_{};
-    utils::SectionType section_type_;
+    types::SectionType section_type_;
 
     /*!
      * The strategy to use to fill a certain shape with lines.
@@ -79,7 +79,7 @@ class SkeletalTrapezoidation
     const beading_strategy::BeadingStrategy& beading_strategy_;
 
 public:
-    using Segment = utils::PolygonsSegmentIndex;
+    using Segment = types::geometry::PolygonsSegmentIndex;
 
     /*!
      * A skeletal graph through the polygons that we need to fill with beads.
@@ -109,15 +109,15 @@ public:
      * distance.
      */
     SkeletalTrapezoidation(
-        const geometry::MendedShape& polys,
+        const types::geometry::MendedShape& polys,
         const beading_strategy::BeadingStrategy& beading_strategy,
         types::AngleRadians transitioning_angle,
-        utils::coord_t discretization_step_size,
-        utils::coord_t transition_filter_dist,
-        utils::coord_t allowed_filter_deviation,
-        utils::coord_t beading_propagation_transition_dist,
+        types::coord_t discretization_step_size,
+        types::coord_t transition_filter_dist,
+        types::coord_t allowed_filter_deviation,
+        types::coord_t beading_propagation_transition_dist,
         int layer_idx,
-        utils::SectionType section_type);
+        types::SectionType section_type);
 
     /*!
      * Generate the paths that the printer must extrude, to print the outlines
@@ -127,7 +127,7 @@ public:
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    void generateToolpaths(std::vector<utils::VariableWidthLines>& generated_toolpaths, bool filter_outermost_central_edges = false);
+    void generateToolpaths(std::vector<types::geometry::VariableWidthLines>& generated_toolpaths, bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -164,29 +164,29 @@ protected:
      * Another complication arises because the VD uses floating logic, which can result in zero-length segments after rounding to integers.
      * We therefore collapse edges and their whole cells afterwards.
      */
-    void constructFromPolygons(const geometry::Shape& polys);
+    void constructFromPolygons(const types::geometry::Shape& polys);
 
-    node_t& makeNode(vd_t::vertex_type& vd_node, geometry::Point2LL p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
+    node_t& makeNode(vd_t::vertex_type& vd_node, types::geometry::Point2LL p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
      *
      * Binned by inset_idx.
      */
-    std::vector<utils::VariableWidthLines>* p_generated_toolpaths;
+    std::vector<types::geometry::VariableWidthLines>* p_generated_toolpaths;
 
     /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transferEdge(
-        geometry::Point2LL from,
-        geometry::Point2LL to,
+        types::geometry::Point2LL from,
+        types::geometry::Point2LL to,
         vd_t::edge_type& vd_edge,
         edge_t*& prev_edge,
-        geometry::Point2LL& start_source_point,
-        geometry::Point2LL& end_source_point,
-        const std::vector<geometry::Point2LL>& points,
+        types::geometry::Point2LL& start_source_point,
+        types::geometry::Point2LL& end_source_point,
+        const std::vector<types::geometry::Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!
@@ -214,7 +214,7 @@ protected:
      * \return A number of coordinates along the edge where the edge is broken
      * up into discrete pieces.
      */
-    std::vector<geometry::Point2LL> discretize(const vd_t::edge_type& segment, const std::vector<geometry::Point2LL>& points, const std::vector<Segment>& segments);
+    std::vector<types::geometry::Point2LL> discretize(const vd_t::edge_type& segment, const std::vector<types::geometry::Point2LL>& points, const std::vector<Segment>& segments);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal
@@ -242,13 +242,13 @@ protected:
      */
     bool computePointCellRange(
         vd_t::cell_type& cell,
-        geometry::Point2LL& start_source_point,
-        geometry::Point2LL& end_source_point,
+        types::geometry::Point2LL& start_source_point,
+        types::geometry::Point2LL& end_source_point,
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
-        const std::vector<geometry::Point2LL>& points,
+        const std::vector<types::geometry::Point2LL>& points,
         const std::vector<Segment>& segments,
-        const geometry::Shape& polys);
+        const types::geometry::Shape& polys);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal
@@ -276,11 +276,11 @@ protected:
      */
     void computeSegmentCellRange(
         vd_t::cell_type& cell,
-        geometry::Point2LL& start_source_point,
-        geometry::Point2LL& end_source_point,
+        types::geometry::Point2LL& start_source_point,
+        types::geometry::Point2LL& end_source_point,
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
-        const std::vector<geometry::Point2LL>& points,
+        const std::vector<types::geometry::Point2LL>& points,
         const std::vector<Segment>& segments);
 
     /*!
@@ -301,14 +301,14 @@ protected:
      * Only used to get rid of small edges which get marked as central because
      * of rounding errors because the region is so small.
      */
-    void filterCentral(utils::coord_t max_length);
+    void filterCentral(types::coord_t max_length);
 
     /*!
      * Filter central areas connected to starting_edge recursively.
      * \return Whether we should unmark this section marked as central, on the
      * way back out of the recursion.
      */
-    bool filterCentral(edge_t* starting_edge, utils::coord_t traveled_dist, utils::coord_t max_length);
+    bool filterCentral(edge_t* starting_edge, types::coord_t traveled_dist, types::coord_t max_length);
 
     /*!
      * Unmark the outermost edges directly connected to the outline, as not
@@ -340,7 +340,7 @@ protected:
      * Recursive subroutine for \ref filterNoncentralRegions().
      * \return Whether to set the bead count on the way back
      */
-    bool filterNoncentralRegions(edge_t* to_edge, utils::coord_t bead_count, utils::coord_t traveled_dist, utils::coord_t max_dist);
+    bool filterNoncentralRegions(edge_t* to_edge, types::coord_t bead_count, types::coord_t traveled_dist, types::coord_t max_dist);
 
     /*!
      * Generate middle points of all transitions on edges.
@@ -375,7 +375,7 @@ protected:
      * \return Whether the origin transition should be dissolved.
      */
     std::list<TransitionMidRef>
-        dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, utils::coord_t traveled_dist, utils::coord_t max_dist, bool going_up);
+        dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, types::coord_t traveled_dist, types::coord_t max_dist, bool going_up);
 
     /*!
      * Spread a certain bead count over a region in the graph.
@@ -383,7 +383,7 @@ protected:
      * \param from_bead_count All edges with this bead count will be changed.
      * \param to_bead_count The new bead count for those edges.
      */
-    void dissolveBeadCountRegion(edge_t* edge_to_start, utils::coord_t from_bead_count, utils::coord_t to_bead_count);
+    void dissolveBeadCountRegion(edge_t* edge_to_start, types::coord_t from_bead_count, types::coord_t to_bead_count);
 
     /*!
      * Change the bead count if the given edge is at the end of a central
@@ -398,7 +398,7 @@ protected:
      * \param replacing_bead_count The new bead count for this region.
      * \return ``true`` if the bead count of this edge was changed.
      */
-    bool filterEndOfCentralTransition(edge_t* edge_to_start, utils::coord_t traveled_dist, utils::coord_t max_dist, utils::coord_t replacing_bead_count);
+    bool filterEndOfCentralTransition(edge_t* edge_to_start, types::coord_t traveled_dist, types::coord_t max_dist, types::coord_t replacing_bead_count);
 
     /*!
      * Generate the endpoints of all transitions for all edges in the graph.
@@ -432,7 +432,7 @@ protected:
      * \param[out] edge_transition_ends A list of endpoints to add the new
      * endpoints to.
      */
-    void generateTransitionEnds(edge_t& edge, utils::coord_t mid_R, utils::coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
+    void generateTransitionEnds(edge_t& edge, types::coord_t mid_R, types::coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Compute a single endpoint of a transition.
@@ -456,12 +456,12 @@ protected:
      */
     bool generateTransitionEnd(
         edge_t& edge,
-        utils::coord_t start_pos,
-        utils::coord_t end_pos,
-        utils::coord_t transition_half_length,
+        types::coord_t start_pos,
+        types::coord_t end_pos,
+        types::coord_t transition_half_length,
         types::Ratio start_rest,
         types::Ratio end_rest,
-        utils::coord_t transition_lower_bead_count,
+        types::coord_t transition_lower_bead_count,
         ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
@@ -481,7 +481,7 @@ protected:
      * \return ``true`` if this edge is going down, or ``false`` if it's going
      * up.
      */
-    bool isGoingDown(edge_t* outgoing, utils::coord_t traveled_dist, utils::coord_t transition_half_length, utils::coord_t lower_bead_count) const;
+    bool isGoingDown(edge_t* outgoing, types::coord_t traveled_dist, types::coord_t transition_half_length, types::coord_t lower_bead_count) const;
 
     /*!
      * Determines whether this edge marks the end of the central region.
@@ -570,7 +570,7 @@ protected:
      * beads.
      * \return The beading at the interpolated location.
      */
-    Beading interpolate(const Beading& left, types::Ratio ratio_left_to_whole, const Beading& right, utils::coord_t switching_radius) const;
+    Beading interpolate(const Beading& left, types::Ratio ratio_left_to_whole, const Beading& right, types::coord_t switching_radius) const;
 
     /*!
      * Subroutine of \ref interpolate(const Beading&, Ratio, const Beading&, coord_t)
@@ -605,13 +605,13 @@ protected:
      * \return A beading for the node, or ``nullptr`` if there is no node nearby
      * with a beading.
      */
-    std::shared_ptr<BeadingPropagation> getNearestBeading(node_t* node, utils::coord_t max_dist);
+    std::shared_ptr<BeadingPropagation> getNearestBeading(node_t* node, types::coord_t max_dist);
 
     /*!
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<utils::LineJunctions>& edge_junctions);
+    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<types::geometry::LineJunctions>& edge_junctions);
 
     /*!
      * Add a new toolpath segment, defined between two extrusion-juntions.
@@ -623,12 +623,18 @@ protected:
      * \param from_is_3way Whether the \p from junction is a splitting junction where two normal wall lines and a gap filler line come together.
      * \param to_is_3way Whether the \p to junction is a splitting junction where two normal wall lines and a gap filler line come together.
      */
-    void addToolpathSegment(const utils::ExtrusionJunction& from, const utils::ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way);
+    void addToolpathSegment(
+        const types::geometry::ExtrusionJunction& from,
+        const types::geometry::ExtrusionJunction& to,
+        bool is_odd,
+        bool force_new_path,
+        bool from_is_3way,
+        bool to_is_3way);
 
     /*!
      * connect junctions in each quad
      */
-    void connectJunctions(ptr_vector_t<utils::LineJunctions>& edge_junctions);
+    void connectJunctions(ptr_vector_t<types::geometry::LineJunctions>& edge_junctions);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead

@@ -6,9 +6,9 @@
 #include <cstddef>
 
 #include "RetractionConfig.h"
+#include "types/Coord_t.h"
 #include "types/Duration.h"
 #include "types/Velocity.h"
-#include "utils/Coord_t.h"
 
 namespace curaengine
 {
@@ -21,12 +21,12 @@ struct WipeScriptConfig
     types::Duration pause; // pause after the unretract, in seconds
 
     bool hop_enable; // whenever a retraction is done, the build plate is lowered to create clearance between the nozzle and the print
-    utils::coord_t hop_amount; // height difference when performing a Z Hop
+    types::coord_t hop_amount; // height difference when performing a Z Hop
     types::Velocity hop_speed;
 
-    utils::coord_t brush_pos_x; // X coordinate - location where wipe script will start
+    types::coord_t brush_pos_x; // X coordinate - location where wipe script will start
     size_t repeat_count; // number of times to move the nozzle across the brush
-    utils::coord_t move_distance; // distance to move the head back and forth across the brush
+    types::coord_t move_distance; // distance to move the head back and forth across the brush
     types::Velocity move_speed;
     double max_extrusion_mm3; // maximum material that can be extruded before another nozzle wipe is initiated (in mm^3)
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers

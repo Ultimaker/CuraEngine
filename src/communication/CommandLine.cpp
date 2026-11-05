@@ -30,7 +30,7 @@
 #include "Mesh.h"
 #include "MeshGroup.h"
 #include "Slice.h"
-#include "geometry/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
+#include "types/geometry/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
 
@@ -39,7 +39,7 @@ namespace fs = std::filesystem;
 
 namespace curaengine::communication
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

@@ -1,12 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/UnionFind.h"
+#include "types/UnionFind.h"
+
 #include <gtest/gtest.h>
 
 namespace curaengine
 {
-using namespace utils;
+using namespace types;
 
 /*
  * Fixture that contains an empty, pre-constructed union-find data structure of

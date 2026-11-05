@@ -14,15 +14,15 @@
 #include "Slice.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "geometry/PointMatrix.h"
 #include "types/LayerIndex.h"
-#include "utils/DilationKernel.h"
-#include "utils/PolygonUtils.h"
-#include "utils/VoxelUtils.h"
+#include "types/geometry/DilationKernel.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/PolygonUtils.h"
+#include "types/geometry/VoxelUtils.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 

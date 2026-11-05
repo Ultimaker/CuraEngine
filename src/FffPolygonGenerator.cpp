@@ -61,17 +61,17 @@
 #include "types/AngleRadians.h"
 #include "types/LayerIndex.h"
 #include "utils/algorithm.h"
-#include "utils/ThreadPool.h"
-#include "utils/TimeKeeper.h"
+#include "types/ThreadPool.h"
+#include "types/TimeKeeper.h"
 #include "utils/math.h"
 #include "prime_tower/PrimeTower.h"
-#include "geometry/OpenPolyline.h"
-#include "utils/Simplify.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Simplify.h"
 // clang-format on
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
 using namespace infill;
 using namespace progress;
 using namespace types;
@@ -1176,21 +1176,21 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 
                         // 'a' is the (next) new point between p0 and p1
                         const Point2LL p0p1 = p1.p_ - p0->p_;
-                        const int64_t p0p1_size = geometry::vSize(p0p1);
+                        const int64_t p0p1_size = types::geometry::vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
                             const Point2LL p = p1.p_ - (p0p1 / 2);
-                            const double width = (p1.w_ * geometry::vSize(p1.p_ - p) + p0->w_ * geometry::vSize(p0->p_ - p)) / p0p1_size;
+                            const double width = (p1.w_ * types::geometry::vSize(p1.p_ - p) + p0->w_ * types::geometry::vSize(p0->p_ - p)) / p0p1_size;
                             result.emplace_back(p, width, p1.perimeter_index_);
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
                             const int r = rand() % (fuzziness * 2) - fuzziness;
-                            const Point2LL perp_to_p0p1 = geometry::turn90CCW(p0p1);
-                            const Point2LL fuzz = geometry::normal(perp_to_p0p1, r);
-                            const Point2LL pa = p0->p_ + geometry::normal(p0p1, p0pa_dist);
-                            const double width = (p1.w_ * geometry::vSize(p1.p_ - pa) + p0->w_ * geometry::vSize(p0->p_ - pa)) / p0p1_size;
+                            const Point2LL perp_to_p0p1 = types::geometry::turn90CCW(p0p1);
+                            const Point2LL fuzz = types::geometry::normal(perp_to_p0p1, r);
+                            const Point2LL pa = p0->p_ + types::geometry::normal(p0p1, p0pa_dist);
+                            const double width = (p1.w_ * types::geometry::vSize(p1.p_ - pa) + p0->w_ * types::geometry::vSize(p0->p_ - pa)) / p0p1_size;
                             result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
                         }
                         // p0pa_dist > p0p1_size now because we broke out of the for-loop

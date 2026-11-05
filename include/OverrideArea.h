@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "PrintSegmentAttribute.h"
-#include "geometry/Shape.h"
 #include "types/Ratio.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine
 {
@@ -19,7 +19,7 @@ struct GCodePathConfig;
 /*! Represents an area where the extrusion line should be printed with specific settings */
 struct OverrideArea
 {
-    geometry::Shape area; // The area where the extrusion lines are to be printed with specific settings
+    types::geometry::Shape area; // The area where the extrusion lines are to be printed with specific settings
     PrintSegmentAttributes print_attributes; // Extra print attributes to be set for extrusion segments that are printed inside the area
     const GCodePathConfig* config{ nullptr }; // Configuration to be used when printing extrusion segments in this area, or nullptr
     types::Ratio speed_factor{ 1.0_r }; // Extra speed ratio to be applied when printing extrusion segments in this area, or 1.0 to have no effect

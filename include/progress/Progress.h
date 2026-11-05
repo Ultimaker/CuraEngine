@@ -7,7 +7,7 @@
 #include <optional>
 #include <string_view>
 
-#include "utils/TimeKeeper.h"
+#include "types/TimeKeeper.h"
 
 namespace curaengine::types
 {
@@ -86,7 +86,7 @@ public:
      * \param stage The current stage
      * \param timeKeeper The stapwatch keeping track of the timings for each stage (optional)
      */
-    static void messageProgressStage(Stage stage, utils::TimeKeeper* timeKeeper);
+    static void messageProgressStage(Stage stage, types::TimeKeeper* timeKeeper);
 
     /*!
      * Message the layer progress over the command socket and into logging output.
@@ -100,7 +100,7 @@ public:
     static void messageProgressLayer(
         const types::LayerIndex layer_nr,
         const size_t total_layers,
-        const utils::TimeKeeper& time_keeper,
+        const types::TimeKeeper& time_keeper,
         const std::chrono::milliseconds skip_threshold = std::chrono::milliseconds{ 100 });
 };
 

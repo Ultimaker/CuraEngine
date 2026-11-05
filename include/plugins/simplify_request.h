@@ -5,15 +5,15 @@
 
 #ifdef ENABLE_PLUGINS
 #include "cura/plugins/slots/simplify/v0/modify.pb.h"
-#include "geometry/Shape.h"
 #include "plugins/details/converter.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine::plugins
 {
-struct simplify_request : public details::converter<simplify_request, ::cura::plugins::slots::simplify::v0::modify::CallRequest, geometry::Shape>
+struct simplify_request : public details::converter<simplify_request, ::cura::plugins::slots::simplify::v0::modify::CallRequest, types::geometry::Shape>
 {
     value_type
-        operator()(const native_value_type& polygons, const utils::coord_t max_resolution, const utils::coord_t max_deviation, const utils::coord_t max_area_deviation) const;
+        operator()(const native_value_type& polygons, const types::coord_t max_resolution, const types::coord_t max_deviation, const types::coord_t max_area_deviation) const;
 };
 } // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

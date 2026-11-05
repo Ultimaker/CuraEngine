@@ -7,12 +7,13 @@
 
 #include <spdlog/spdlog.h>
 
-#include "geometry/Matrix4x3D.h"
-#include "geometry/Point3D.h"
+#include "types/geometry/Matrix4x3D.h"
+#include "types/geometry/Point3D.h"
 
 namespace curaengine
 {
-using namespace geometry;
+using namespace types::geometry;
+using namespace types;
 using namespace utils;
 
 const int vertex_meld_distance = MM2INT(0.03);
