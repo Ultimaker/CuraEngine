@@ -749,13 +749,13 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     {
         for (const OpenPolyline& polyline : open_polylines)
         {
-            polygons_.push_back(Polygon(polyline.getPoints(), false), CheckNonEmptyParam::OnlyIfNotEmpty);
+            polygons_.push_back(Polygon(polyline.getPoints(), false), LinesSet<Polygon>::CheckNonEmptyParam::OnlyIfNotEmpty);
         }
     }
 
     for (const OpenPolyline& polyline : open_polylines)
     {
-        open_polylines_.push_back(std::move(polyline), CheckNonEmptyParam::OnlyIfNotEmpty);
+        open_polylines_.push_back(std::move(polyline), LinesSet<OpenPolyline>::CheckNonEmptyParam::OnlyIfNotEmpty);
     }
 
     // Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.

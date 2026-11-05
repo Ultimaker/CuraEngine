@@ -310,8 +310,8 @@ template void LinesSet<OpenPolyline>::applyMatrix(const Point3Matrix& matrix);
 template void LinesSet<OpenPolyline>::removeDegenerateVerts();
 template void LinesSet<OpenPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<OpenPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, CheckNonEmptyParam checkNonEmpty);
-template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, LinesSet<OpenPolyline>::CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, LinesSet<OpenPolyline>::CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<OpenPolyline>::push_back(LinesSet<OpenPolyline>&& lines_set);
 
 template size_t LinesSet<ClosedPolyline>::pointCount() const;
@@ -325,8 +325,8 @@ template void LinesSet<ClosedPolyline>::applyMatrix(const Point3Matrix& matrix);
 template void LinesSet<ClosedPolyline>::removeDegenerateVerts();
 template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void LinesSet<ClosedPolyline>::push_back(const ClosedPolyline& line, CheckNonEmptyParam checkNonEmpty);
-template void LinesSet<ClosedPolyline>::push_back(ClosedPolyline&& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<ClosedPolyline>::push_back(const ClosedPolyline& line, LinesSet<ClosedPolyline>::CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<ClosedPolyline>::push_back(ClosedPolyline&& line, LinesSet<ClosedPolyline>::CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<ClosedPolyline>::push_back(LinesSet<Polygon>&& lines_set);
 
 template size_t LinesSet<Polygon>::pointCount() const;
@@ -340,8 +340,8 @@ template void LinesSet<Polygon>::applyMatrix(const Point3Matrix& matrix);
 template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<Polygon>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void LinesSet<Polygon>::push_back(const Polygon& line, CheckNonEmptyParam checkNonEmpty);
-template void LinesSet<Polygon>::push_back(Polygon&& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<Polygon>::push_back(const Polygon& line, LinesSet<Polygon>::CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<Polygon>::push_back(Polygon&& line, LinesSet<Polygon>::CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(LinesSet<Polygon>&& lines_set);
 
 } // namespace curaengine::types::geometry

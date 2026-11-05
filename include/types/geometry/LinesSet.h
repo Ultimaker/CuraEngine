@@ -7,7 +7,6 @@
 
 #include <range/v3/view/drop.hpp>
 
-#include "types/geometry/CheckNonEmptyParam.h"
 #include "types/geometry/Point2LL.h"
 
 namespace curaengine::types::geometry
@@ -29,6 +28,13 @@ private:
     std::vector<LineType> lines_;
 
 public:
+    enum class CheckNonEmptyParam
+    {
+        OnlyIfValid,
+        OnlyIfNotEmpty,
+        EvenIfEmpty
+    };
+
     // Required for some std calls as a container
     using value_type = LineType;
     using iterator = typename std::vector<LineType>::iterator;

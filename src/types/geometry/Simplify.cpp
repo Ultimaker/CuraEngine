@@ -38,7 +38,7 @@ Shape Simplify::polygon(const Shape& polygons) const
     Shape result;
     for (size_t i = 0; i < polygons.size(); ++i)
     {
-        result.push_back(polygon(polygons[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
+        result.push_back(polygon(polygons[i]), Shape::CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
@@ -61,7 +61,7 @@ LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
     LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
-        result.push_back(polyline(polylines[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
+        result.push_back(polyline(polylines[i]), LinesSet<LineType>::CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
