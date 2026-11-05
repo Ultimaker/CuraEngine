@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 
 #include <cassert>
 #include <chrono>
@@ -27,9 +27,9 @@
 #include "WipeScriptConfig.h"
 #include "ZHopAntiOozing.h"
 #include "communication/Communication.h"
-#include "gcode_export/FixedGCodePart.h"
-#include "gcode_export/GcodeTemplateResolver.h"
-#include "gcode_export/ResolvedGCodePart.h"
+#include "gcode/FixedGCodePart.h"
+#include "gcode/GcodeTemplateResolver.h"
+#include "gcode/ResolvedGCodePart.h"
 #include "plugins/Slots.h"
 #include "types/Acceleration.h"
 #include "types/CoolDuringExtruderSwitch.h"
@@ -44,7 +44,7 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 using namespace communication;
 using namespace types::geometry;
@@ -2243,4 +2243,4 @@ void GCodeExport::setSliceUUID(const std::string& slice_uuid)
     slice_uuid_ = slice_uuid;
 }
 
-} // namespace curaengine::gcode_export
+} // namespace curaengine::gcode

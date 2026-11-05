@@ -57,7 +57,7 @@ namespace curaengine
 {
 using namespace arachne;
 using namespace beading_strategy;
-using namespace gcode_export;
+using namespace gcode;
 using namespace types::geometry;
 using namespace path_planning;
 using namespace types;

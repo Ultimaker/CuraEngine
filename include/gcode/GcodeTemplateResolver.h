@@ -9,7 +9,7 @@
 
 #include <boost/regex.hpp>
 
-#include "gcode_export/DynamicExtruderContext.h"
+#include "gcode/DynamicExtruderContext.h"
 
 namespace CuraFormulaeEngine
 {
@@ -28,7 +28,7 @@ class LocalEnvironment;
 } // namespace CuraFormulaeEngine
 
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 
 /*!
@@ -116,4 +116,4 @@ private:
     std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };
 
-} // namespace curaengine::gcode_export
+} // namespace curaengine::gcode

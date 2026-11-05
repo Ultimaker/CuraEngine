@@ -6,15 +6,15 @@
 #include <memory>
 #include <unordered_map>
 
-#include "gcode_export/DynamicExtruderContext.h"
-#include "gcode_export/GCodePart.h"
+#include "gcode/DynamicExtruderContext.h"
+#include "gcode/GCodePart.h"
 
 namespace CuraFormulaeEngine::eval
 {
 struct Value;
 }
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 
 class GcodeTemplateResolver;
@@ -46,4 +46,4 @@ private:
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_settings_;
 };
 
-} // namespace curaengine::gcode_export
+} // namespace curaengine::gcode

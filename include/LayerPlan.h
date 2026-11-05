@@ -11,7 +11,7 @@
 #include "Raft.h"
 #include "SliceLayerPart.h"
 #include "SpaceFillType.h"
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
 #include "types/Acceleration.h"
@@ -890,7 +890,7 @@ public:
      *
      * \param gcode The gcode to write the planned paths to
      */
-    void writeGCode(gcode_export::GCodeExport& gcode);
+    void writeGCode(gcode::GCodeExport& gcode);
 
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.
@@ -1070,7 +1070,7 @@ private:
      *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
      */
     void writeTravelRelativeZ(
-        gcode_export::GCodeExport& gcode,
+        gcode::GCodeExport& gcode,
         const types::geometry::Point3LL& position,
         const types::Velocity& speed,
         const types::coord_t path_z_offset,
@@ -1087,7 +1087,7 @@ private:
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
     void writeExtrusionRelativeZ(
-        gcode_export::GCodeExport& gcode,
+        gcode::GCodeExport& gcode,
         const types::geometry::Point3LL& position,
         const types::Velocity& speed,
         const types::coord_t path_z_offset,
@@ -1258,7 +1258,7 @@ private:
      * \return Whether any GCode has been written for the path.
      */
     bool writePathWithCoasting(
-        gcode_export::GCodeExport& gcode,
+        gcode::GCodeExport& gcode,
         const size_t extruder_plan_idx,
         const size_t path_idx,
         const std::function<void(const double, const int64_t)> insertTempOnTime,
@@ -1327,7 +1327,7 @@ private:
      * @return The computed path durations
      */
     static TravelDurations
-        computeTravelDurations(const gcode_export::GCodeExport& gcode, const ExtruderTrain& extruder, const path_planning::GCodePath& path, const types::coord_t z_hop_height);
+        computeTravelDurations(const gcode::GCodeExport& gcode, const ExtruderTrain& extruder, const path_planning::GCodePath& path, const types::coord_t z_hop_height);
 
     /*!
      * Compute the anti-ooze (retraction and priming) amounts to be processed during stationary/Z-hop/travel steps
@@ -1340,7 +1340,7 @@ private:
      * @param priming_amounts The priming amounts to be set
      */
     static void computeAntiOozeAmounts(
-        const gcode_export::GCodeExport& gcode,
+        const gcode::GCodeExport& gcode,
         const ExtruderTrain& extruder,
         const path_planning::GCodePath& path,
         const types::coord_t z_hop_height,
@@ -1357,7 +1357,7 @@ private:
      * @param reversed Indicates if we should process the path forwards (retraction at the beginning) or backwards (prime at the end)
      */
     static void computeAntiOozeTravelSplit(
-        const gcode_export::GCodeExport& gcode,
+        const gcode::GCodeExport& gcode,
         const path_planning::GCodePath& path,
         const types::Velocity& speed,
         const double amount_during_travel,
@@ -1378,7 +1378,7 @@ private:
      */
     void writeTravelSegment(
         TravelRetractionState& travel_retraction_state,
-        gcode_export::GCodeExport& gcode,
+        gcode::GCodeExport& gcode,
         const path_planning::GCodePath& path,
         const std::optional<TravelAntiOozing>& retraction_amounts,
         const std::optional<TravelAntiOozing>& priming_amounts,

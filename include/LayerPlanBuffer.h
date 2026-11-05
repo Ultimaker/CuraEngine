@@ -11,7 +11,7 @@
 #include "Settings.h"
 #include "types/Duration.h"
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 
 class GCodeExport;
@@ -48,7 +48,7 @@ class LayerPlanBuffer
 {
     friend class LayerPlan;
 
-    gcode_export::GCodeExport& gcode_;
+    gcode::GCodeExport& gcode_;
 
     Preheat preheat_config_; //!< the nozzle and material temperature settings for each extruder train.
 
@@ -74,7 +74,7 @@ class LayerPlanBuffer
     std::condition_variable buffer_condition_variable_;
 
 public:
-    LayerPlanBuffer(gcode_export::GCodeExport& gcode)
+    LayerPlanBuffer(gcode::GCodeExport& gcode)
         : gcode_(gcode)
         , extruder_used_in_meshgroup_(MAX_EXTRUDERS, false)
     {
@@ -89,7 +89,7 @@ public:
      * \param layer_plan The layer to handle
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
-    void handle(LayerPlan& layer_plan, gcode_export::GCodeExport& gcode);
+    void handle(LayerPlan& layer_plan, gcode::GCodeExport& gcode);
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.

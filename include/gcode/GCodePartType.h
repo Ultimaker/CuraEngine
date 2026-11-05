@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 
 enum class GCodePartType
@@ -14,4 +14,4 @@ enum class GCodePartType
 
 };
 
-} // namespace curaengine::gcode_export
+} // namespace curaengine::gcode

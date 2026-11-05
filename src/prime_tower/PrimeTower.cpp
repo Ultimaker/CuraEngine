@@ -17,7 +17,7 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SupportLayer.h"
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 #include "infill/Infill.h"
 #include "prime_tower/PrimeTowerInterleaved.h"
 #include "prime_tower/PrimeTowerNormal.h"

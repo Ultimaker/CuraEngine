@@ -6,7 +6,7 @@
 #include <compare>
 #include <cstddef>
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 class GCodeExport;
 }
@@ -41,7 +41,7 @@ struct NozzleTempInsert
      * Write the temperature command at the current position in the gcode.
      * \param gcode The actual gcode writer
      */
-    void write(gcode_export::GCodeExport& gcode);
+    void write(gcode::GCodeExport& gcode);
 };
 
 } // namespace curaengine::path_planning

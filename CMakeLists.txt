@@ -131,10 +131,10 @@ set(engine_SRCS # Except main.cpp.
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
-        src/gcode_export/GCodeExport.cpp
-        src/gcode_export/FixedGCodePart.cpp
-        src/gcode_export/ResolvedGCodePart.cpp
-        src/gcode_export/GcodeTemplateResolver.cpp
+        src/gcode/GCodeExport.cpp
+        src/gcode/FixedGCodePart.cpp
+        src/gcode/ResolvedGCodePart.cpp
+        src/gcode/GcodeTemplateResolver.cpp
 
         src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp

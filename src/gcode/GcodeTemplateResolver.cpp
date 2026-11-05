@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcode_export/GcodeTemplateResolver.h"
+#include "gcode/GcodeTemplateResolver.h"
 
 #include <cura-formulae-engine/parser/parser.h>
 
@@ -15,7 +15,7 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 using namespace types;
 
@@ -315,4 +315,4 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     return output;
 }
 
-} // namespace curaengine::gcode_export
+} // namespace curaengine::gcode

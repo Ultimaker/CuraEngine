@@ -13,13 +13,13 @@
 #include "Slice.h"
 #include "SliceMeshStorage.h"
 #include "communication/Communication.h"
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"
 
 namespace curaengine
 {
-using namespace gcode_export;
+using namespace gcode;
 using namespace types::geometry;
 using namespace path_planning;
 using namespace types;

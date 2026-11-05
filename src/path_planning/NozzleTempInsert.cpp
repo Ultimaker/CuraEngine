@@ -3,11 +3,11 @@
 
 #include "path_planning/NozzleTempInsert.h"
 
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 
 namespace curaengine::path_planning
 {
-using namespace gcode_export;
+using namespace gcode;
 
 void NozzleTempInsert::write(GCodeExport& gcode)
 {

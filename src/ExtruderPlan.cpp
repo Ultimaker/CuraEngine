@@ -7,11 +7,11 @@
 
 #include "FanSpeedLayerTimeSettings.h"
 #include "SliceMeshStorage.h"
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 
 namespace curaengine
 {
-using namespace gcode_export;
+using namespace gcode;
 using namespace types::geometry;
 using namespace path_planning;
 using namespace types;

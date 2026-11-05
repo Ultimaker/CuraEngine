@@ -16,8 +16,8 @@
 #include "Settings.h"
 #include "TimeEstimateCalculator.h"
 #include "ZHopAntiOozing.h"
-#include "gcode_export/DynamicExtruderContext.h"
-#include "gcode_export/GCodePartType.h"
+#include "gcode/DynamicExtruderContext.h"
+#include "gcode/GCodePartType.h"
 #include "types/Acceleration.h"
 #include "types/EGCodeFlavor.h"
 #include "types/LayerIndex.h"
@@ -70,7 +70,7 @@ class GCodeExportTest_insertWipeScriptHopEnable_Test;
 #endif
 } // namespace curaengine
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 using types::operator""_r;
 
@@ -844,4 +844,4 @@ public:
     void sendFinalGCode();
 };
 
-} // namespace curaengine::gcode_export
+} // namespace curaengine::gcode

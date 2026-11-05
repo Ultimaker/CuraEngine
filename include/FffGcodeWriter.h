@@ -12,7 +12,7 @@
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
 #include "PrintInformation.h"
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 #include "types/EFillMethod.h"
 #include "types/LayerVector.h"
 #include "types/NoCopy.h"
@@ -69,7 +69,7 @@ private:
      *
      * It holds information such as the last written position etc.
      */
-    gcode_export::GCodeExport gcode;
+    gcode::GCodeExport gcode;
 
     //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
     types::LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;

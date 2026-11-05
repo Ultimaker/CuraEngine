@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcode_export/GCodeExport.h"
+#include "gcode/GCodeExport.h"
 
 #include <gtest/gtest.h>
 
@@ -10,14 +10,14 @@
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "arcus/MockCommunication.h"
-#include "gcode_export/GCodePart.h"
+#include "gcode/GCodePart.h"
 #include "types/Coord_t.h"
 #include "types/Date.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
-using namespace gcode_export;
+using namespace gcode;
 using namespace types::geometry;
 using namespace types;
 using namespace utils;

@@ -20,7 +20,7 @@
 #include <optional>
 #include <vector>
 
-namespace curaengine::gcode_export
+namespace curaengine::gcode
 {
 class GCodeExport;
 }
@@ -86,7 +86,7 @@ public:
      *        than the current path_idx are considered overdue and will be fired unconditionally. Inserts whose path_idx
      *        equals the current path_idx are fired only once cumulative_path_time reaches their time_after_path_start.
      */
-    void handleInserts(const size_t path_idx, gcode_export::GCodeExport& gcode, const double cumulative_path_time);
+    void handleInserts(const size_t path_idx, gcode::GCodeExport& gcode, const double cumulative_path_time);
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -97,7 +97,7 @@ public:
      *
      * \param gcode The gcode exporter to which to write the temperature command.
      */
-    void handleAllRemainingInserts(gcode_export::GCodeExport& gcode);
+    void handleAllRemainingInserts(gcode::GCodeExport& gcode);
 
     /*!
      * Applying fan speed changes for minimal layer times.
