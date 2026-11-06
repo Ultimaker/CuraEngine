@@ -25,6 +25,8 @@ class Settings;
 class TimeEstimateCalculator
 {
 public:
+    static constexpr double MINIMUM_PLANNER_SPEED = 0.05; // mm/sec
+
     constexpr static size_t NUM_AXIS = 4;
     constexpr static size_t X_AXIS = 0;
     constexpr static size_t Y_AXIS = 1;

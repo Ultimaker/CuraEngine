@@ -48,7 +48,7 @@ public:
 
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
 {
-    types::geometry::Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
+    types::geometry::Simplify simplify(types::MM2INT(0.25), types::MM2INT(0.025), 50000);
     for (auto _ : st)
     {
         types::geometry::Shape simplified;
@@ -69,7 +69,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
         types::geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, types::MM2INT(0.25), types::MM2INT(0.025), 50000));
         }
     }
 }

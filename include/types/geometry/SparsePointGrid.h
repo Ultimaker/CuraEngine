@@ -59,17 +59,14 @@ protected:
 };
 
 
-#define SGI_TEMPLATE template<class ElemT, class Locator>
-#define SGI_THIS SparsePointGrid<ElemT, Locator>
-
-SGI_TEMPLATE
-SGI_THIS::SparsePointGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
+template<class ElemT, class Locator>
+SparsePointGrid<ElemT, Locator>::SparsePointGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
     : SparseGrid<ElemT>(cell_size, elem_reserve, max_load_factor)
 {
 }
 
-SGI_TEMPLATE
-void SGI_THIS::insert(const Elem& elem)
+template<class ElemT, class Locator>
+void SparsePointGrid<ElemT, Locator>::insert(const Elem& elem)
 {
     types::geometry::Point2LL loc = m_locator(elem);
     GridPoint grid_loc = SparseGrid<ElemT>::toGridPoint(loc);
@@ -77,8 +74,8 @@ void SGI_THIS::insert(const Elem& elem)
     SparseGrid<ElemT>::grid_.emplace(grid_loc, elem);
 }
 
-SGI_TEMPLATE
-const ElemT* SGI_THIS::getAnyNearby(const types::geometry::Point2LL& query_pt, coord_t radius)
+template<class ElemT, class Locator>
+const ElemT* SparsePointGrid<ElemT, Locator>::getAnyNearby(const types::geometry::Point2LL& query_pt, coord_t radius)
 {
     const ElemT* ret = nullptr;
     const std::function<bool(const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)
@@ -95,8 +92,5 @@ const ElemT* SGI_THIS::getAnyNearby(const types::geometry::Point2LL& query_pt, c
     return ret;
 }
 
-
-#undef SGI_TEMPLATE
-#undef SGI_THIS
 
 } // namespace curaengine::types::geometry

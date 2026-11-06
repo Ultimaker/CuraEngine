@@ -57,17 +57,14 @@ protected:
 };
 
 
-#define SGI_TEMPLATE template<class ElemT, class Locator>
-#define SGI_THIS SparseLineGrid<ElemT, Locator>
-
-SGI_TEMPLATE
-SGI_THIS::SparseLineGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
+template<class ElemT, class Locator>
+SparseLineGrid<ElemT, Locator>::SparseLineGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
     : SparseGrid<ElemT>(cell_size, elem_reserve, max_load_factor)
 {
 }
 
-SGI_TEMPLATE
-void SGI_THIS::insert(const Elem& elem)
+template<class ElemT, class Locator>
+void SparseLineGrid<ElemT, Locator>::insert(const Elem& elem)
 {
     const std::pair<types::geometry::Point2LL, types::geometry::Point2LL> line = m_locator(elem);
     // below is a workaround for the fact that lambda functions cannot access private or protected members
@@ -84,8 +81,8 @@ void SGI_THIS::insert(const Elem& elem)
     SparseGrid<ElemT>::processLineCells(line, process_cell_func);
 }
 
-SGI_TEMPLATE
-void SGI_THIS::debugHTML(std::string filename)
+template<class ElemT, class Locator>
+void SparseLineGrid<ElemT, Locator>::debugHTML(std::string filename)
 {
     AABB aabb;
     for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::grid_)
@@ -123,8 +120,8 @@ void SGI_THIS::debugHTML(std::string filename)
     }
 }
 
-SGI_TEMPLATE
-void SGI_THIS::debugTest()
+template<class ElemT, class Locator>
+void SparseLineGrid<ElemT, Locator>::debugTest()
 {
     struct PairLocator
     {
@@ -179,8 +176,5 @@ void SGI_THIS::debugTest()
     line_grid.debugHTML("line_grid.html");
 }
 
-
-#undef SGI_TEMPLATE
-#undef SGI_THIS
 
 } // namespace curaengine::types::geometry

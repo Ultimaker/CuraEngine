@@ -7,11 +7,6 @@
 #define CURA_ENGINE_VERSION "main"
 #endif
 
-#define MAX_EXTRUDERS 16
-
-// Maximum number of infill layers that can be combined into a single infill extrusion area.
-#define MAX_INFILL_COMBINE 8
-
 #include <map>
 #include <sstream>
 #include <unordered_map>
@@ -19,6 +14,11 @@
 
 namespace curaengine
 {
+
+inline constexpr int MAX_EXTRUDERS = 16;
+
+// Maximum number of infill layers that can be combined into a single infill extrusion area.
+inline constexpr int MAX_INFILL_COMBINE = 8;
 
 /*!
  * \brief Container for a set of settings.

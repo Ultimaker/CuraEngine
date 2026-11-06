@@ -26,14 +26,14 @@
 #include "types/geometry/Simplify.h"
 #include "utils/math.h"
 
-#define MIN_AREA_SIZE (0.4 * 0.4)
-
 namespace curaengine
 {
 using namespace types::geometry;
 using namespace infill;
 using namespace types;
 using namespace utils;
+
+constexpr double MIN_AREA_SIZE = 0.4 * 0.4;
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {

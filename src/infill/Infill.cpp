@@ -34,6 +34,7 @@
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/PolygonConnector.h"
 #include "types/geometry/Simplify.h"
+#include "utils/math.h"
 
 namespace curaengine::infill
 {

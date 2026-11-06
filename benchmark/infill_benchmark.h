@@ -43,23 +43,23 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(100), 0);
-        square_shape.back().emplace_back(MM2INT(100), MM2INT(100));
-        square_shape.back().emplace_back(0, MM2INT(100));
+        square_shape.back().emplace_back(types::MM2INT(100), 0);
+        square_shape.back().emplace_back(types::MM2INT(100), types::MM2INT(100));
+        square_shape.back().emplace_back(0, types::MM2INT(100));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(MM2INT(90), 0);
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(50));
-        ff_holes.back().emplace_back(0, MM2INT(50));
+        ff_holes.back().emplace_back(types::MM2INT(90), 0);
+        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(50));
+        ff_holes.back().emplace_back(0, types::MM2INT(50));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(90));
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(40));
-        ff_holes.back().emplace_back(MM2INT(40), MM2INT(25));
+        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(90));
+        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(40));
+        ff_holes.back().emplace_back(types::MM2INT(40), types::MM2INT(25));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(MM2INT(60), MM2INT(90));
-        ff_holes.back().emplace_back(MM2INT(60), MM2INT(40));
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(25));
+        ff_holes.back().emplace_back(types::MM2INT(60), types::MM2INT(90));
+        ff_holes.back().emplace_back(types::MM2INT(60), types::MM2INT(40));
+        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(25));
 
         outline_polygons.push_back(square_shape);
         outline_polygons.push_back(ff_holes);

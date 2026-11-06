@@ -23,10 +23,6 @@
 #include "utils/voronoi_utils.h"
 #include "utils/macros.h"
 
-#define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX \
-    1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing
-         // performance).
-
 namespace curaengine::arachne
 {
 using namespace beading_strategy;
@@ -34,6 +30,9 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 using types::operator""_r;
+
+// Limit the search for adjacent beads; larger values trade search time for more beading reuse.
+constexpr int SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX = 1000;
 
 
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point2LL p)

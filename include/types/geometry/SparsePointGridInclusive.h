@@ -61,27 +61,25 @@ public:
     std::vector<Val> getNearbyVals(const types::geometry::Point2LL& query_pt, coord_t radius) const;
 };
 
-#define SG_TEMPLATE template<class Val>
-#define SG_THIS SparsePointGridInclusive<Val>
-
-SG_TEMPLATE
-SG_THIS::SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve, double max_load_factor)
+template<class Val>
+SparsePointGridInclusive<Val>::SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve, double max_load_factor)
     : Base(cell_size, elem_reserve, max_load_factor)
 {
 }
 
-SG_TEMPLATE
-void SG_THIS::insert(const types::geometry::Point2LL& point, const Val& val)
+template<class Val>
+void SparsePointGridInclusive<Val>::insert(const types::geometry::Point2LL& point, const Val& val)
 {
-    typename SG_THIS::Elem elem(point, val);
+    typename SparsePointGridInclusive<Val>::Elem elem(point, val);
     Base::insert(elem);
 }
 
-SG_TEMPLATE
-std::vector<Val> SG_THIS::getNearbyVals(const types::geometry::Point2LL& query_pt, coord_t radius) const
+template<class Val>
+std::vector<Val> SparsePointGridInclusive<Val>::getNearbyVals(const types::geometry::Point2LL& query_pt, coord_t radius) const
 {
     std::vector<Val> ret;
-    std::function<bool(const types::geometry::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem& elem)
+    std::function<bool(const types::geometry::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>&)> process_func
+        = [&ret](const typename SparsePointGridInclusive<Val>::Elem& elem)
     {
         ret.push_back(elem.val);
         return true;
@@ -90,8 +88,5 @@ std::vector<Val> SG_THIS::getNearbyVals(const types::geometry::Point2LL& query_p
     return ret;
 }
 
-
-#undef SG_TEMPLATE
-#undef SG_THIS
 
 } // namespace curaengine::types::geometry

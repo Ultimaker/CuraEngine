@@ -137,11 +137,8 @@ protected:
 };
 
 
-#define SGI_TEMPLATE template<class ElemT>
-#define SGI_THIS SparseGrid<ElemT>
-
-SGI_TEMPLATE
-SGI_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
+template<class ElemT>
+SparseGrid<ElemT>::SparseGrid(coord_t cell_size, size_t elem_reserve, double max_load_factor)
     : SquareGrid(cell_size)
 {
     // Must be before the reserve call.
@@ -152,8 +149,8 @@ SGI_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, double max_load_fac
     }
 }
 
-SGI_TEMPLATE
-bool SGI_THIS::processFromCell(const GridPoint& grid_pt, const std::function<bool(const Elem&)>& process_func) const
+template<class ElemT>
+bool SparseGrid<ElemT>::processFromCell(const GridPoint& grid_pt, const std::function<bool(const Elem&)>& process_func) const
 {
     auto grid_range = grid_.equal_range(grid_pt);
     for (auto iter = grid_range.first; iter != grid_range.second; ++iter)
@@ -166,8 +163,8 @@ bool SGI_THIS::processFromCell(const GridPoint& grid_pt, const std::function<boo
     return true;
 }
 
-SGI_TEMPLATE
-bool SGI_THIS::processNearby(const types::geometry::Point2LL& query_pt, coord_t radius, const std::function<bool(const Elem&)>& process_func) const
+template<class ElemT>
+bool SparseGrid<ElemT>::processNearby(const types::geometry::Point2LL& query_pt, coord_t radius, const std::function<bool(const Elem&)>& process_func) const
 {
     return SquareGrid::processNearby(
         query_pt,
@@ -178,8 +175,9 @@ bool SGI_THIS::processNearby(const types::geometry::Point2LL& query_pt, coord_t 
         });
 }
 
-SGI_TEMPLATE
-bool SGI_THIS::processLine(const std::pair<types::geometry::Point2LL, types::geometry::Point2LL> query_line, const std::function<bool(const Elem&)>& process_elem_func) const
+template<class ElemT>
+bool SparseGrid<ElemT>::processLine(const std::pair<types::geometry::Point2LL, types::geometry::Point2LL> query_line, const std::function<bool(const Elem&)>& process_elem_func)
+    const
 {
     const std::function<bool(const GridPoint&)> process_cell_func = [&process_elem_func, this](GridPoint grid_loc)
     {
@@ -188,8 +186,8 @@ bool SGI_THIS::processLine(const std::pair<types::geometry::Point2LL, types::geo
     return processLineCells(query_line, process_cell_func);
 }
 
-SGI_TEMPLATE
-std::vector<typename SGI_THIS::Elem> SGI_THIS::getNearby(const types::geometry::Point2LL& query_pt, coord_t radius) const
+template<class ElemT>
+std::vector<typename SparseGrid<ElemT>::Elem> SparseGrid<ElemT>::getNearby(const types::geometry::Point2LL& query_pt, coord_t radius) const
 {
     std::vector<Elem> ret;
     const std::function<bool(const Elem&)> process_func = [&ret](const Elem& elem)
@@ -201,14 +199,14 @@ std::vector<typename SGI_THIS::Elem> SGI_THIS::getNearby(const types::geometry::
     return ret;
 }
 
-SGI_TEMPLATE
-const std::function<bool(const typename SGI_THIS::Elem&)> SGI_THIS::no_precondition = [](const typename SGI_THIS::Elem&)
+template<class ElemT>
+const std::function<bool(const typename SparseGrid<ElemT>::Elem&)> SparseGrid<ElemT>::no_precondition = [](const typename SparseGrid<ElemT>::Elem&)
 {
     return true;
 };
 
-SGI_TEMPLATE
-bool SGI_THIS::getNearest(const types::geometry::Point2LL& query_pt, coord_t radius, Elem& elem_nearest, const std::function<bool(const Elem& elem)> precondition) const
+template<class ElemT>
+bool SparseGrid<ElemT>::getNearest(const types::geometry::Point2LL& query_pt, coord_t radius, Elem& elem_nearest, const std::function<bool(const Elem& elem)> precondition) const
 {
     bool found = false;
     int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
@@ -230,8 +228,5 @@ bool SGI_THIS::getNearest(const types::geometry::Point2LL& query_pt, coord_t rad
     processNearby(query_pt, radius, process_func);
     return found;
 }
-
-#undef SGI_TEMPLATE
-#undef SGI_THIS
 
 } // namespace curaengine::types::geometry

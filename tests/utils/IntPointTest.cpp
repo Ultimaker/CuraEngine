@@ -6,6 +6,7 @@
 #include "types/geometry/Point2LL.h"
 #include "types/geometry/Point3Matrix.h"
 #include "types/geometry/PointMatrix.h"
+#include "types/geometry/PointsSet.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
@@ -13,6 +14,15 @@ namespace curaengine
 using namespace types::geometry;
 using namespace types;
 using namespace utils;
+
+TEST(IntPointTest, TestConstantBoundaries)
+{
+    static_assert(POINT_MIN == std::numeric_limits<coord_t>::min());
+    static_assert(POINT_MAX == std::numeric_limits<coord_t>::max());
+    static_assert(NO_INDEX == std::numeric_limits<size_t>::max());
+    EXPECT_EQ(no_point.X, POINT_MIN);
+    EXPECT_EQ(no_point.Y, POINT_MIN);
+}
 
 TEST(IntPointTest, TestRotationMatrix)
 {

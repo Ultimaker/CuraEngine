@@ -34,7 +34,7 @@ public:
                 types::geometry::Polygon circle;
                 for (const uint64_t i : ranges::views::iota(0, support_tree_circle_resolution))
                 {
-                    const types::AngleRadians angle = static_cast<double>(i) / support_tree_circle_resolution * TAU;
+                    const types::AngleRadians angle = static_cast<double>(i) / support_tree_circle_resolution * utils::TAU;
                     circle.emplace_back(static_cast<types::coord_t>(std::cos(angle) * base_radius), static_cast<types::coord_t>(std::sin(angle) * base_radius));
                 }
                 base_circle = types::geometry::Polygon(circle);

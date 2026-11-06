@@ -17,8 +17,6 @@ namespace curaengine
 using namespace types;
 using namespace utils;
 
-#define MINIMUM_PLANNER_SPEED 0.05 // mm/sec
-
 void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
 {
     max_feedrate[X_AXIS] = settings.get<Velocity>("machine_max_feedrate_x");

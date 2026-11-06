@@ -175,7 +175,11 @@ std::vector<Point2LL> discretizeParabola(const Point2LL& p, const Segment& segme
     //    assert(! (add_marking_start && add_marking_end) || add_apex);
     if (add_marking_start && add_marking_end && ! add_apex)
     {
-        RUN_ONCE(spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints."));
+        run_once(
+            [&]
+            {
+                spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints.");
+            });
     }
 
     const coord_t step_count = static_cast<coord_t>(static_cast<double>(std::abs(ex - sx)) / approximate_step_size + 0.5);

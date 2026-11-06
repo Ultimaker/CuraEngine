@@ -13,9 +13,9 @@ namespace curaengine::utils::beading_strategy_factory
 using types::operator""_r;
 
     beading_strategy::BeadingStrategyPtr makeStrategy(
-        const types::coord_t preferred_bead_width_outer = MM2INT(0.5),
-        const types::coord_t preferred_bead_width_inner = MM2INT(0.5),
-        const types::coord_t preferred_transition_length = MM2INT(0.4),
+        const types::coord_t preferred_bead_width_outer = types::MM2INT(0.5),
+        const types::coord_t preferred_bead_width_inner = types::MM2INT(0.5),
+        const types::coord_t preferred_transition_length = types::MM2INT(0.4),
         const double transitioning_angle = std::numbers::pi / 4.0,
         const bool print_thin_walls = false,
         const types::coord_t min_bead_width = 0,

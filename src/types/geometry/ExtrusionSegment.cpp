@@ -43,7 +43,11 @@ Shape ExtrusionSegment::toShape(bool reduced)
     assert(alpha < std::numbers::pi + 0.0001);
     if (alpha <= -std::numbers::pi || alpha >= std::numbers::pi)
     {
-        RUN_ONCE(spdlog::warn("Line joint slope is out of bounds (should be between -pi and +pi): {}", alpha));
+        run_once(
+            [&]
+            {
+                spdlog::warn("Line joint slope is out of bounds (should be between -pi and +pi): {}", alpha);
+            });
     }
 
     double dir = std::atan(vec.Y / static_cast<double>(vec.X));

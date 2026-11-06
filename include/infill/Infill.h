@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <numbers>
-
 #include "Settings.h"
 #include "WallToolPathGenerator.h"
 #include "infill/lightning/LightningGenerator.h"
@@ -63,7 +61,6 @@ class Infill
     types::coord_t pocket_size_{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset_{}; //!< Indication in which offset direction the extra infill lines are made
 
-    static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
 
     constexpr bool calcConnectLines(const types::EFillMethod pattern, const bool zig_zaggify)
     {
