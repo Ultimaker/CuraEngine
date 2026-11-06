@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "path_planning/CombPath.h"
+#include "routing/CombPath.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 class CombPaths : public std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
@@ -14,4 +14,4 @@ public:
     bool throughAir = false; //!< Whether the path is one which moves through air.
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

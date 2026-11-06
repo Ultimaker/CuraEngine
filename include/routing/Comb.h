@@ -18,7 +18,7 @@ class ExtruderTrain;
 class SliceDataStorage;
 } // namespace curaengine
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 class CombPath;
@@ -283,4 +283,4 @@ public:
         bool& do_retracted_move);
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

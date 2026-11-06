@@ -1,9 +1,9 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "path_planning/GCodePath.h"
+#include "routing/GCodePath.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 using namespace types;
 using namespace types::geometry;
@@ -34,4 +34,4 @@ void GCodePath::setFanSpeed(const double fanspeed) noexcept
     return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config.getFanSpeed();
 }
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

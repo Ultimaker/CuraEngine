@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 struct TimeMaterialEstimates
@@ -80,4 +80,4 @@ struct TimeMaterialEstimates
     }
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

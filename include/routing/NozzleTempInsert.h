@@ -11,7 +11,7 @@ namespace curaengine::gcode
 class GCodeExport;
 }
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 
@@ -44,4 +44,4 @@ struct NozzleTempInsert
     void write(gcode::GCodeExport& gcode);
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

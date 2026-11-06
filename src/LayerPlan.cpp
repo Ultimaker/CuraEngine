@@ -38,8 +38,8 @@
 #include "bridge/bridge.h"
 #include "communication/Communication.h"
 #include "gradual_flow/Processor.h"
-#include "path_planning/Comb.h"
-#include "path_planning/CombPaths.h"
+#include "routing/Comb.h"
+#include "routing/CombPaths.h"
 #include "plugins/Slots.h"
 #include "range/v3/view/chunk_by.hpp"
 #include "types/CombingMode.h"
@@ -59,7 +59,7 @@ using namespace arachne;
 using namespace beading_strategy;
 using namespace gcode;
 using namespace types::geometry;
-using namespace path_planning;
+using namespace routing;
 using namespace types;
 using namespace utils;
 using types::operator""_r;

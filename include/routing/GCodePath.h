@@ -10,7 +10,7 @@
 #include "PrintSegmentAttribute.h"
 #include "SliceDataStorage.h"
 #include "SpaceFillType.h"
-#include "path_planning/TimeMaterialEstimates.h"
+#include "routing/TimeMaterialEstimates.h"
 #include "types/Ratio.h"
 
 namespace curaengine
@@ -18,7 +18,7 @@ namespace curaengine
 class SliceMeshStorage;
 }
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 
@@ -94,4 +94,4 @@ struct GCodePath
     [[nodiscard]] double getFanSpeed() const noexcept;
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

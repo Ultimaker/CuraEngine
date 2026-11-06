@@ -10,14 +10,14 @@
 
 #include "gradual_flow/utils/Direction.h"
 #include "gradual_flow/utils/Utils.h"
-#include "path_planning/GCodePath.h"
+#include "routing/GCodePath.h"
 
 namespace curaengine::gradual_flow
 {
 
 struct FlowLimitedPath
 {
-    const path_planning::GCodePath* original_gcode_path_data;
+    const routing::GCodePath* original_gcode_path_data;
     std::vector<types::geometry::Point3LL> points{};
     double speed{ targetSpeed() }; // um/s
     double flow_{ extrusionVolumePerMm() * speed }; // um/s
@@ -270,9 +270,9 @@ struct FlowLimitedPath
         }
     }
 
-    path_planning::GCodePath toClassicPath(const bool include_first_point) const
+    routing::GCodePath toClassicPath(const bool include_first_point) const
     {
-        path_planning::GCodePath output_path = *original_gcode_path_data;
+        routing::GCodePath output_path = *original_gcode_path_data;
 
         output_path.points.clear();
         for (auto& point : points | ranges::views::drop(include_first_point ? 0 : 1))

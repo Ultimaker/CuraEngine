@@ -1,9 +1,9 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "path_planning/SpeedDerivatives.h"
+#include "routing/SpeedDerivatives.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 using namespace types;
 
@@ -19,4 +19,4 @@ void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, c
     jerk = (jerk * static_cast<double>(layer_nr)) / max_speed_layer + (first_layer_jerk * (max_speed_layer - static_cast<double>(layer_nr)) / max_speed_layer);
 }
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

@@ -7,7 +7,7 @@
 #include "types/LayerIndex.h"
 #include "types/Velocity.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 struct SpeedDerivatives
@@ -33,4 +33,4 @@ struct SpeedDerivatives
     void smoothSpeed(const SpeedDerivatives& first_layer_config, const types::LayerIndex layer_nr, const types::LayerIndex max_speed_layer_nr);
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

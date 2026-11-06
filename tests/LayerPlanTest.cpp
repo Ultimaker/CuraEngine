@@ -11,15 +11,15 @@
 #include "RetractionConfig.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
-#include "path_planning/Comb.h"
-#include "path_planning/NozzleTempInsert.h"
+#include "routing/Comb.h"
+#include "routing/NozzleTempInsert.h"
 #include "types/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
 using namespace types::geometry;
-using namespace path_planning;
+using namespace routing;
 using namespace types;
 using namespace utils;
 

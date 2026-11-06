@@ -6,13 +6,13 @@
 #include <gtest/gtest.h>
 
 #include "LayerPlan.h"
-#include "path_planning/SpeedDerivatives.h"
+#include "routing/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
 {
 using namespace types::geometry;
-using namespace path_planning;
+using namespace routing;
 using namespace types;
 
 

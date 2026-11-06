@@ -21,7 +21,7 @@ namespace curaengine
 {
 using namespace gcode;
 using namespace types::geometry;
-using namespace path_planning;
+using namespace routing;
 using namespace types;
 using types::operator""_s;
 

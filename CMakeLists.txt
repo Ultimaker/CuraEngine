@@ -151,11 +151,11 @@ set(engine_SRCS # Except main.cpp.
         src/infill/GyroidInfill.cpp
         src/infill/GroundingLocation.cpp
 
-        src/path_planning/Comb.cpp
-        src/path_planning/GCodePath.cpp
-        src/path_planning/LinePolygonsCrossings.cpp
-        src/path_planning/NozzleTempInsert.cpp
-        src/path_planning/SpeedDerivatives.cpp
+        src/routing/Comb.cpp
+        src/routing/GCodePath.cpp
+        src/routing/LinePolygonsCrossings.cpp
+        src/routing/NozzleTempInsert.cpp
+        src/routing/SpeedDerivatives.cpp
 
         src/plugins/broadcast_settings_request.cpp
         src/plugins/empty.cpp

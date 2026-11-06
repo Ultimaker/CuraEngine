@@ -11,12 +11,12 @@
 #include <range/v3/view/transform.hpp>
 
 #include "SliceMeshStorage.h"
-#include "path_planning/SpeedDerivatives.h"
+#include "routing/SpeedDerivatives.h"
 
 namespace curaengine::plugins
 {
 using namespace types::geometry;
-using namespace path_planning;
+using namespace routing;
 [[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept
 {
     switch (feature)

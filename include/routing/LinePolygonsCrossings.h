@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include "path_planning/CombPath.h"
+#include "routing/CombPath.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/PolygonUtils.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 /*!
@@ -164,4 +164,4 @@ public:
     };
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

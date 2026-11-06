@@ -7,14 +7,14 @@
 #include <vector>
 
 #include "cura/plugins/slots/gcode_paths/v0/modify.pb.h"
-#include "path_planning/GCodePath.h"
+#include "routing/GCodePath.h"
 #include "plugins/details/converter.h"
 #include "types/LayerIndex.h"
 
 namespace curaengine::plugins
 {
 struct gcode_paths_modify_request
-    : public details::converter<gcode_paths_modify_request, ::cura::plugins::slots::gcode_paths::v0::modify::CallRequest, std::vector<path_planning::GCodePath>>
+    : public details::converter<gcode_paths_modify_request, ::cura::plugins::slots::gcode_paths::v0::modify::CallRequest, std::vector<routing::GCodePath>>
 {
     [[nodiscard]] static constexpr ::cura::plugins::v0::SpaceFillType getSpaceFillType(const SpaceFillType space_fill_type) noexcept;
     [[nodiscard]] static constexpr ::cura::plugins::v0::PrintFeature getPrintFeature(const PrintFeatureType print_feature_type) noexcept;

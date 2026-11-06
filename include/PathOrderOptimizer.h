@@ -16,8 +16,8 @@
 #include <spdlog/spdlog.h>
 
 #include "PathOrdering.h"
-#include "path_planning/CombPath.h"
-#include "path_planning/LinePolygonsCrossings.h"
+#include "routing/CombPath.h"
+#include "routing/LinePolygonsCrossings.h"
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
 #include "types/ZSeamConfig.h"
@@ -896,11 +896,11 @@ protected:
             combing_grid_ = types::geometry::PolygonUtils::createLocToLineGrid(*combing_boundary_, grid_size);
         }
 
-        path_planning::CombPath comb_path; // Output variable.
+        routing::CombPath comb_path; // Output variable.
         constexpr types::coord_t rounding_error = -25;
         constexpr types::coord_t tiny_travel_threshold = 0;
         constexpr bool fail_on_unavoidable_obstacles = false;
-        path_planning::LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
+        routing::LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
 
         types::coord_t sum = 0;
         types::geometry::Point2LL last_point = a;

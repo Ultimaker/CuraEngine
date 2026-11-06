@@ -5,9 +5,9 @@
 
 #include "FanSpeedLayerTimeSettings.h"
 #include "RetractionConfig.h"
-#include "path_planning/GCodePath.h"
-#include "path_planning/NozzleTempInsert.h"
-#include "path_planning/TimeMaterialEstimates.h"
+#include "routing/GCodePath.h"
+#include "routing/NozzleTempInsert.h"
+#include "routing/TimeMaterialEstimates.h"
 #include "types/LayerIndex.h"
 #include "types/Ratio.h"
 #include "types/geometry/Point2LL.h"
@@ -75,7 +75,7 @@ public:
         const RetractionConfig& retraction_config);
 
 
-    void insertCommand(path_planning::NozzleTempInsert&& insert);
+    void insertCommand(routing::NozzleTempInsert&& insert);
 
     /*!
      * Insert the inserts into gcode which should be inserted before \p path_idx
@@ -162,8 +162,8 @@ private:
     RetractionConfig retraction_config_{}; //!< The retraction settings for the extruder of this plan
 
 
-    std::vector<path_planning::GCodePath> paths_; //!< The paths planned for this extruder
-    std::list<path_planning::NozzleTempInsert> inserts_; //!< The nozzle temperature command inserts, to be inserted in between segments
+    std::vector<routing::GCodePath> paths_; //!< The paths planned for this extruder
+    std::list<routing::NozzleTempInsert> inserts_; //!< The nozzle temperature command inserts, to be inserted in between segments
     double heated_pre_travel_time_{ 0.0 }; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
     /*!
@@ -181,12 +181,12 @@ private:
     double required_start_temperature_{ -1.0 };
     std::optional<double> extrusion_temperature_{}; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate
                                                     //!< because of the initial and final print temp (none if extruder plan has no extrusion moves)
-    std::optional<std::list<path_planning::NozzleTempInsert>::iterator>
+    std::optional<std::list<routing::NozzleTempInsert>::iterator>
         extrusion_temperature_command_{}; //!< The command to heat from the printing temperature of this extruder plan to the
                                           //!< printing temperature of the next extruder plan (if it has the same extruder).
     std::optional<double> prev_extruder_standby_temp_{}; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
-    path_planning::TimeMaterialEstimates estimates_{}; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+    routing::TimeMaterialEstimates estimates_{}; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
     double slowest_path_speed_{ 0.0 };
 
     double extra_time_{ 0.0 }; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
@@ -213,12 +213,12 @@ private:
     /*!
      * @return The time needed for (un)retract the path
      */
-    double getRetractTime(const path_planning::GCodePath& path);
+    double getRetractTime(const routing::GCodePath& path);
 
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const types::geometry::Point3LL& p0, const types::geometry::Point3LL& p1, const path_planning::GCodePath& path) const;
+    std::pair<double, double> getPointToPointTime(const types::geometry::Point3LL& p0, const types::geometry::Point3LL& p1, const routing::GCodePath& path) const;
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
@@ -227,7 +227,7 @@ private:
      * \param starting_position The position the head was in before starting this layer
      * \return the total estimates of this layer
      */
-    path_planning::TimeMaterialEstimates computeNaiveTimeEstimates(types::geometry::Point2LL starting_position);
+    routing::TimeMaterialEstimates computeNaiveTimeEstimates(types::geometry::Point2LL starting_position);
 };
 
 } // namespace curaengine

@@ -12,8 +12,8 @@
 #include "SliceLayerPart.h"
 #include "SpaceFillType.h"
 #include "gcode/GCodeExport.h"
-#include "path_planning/GCodePath.h"
-#include "path_planning/NozzleTempInsert.h"
+#include "routing/GCodePath.h"
+#include "routing/NozzleTempInsert.h"
 #include "types/Acceleration.h"
 #include "types/LayerIndex.h"
 #include "types/PathConfigStorage.h"
@@ -31,7 +31,7 @@
 
 #include "ForceRetract.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 class Comb;
@@ -168,7 +168,7 @@ private:
     bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
     types::geometry::Shape comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
     types::geometry::Shape comb_boundary_preferred_; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
-    path_planning::Comb* comb_;
+    routing::Comb* comb_;
     types::coord_t
         comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     types::geometry::Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
@@ -204,7 +204,7 @@ private:
      * \param print_attributes Print attributes to be set for this segment, e.g. overhanging or bridging
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
-    path_planning::GCodePath* getLatestPathWithConfig(
+    routing::GCodePath* getLatestPathWithConfig(
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const types::coord_t z_offset = 0,
@@ -413,7 +413,7 @@ public:
      * \param force_retract Whether to force a retraction to occur or not occur.
      * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
-    path_planning::GCodePath& addTravel(
+    routing::GCodePath& addTravel(
         const types::geometry::Point2LL& p,
         const ForceRetract force_retract = ForceRetract::Automatic,
         const types::coord_t z_offset = 0,
@@ -427,7 +427,7 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    path_planning::GCodePath& addTravel_simple(const types::geometry::Point2LL& p, path_planning::GCodePath* path = nullptr);
+    routing::GCodePath& addTravel_simple(const types::geometry::Point2LL& p, routing::GCodePath* path = nullptr);
 
     /*!
      * Plan a prime blob at the current location.
@@ -920,7 +920,7 @@ public:
      * it.
      * \param part If given, stay within the boundary of this part.
      */
-    void moveInsideCombBoundary(const types::coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt, path_planning::GCodePath* path = nullptr);
+    void moveInsideCombBoundary(const types::coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt, routing::GCodePath* path = nullptr);
 
     /*!
      * If enabled, apply the modify plugin to the layer-plan.
@@ -1055,7 +1055,7 @@ private:
      *  @param extrude_speed The actual used extrusion speed
      */
     void sendLineTo(
-        const path_planning::GCodePath& path,
+        const routing::GCodePath& path,
         const types::geometry::Point3LL& position,
         const double extrude_speed,
         const std::optional<types::coord_t>& line_thickness = std::nullopt);
@@ -1241,7 +1241,7 @@ private:
      * \return The list of coasting settings to be applied on the paths. It will always have the same size as paths.
      */
     std::vector<PathCoasting>
-        calculatePathsCoasting(const Settings& extruder_settings, const std::vector<path_planning::GCodePath>& paths, const types::geometry::Point3LL& current_position) const;
+        calculatePathsCoasting(const Settings& extruder_settings, const std::vector<routing::GCodePath>& paths, const types::geometry::Point3LL& current_position) const;
 
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
@@ -1327,7 +1327,7 @@ private:
      * @return The computed path durations
      */
     static TravelDurations
-        computeTravelDurations(const gcode::GCodeExport& gcode, const ExtruderTrain& extruder, const path_planning::GCodePath& path, const types::coord_t z_hop_height);
+        computeTravelDurations(const gcode::GCodeExport& gcode, const ExtruderTrain& extruder, const routing::GCodePath& path, const types::coord_t z_hop_height);
 
     /*!
      * Compute the anti-ooze (retraction and priming) amounts to be processed during stationary/Z-hop/travel steps
@@ -1342,7 +1342,7 @@ private:
     static void computeAntiOozeAmounts(
         const gcode::GCodeExport& gcode,
         const ExtruderTrain& extruder,
-        const path_planning::GCodePath& path,
+        const routing::GCodePath& path,
         const types::coord_t z_hop_height,
         const RetractionAndWipeConfig* retraction_config,
         std::optional<TravelAntiOozing>& retraction_amounts,
@@ -1358,7 +1358,7 @@ private:
      */
     static void computeAntiOozeTravelSplit(
         const gcode::GCodeExport& gcode,
-        const path_planning::GCodePath& path,
+        const routing::GCodePath& path,
         const types::Velocity& speed,
         const double amount_during_travel,
         const bool reversed,
@@ -1379,7 +1379,7 @@ private:
     void writeTravelSegment(
         TravelRetractionState& travel_retraction_state,
         gcode::GCodeExport& gcode,
-        const path_planning::GCodePath& path,
+        const routing::GCodePath& path,
         const std::optional<TravelAntiOozing>& retraction_amounts,
         const std::optional<TravelAntiOozing>& priming_amounts,
         const types::Velocity& speed,

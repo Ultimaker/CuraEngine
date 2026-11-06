@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "path_planning/Comb.h"
+#include "routing/Comb.h"
 
 #include <algorithm>
 #include <functional>
@@ -11,12 +11,12 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
-#include "path_planning/CombPaths.h"
-#include "path_planning/LinePolygonsCrossings.h"
+#include "routing/CombPaths.h"
+#include "routing/LinePolygonsCrossings.h"
 #include "types/geometry/LinearAlg2D.h"
 #include "types/geometry/PathsPointIndex.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 using namespace types::geometry;
 using namespace types;
@@ -673,4 +673,4 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
     return std::make_shared<std::pair<ClosestPointPolygon, ClosestPointPolygon>>(*best_in, *best_out);
 }
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

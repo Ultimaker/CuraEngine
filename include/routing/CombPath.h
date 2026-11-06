@@ -5,7 +5,7 @@
 
 #include "types/geometry/Point2LL.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 
 class CombPath : public std::vector<types::geometry::Point2LL> //!< A single path either inside or outise the parts
@@ -14,4 +14,4 @@ public:
     bool cross_boundary = false; //!< Whether the path crosses a boundary.
 };
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing

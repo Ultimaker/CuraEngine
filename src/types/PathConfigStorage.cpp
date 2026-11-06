@@ -21,7 +21,7 @@
 
 namespace curaengine::types
 {
-using namespace path_planning;
+using namespace routing;
 using namespace types::geometry;
 using namespace utils;
 

@@ -1,13 +1,13 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "path_planning/LinePolygonsCrossings.h"
+#include "routing/LinePolygonsCrossings.h"
 
 #include <algorithm>
 
 #include "SliceDataStorage.h"
 
-namespace curaengine::path_planning
+namespace curaengine::routing
 {
 using namespace types::geometry;
 using namespace types;
@@ -328,4 +328,4 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
     return true;
 }
 
-} // namespace curaengine::path_planning
+} // namespace curaengine::routing
