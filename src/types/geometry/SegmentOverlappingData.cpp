@@ -3,7 +3,7 @@
 
 #include "types/geometry/SegmentOverlappingData.h"
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/TransformedSegment.h"
 
 
@@ -23,10 +23,10 @@ SegmentOverlappingData::SegmentOverlappingData(
     const Point2LL& other_end)
     : y_min(std::max(this_min_y, other_min_y))
     , y_max(std::min(this_max_y, other_max_y))
-    , this_x_min(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_min).value() : 0)
-    , this_x_max(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_max).value() : 0)
-    , other_x_min(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_min).value())
-    , other_x_max(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_max).value())
+    , this_x_min(this_start != nullptr ? linear_alg_2d::lineHorizontalLineIntersection(*this_start, *this_end, y_min).value() : 0)
+    , this_x_max(this_start != nullptr ? linear_alg_2d::lineHorizontalLineIntersection(*this_start, *this_end, y_max).value() : 0)
+    , other_x_min(linear_alg_2d::lineHorizontalLineIntersection(other_start, other_end, y_min).value())
+    , other_x_max(linear_alg_2d::lineHorizontalLineIntersection(other_start, other_end, y_max).value())
 {
 }
 

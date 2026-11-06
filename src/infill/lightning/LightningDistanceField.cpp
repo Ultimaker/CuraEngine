@@ -3,7 +3,7 @@
 
 #include "infill/lightning/LightningDistanceField.h"
 
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::infill::lightning
 {
@@ -20,10 +20,10 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Shap
     , current_outline_(current_outline)
     , current_overhang_(current_overhang)
 {
-    std::vector<Point2LL> regular_dots = PolygonUtils::spreadDotsArea(current_overhang, cell_size_);
+    std::vector<Point2LL> regular_dots = polygon_utils::spreadDotsArea(current_overhang, cell_size_);
     for (const auto& p : regular_dots)
     {
-        const ClosestPointPolygon cpp = PolygonUtils::findClosest(p, current_outline);
+        const ClosestPointPolygon cpp = polygon_utils::findClosest(p, current_outline);
         const coord_t dist_to_boundary = types::geometry::vSize(p - cpp.p());
         unsupported_points_.emplace_back(p, dist_to_boundary);
     }
@@ -74,7 +74,7 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
     Point2LL ab = b - a;
     Point2LL ab_T = types::geometry::turn90CCW(ab);
     Point2LL extent = types::geometry::normal(ab_T, supporting_radius_);
-    // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
+    // TODO: process cells only once; make use of polygon_utils::spreadDotsArea
     grid_.processLineCells(
         std::make_pair(a + extent, a - extent),
         [this, ab, extent, &process_func](const SquareGrid::GridPoint& p)

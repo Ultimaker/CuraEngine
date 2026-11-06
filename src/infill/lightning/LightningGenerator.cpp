@@ -17,7 +17,7 @@
 #include "SupportStorage.h"
 #include "infill/lightning/LightningLayer.h"
 #include "infill/lightning/LightningTreeNode.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 
 /* Possible future tasks/optimizations,etc.:
@@ -29,7 +29,7 @@
  * - Optimization: let the square grid store the closest point on boundary
  * - Optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
  * - Make a pass with Arachne over the output. Somehow.
- * - Generate all to-be-supported points at once instead of sequentially: See branch interlocking_gen PolygonUtils::spreadDots (Or work with sparse grids.)
+ * - Generate all to-be-supported points at once instead of sequentially: See branch interlocking_gen polygon_utils::spreadDots (Or work with sparse grids.)
  * - Lots of magic values ... to many to parameterize. But are they the best?
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
@@ -162,7 +162,7 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
     const size_t top_layer_id = shape_per_layer.size() - 1;
-    auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
+    auto outlines_locator_ptr = polygon_utils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
 
     // For-each layer from top to bottom:
     for (int layer_id = top_layer_id; layer_id >= 0; layer_id--)
@@ -184,7 +184,7 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
             return;
         }
         const Shape& below_outlines = infill_outlines[layer_id - 1];
-        outlines_locator_ptr = PolygonUtils::createLocToLineGrid(below_outlines, locator_cell_size);
+        outlines_locator_ptr = polygon_utils::createLocToLineGrid(below_outlines, locator_cell_size);
         const auto& below_outlines_locator = *outlines_locator_ptr;
 
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;

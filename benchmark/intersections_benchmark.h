@@ -5,7 +5,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Shape.h"
 
 
@@ -20,7 +20,7 @@ public:
 
     void SetUp(const ::benchmark::State& state) override
     {
-        shape = types::geometry::Shape(types::geometry::PolygonUtils::makeDisc(types::geometry::Point2LL(square_side / 2, square_side / 2), square_side, state.range(0)));
+        shape = types::geometry::Shape(utils::polygon_utils::makeDisc(types::geometry::Point2LL(square_side / 2, square_side / 2), square_side, state.range(0)));
     }
 
     void TearDown(const ::benchmark::State& state) override

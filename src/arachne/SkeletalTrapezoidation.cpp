@@ -17,10 +17,10 @@
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
 #include "types/Ratio.h"
-#include "types/geometry/LinearAlg2D.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/linear_alg_2d.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
-#include "types/geometry/VoronoiUtils.h"
+#include "utils/voronoi_utils.h"
 #include "utils/macros.h"
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX \
@@ -177,8 +177,8 @@ std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& 
 
     const vd_t::cell_type* left_cell = vd_edge.cell();
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
-    Point2LL start = VoronoiUtils::p(vd_edge.vertex0());
-    Point2LL end = VoronoiUtils::p(vd_edge.vertex1());
+    Point2LL start = voronoi_utils::p(vd_edge.vertex0());
+    Point2LL end = voronoi_utils::p(vd_edge.vertex1());
 
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
@@ -188,17 +188,17 @@ std::vector<Point2LL> SkeletalTrapezoidation::discretize(const vd_t::edge_type& 
     }
     else if (point_left != point_right) // This is a parabolic edge between a point and a line.
     {
-        Point2LL p = VoronoiUtils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
-        const Segment& s = VoronoiUtils::getSourceSegment(*(point_left ? right_cell : left_cell), points, segments);
-        return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size_, transitioning_angle_);
+        Point2LL p = voronoi_utils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
+        const Segment& s = voronoi_utils::getSourceSegment(*(point_left ? right_cell : left_cell), points, segments);
+        return voronoi_utils::discretizeParabola(p, s, start, end, discretization_step_size_, transitioning_angle_);
     }
     else // This is a straight edge between two points.
     {
         /*While the edge is straight, it is still discretized since the part
         becomes narrower between the two points. As such it may need different
         beadings along the way.*/
-        Point2LL left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
-        Point2LL right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
+        Point2LL left_point = voronoi_utils::getSourcePoint(*left_cell, points, segments);
+        Point2LL right_point = voronoi_utils::getSourcePoint(*right_cell, points, segments);
         coord_t d = types::geometry::vSize(right_point - left_point);
         Point2LL middle = (left_point + right_point) / 2;
         Point2LL x_axis_dir = types::geometry::turn90CCW(right_point - left_point);
@@ -290,11 +290,11 @@ bool SkeletalTrapezoidation::computePointCellRange(
     // Check if any point of the cell is inside or outside polygon
     // Copy whole cell into graph or not at all
 
-    const Point2LL source_point = VoronoiUtils::getSourcePoint(cell, points, segments);
-    Point2LL some_point = VoronoiUtils::p(cell.incident_edge()->vertex0());
+    const Point2LL source_point = voronoi_utils::getSourcePoint(cell, points, segments);
+    Point2LL some_point = voronoi_utils::p(cell.incident_edge()->vertex0());
     if (some_point == source_point)
     {
-        some_point = VoronoiUtils::p(cell.incident_edge()->vertex1());
+        some_point = voronoi_utils::p(cell.incident_edge()->vertex1());
     }
 
     // Test if the some_point is even inside the polygon. If not, the whole cell is outside the polygon and must not be considered.
@@ -307,7 +307,7 @@ bool SkeletalTrapezoidation::computePointCellRange(
     do
     {
         assert(vd_edge->is_finite());
-        Point2LL p1 = VoronoiUtils::p(vd_edge->vertex1());
+        Point2LL p1 = voronoi_utils::p(vd_edge->vertex1());
         if (p1 == source_point)
         {
             start_source_point = source_point;
@@ -318,7 +318,7 @@ bool SkeletalTrapezoidation::computePointCellRange(
         else
         {
             assert(
-                (VoronoiUtils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())
+                (voronoi_utils::p(vd_edge->vertex0()) == source_point || ! vd_edge->is_secondary())
                 && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
     } while (vd_edge = vd_edge->next(), vd_edge != cell.incident_edge());
@@ -336,7 +336,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
     const std::vector<Point2LL>& points,
     const std::vector<Segment>& segments)
 {
-    const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
+    const Segment& source_segment = voronoi_utils::getSourceSegment(cell, points, segments);
     Point2LL from = source_segment.from();
     Point2LL to = source_segment.to();
 
@@ -352,8 +352,8 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
         {
             continue;
         }
-        Point2LL v0 = VoronoiUtils::p(edge->vertex0());
-        Point2LL v1 = VoronoiUtils::p(edge->vertex1());
+        Point2LL v0 = voronoi_utils::p(edge->vertex0());
+        Point2LL v1 = voronoi_utils::p(edge->vertex1());
         assert(! (v0 == to && v1 == from));
         if (v0 == to && ! after_start) // Use the last edge which starts in source_segment.to
         {
@@ -457,7 +457,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
         edge_t* prev_edge = nullptr;
         transferEdge(
             start_source_point,
-            VoronoiUtils::p(starting_vonoroi_edge->vertex1()),
+            voronoi_utils::p(starting_vonoroi_edge->vertex1()),
             *starting_vonoroi_edge,
             prev_edge,
             start_source_point,
@@ -471,14 +471,14 @@ void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
         for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
-            Point2LL v1 = VoronoiUtils::p(vd_edge->vertex0());
-            Point2LL v2 = VoronoiUtils::p(vd_edge->vertex1());
+            Point2LL v1 = voronoi_utils::p(vd_edge->vertex0());
+            Point2LL v2 = voronoi_utils::p(vd_edge->vertex1());
             transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
             graph_.makeRib(prev_edge, start_source_point, end_source_point);
         }
 
-        transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        transferEdge(voronoi_utils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
         prev_edge->to_->data_.distance_to_boundary_ = 0;
     }
 
@@ -2210,7 +2210,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         // So our circle needs to be such that r=w/8
         const coord_t r = width / 8;
         constexpr coord_t n_segments = 6;
-        const auto circle = PolygonUtils::makeCircle<std::vector<ExtrusionJunction>, true>(center, r, n_segments, width, inset_index);
+        const auto circle = polygon_utils::makeCircle<std::vector<ExtrusionJunction>, true>(center, r, n_segments, width, inset_index);
         line.junctions_.insert(line.junctions_.end(), circle.begin(), circle.end());
     };
 

@@ -9,7 +9,7 @@
 
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/macros.h"
 
 namespace curaengine::arachne
@@ -152,7 +152,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 
 void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point2LL start_source_point, Point2LL end_source_point)
 {
-    Point2LL p = LinearAlg2D::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
+    Point2LL p = linear_alg_2d::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
     coord_t dist = types::geometry::vSize(prev_edge->to_->p_ - p);
     prev_edge->to_->data_.distance_to_boundary_ = dist;
     assert(dist >= 0);
@@ -189,7 +189,7 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     Point2LL p = mid_node->p_;
 
     std::pair<Point2LL, Point2LL> source_segment = getSource(edge);
-    Point2LL px = LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
+    Point2LL px = linear_alg_2d::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
     coord_t dist = types::geometry::vSize(p - px);
     assert(dist > 0);
     mid_node->data_.distance_to_boundary_ = dist;

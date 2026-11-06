@@ -144,8 +144,8 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
                 types::geometry::vSize(bounding_box.max_ - center)
                     * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
             // Two options to start, both perpendicular to the ironing lines. Which is closer?
-            const Point2LL front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
-            const Point2LL back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
+            const Point2LL front_side = polygon_utils::findNearestVert(center + far_away, ironed_areas).p();
+            const Point2LL back_side = polygon_utils::findNearestVert(center - far_away, ironed_areas).p();
             if (types::geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side)
                 < types::geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
             {

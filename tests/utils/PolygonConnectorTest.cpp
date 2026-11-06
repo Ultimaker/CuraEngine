@@ -76,10 +76,10 @@ TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
 
     EXPECT_EQ(vSize(bridge->a_.from_point_ - bridge->a_.to_point_), 100) << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
     EXPECT_EQ(vSize(bridge->b_.from_point_ - bridge->b_.to_point_), 100) << "The second bridge should also be equally short in this case.";
-    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
+    EXPECT_EQ(linear_alg_2d::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
         << "The bridges should be spaced 1 line width (100 units) apart.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(linear_alg_2d::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(linear_alg_2d::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
 }
 
 /*!
@@ -97,10 +97,10 @@ TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
 
     EXPECT_EQ(vSize(bridge->a_.from_point_ - bridge->a_.to_point_), 100) << "The polygons are 100 units spaced apart, so this is the shortest possible bridge.";
     EXPECT_EQ(vSize(bridge->b_.from_point_ - bridge->b_.to_point_), 100) << "The second bridge should also be equally short in this case.";
-    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
+    EXPECT_EQ(linear_alg_2d::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
         << "The bridges should be spaced 1 line width (100 units) apart.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(linear_alg_2d::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(linear_alg_2d::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
 }
 
 /*!
@@ -125,8 +125,8 @@ TEST_F(PolygonConnectorTest, getBridgeClosest)
         << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
     EXPECT_EQ(bridge->b_.to_point_, Point2LL(1100, 200))
         << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
-    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a_.from_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
-    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
+    EXPECT_GT(linear_alg_2d::pointIsLeftOfLine(bridge->a_.from_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
+    EXPECT_GT(linear_alg_2d::pointIsLeftOfLine(bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
 }
 
 /*!

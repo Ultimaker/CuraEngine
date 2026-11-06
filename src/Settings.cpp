@@ -20,7 +20,7 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "beading_strategy/BeadingStrategyFactory.h"
+#include "utils/beading_strategy_factory.h"
 #include "types/Acceleration.h"
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"

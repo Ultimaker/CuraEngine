@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "Mold.h"
+#include "utils/mold.h"
 
 #include <numbers>
 
@@ -17,13 +17,13 @@
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Point2LL.h"
 
-namespace curaengine
+namespace curaengine::utils::mold
 {
 using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-void Mold::process(std::vector<Slicer*>& slicer_list)
+void process(std::vector<Slicer*>& slicer_list)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     { // check whether we even need to process molds
@@ -128,4 +128,4 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 }
 
 
-} // namespace curaengine
+} // namespace curaengine::utils::mold

@@ -8,7 +8,7 @@
 
 #include "types/AngleDegrees.h"
 #include "types/geometry/AABB.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolylineStitcher.h"
 #include "types/geometry/PointMatrix.h"
@@ -94,7 +94,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 {
                     // don't include chain ends that are close to the segment but are beyond the segment ends
                     short beyond = 0;
-                    if (LinearAlg2D::getDist2FromLineSegment(op0, point, op1, &beyond) < 10 && ! beyond)
+                    if (linear_alg_2d::getDist2FromLineSegment(op0, point, op1, &beyond) < 10 && ! beyond)
                     {
                         points_on_outline_point_index.push_back(point_index);
                         points_on_outline_chain_index.push_back(chain_index);

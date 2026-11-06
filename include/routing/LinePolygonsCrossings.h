@@ -6,7 +6,7 @@
 #include "routing/CombPath.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/Polygon.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::routing
 {

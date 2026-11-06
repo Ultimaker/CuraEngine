@@ -19,7 +19,7 @@
 #include "types/geometry/ExtrusionLine.h"
 #include "types/geometry/MendedShape.h"
 #include "types/geometry/PolygonsSegmentIndex.h"
-#include "types/geometry/VoronoiUtils.h"
+#include "utils/voronoi_utils.h"
 
 namespace curaengine::arachne
 {
@@ -45,8 +45,8 @@ deposition modeling" by Kuipers et al.
  */
 class SkeletalTrapezoidation
 {
-    using pos_t = types::geometry::VoronoiUtils::voronoi_data_t;
-    using vd_t = types::geometry::VoronoiUtils::vd_t;
+    using pos_t = utils::voronoi_utils::voronoi_data_t;
+    using vd_t = utils::voronoi_utils::vd_t;
     using graph_t = SkeletalTrapezoidationGraph;
     using edge_t = STHalfEdge;
     using node_t = STHalfEdgeNode;

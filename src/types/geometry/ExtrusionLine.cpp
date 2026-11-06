@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/Simplify.h"
 
 namespace curaengine::types::geometry

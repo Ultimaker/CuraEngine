@@ -8,7 +8,7 @@
 #include <numeric>
 
 #include "types/AngleRadians.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
@@ -66,7 +66,7 @@ void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
                 const Point2LL& pt = rpath[point_idx];
                 const Point2LL& next = rpath[(point_idx + 1) % pathlen];
 
-                double angle = LinearAlg2D::getAngleLeft(prev, pt, next); // [0 : 2 * pi]
+                double angle = linear_alg_2d::getAngleLeft(prev, pt, next); // [0 : 2 * pi]
                 if (angle >= std::numbers::pi)
                 {
                     angle -= std::numbers::pi;

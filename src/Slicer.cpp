@@ -13,7 +13,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Mesh.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "types/AdaptiveLayer.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/LayerIndex.h"
@@ -53,7 +53,7 @@ Slicer::Slicer(
         mesh->settings_.get<coord_t>("raft_base_thickness"),
         mesh->settings_.get<coord_t>("raft_airgap"),
         mesh->settings_.get<coord_t>("layer_0_z_overlap"),
-        Raft::getFillerLayerCount());
+        raft::getFillerLayerCount());
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 

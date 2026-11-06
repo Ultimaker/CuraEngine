@@ -7,7 +7,7 @@
 #include <numbers>
 
 #include "types/AngleDegrees.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/ListPolyIt.h"
 #include "types/geometry/Point3Matrix.h"
 #include "types/geometry/Shape.h"
@@ -190,7 +190,7 @@ void Polygon::smoothOutward(const AngleDegrees min_angle, int shortcut_length, P
         const Point2LL v10 = p0 - p1;
         const Point2LL v12 = p2 - p1;
         double cos_angle = INT2MM(INT2MM(dot(v10, v12))) / vSizeMM(v10) / vSizeMM(v12);
-        bool is_left_angle = LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) > 0;
+        bool is_left_angle = linear_alg_2d::pointIsLeftOfLine(p1, p0, p2) > 0;
         if (cos_angle > cos_min_angle && is_left_angle)
         {
             // angle is so sharp that it can be removed
@@ -243,7 +243,7 @@ void Polygon::smoothCornerSimple(
     //  0
     // ideally a1_size == b1_size
     if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
-        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
+        || (cos_angle > 0.9999 && linear_alg_2d::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
     {
         // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
         p1_it.remove();
@@ -287,7 +287,7 @@ void Polygon::smoothCornerSimple(
             //  0
             const Point2LL& b = p2_it.p();
             Point2LL a;
-            bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
+            bool success = linear_alg_2d::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
             // v02 has to be longer than ab!
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
@@ -307,7 +307,7 @@ void Polygon::smoothCornerSimple(
             //  a
             const Point2LL& a = p0_it.p();
             Point2LL b;
-            bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
+            bool success = linear_alg_2d::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
             // v02 has to be longer than ab!
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
@@ -342,7 +342,7 @@ void Polygon::smoothOutwardStep(
     {
         const ListPolyIt p2_2_it = p2_it.next();
         const Point2LL p2_2 = p2_2_it.p();
-        bool p2_is_left = LinearAlg2D::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
+        bool p2_is_left = linear_alg_2d::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
         if (! p2_is_left)
         {
             forward_is_blocked = true;
@@ -363,7 +363,7 @@ void Polygon::smoothOutwardStep(
     }
     const ListPolyIt p0_2_it = p0_it.prev();
     const Point2LL p0_2 = p0_2_it.p();
-    bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
+    bool p0_is_left = linear_alg_2d::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
     if (! p0_is_left)
     {
         backward_is_blocked = true;
@@ -496,7 +496,7 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPol
         const Point2LL p0_2 = p0_2_it.p();
         const Point2LL p2 = p2_it.p();
         Point2LL new_p0;
-        bool success = LinearAlg2D::getPointOnLineWithDist(p2, p0, p0_2, shortcut_length, new_p0);
+        bool success = linear_alg_2d::getPointOnLineWithDist(p2, p0, p0_2, shortcut_length, new_p0);
         // shortcut length must be possible given that last length was ok and new length is too long
         if (success)
         {
@@ -525,7 +525,7 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPol
         const Point2LL p2 = p2_it.p();
         const Point2LL p2_2 = p2_2_it.p();
         Point2LL new_p2;
-        bool success = LinearAlg2D::getPointOnLineWithDist(p0, p2, p2_2, shortcut_length, new_p2);
+        bool success = linear_alg_2d::getPointOnLineWithDist(p0, p2, p2_2, shortcut_length, new_p2);
         // shortcut length must be possible given that last length was ok and new length is too long
         if (success)
         {

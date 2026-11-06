@@ -12,9 +12,9 @@
 
 #include "types/Coord_t.h"
 #include "types/SVG.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/SingleShape.h"
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -326,8 +326,8 @@ TEST_F(PolygonTest, makeConvexPolygon)
     const auto convex_hull = shape[0];
 
     // test that all corners are convex
-    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
-    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
+    EXPECT_TRUE(linear_alg_2d::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
+    EXPECT_TRUE(linear_alg_2d::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
 
     for (const auto window : convex_hull | ranges::views::sliding(3))
     {
@@ -335,7 +335,7 @@ TEST_F(PolygonTest, makeConvexPolygon)
         const auto& b = window[1];
         const auto& c = window[2];
 
-        EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0);
+        EXPECT_TRUE(linear_alg_2d::pointIsLeftOfLine(b, a, c) < 0);
     }
 }
 

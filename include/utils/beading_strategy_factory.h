@@ -8,15 +8,11 @@
 #include "beading_strategy/BeadingStrategy.h"
 #include "types/Ratio.h"
 
-namespace curaengine::beading_strategy
+namespace curaengine::utils::beading_strategy_factory
 {
 using types::operator""_r;
 
-
-class BeadingStrategyFactory
-{
-public:
-    static BeadingStrategyPtr makeStrategy(
+    beading_strategy::BeadingStrategyPtr makeStrategy(
         const types::coord_t preferred_bead_width_outer = MM2INT(0.5),
         const types::coord_t preferred_bead_width_inner = MM2INT(0.5),
         const types::coord_t preferred_transition_length = MM2INT(0.4),
@@ -31,6 +27,4 @@ public:
         const types::coord_t inner_wall_offset = 0,
         const int inward_distributed_center_wall_count = 2,
         const types::Ratio minimum_variable_line_ratio = 0.5);
-};
-
-} // namespace curaengine::beading_strategy
+} // namespace curaengine::utils::beading_strategy_factory

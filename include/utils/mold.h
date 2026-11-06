@@ -11,11 +11,10 @@ namespace curaengine
 class Slicer;
 
 /*!
- * Class for transforming the outlines of a model into a mold into which the model can be cast.
+ * Functions for transforming the outlines of a model into a mold into which the model can be cast.
  */
-class Mold
+namespace utils::mold
 {
-public:
     /*!
      * \brief Convert the polygons (and open polylines) of each mold mesh in
      * \p storage in order to make a mold with a cutout in the shape of the
@@ -33,9 +32,7 @@ public:
      * \param layer_height The overall layer height used (used to compute an
      * offset from the mold angle).
      */
-    static void process(std::vector<Slicer*>& slicer_list);
-
-private:
-};
+    void process(std::vector<Slicer*>& slicer_list);
+} // namespace utils::mold
 
 } // namespace curaengine

@@ -7,7 +7,7 @@
 #include <limits>
 
 #include "types/AngleRadians.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"
@@ -72,10 +72,10 @@ coord_t AABB::distanceSquared(const Point2LL& p) const
     const Point2LL b = Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
          * std::min(
-               { LinearAlg2D::getDist2FromLineSegment(min_, a, p),
-                 LinearAlg2D::getDist2FromLineSegment(a, max_, p),
-                 LinearAlg2D::getDist2FromLineSegment(max_, b, p),
-                 LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
+               { linear_alg_2d::getDist2FromLineSegment(min_, a, p),
+                 linear_alg_2d::getDist2FromLineSegment(a, max_, p),
+                 linear_alg_2d::getDist2FromLineSegment(max_, b, p),
+                 linear_alg_2d::getDist2FromLineSegment(b, min_, p) });
 }
 
 coord_t AABB::distanceSquared(const AABB& other) const

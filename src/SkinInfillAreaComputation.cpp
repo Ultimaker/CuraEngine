@@ -22,7 +22,7 @@
 #include "types/AngleRadians.h"
 #include "types/EFillMethod.h"
 #include "types/Ratio.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "utils/math.h"
 
@@ -496,12 +496,12 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
         {
             // Skin can grow over flooring and roofing given the top_bottom_skin_merge_distance.
             constexpr bool allow_thin_areas_grow = true;
-            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.roofing_fill, allow_thin_areas_grow);
-            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.flooring_fill, allow_thin_areas_grow);
+            polygon_utils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.roofing_fill, allow_thin_areas_grow);
+            polygon_utils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.flooring_fill, allow_thin_areas_grow);
 
             constexpr bool do_not_allow_thin_areas_grow = false;
-            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.roofing_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
-            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.flooring_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
+            polygon_utils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.roofing_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
+            polygon_utils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.flooring_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
         }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "MultiVolumes.h"
+#include "utils/multi_volumes.h"
 
 #include <algorithm>
 
@@ -112,7 +112,10 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*>& volumes)
     }
 }
 
-void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes)
+namespace utils::multi_volumes
+{
+
+void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes)
 {
     // Modifier mesh that change the extruder are treated differently: their volume is removed from regular meshes, then they are intersected with them, and the remainder
     // is subsequently treated as a regular mesh
@@ -245,5 +248,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector
         }
     }
 }
+
+} // namespace utils::multi_volumes
 
 } // namespace curaengine

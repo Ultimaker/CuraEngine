@@ -3,7 +3,7 @@
 
 #include "SupportInfillPart.h"
 
-#include "AreaSupport.h"
+#include "utils/area_support.h"
 
 namespace curaengine
 {

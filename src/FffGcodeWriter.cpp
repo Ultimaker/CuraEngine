@@ -25,7 +25,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "Mesh.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "RetractionAndWipeConfig.h"
 #include "SkinPart.h"
 #include "Slice.h"
@@ -51,12 +51,12 @@
 #include "types/InfillStartEndPreference.h"
 #include "types/RetractBeforeOuterWall.h"
 #include "types/ThreadPool.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/OrderOptimizer.h"
 #include "types/geometry/PointMatrix.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "types/geometry/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 #include "utils/math.h"
@@ -182,7 +182,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             if (extruder_is_used_in_filler_layers)
             {
-                process_layer_starting_layer_nr = -static_cast<int>(Raft::getFillerLayerCount());
+                process_layer_starting_layer_nr = -static_cast<int>(raft::getFillerLayerCount());
                 break;
             }
         }
@@ -230,7 +230,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         {
             seam_pos = mesh.getZSeamHint();
         }
-        return PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx_;
+        return polygon_utils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx_;
     }
     else
     {
@@ -247,7 +247,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
         // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
 
-        int seam_vertex_idx = PolygonUtils::findNearestVert(last_wall_seam_vertex, wall);
+        int seam_vertex_idx = polygon_utils::findNearestVert(last_wall_seam_vertex, wall);
 
         // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
         // and if it isn't, we move forward
@@ -255,19 +255,19 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         if (types::geometry::vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             // get the inward normal of the last layer seam vertex
-            Point2LL last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
+            Point2LL last_wall_seam_vertex_inward_normal = polygon_utils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
 
             // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
             Point2LL last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
             // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
-            double a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            double a = linear_alg_2d::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
             if (a <= 0 || a >= std::numbers::pi)
             {
                 // the vertex was not on the left of the vector so move the seam vertex on
                 seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
-                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+                a = linear_alg_2d::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
             }
         }
 
@@ -633,7 +633,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
 
     coord_t z = 0;
-    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
+    const LayerIndex initial_raft_layer_nr = -LayerIndex(raft::getTotalExtraLayers());
     const Settings& interface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const size_t num_interface_layers = interface_settings.get<size_t>("raft_interface_layers");
     const Settings& surface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -1210,9 +1210,9 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 #ifdef DEBUG
         assert(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Raft && "negative layer_number means post-raft, pre-model layer!");
 #endif // DEBUG
-        const int filler_layer_count = Raft::getFillerLayerCount();
-        layer_thickness = Raft::getFillerLayerHeight();
-        z = Raft::getTotalThickness() + (filler_layer_count + layer_nr + 1) * layer_thickness;
+        const int filler_layer_count = raft::getFillerLayerCount();
+        layer_thickness = raft::getFillerLayerHeight();
+        z = raft::getTotalThickness() + (filler_layer_count + layer_nr + 1) * layer_thickness;
     }
     else
     {
@@ -1629,7 +1629,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -LayerIndex(raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer.push_back(extruder_order);
@@ -1648,7 +1648,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
-    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
+    LayerIndex first_print_layer = -LayerIndex(raft::getTotalExtraLayers());
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
@@ -1682,10 +1682,10 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
-    Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
+    const LayerIndex raft_base_layer_nr = -LayerIndex(raft::getTotalExtraLayers());
+    RaftLayerType layer_type = raft::getLayerType(layer_nr);
 
-    if (layer_type == Raft::RaftBase)
+    if (layer_type == RaftLayerType::RaftBase)
     {
         // Raft base layers area treated apart because they don't have a proper prime tower
         const size_t raft_base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
@@ -2598,7 +2598,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers()))
+    else if (layer_nr <= -LayerIndex(raft::getTotalExtraLayers()))
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);
@@ -3046,9 +3046,9 @@ std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& fil
     // and rotate the vector so that it is normal to the skin angle
     const Point2LL vec = rot.apply(Point2LL(0, types::geometry::vSize(skin_part_bb.max_ - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
-    const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
+    const PolygonsPointIndex pa = polygon_utils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
-    const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
+    const PolygonsPointIndex pb = polygon_utils::findNearestVert(bb_middle - vec, filling_part);
     if (! pa.initialized() || ! pb.initialized())
     {
         return std::optional<Point2LL>();

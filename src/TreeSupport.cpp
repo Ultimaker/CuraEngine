@@ -21,13 +21,13 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "AreaSupport.h"
+#include "utils/area_support.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportTipGenerator.h"
-#include "TreeSupportUtils.h"
+#include "utils/tree_support_utils.h"
 #include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
@@ -35,7 +35,7 @@
 #include "types/OBJ.h"
 #include "types/SectionType.h"
 #include "types/ThreadPool.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "utils/algorithm.h"
 #include "utils/math.h"
@@ -121,7 +121,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
     if (storage.support.cross_fill_provider == nullptr)
     {
-        AreaSupport::precomputeCrossInfillTree(storage);
+        area_support::precomputeCrossInfillTree(storage);
     }
 
     // Process every mesh group. These groups can not be processed parallel, as the processing in each group is parallelized, and nested parallelization is disables and slow.
@@ -376,7 +376,7 @@ void TreeSupport::mergeHelper(
                 //   a branch (of the larger collision radius) placed in this intersection, has already engulfed the branch of the smaller collision radius.
                 // Because of this a merge may happen even if the influence areas (that represent possible center points of branches) do not intersect yet.
                 // Remember that collision radius <= real radius as otherwise this assumption would be false.
-                const Shape small_rad_increased_by_big_minus_small = TreeSupportUtils::safeOffsetInc(
+                const Shape small_rad_increased_by_big_minus_small = tree_support_utils::safeOffsetInc(
                     smaller_rad.second,
                     real_radius_delta,
                     volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
@@ -405,7 +405,7 @@ void TreeSupport::mergeHelper(
                     Point2LL new_pos = reduced_check.first->next_position_;
                     if (! intersect.inside(new_pos, true))
                     {
-                        PolygonUtils::moveInside(intersect, new_pos);
+                        polygon_utils::moveInside(intersect, new_pos);
                     }
 
                     if (increased_to_model_radius == 0)
@@ -430,7 +430,7 @@ void TreeSupport::mergeHelper(
                                                                                       : (infl_areas.count(smaller_rad.first) ? infl_areas.at(smaller_rad.first) : Shape());
                         const Shape infl_big = insert_infl.count(bigger_rad.first) ? insert_infl.at(bigger_rad.first)
                                                                                    : (infl_areas.count(bigger_rad.first) ? infl_areas.at(bigger_rad.first) : Shape());
-                        const Shape small_rad_increased_by_big_minus_small_infl = TreeSupportUtils::safeOffsetInc(
+                        const Shape small_rad_increased_by_big_minus_small_infl = tree_support_utils::safeOffsetInc(
                             infl_small,
                             real_radius_delta,
                             volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
@@ -445,13 +445,13 @@ void TreeSupport::mergeHelper(
 
                     Shape intersect_influence;
                     intersect_influence
-                        = TreeSupportUtils::safeUnion(intersect, getIntersectInfluence(insert_influence, influence_areas)); // Rounding errors again. Do not ask me where or why.
+                        = tree_support_utils::safeUnion(intersect, getIntersectInfluence(insert_influence, influence_areas)); // Rounding errors again. Do not ask me where or why.
 
                     Shape intersect_to_model;
                     if (merging_to_bp && config.support_rests_on_model)
                     {
                         intersect_to_model = getIntersectInfluence(insert_model_areas, to_model_areas);
-                        intersect_influence = TreeSupportUtils::safeUnion(intersect_influence, intersect_to_model); // Still rounding errors.
+                        intersect_influence = tree_support_utils::safeUnion(intersect_influence, intersect_to_model); // Still rounding errors.
                     }
 
                     // Remove the now merged elements from all buckets, as they do not exist anymore in their old form.
@@ -662,7 +662,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                                                  + (std::min(config.z_distance_top_layers, config.z_distance_bottom_layers) > 0 ? config.min_feature_size : 0);
             // The difference to ensure that the result not only conforms to wall_restriction, but collision/avoidance is done later.
             // The higher last_safe_step_movement_distance comes exactly from the fact that the collision will be subtracted later.
-            increased = TreeSupportUtils::safeOffsetInc(
+            increased = tree_support_utils::safeOffsetInc(
                 increased,
                 overspeed,
                 volumes_.getWallRestriction(config.getCollisionRadius(parent), layer_idx, parent->use_min_xy_dist_),
@@ -684,7 +684,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
 
     if ((mergelayer || current_elem->to_buildplate_) && config.support_rest_preference == RestPreference::BuildPlate)
     {
-        to_bp_data = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)));
+        to_bp_data = tree_support_utils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)));
         if (! current_elem->to_buildplate_ && to_bp_data.area() > 1) // mostly happening in the tip, but with merges one should check every time, just to be sure.
         {
             current_elem->to_buildplate_ = true; // sometimes nodes that can reach the buildplate are marked as cant reach, tainting subtrees. This corrects it.
@@ -695,7 +695,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
     {
         if (mergelayer || current_elem->to_model_gracious_)
         {
-            to_model_data = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, true, settings.use_min_distance_)));
+            to_model_data = tree_support_utils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, true, settings.use_min_distance_)));
         }
 
         if (! current_elem->to_model_gracious_)
@@ -708,7 +708,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
             else
             {
                 to_model_data
-                    = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, AvoidanceType::Collision, true, settings.use_min_distance_)));
+                    = tree_support_utils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, AvoidanceType::Collision, true, settings.use_min_distance_)));
             }
         }
     }
@@ -824,11 +824,11 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
         {
             if (current_elem->to_buildplate_)
             {
-                to_bp_data = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)));
+                to_bp_data = tree_support_utils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)));
             }
             if (config.support_rests_on_model && (! current_elem->to_buildplate_ || mergelayer))
             {
-                to_model_data = TreeSupportUtils::safeUnion(increased.difference(
+                to_model_data = tree_support_utils::safeUnion(increased.difference(
                     volumes_.getAvoidance(radius, layer_idx - 1, current_elem->to_model_gracious_ ? settings.type_ : AvoidanceType::Collision, true, settings.use_min_distance_)));
             }
             check_layer_data = current_elem->to_buildplate_ ? to_bp_data : to_model_data;
@@ -852,8 +852,8 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                 + config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0))));
         bool limit_range_validated = false;
         // Rounding errors in a while loop can cause non-termination, so better safe than sorry. See https://github.com/Ultimaker/Cura/issues/14133 for an example.
-        to_bp_data = TreeSupportUtils::safeUnion(to_bp_data);
-        to_model_data = TreeSupportUtils::safeUnion(to_model_data);
+        to_bp_data = tree_support_utils::safeUnion(to_bp_data);
+        to_model_data = tree_support_utils::safeUnion(to_model_data);
         while (! limit_range_validated)
         {
             if (current_elem->to_buildplate_)
@@ -1101,7 +1101,7 @@ void TreeSupport::increaseAreas(
                 {
                     if (offset_slow.empty() && (settings.increase_speed_ == slow_speed || ! offset_independent_faster))
                     {
-                        offset_slow = TreeSupportUtils::safeOffsetInc(
+                        offset_slow = tree_support_utils::safeOffsetInc(
                                           *parent->area_,
                                           extra_speed + extra_slow_speed + config.maximum_move_distance_slow,
                                           wall_restriction,
@@ -1118,7 +1118,7 @@ void TreeSupport::increaseAreas(
                     {
                         if (offset_independent_faster)
                         {
-                            offset_fast = TreeSupportUtils::safeOffsetInc(
+                            offset_fast = tree_support_utils::safeOffsetInc(
                                               *parent->area_,
                                               extra_speed + config.maximum_move_distance,
                                               wall_restriction,
@@ -1132,7 +1132,7 @@ void TreeSupport::increaseAreas(
                         else
                         {
                             const coord_t delta_slow_fast = config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed);
-                            offset_fast = TreeSupportUtils::safeOffsetInc(
+                            offset_fast = tree_support_utils::safeOffsetInc(
                                               offset_slow,
                                               delta_slow_fast,
                                               wall_restriction,
@@ -1152,7 +1152,7 @@ void TreeSupport::increaseAreas(
                 {
                     // If the area becomes for whatever reason something that clipper sees as a line, offset would stop working, so ensure that even if if wrongly would be a line,
                     // it still actually has an area that can be increased
-                    Shape lines_offset = TreeSupportUtils::toPolylines(*parent->area_).offset(EPSILON);
+                    Shape lines_offset = tree_support_utils::toPolylines(*parent->area_).offset(EPSILON);
                     Shape base_error_area = parent->area_->unionPolygons(lines_offset);
                     result = increaseSingleArea(settings, layer_idx, parent, base_error_area, to_bp_data, to_model_data, inc_wo_collision, settings.increase_speed_, mergelayer);
 
@@ -1240,9 +1240,9 @@ void TreeSupport::increaseAreas(
 
             if (add)
             {
-                Shape max_influence_area = TreeSupportUtils::safeUnion(
+                Shape max_influence_area = tree_support_utils::safeUnion(
                     inc_wo_collision.difference(volumes_.getCollision(radius, layer_idx - 1, elem->use_min_xy_dist_)),
-                    TreeSupportUtils::safeUnion(to_bp_data, to_model_data));
+                    tree_support_utils::safeUnion(to_bp_data, to_model_data));
                 // ^^^ Note: union seems useless, but some rounding errors somewhere can cause to_bp_data to be slightly bigger than it should be
 
                 {
@@ -1346,7 +1346,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
         for (std::pair<TreeSupportElement::Ptr, Shape> tup : influence_areas)
         {
             const TreeSupportElement::Ptr elem = tup.first;
-            Shape* new_area = new Shape(TreeSupportUtils::safeUnion(tup.second));
+            Shape* new_area = new Shape(tree_support_utils::safeUnion(tup.second));
             auto next = TreeSupportElement::makeCopy(elem, new_area);
             move_bounds[layer_idx - 1].emplace(next);
 
@@ -1395,7 +1395,7 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement::Ptr elem)
         Point2LL from = elem->result_on_layer_;
         if (! (next_elem->area_->inside(from, true)))
         {
-            PolygonUtils::moveInside(
+            polygon_utils::moveInside(
                 *next_elem->area_,
                 from,
                 0); // Move inside has edgecases (see tests) so DONT use Polygons.inside to confirm correct move, Error with distance 0 is <= 1
@@ -1486,7 +1486,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
 
         if (! valid_place_area.inside(best, true))
         {
-            PolygonUtils::moveInside(valid_place_area, best);
+            polygon_utils::moveInside(valid_place_area, best);
         }
 
         checked[last_successfull_layer - layer_idx]->result_on_layer_ = best;
@@ -1504,7 +1504,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
         {
             if (! valid_place_area.empty())
             {
-                PolygonUtils::moveInside(valid_place_area, best);
+                polygon_utils::moveInside(valid_place_area, best);
             }
             else
             {
@@ -1516,7 +1516,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
                     valid_place_area = first_elem->area_->intersection(volumes_.getAccumulatedPlaceable0(layer_idx).offset(radius_offset));
                     if (! valid_place_area.empty())
                     {
-                        PolygonUtils::moveInside(valid_place_area, best);
+                        polygon_utils::moveInside(valid_place_area, best);
                         spdlog::warn(
                             "Not able to place branch fully on non support blocker at layer {} using offset {} for radius {}",
                             layer_idx,
@@ -1528,7 +1528,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
                 }
                 if (! found_partial_placement)
                 {
-                    PolygonUtils::moveInside(*first_elem->area_, best);
+                    polygon_utils::moveInside(*first_elem->area_, best);
                     spdlog::warn("Not able to place branch on non support blocker at layer {}", layer_idx);
                 }
             }
@@ -1550,7 +1550,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
         Point2LL p = init->next_position_;
         if (! (init->area_->inside(p, true)))
         {
-            PolygonUtils::moveInside(*init->area_, p, 0);
+            polygon_utils::moveInside(*init->area_, p, 0);
         }
         init->result_on_layer_ = p;
 
@@ -1760,7 +1760,7 @@ void TreeSupport::generateBranchAreas(
                             {
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
                                 Point2LL from = elem->result_on_layer_;
-                                PolygonUtils::moveInside(part, from, 0);
+                                polygon_utils::moveInside(part, from, 0);
                                 if (types::geometry::vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
                                 {
                                     polygons_with_correct_center = polygons_with_correct_center.unionPolygons(part);
@@ -2024,7 +2024,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(PolygonUtils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
+            support_layer_storage[layer_idx] = config.simplifier.polygon(polygon_utils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
                                                    .offset(-open_close_distance)
                                                    .offset(open_close_distance * 2)
                                                    .offset(-open_close_distance);
@@ -2097,11 +2097,11 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                     // larger changes.
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
-                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
+                else if (! hole.intersection(polygon_utils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
                 {
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
-                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(-config.xy_min_distance / 2).empty())
+                else if (! hole.intersection(polygon_utils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(-config.xy_min_distance / 2).empty())
                 {
                     // technically not resting outside, also not valid, but the alternative is potentially having lines go through the model
                     holes_resting_outside[layer_idx].emplace(idx);
@@ -2111,7 +2111,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                     for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                     {
                         // TODO should technically be outline: Check if this is fine either way as it would save an offset
-                        if (hole_aabb.hit(AABB(hole2)) && ! hole.intersection(PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
+                        if (hole_aabb.hit(AABB(hole2)) && ! hole.intersection(polygon_utils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
                         {
                             hole_rest_map[layer_idx][idx].emplace_back(idx2);
                         }
@@ -2221,7 +2221,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             for (FakeRoofArea& f_roof : fake_roof_areas[layer_idx])
             {
                 fake_roof_lines.push_back(
-                    TreeSupportUtils::generateSupportInfillLines(f_roof.area_, config, false, layer_idx, f_roof.line_distance_, storage.support.cross_fill_provider, false)
+                    tree_support_utils::generateSupportInfillLines(f_roof.area_, config, false, layer_idx, f_roof.line_distance_, storage.support.cross_fill_provider, false)
                         .offset(config.support_line_width / 2));
             }
             fake_roof_lines = fake_roof_lines.unionPolygons();
@@ -2245,7 +2245,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 case InterfacePreference::InterfaceLinesOverwriteSupport:
                 {
-                    Shape interface_lines = TreeSupportUtils::generateSupportInfillLines(
+                    Shape interface_lines = tree_support_utils::generateSupportInfillLines(
                                                 storage.support.supportLayers[layer_idx].support_roof,
                                                 config,
                                                 true,
@@ -2262,7 +2262,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 {
                     Shape tree_lines;
                     tree_lines = tree_lines.unionPolygons(
-                        TreeSupportUtils::generateSupportInfillLines(
+                        tree_support_utils::generateSupportInfillLines(
                             support_layer_storage[layer_idx],
                             config,
                             false,
@@ -2482,7 +2482,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
             for (std::pair<TreeSupportElement::Ptr, Shape> data_pair : layer_tree_polygons[layer_idx])
             {
                 if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_
-                    && TreeSupportUtils::generateSupportInfillLines(data_pair.second, config, true, layer_idx, config.support_roof_line_distance, nullptr, true).empty())
+                    && tree_support_utils::generateSupportInfillLines(data_pair.second, config, true, layer_idx, config.support_roof_line_distance, nullptr, true).empty())
                 {
                     std::vector<TreeSupportElement::Ptr> to_disable_roofs;
                     to_disable_roofs.emplace_back(data_pair.first);

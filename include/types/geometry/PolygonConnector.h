@@ -9,10 +9,10 @@
 #include <vector>
 
 #include "types/Ratio.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/Point2LL.h"
 #include "types/geometry/Polygon.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "utils/math.h"
 
 #ifdef BUILD_TESTS
@@ -461,10 +461,10 @@ protected:
                     const coord_t smallest_from_width = std::min(from_width1, from_width2);
 
                     // Try a naive distance first. Faster to compute, but it may estimate the distance too small.
-                    coord_t naive_dist = LinearAlg2D::getDistFromLine(from_pos1, to_pos1, to_pos2);
+                    coord_t naive_dist = utils::linear_alg_2d::getDistFromLine(from_pos1, to_pos1, to_pos2);
                     if (naive_dist - from_width1 - smallest_to_width < line_width_ * max_gap_)
                     {
-                        const types::geometry::Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
+                        const types::geometry::Point2LL closest_point = utils::linear_alg_2d::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
                         if (closest_point == to_pos2) // The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
                         {
                             continue;
@@ -488,10 +488,10 @@ protected:
                     }
 
                     // Also try the other way around: From the line segment of the from_poly to a vertex in the to_polygons.
-                    naive_dist = LinearAlg2D::getDistFromLine(to_pos1, from_pos1, from_pos2);
+                    naive_dist = utils::linear_alg_2d::getDistFromLine(to_pos1, from_pos1, from_pos2);
                     if (naive_dist - smallest_from_width - to_width1 < line_width_ * max_gap_)
                     {
-                        const types::geometry::Point2LL closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
+                        const types::geometry::Point2LL closest_point = utils::linear_alg_2d::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
                         if (closest_point == from_pos2) // The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
                         {
                             continue;
@@ -549,7 +549,7 @@ protected:
         }
 
         // Ensure that B is always the right connection and A the left.
-        if (LinearAlg2D::pointIsLeftOfLine(connection->b_.from_point_, connection->a_.from_point_, connection->a_.to_point_) > 0)
+        if (utils::linear_alg_2d::pointIsLeftOfLine(connection->b_.from_point_, connection->a_.from_point_, connection->a_.to_point_) > 0)
         {
             std::swap(connection->a_, connection->b_);
         }
@@ -662,14 +662,14 @@ protected:
                 continue;
             }
             // Find the shortest of the connections in the to_poly.
-            const bool original_side = LinearAlg2D::pointIsLeftOfLine(first.to_point_, first.from_point_, from_intersection->first) > 0;
+            const bool original_side = utils::linear_alg_2d::pointIsLeftOfLine(first.to_point_, first.from_point_, from_intersection->first) > 0;
             for (const std::optional<std::pair<types::geometry::Point2LL, size_t>>& to_intersection : { to_forward_intersection, to_backward_intersection })
             {
                 if (! to_intersection)
                 {
                     continue;
                 }
-                const bool current_side = LinearAlg2D::pointIsLeftOfLine(to_intersection->first, first.from_point_, from_intersection->first) > 0;
+                const bool current_side = utils::linear_alg_2d::pointIsLeftOfLine(to_intersection->first, first.from_point_, from_intersection->first) > 0;
                 if (original_side != current_side)
                 {
                     continue;

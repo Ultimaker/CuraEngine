@@ -1,30 +1,31 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "types/geometry/VoronoiUtils.h"
+#include "utils/voronoi_utils.h"
 
 #include <optional>
 #include <stack>
 
 #include <spdlog/spdlog.h>
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/conversions/Point2D_Point2LL.h"
 #include "utils/macros.h"
 
-namespace curaengine::types::geometry
+namespace curaengine::utils::voronoi_utils
 {
 
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-Point2LL VoronoiUtils::p(const vd_t::vertex_type* node)
+Point2LL p(const vd_t::vertex_type* node)
 {
     return Point2LL(node->x(), node->y());
 }
 
-bool VoronoiUtils::isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist)
+bool isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist)
 {
     if (cell.contains_point())
     {
@@ -37,7 +38,7 @@ bool VoronoiUtils::isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell,
     }
 }
 
-coord_t VoronoiUtils::getDistance(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+coord_t getDistance(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
 {
     if (cell.contains_point())
     {
@@ -46,11 +47,11 @@ coord_t VoronoiUtils::getDistance(const Point2LL& p, const vd_t::cell_type& cell
     else
     {
         const Segment& segment = getSourceSegment(cell, points, segments);
-        return sqrt(LinearAlg2D::getDist2FromLineSegment(segment.from(), p, segment.to()));
+        return sqrt(linear_alg_2d::getDist2FromLineSegment(segment.from(), p, segment.to()));
     }
 }
 
-Point2LL VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+Point2LL getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
     if (! cell.contains_point())
@@ -77,7 +78,7 @@ Point2LL VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::ve
     return points[cell.source_index()];
 }
 
-PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+PolygonsPointIndex getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
     if (! cell.contains_point())
@@ -109,7 +110,7 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
     return ++ret;
 }
 
-const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
+const Segment& getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_segment());
     if (! cell.contains_segment())
@@ -120,7 +121,7 @@ const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_typ
 }
 
 
-std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const Segment& segment, Point2LL s, Point2LL e, coord_t approximate_step_size, double transitioning_angle)
+std::vector<Point2LL> discretizeParabola(const Point2LL& p, const Segment& segment, Point2LL s, Point2LL e, coord_t approximate_step_size, double transitioning_angle)
 {
     std::vector<Point2LL> discretized;
     // x is distance of point projected on the segment ab
@@ -138,7 +139,7 @@ std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const 
     const Point2LL ap = p - a;
     const coord_t px = types::geometry::dot(ap, ab) / ab_size;
 
-    const Point2LL pxx = LinearAlg2D::getClosestOnLine(p, a, b);
+    const Point2LL pxx = linear_alg_2d::getClosestOnLine(p, a, b);
     const Point2LL ppxx = pxx - p;
     const coord_t d = types::geometry::vSize(ppxx);
     const PointMatrix rot = PointMatrix(types::geometry::turn90CCW(ppxx));
@@ -244,7 +245,7 @@ DEALINGS IN THE SOFTWARE.
 */
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, const coord_t max_dist, std::vector<Point2LL>* discretization)
+void discretize(const Point2LL& point, const Segment& segment, const coord_t max_dist, std::vector<Point2LL>* discretization)
 {
     // Apply the linear transformation to move start point of the segment to
     // the point with coordinates (0, 0) and the direction of the segment to
@@ -310,13 +311,13 @@ void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, con
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-coord_t VoronoiUtils::parabolaY(coord_t x, coord_t a, coord_t b)
+coord_t parabolaY(coord_t x, coord_t a, coord_t b)
 {
     return ((x - a) * (x - a) + b * b) / (b + b);
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-double VoronoiUtils::getPointProjection(const Point2LL& point, const Segment& segment)
+double getPointProjection(const Point2LL& point, const Segment& segment)
 {
     Point2LL segment_vec = segment.to() - segment.from();
     Point2LL point_vec = point - segment.from();
@@ -325,4 +326,4 @@ double VoronoiUtils::getPointProjection(const Point2LL& point, const Segment& se
     return static_cast<double>(vec_dot) / sqr_segment_length;
 }
 
-} // namespace curaengine::types::geometry
+} // namespace curaengine::utils::voronoi_utils

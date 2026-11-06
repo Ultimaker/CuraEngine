@@ -3,7 +3,7 @@
 
 #include "types/scoring/CornerScoringCriterion.h"
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointsSet.h"
 #include "utils/math.h"
 
@@ -78,7 +78,7 @@ double CornerScoringCriterion::cornerAngle(size_t vertex_index, const coord_t an
     const Point2LL next = findNeighbourPoint(vertex_index, bounded_distance);
     const Point2LL previous = findNeighbourPoint(vertex_index, -bounded_distance);
 
-    double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
+    double angle = linear_alg_2d::getAngleLeft(previous, here, next) - std::numbers::pi;
 
     return angle / std::numbers::pi;
 }

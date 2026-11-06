@@ -14,7 +14,7 @@
 #include "types/geometry/Matrix4x3D.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Polygon.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::types
 {
@@ -180,7 +180,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
             Polygon sliced_polygon = layer.polygons_[0];
             // Due to the reduction in resolution, the final slice will not have the same vertices as the input.
             // Let's say that are allowed to be up to 1/500th of the surface area off.
-            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons_, circles), 0.002);
+            EXPECT_LE(polygon_utils::relativeHammingDistance(layer.polygons_, circles), 0.002);
         }
     }
 }

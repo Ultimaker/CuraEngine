@@ -24,7 +24,7 @@
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 // clang-format off
 #include "Application.h"
-#include "ConicalOverhang.h"
+#include "utils/conical_overhang.h"
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
 #include "infill/Infill.h"
@@ -32,17 +32,17 @@
 #include "layerPart.h"
 #include "MeshGroup.h"
 #include "mesh_material_splitter/MeshMaterialSplitter.h"
-#include "Mold.h"
-#include "MultiVolumes.h"
+#include "utils/mold.h"
+#include "utils/multi_volumes.h"
 #include "PrintFeatureType.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "SkinInfillAreaComputation.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
 #include "TextureDataProvider.h"
 #include "SliceDataStorage.h"
 #include "Slicer.h"
-#include "AreaSupport.h"
+#include "utils/area_support.h"
 #include "TopSurface.h"
 #include "TreeSupport.h"
 #include "WallsComputation.h"
@@ -246,7 +246,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
     meshgroup->clear();
 
-    Mold::process(slicerList);
+    mold::process(slicerList);
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
@@ -255,11 +255,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh")
             && (! mesh.settings_.has("force_support_overhang_mesh") || ! mesh.settings_.get<bool>("force_support_overhang_mesh")))
         {
-            ConicalOverhang::apply(slicerList[mesh_idx], mesh);
+            conical_overhang::apply(slicerList[mesh_idx], mesh);
         }
     }
 
-    MultiVolumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
+    multi_volumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
 
     Progress::messageProgressStage(Progress::Stage::Parts, &timeKeeper);
 
@@ -300,14 +300,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         SliceMeshStorage& meshStorage = *storage.meshes.back();
 
         // only create layer parts for normal meshes
-        const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings_, slicer);
+        const bool is_support_modifier = area_support::handleSupportModifierMesh(storage, mesh.settings_, slicer);
         if (! is_support_modifier)
         {
             createLayerParts(meshStorage, slicer);
         }
 
         // Do not add and process support _modifier_ meshes further, and ONLY skip support _modifiers_. They have been
-        // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
+        // processed in area_support::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
         // processed in a later stage, except for support mesh itself, so an exception is made for that.
         if (is_support_modifier && ! mesh.settings_.get<bool>("support_mesh"))
         {
@@ -351,7 +351,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             if (has_raft)
             {
                 const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-                layer.printZ += Raft::getTotalThickness() + train.settings_.get<coord_t>("raft_airgap")
+                layer.printZ += raft::getTotalThickness() + train.settings_.get<coord_t>("raft_airgap")
                               - train.settings_.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
@@ -432,8 +432,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::Support, &time_keeper);
 
-    AreaSupport::generateOverhangAreas(storage);
-    AreaSupport::generateSupportAreas(storage);
+    area_support::generateOverhangAreas(storage);
+    area_support::generateSupportAreas(storage);
     TreeSupport tree_support_generator(storage);
     tree_support_generator.generateSupportAreas(storage);
 
@@ -442,7 +442,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // handle helpers
     storage.initializePrimeTower();
 
-    AreaSupport::generateSupportBase(storage);
+    area_support::generateSupportBase(storage);
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -467,7 +467,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     spdlog::debug("Processing gradual support");
     // generate gradual support
-    AreaSupport::generateSupportInfillFeatures(storage);
+    area_support::generateSupportInfillFeatures(storage);
 
     // Pre-compute lightning fill
     if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::Lightning)
@@ -896,7 +896,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    const int raft_layers = Raft::getTotalExtraLayers();
+    const int raft_layers = raft::getTotalExtraLayers();
     max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); // Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         // Height of the meshes themselves.
@@ -1092,7 +1092,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
     if (adhesion_type == EPlatformAdhesion::Raft)
     {
-        Raft::generate(storage);
+        raft::generate(storage);
         return;
     }
 

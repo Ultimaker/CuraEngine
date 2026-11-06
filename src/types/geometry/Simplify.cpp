@@ -9,7 +9,7 @@
 #include "Settings.h"
 #include "types/geometry/ClosedPolyline.h"
 #include "types/geometry/ExtrusionLine.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/MixedLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
 
@@ -329,7 +329,7 @@ coord_t Simplify::importance(const Polygonal& polygon, const std::vector<bool>& 
 
     const Point2LL& before = getPosition(polygon[before_index]);
     const Point2LL& after = getPosition(polygon[after_index]);
-    const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
+    const coord_t deviation2 = linear_alg_2d::getDist2FromLine(vertex, before, after);
     if (deviation2 <= min_resolution * min_resolution) // Deviation so small that it's always desired to remove them.
     {
         return deviation2;
@@ -396,12 +396,12 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
         after_to = getPosition(polygon[after_after]);
     }
     Point2LL intersection;
-    const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
+    const bool did_intersect = linear_alg_2d::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
     if (! did_intersect) // Lines are parallel.
     {
         return false; // Cannot remove edge without shifting a long edge. Don't remove anything.
     }
-    const coord_t intersection_deviation = LinearAlg2D::getDist2FromLineSegment(before_to, intersection, after_from);
+    const coord_t intersection_deviation = linear_alg_2d::getDist2FromLineSegment(before_to, intersection, after_from);
     if (intersection_deviation <= max_deviation_ * max_deviation_) // Intersection point doesn't deviate too much. Use it!
     {
         to_delete[vertex] = true;

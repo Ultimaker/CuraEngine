@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "beading_strategy/BeadingStrategyFactory.h"
+#include "utils/beading_strategy_factory.h"
 
 #include <limits>
 
@@ -14,12 +14,13 @@
 #include "beading_strategy/RedistributeBeadingStrategy.h"
 #include "beading_strategy/WideningBeadingStrategy.h"
 
-namespace curaengine::beading_strategy
+namespace curaengine::utils::beading_strategy_factory
 {
+using namespace beading_strategy;
 using namespace types;
 using namespace utils;
 
-BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
+BeadingStrategyPtr makeStrategy(
     const coord_t preferred_bead_width_outer,
     const coord_t preferred_bead_width_inner,
     const coord_t preferred_transition_length,
@@ -66,4 +67,4 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
     ret = std::make_unique<LimitedBeadingStrategy>(max_bead_count, std::move(ret));
     return ret;
 }
-} // namespace curaengine::beading_strategy
+} // namespace curaengine::utils::beading_strategy_factory

@@ -4,7 +4,7 @@
 #include "types/geometry/VoxelUtils.h"
 
 #include "interlocking/DilationKernel.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::types::geometry
 {
@@ -104,7 +104,7 @@ bool VoxelUtils::walkAreas(const Shape& polys, coord_t z, const std::function<bo
 
 bool VoxelUtils::_walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    std::vector<Point2LL> skin_points = PolygonUtils::spreadDotsArea(polys, Point2LL(cell_size_.x_, cell_size_.y_));
+    std::vector<Point2LL> skin_points = polygon_utils::spreadDotsArea(polys, Point2LL(cell_size_.x_, cell_size_.y_));
     for (Point2LL p : skin_points)
     {
         bool continue_ = process_cell_func(toGridPoint(Point3LL(p.X + cell_size_.x_ / 2, p.Y + cell_size_.y_ / 2, z)));

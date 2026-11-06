@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "infill/lightning/LightningLayer.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

@@ -19,7 +19,7 @@
 #include "types/geometry.h"
 #include "types/geometry/AABB.h"
 #include "types/geometry/ExpansionRange.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/SegmentOverlapping.h"
@@ -429,7 +429,7 @@ void updateExpandedPolygon(
             {
                 // This is an unprojected range, use the raw segment
                 const coord_t position_switch_y = expand_direction > 0 ? expanded_range.minY() : expanded_range.maxY();
-                next_start_position = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
+                next_start_position = Point2LL(linear_alg_2d::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
             }
             else
             {
@@ -438,7 +438,7 @@ void updateExpandedPolygon(
 
             // Add point to close anchoring to previous infill line
             expanded_polygon.pushBackIfFormingSegment(Point2LL(
-                LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
+                linear_alg_2d::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
                     .value_or(0),
                 next_start_position.Y));
 

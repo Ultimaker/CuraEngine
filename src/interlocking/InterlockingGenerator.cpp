@@ -17,7 +17,7 @@
 #include "types/LayerIndex.h"
 #include "interlocking/DilationKernel.h"
 #include "types/geometry/PointMatrix.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/VoxelUtils.h"
 
 namespace curaengine::interlocking

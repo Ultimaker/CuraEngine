@@ -7,7 +7,7 @@
 #include <optional>
 
 #include "infill/lightning/LightningTreeNode.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::infill::lightning
 {

@@ -49,7 +49,7 @@ endif ()
 
 set(engine_SRCS # Except main.cpp.
         src/Application.cpp
-        src/ConicalOverhang.cpp
+        src/utils/conical_overhang.cpp
         src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
         src/FffGcodeWriter.cpp
@@ -66,8 +66,8 @@ set(engine_SRCS # Except main.cpp.
         src/Mesh.cpp
         src/MeshGroup.cpp
         src/mesh_material_splitter/MeshMaterialSplitter.cpp
-        src/Mold.cpp
-        src/MultiVolumes.cpp
+        src/utils/mold.cpp
+        src/utils/multi_volumes.cpp
         src/PathOrdering.cpp
         src/PathAdapter.cpp
         src/PathOrderMonotonic.cpp
@@ -76,7 +76,7 @@ set(engine_SRCS # Except main.cpp.
         src/prime_tower/PrimeTower.cpp
         src/prime_tower/PrimeTowerNormal.cpp
         src/prime_tower/PrimeTowerInterleaved.cpp
-        src/Raft.cpp
+        src/utils/raft.cpp
         src/Scene.cpp
         src/SkinInfillAreaComputation.cpp
         src/SkirtBrim.cpp
@@ -90,7 +90,7 @@ set(engine_SRCS # Except main.cpp.
         src/SliceDataStorage.cpp
         src/Slicer.cpp
         src/SlicerLayer.cpp
-        src/AreaSupport.cpp
+        src/utils/area_support.cpp
         src/TimeEstimateCalculator.cpp
         src/SlicedUVCoordinates.cpp
         src/TextureDataProvider.cpp
@@ -108,7 +108,7 @@ set(engine_SRCS # Except main.cpp.
         src/arachne/STHalfEdgeNode.cpp
 
         src/beading_strategy/BeadingStrategy.cpp
-        src/beading_strategy/BeadingStrategyFactory.cpp
+        src/utils/beading_strategy_factory.cpp
         src/beading_strategy/DistributedBeadingStrategy.cpp
         src/beading_strategy/LimitedBeadingStrategy.cpp
         src/beading_strategy/RedistributeBeadingStrategy.cpp
@@ -192,7 +192,7 @@ set(engine_SRCS # Except main.cpp.
         src/types/geometry/ExtrusionLine.cpp
         src/types/geometry/ExtrusionSegment.cpp
         src/types/TimeKeeper.cpp
-        src/types/geometry/LinearAlg2D.cpp
+        src/utils/linear_alg_2d.cpp
         src/types/geometry/ListPolyIt.cpp
         src/types/geometry/Matrix4x3D.cpp
         src/utils/MeshUtils.cpp
@@ -203,7 +203,7 @@ set(engine_SRCS # Except main.cpp.
         src/types/geometry/PathsPointIndex.cpp
         src/types/geometry/PolygonsPointIndexSegmentLocator.cpp
         src/types/geometry/PolygonsSegmentIndex.cpp
-        src/types/geometry/PolygonUtils.cpp
+        src/utils/polygon_utils.cpp
         src/types/geometry/PolylineStitcher.cpp
         src/types/geometry/Simplify.cpp
         src/types/SVG.cpp
@@ -211,7 +211,7 @@ set(engine_SRCS # Except main.cpp.
         src/types/geometry/SquareGrid.cpp
         src/types/ThreadPool.cpp
         src/types/ToolpathVisualizer.cpp
-        src/types/geometry/VoronoiUtils.cpp
+        src/utils/voronoi_utils.cpp
         src/types/geometry/VoxelGrid.cpp
         src/types/geometry/VoxelUtils.cpp
         src/types/geometry/MixedPolylineStitcher.cpp

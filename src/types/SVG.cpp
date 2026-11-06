@@ -22,7 +22,7 @@
 #include "types/geometry/Point2D.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/SingleShape.h"
-#include "types/geometry/VoronoiUtils.h"
+#include "utils/voronoi_utils.h"
 #include "types/geometry/conversions/Point2D_Point2LL.h"
 
 namespace curaengine::types
@@ -642,7 +642,7 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
 }
 
 template<>
-void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>& edge, const DiagramVisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const boost::polygon::voronoi_edge<voronoi_utils::voronoi_data_t>& edge, const DiagramVisualAttributes& visual_attributes, const bool flush) const
 {
     if (edge.is_infinite())
     {
@@ -657,8 +657,8 @@ void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>
         return;
     }
 
-    const Point2LL p0 = VoronoiUtils::p(v0);
-    const Point2LL p1 = VoronoiUtils::p(v1);
+    const Point2LL p0 = voronoi_utils::p(v0);
+    const Point2LL p1 = voronoi_utils::p(v1);
 
     STHalfEdge half_edge = { SkeletalTrapezoidationEdge() };
     STHalfEdgeNode from(SkeletalTrapezoidationJoint(), p0);
@@ -670,9 +670,9 @@ void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>
 }
 
 template<>
-void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const boost::polygon::voronoi_cell<voronoi_utils::voronoi_data_t>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush) const
 {
-    const VoronoiUtils::vd_t::edge_type* start_edge = cell.incident_edge();
+    const voronoi_utils::vd_t::edge_type* start_edge = cell.incident_edge();
     if (! start_edge)
     {
         return;
@@ -680,7 +680,7 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
 
     Polygon cell_polygon;
 
-    const VoronoiUtils::vd_t::edge_type* current_edge = start_edge;
+    const voronoi_utils::vd_t::edge_type* current_edge = start_edge;
     do
     {
         if (current_edge->is_finite())
@@ -695,7 +695,7 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
                 const auto& v1 = current_edge->vertex1();
                 if (v1 != nullptr)
                 {
-                    cell_polygon.push_back(VoronoiUtils::p(v1));
+                    cell_polygon.push_back(voronoi_utils::p(v1));
                 }
             }
         }
@@ -713,7 +713,7 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
 }
 
 template<>
-void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const voronoi_utils::vd_t& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush) const
 {
     for (const auto& [index, cell] : voronoi_diagram.cells() | ranges::views::enumerate)
     {

@@ -21,7 +21,7 @@
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
 #include "types/ZSeamConfig.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 #include "types/scoring/BestElementFinder.h"
 #include "types/scoring/CornerScoringCriterion.h"
@@ -878,7 +878,7 @@ protected:
      */
     types::coord_t getCombingDistance(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b)
     {
-        if (! types::geometry::PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
+        if (! utils::polygon_utils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
         {
             return getDirectDistance(a, b); // No collision with any line. Just compute the direct distance then.
         }
@@ -893,7 +893,7 @@ protected:
         if (combing_grid_ == nullptr)
         {
             constexpr types::coord_t grid_size = 2000; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
-            combing_grid_ = types::geometry::PolygonUtils::createLocToLineGrid(*combing_boundary_, grid_size);
+            combing_grid_ = utils::polygon_utils::createLocToLineGrid(*combing_boundary_, grid_size);
         }
 
         routing::CombPath comb_path; // Output variable.

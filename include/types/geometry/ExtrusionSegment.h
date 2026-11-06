@@ -8,7 +8,7 @@
 
 #include "types/geometry/ExtrusionJunction.h"
 #include "types/geometry/Polygon.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::types::geometry
 {

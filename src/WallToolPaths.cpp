@@ -14,10 +14,10 @@
 
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
-#include "beading_strategy/BeadingStrategyFactory.h"
+#include "utils/beading_strategy_factory.h"
 #include "types/actions/smooth_fn.h"
 #include "types/geometry/ExtrusionLineStitcher.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 
 namespace curaengine
@@ -216,7 +216,7 @@ void WallToolPaths::generateArachne()
     const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width_ / wall_line_width_x_)) / 100.0;
 
     const size_t max_bead_count = (inset_count_ < std::numeric_limits<size_t>::max() / 2) ? 2 * inset_count_ : std::numeric_limits<size_t>::max();
-    const auto beading_strat = BeadingStrategyFactory::makeStrategy(
+    const auto beading_strat = beading_strategy_factory::makeStrategy(
         bead_width_0_,
         bead_width_x_,
         wall_transition_length_,

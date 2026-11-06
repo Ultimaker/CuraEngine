@@ -13,7 +13,7 @@
 #include "SliceDataStorage.h"
 #include "routing/CombPaths.h"
 #include "routing/LinePolygonsCrossings.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/PathsPointIndex.h"
 
 namespace curaengine::routing
@@ -26,7 +26,7 @@ LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
 {
     if (outside_loc_to_line_[train.extruder_nr_] == nullptr)
     {
-        outside_loc_to_line_[train.extruder_nr_] = PolygonUtils::createLocToLineGrid(getBoundaryOutside(train), offset_from_inside_to_outside_ * 3 / 2);
+        outside_loc_to_line_[train.extruder_nr_] = polygon_utils::createLocToLineGrid(getBoundaryOutside(train), offset_from_inside_to_outside_ * 3 / 2);
     }
     return *outside_loc_to_line_[train.extruder_nr_];
 }
@@ -55,7 +55,7 @@ LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
 {
     if (model_boundary_loc_to_line_[train.extruder_nr_] == nullptr)
     {
-        model_boundary_loc_to_line_[train.extruder_nr_] = PolygonUtils::createLocToLineGrid(getModelBoundary(train), offset_from_inside_to_outside_ * 3 / 2);
+        model_boundary_loc_to_line_[train.extruder_nr_] = polygon_utils::createLocToLineGrid(getModelBoundary(train), offset_from_inside_to_outside_ * 3 / 2);
     }
     return *model_boundary_loc_to_line_[train.extruder_nr_];
 }
@@ -82,8 +82,8 @@ Comb::Comb(
     , boundary_inside_optimal_(comb_boundary_inside_optimal) // copy the boundary, because the partsView_inside will reorder the polygons
     , parts_view_inside_minimum_(boundary_inside_minimum_.splitIntoPartsView()) // WARNING !! changes the order of boundary_inside !!
     , parts_view_inside_optimal_(boundary_inside_optimal_.splitIntoPartsView()) // WARNING !! changes the order of boundary_inside !!
-    , inside_loc_to_line_minimum_(PolygonUtils::createLocToLineGrid(boundary_inside_minimum_, comb_boundary_offset))
-    , inside_loc_to_line_optimal_(PolygonUtils::createLocToLineGrid(boundary_inside_optimal_, comb_boundary_offset))
+    , inside_loc_to_line_minimum_(polygon_utils::createLocToLineGrid(boundary_inside_minimum_, comb_boundary_offset))
+    , inside_loc_to_line_optimal_(polygon_utils::createLocToLineGrid(boundary_inside_optimal_, comb_boundary_offset))
     , move_inside_distance_(move_inside_distance)
 {
 }
@@ -362,11 +362,11 @@ bool Comb::calc(
         {
             if (start_inside)
             { // both start and end are inside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, *inside_loc_to_line_optimal_);
+                comb_paths.back().cross_boundary = polygon_utils::polygonCollidesWithLineSegment(start_point, end_point, *inside_loc_to_line_optimal_);
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train));
+                comb_paths.back().cross_boundary = polygon_utils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train));
             }
         }
         else
@@ -431,7 +431,7 @@ void Comb::moveCombPathInside(const Shape& boundary_inside, const Shape& boundar
     for (unsigned int point_idx = 1; point_idx < comb_path_input.size() - 1; point_idx++)
     {
         Point2LL new_point = Point2LL(comb_path_input[point_idx]);
-        PolygonUtils::moveInside(boundary_inside, new_point, dist, dist2);
+        polygon_utils::moveInside(boundary_inside, new_point, dist, dist2);
 
         if (boundary_inside_optimal.inside(new_point))
         {
@@ -478,7 +478,7 @@ bool Comb::moveInside(
 {
     if (is_inside)
     {
-        ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(
+        ClosestPointPolygon cpp = polygon_utils::ensureInsideOrOutside(
             boundary_inside,
             dest_point,
             offset_extra_start_end_,
@@ -526,7 +526,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
                 { // we're not looking at a polygon from the dest_part
                     return true; // a.k.a. continue;
                 }
-                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
+                Point2LL closest_here = linear_alg_2d::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
                 coord_t dist2_score_here = types::geometry::vSize2(close_to - closest_here) + types::geometry::vSize2(_dest_point - closest_here) / 10;
                 if (dist2_score_here < dist2_score)
                 {
@@ -544,7 +544,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             result = dest_point_;
         }
 
-        ClosestPointPolygon crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(
+        ClosestPointPolygon crossing_1_in_cp = polygon_utils::ensureInsideOrOutside(
             dest_part_,
             result,
             boundary_crossing_point,
@@ -579,14 +579,14 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outsid
             {
                 return types::geometry::vSize2((candidate - preferred_crossing_1_out) / 2);
             });
-        std::optional<ClosestPointPolygon> crossing_1_out_cpp = PolygonUtils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
+        std::optional<ClosestPointPolygon> crossing_1_out_cpp = polygon_utils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
         if (crossing_1_out_cpp)
         {
-            out_ = PolygonUtils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            out_ = polygon_utils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
         else
         {
-            PolygonUtils::moveOutside(outside, out_, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            polygon_utils::moveOutside(outside, out_, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
     }
     int64_t in_out_dist2_1 = types::geometry::vSize2(out_ - in_or_mid_);
@@ -597,8 +597,8 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outsid
         std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> best = findBestCrossing(train, outside, **dest_crossing_poly_, dest_point_, close_to, comber);
         if (best)
         {
-            in_or_mid_ = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
-            out_ = PolygonUtils::moveOutside(best->second, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            in_or_mid_ = polygon_utils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            out_ = polygon_utils::moveOutside(best->second, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
         if (fail_on_unavoidable_obstacles && types::geometry::vSize2(out_ - in_or_mid_) > comber.max_crossing_dist2_) // moveInside moved still too far
         {
@@ -621,7 +621,7 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
     ClosestPointPolygon* best_out = nullptr;
     coord_t best_detour_score = std::numeric_limits<coord_t>::max();
     coord_t best_crossing_dist2;
-    std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine(train));
+    std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>> crossing_out_candidates = polygon_utils::findClose(from, outside, comber.getOutsideLocToLine(train));
     bool seen_close_enough_connection = false;
     for (std::pair<ClosestPointPolygon, ClosestPointPolygon>& crossing_candidate : crossing_out_candidates)
     {
@@ -663,7 +663,7 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
     }
     if (best_crossing_dist2 > comber.max_crossing_dist2_)
     { // find closer point on line segments, rather than moving between vertices of the polygons only
-        PolygonUtils::walkToNearestSmallestConnection(*best_in, *best_out);
+        polygon_utils::walkToNearestSmallestConnection(*best_in, *best_out);
         best_crossing_dist2 = types::geometry::vSize2(best_in->location_ - best_out->location_);
         if (best_crossing_dist2 > comber.max_crossing_dist2_)
         {

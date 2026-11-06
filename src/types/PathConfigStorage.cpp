@@ -10,7 +10,7 @@
 #include "ExtruderTrain.h"
 #include "MeshGroup.h"
 #include "PrintFeatureType.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "Settings.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"

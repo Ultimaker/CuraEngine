@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 
 #include <algorithm>
 #include <cassert>
@@ -12,13 +12,14 @@
 #include "types/geometry/PointMatrix.h"
 #include "utils/math.h"
 
-namespace curaengine::types::geometry
+namespace curaengine::utils::linear_alg_2d
 {
 
+using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c)
+double getAngleLeft(const Point2LL& a, const Point2LL& b, const Point2LL& c)
 {
     const Point2LL ba = a - b;
     const Point2LL bc = c - b;
@@ -47,7 +48,7 @@ double LinearAlg2D::getAngleLeft(const Point2LL& a, const Point2LL& b, const Poi
 }
 
 
-bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, const Point2LL& b, const coord_t dist, Point2LL& result)
+bool getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, const Point2LL& b, const coord_t dist, Point2LL& result)
 {
     //         result
     //         v
@@ -130,7 +131,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point2LL& p, const Point2LL& a, c
 }
 
 
-std::pair<Point2LL, Point2LL> LinearAlg2D::getClosestConnection(Point2LL a1, Point2LL a2, Point2LL b1, Point2LL b2)
+std::pair<Point2LL, Point2LL> getClosestConnection(Point2LL a1, Point2LL a2, Point2LL b1, Point2LL b2)
 {
     Point2LL b1_on_a = getClosestOnLineSegment(b1, a1, a2);
     coord_t b1_on_a_dist2 = types::geometry::vSize2(b1_on_a - b1);
@@ -158,7 +159,7 @@ std::pair<Point2LL, Point2LL> LinearAlg2D::getClosestConnection(Point2LL a1, Poi
     }
 }
 
-bool LinearAlg2D::lineSegmentsCollide(const Point2LL& a_from_transformed, const Point2LL& a_to_transformed, Point2LL b_from_transformed, Point2LL b_to_transformed)
+bool lineSegmentsCollide(const Point2LL& a_from_transformed, const Point2LL& a_to_transformed, Point2LL b_from_transformed, Point2LL b_to_transformed)
 {
     assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
     assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
@@ -194,7 +195,7 @@ bool LinearAlg2D::lineSegmentsCollide(const Point2LL& a_from_transformed, const 
     return false;
 }
 
-coord_t LinearAlg2D::getDist2FromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
+coord_t getDist2FromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
 {
     // NOTE: The version that tried to do a faster calulation wasn't actually that much faster, and introduced errors.
     //       Use this for now, should we need this, we can reimplement later.
@@ -202,7 +203,7 @@ coord_t LinearAlg2D::getDist2FromLine(const Point2LL& p, const Point2LL& a, cons
     return dist * dist;
 }
 
-bool LinearAlg2D::isInsideCorner(const Point2LL a, const Point2LL b, const Point2LL c, const Point2LL query_point)
+bool isInsideCorner(const Point2LL a, const Point2LL b, const Point2LL c, const Point2LL query_point)
 {
     /*
      Visualisation for the algorithm below:
@@ -242,7 +243,7 @@ bool LinearAlg2D::isInsideCorner(const Point2LL a, const Point2LL b, const Point
     }
 }
 
-coord_t LinearAlg2D::getDistFromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
+coord_t getDistFromLine(const Point2LL& p, const Point2LL& a, const Point2LL& b)
 {
     //  x.......a------------b
     //  :
@@ -261,21 +262,21 @@ coord_t LinearAlg2D::getDistFromLine(const Point2LL& p, const Point2LL& a, const
     return px_size;
 }
 
-Point2LL LinearAlg2D::getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len)
+Point2LL getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len)
 {
     const auto a0 = a - intersect;
     const auto b0 = b - intersect;
     return (((a0 * vec_len) / std::max(1LL, types::geometry::vSize(a0))) + ((b0 * vec_len) / std::max(1LL, types::geometry::vSize(b0)))) / 2;
 }
 
-Point3Matrix LinearAlg2D::rotateAround(const Point2LL& middle, double rotation)
+Point3Matrix rotateAround(const Point2LL& middle, double rotation)
 {
     PointMatrix rotation_matrix(rotation);
     Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
     return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
 }
 
-bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+bool lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
 {
     const float x1mx2 = p1.X - p2.X;
     const float x1mx3 = p1.X - p3.X;
@@ -299,12 +300,12 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& p1, const Point2LL& p2, c
     return true;
 }
 
-bool LinearAlg2D::segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
+bool segmentSegmentIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u)
 {
     return lineLineIntersection(p1, p2, p3, p4, t, u) && t >= 0.0f && u >= 0.0f && t <= 1.0f && u <= 1.0f;
 }
 
-bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
+bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output)
 {
     float t, u;
     if (! lineLineIntersection(a, b, c, d, t, u))
@@ -322,7 +323,7 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, con
     return true;
 }
 
-std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
+std::optional<coord_t> lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
 {
     if (p1.Y == p2.Y)
     {
@@ -350,7 +351,7 @@ std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2L
     return std::llrint((line_y - coeff_b) / coeff_a);
 }
 
-std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
+std::optional<coord_t> segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
 {
     const auto [min_y, max_y] = std::minmax(p1.Y, p2.Y);
 
@@ -363,7 +364,7 @@ std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const Poin
     return lineHorizontalLineIntersection(p1, p2, line_y);
 }
 
-coord_t LinearAlg2D::getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height)
+coord_t getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height)
 {
     if (base_width == 0 || base_height == 0)
     {
@@ -374,4 +375,4 @@ coord_t LinearAlg2D::getSlopedWidth(const coord_t base_width, const coord_t base
     return std::llrint(static_cast<double>(base_width) * factor);
 }
 
-} // namespace curaengine::types::geometry
+} // namespace curaengine::utils::linear_alg_2d

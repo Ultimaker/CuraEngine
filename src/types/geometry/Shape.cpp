@@ -30,7 +30,7 @@
 
 #include "types/Ratio.h"
 #include "types/geometry/AABB.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/MixedLinesSet.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolylineStitcher.h"
@@ -99,12 +99,12 @@ void Shape::makeConvex()
             const auto& current = window[0];
             const auto& after = window[1];
 
-            if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
+            if (linear_alg_2d::pointIsLeftOfLine(current, convexified.back(), after) < 0)
             {
                 // Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
                 while (convexified.size() >= 2
-                       && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], current) >= 0
-                           || LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], convexified.front()) > 0))
+                       && (linear_alg_2d::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], current) >= 0
+                           || linear_alg_2d::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], convexified.front()) > 0))
                 {
                     convexified.pop_back();
                 }
@@ -112,7 +112,7 @@ void Shape::makeConvex()
             }
         }
 
-        while (convexified.size() >= 2 && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
+        while (convexified.size() >= 2 && (linear_alg_2d::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
         {
             convexified.pop_back();
         }
@@ -274,7 +274,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
         Point2LL p0 = poly.back();
         for (const Point2LL& p1 : poly)
         {
-            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
+            short comp = linear_alg_2d::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
             {
                 crossings[poly_idx]++;
@@ -911,7 +911,7 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
             }
 
             float t, u;
-            if (LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
+            if (linear_alg_2d::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
             {
                 result.push_back(t);
             }

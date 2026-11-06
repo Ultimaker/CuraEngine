@@ -7,7 +7,7 @@
 
 #include "Application.h"
 #include "ExtruderTrain.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "Slice.h"
 #include "SliceMeshStorage.h"
 #include "prime_tower/PrimeTower.h"
@@ -15,7 +15,7 @@
 #include "types/EPlatformAdhesion.h"
 #include "types/ESurfaceMode.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {
@@ -64,27 +64,27 @@ Shape SliceDataStorage::getLayerOutlines(
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
-    const auto layer_type = Raft::getLayerType(layer_nr);
+    const auto layer_type = raft::getLayerType(layer_nr);
     switch (layer_type)
     {
-    case Raft::LayerType::RaftBase:
-    case Raft::LayerType::RaftInterface:
-    case Raft::LayerType::RaftSurface:
+    case RaftLayerType::RaftBase:
+    case RaftLayerType::RaftInterface:
+    case RaftLayerType::RaftSurface:
     {
         const Shape* raftOutline;
         bool use_current_extruder_for_raft = extruder_nr == -1;
 
         switch (layer_type)
         {
-        case Raft::LayerType::RaftBase:
+        case RaftLayerType::RaftBase:
             raftOutline = &raft_base_outline;
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_);
             break;
-        case Raft::LayerType::RaftInterface:
+        case RaftLayerType::RaftInterface:
             raftOutline = &raft_interface_outline;
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_);
             break;
-        case Raft::LayerType::RaftSurface:
+        case RaftLayerType::RaftSurface:
             raftOutline = &raft_surface_outline;
             use_current_extruder_for_raft |= extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_);
             break;
@@ -116,8 +116,8 @@ Shape SliceDataStorage::getLayerOutlines(
         }
         break;
     }
-    case Raft::LayerType::Airgap:
-    case Raft::LayerType::Model:
+    case RaftLayerType::Airgap:
+    case RaftLayerType::Model:
     {
         Shape total;
         if (include_models && layer_nr >= 0)
@@ -268,7 +268,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
     if (layer_nr < 0)
     {
         include_models = false;
-        if (layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
+        if (layer_nr < -static_cast<LayerIndex>(raft::getFillerLayerCount()))
         {
             include_helper_parts = false;
         }
@@ -293,8 +293,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
         }
         if (adhesion_type == EPlatformAdhesion::Raft)
         {
-            const Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
-            if (layer_type == Raft::RaftBase)
+            const RaftLayerType layer_type = raft::getLayerType(layer_nr);
+            if (layer_type == RaftLayerType::RaftBase)
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_] = true;
                 // When using a raft, all prime blobs need to be on the lowest layer (the build plate).
@@ -306,11 +306,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
                     }
                 }
             }
-            else if (layer_type == Raft::RaftInterface)
+            else if (layer_type == RaftLayerType::RaftInterface)
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_] = true;
             }
-            else if (layer_type == Raft::RaftSurface)
+            else if (layer_type == RaftLayerType::RaftSurface)
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_] = true;
             }
@@ -418,7 +418,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         }
         Point2LL translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
-        Polygon prime_polygon = PolygonUtils::makeDisc(prime_pos, prime_clearance, 64);
+        Polygon prime_polygon = polygon_utils::makeDisc(prime_pos, prime_clearance, 64);
         disallowed_areas = disallowed_areas.unionPolygons(prime_polygon);
     }
 

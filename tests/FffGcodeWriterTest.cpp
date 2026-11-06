@@ -159,7 +159,7 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
         {
             for (const auto& point : path.points)
             {
-                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, point.toPoint2LL(), last);
+                Point2LL closest_here = linear_alg_2d::getClosestOnLineSegment(p, point.toPoint2LL(), last);
                 int64_t dist = vSize2(p - closest_here);
 
                 if (dist < margin * margin)

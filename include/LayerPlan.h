@@ -8,7 +8,7 @@
 #include "InsetOrderOptimizer.h"
 #include "OverrideArea.h"
 #include "PathOrderOptimizer.h"
-#include "Raft.h"
+#include "types/RaftLayerType.h"
 #include "SliceLayerPart.h"
 #include "SpaceFillType.h"
 #include "gcode/GCodeExport.h"
@@ -139,7 +139,7 @@ private:
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const types::LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
-    const Raft::LayerType layer_type_; //!< Which part of the raft, airgap or model this layer is.
+    const types::RaftLayerType layer_type_; //!< Which part of the raft, airgap or model this layer is.
     types::coord_t layer_thickness_;
 
     std::vector<types::geometry::Point3LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder (note: z\height is offset, not absolute)

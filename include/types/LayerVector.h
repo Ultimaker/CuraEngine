@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "Raft.h"
+#include "utils/raft.h"
 #include "types/LayerIndex.h"
 
 namespace curaengine::types
@@ -14,7 +14,7 @@ namespace curaengine::types
 /*!
  * \brief The LayerVector class mimics a std::vector but with the index being a LayerIndex, thus it can have negative
  *        values (for raft layers). It also ensures that the first element in the list is always on the very first layer.
- * \note When calling the init() method, LayerVector will call Raft::getTotalExtraLayers() so it requires the settings
+ * \note When calling the init() method, LayerVector will call utils::raft::getTotalExtraLayers() so it requires the settings
  *       to be setup. This is the reason why this is not done in the constructor, and has to be called manually.
  *       After that, it is assumed that this value will not change as long as the vector is used.
  * \warning It is assumed that items are inserted in layer order, and without missing items, like a std::vector would do
@@ -44,7 +44,7 @@ public:
      */
     void init(bool contains_raft_layers, size_t print_layers = 0)
     {
-        delta_ = contains_raft_layers ? Raft::getTotalExtraLayers() : 0;
+        delta_ = contains_raft_layers ? utils::raft::getTotalExtraLayers() : 0;
 
         vector_.clear();
         if (print_layers)

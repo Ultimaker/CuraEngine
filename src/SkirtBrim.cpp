@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "AreaSupport.h"
+#include "utils/area_support.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
@@ -19,7 +19,7 @@
 #include "types/geometry/MixedPolylineStitcher.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Shape.h"
 #include "types/geometry/Simplify.h"
 
@@ -685,7 +685,7 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
 {
     const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<double>("support_brim_minimum_hole_area"));
 
-    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInsetOutset(support_outline, -width, line_width);
+    InsetOutset base_insets = polygon_utils::generateInsetOutset(support_outline, -width, line_width);
     for (Shape& base_inset : base_insets.walls)
     {
         // Remove small inner brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
@@ -708,7 +708,7 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
 
 void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const coord_t width, const coord_t line_width, const Shape& exclusion_area)
 {
-    PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateInsetOutset(support_outline, width, line_width);
+    InsetOutset base_outsets = polygon_utils::generateInsetOutset(support_outline, width, line_width);
 
     ClosedLinesSet closed_base_outset;
     for (Shape& base_outset : base_outsets.walls)

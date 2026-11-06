@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 #include "types/Coord_t.h"
@@ -24,9 +25,8 @@ class SliceMeshStorage;
 class Slicer;
 
 
-class AreaSupport
+namespace utils::area_support
 {
-public:
     /*!
      * \brief Move support mesh outlines from slicer data into the support
      * storage.
@@ -38,28 +38,28 @@ public:
      * \return Whether the mesh is used up in support and no normal mesh
      * processing is needed.
      */
-    static bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer);
+    bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer);
 
     /*!
      * \brief Generate the overhang areas for all models.
      * \param storage Data storage containing the input layer data and
      * containing the output support storage per layer.
      */
-    static void generateOverhangAreas(SliceDataStorage& storage);
+    void generateOverhangAreas(SliceDataStorage& storage);
 
     /*!
      * Generate the support areas and support skin areas for all models.
      * \param storage Data storage containing the input layer outline data and
      * containing the output support storage per layer.
      */
-    static void generateSupportAreas(SliceDataStorage& storage);
+    void generateSupportAreas(SliceDataStorage& storage);
 
     /*!
      * \brief Computes the base tree for cross infill of support.
      * \param storage[in,out] Data storage containing the input support outlines
      * and where to store the output tree.
      */
-    static void precomputeCrossInfillTree(SliceDataStorage& storage);
+    void precomputeCrossInfillTree(SliceDataStorage& storage);
 
     /*!
      * Generates all gradual support infill features.
@@ -70,15 +70,14 @@ public:
      *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void generateSupportInfillFeatures(SliceDataStorage& storage);
+    void generateSupportInfillFeatures(SliceDataStorage& storage);
 
     /*!
      * Generate the extra lines to be printed around the support to form a base and make it sturdier
      * @param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void generateSupportBase(SliceDataStorage& storage);
+    void generateSupportBase(SliceDataStorage& storage);
 
-private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.
      * This is required before generating the gradual support infill.
@@ -86,7 +85,7 @@ private:
      * \param global_support_areas_per_layer the global support areas per layer
      * \param total_layer_count total number of layers
      */
-    static void splitGlobalSupportAreasIntoSupportInfillParts(
+    void splitGlobalSupportAreasIntoSupportInfillParts(
         SliceDataStorage& storage,
         const std::vector<types::geometry::Shape>& global_support_areas_per_layer,
         unsigned int total_layer_count);
@@ -116,7 +115,7 @@ private:
      *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void generateGradualSupport(SliceDataStorage& storage);
+    void generateGradualSupport(SliceDataStorage& storage);
 
     /*!
      * \brief Combines the support infill of multiple layers.
@@ -127,7 +126,7 @@ private:
      *
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void combineSupportInfillLayers(SliceDataStorage& storage);
+    void combineSupportInfillLayers(SliceDataStorage& storage);
 
     /*!
      * \brief Generate the overhang areas and points for a specific mesh.
@@ -138,7 +137,7 @@ private:
      * \param storage Data storage containing the input layer outlines.
      * \param mesh The object for which to generate overhang areas.
      */
-    static void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh);
+    void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh);
 
     /*!
      * \brief Generate support polygons over all layers for one object.
@@ -165,7 +164,7 @@ private:
      * areas.
      * \param layer_count Total number of layers.
      */
-    static void generateSupportAreasForMesh(
+    void generateSupportAreasForMesh(
         SliceDataStorage& storage,
         const Settings& infill_settings,
         const Settings& roof_settings,
@@ -186,7 +185,7 @@ private:
      * \param mesh The mesh to generate support for.
      * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<types::geometry::Shape>& global_support_areas_per_layer);
+    void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<types::geometry::Shape>& global_support_areas_per_layer);
 
     /*!
      * Generate support roof areas for a given mesh.
@@ -200,7 +199,7 @@ private:
      * \param mesh The mesh to generate support roof for.
      * \param global_support_areas_per_layer the global support areas on each layer.
      */
-    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<types::geometry::Shape>& global_support_areas_per_layer);
+    void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<types::geometry::Shape>& global_support_areas_per_layer);
 
     /*!
      * \brief Generate a single layer of support interface.
@@ -219,7 +218,7 @@ private:
      * \param minimum_interface_area Minimum area size for resulting interface polygons.
      * \param[out] interface_polygons The resulting interface layer. Do not use `interface` in windows!
      */
-    static void generateSupportInterfaceLayer(
+    void generateSupportInterfaceLayer(
         types::geometry::Shape& support_areas,
         const types::geometry::Shape mesh_outlines,
         const types::coord_t safety_offset,
@@ -235,7 +234,7 @@ private:
      * \param supportLayer_this The overhang areas of the current layer at hand.
      * \return The joined support areas for this layer.
      */
-    static types::geometry::Shape join(const SliceDataStorage& storage, const types::geometry::Shape& supportLayer_up, types::geometry::Shape& supportLayer_this);
+    types::geometry::Shape join(const SliceDataStorage& storage, const types::geometry::Shape& supportLayer_up, types::geometry::Shape& supportLayer_this);
 
     /*!
      * Move the support up from model (cut away polygons to ensure bottom z distance)
@@ -251,7 +250,7 @@ private:
      * bottom_empty_layer_count The number of empty layers between the bottom of support and the top of the model on which support rests \param bottom_stair_step_layer_count The
      * max height (in nr of layers) of the support bottom stairs \param support_bottom_stair_step_width The max width of the support bottom stairs
      */
-    static void moveUpFromModel(
+    void moveUpFromModel(
         const SliceDataStorage& storage,
         types::geometry::Shape& stair_removal,
         types::geometry::Shape& sloped_areas,
@@ -267,7 +266,7 @@ private:
      * \param storage Input layer outline information.
      * \param mesh Output mesh to store the resulting overhang points in.
      */
-    static void detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh);
+    void detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh);
 
     /*!
      * \brief Compute the basic overhang and full overhang of a layer.
@@ -286,7 +285,7 @@ private:
      * \param layer_idx The layer for which to compute the overhang.
      * \return A pair of basic overhang and full overhang.
      */
-    static std::pair<types::geometry::Shape, types::geometry::Shape>
+    std::pair<types::geometry::Shape, types::geometry::Shape>
         computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const types::LayerIndex& layer_idx);
 
     /*!
@@ -303,7 +302,7 @@ private:
      * \param layer_idx The index of the layer at which to handle towers
      * \param layer_count total number of layers
      */
-    static void handleTowers(
+    void handleTowers(
         const Settings& settings,
         const types::geometry::Shape& xy_disallowed_area,
         types::geometry::Shape& supportLayer_this,
@@ -318,7 +317,7 @@ private:
      * \param supportLayer_this The areas of the layer for which to handle the
      * wall struts.
      */
-    static void handleWallStruts(const Settings& settings, types::geometry::Shape& supportLayer_this);
+    void handleWallStruts(const Settings& settings, types::geometry::Shape& supportLayer_this);
 
     /*!
      * Clean up the SupportInfillParts.
@@ -328,7 +327,7 @@ private:
      * For parts without walls: remove if combined into upper layers.
      *
      */
-    static void cleanup(SliceDataStorage& storage);
+    void cleanup(SliceDataStorage& storage);
 
 
     /*!
@@ -338,8 +337,8 @@ private:
      * \param layer_idx The layer for which the disallowed areas are to be calcualted
      *
      */
-    static types::geometry::Shape generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const types::LayerIndex layer_idx);
-};
+    types::geometry::Shape generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const types::LayerIndex layer_idx);
+} // namespace utils::area_support
 
 
 } // namespace curaengine

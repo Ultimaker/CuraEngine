@@ -15,20 +15,17 @@
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Polygon.h"
+#include "utils/polygon_utils.h"
 
-namespace curaengine
+namespace curaengine::utils::tree_support_utils
 {
-
-class TreeSupportUtils
-{
-public:
     /*!
      * \brief Adds the implicit line from the last vertex of a Polygon to the first one.
      *
      * \param poly[in] The Polygons object, of which its lines should be extended.
      * \return A Polygons object with explicit line from the last vertex of a Polygon to the first one added.
      */
-    static types::geometry::OpenLinesSet toPolylines(const types::geometry::Shape& poly)
+    inline types::geometry::OpenLinesSet toPolylines(const types::geometry::Shape& poly)
     {
         types::geometry::OpenLinesSet result;
         for (const auto& path : poly)
@@ -45,7 +42,7 @@ public:
      * \param toolpaths[in] The toolpaths.
      * \return A Polygons object.
      */
-    [[nodiscard]] static types::geometry::OpenLinesSet toPolylines(const std::vector<types::geometry::VariableWidthLines> toolpaths)
+    [[nodiscard]] inline types::geometry::OpenLinesSet toPolylines(const std::vector<types::geometry::VariableWidthLines> toolpaths)
     {
         types::geometry::OpenLinesSet result;
         for (const types::geometry::VariableWidthLines& lines : toolpaths)
@@ -88,7 +85,7 @@ public:
      * todo doku
      * \return A Polygons object that represents the resulting infill lines.
      */
-    [[nodiscard]] static types::geometry::OpenLinesSet generateSupportInfillLines(
+    [[nodiscard]] inline types::geometry::OpenLinesSet generateSupportInfillLines(
         const types::geometry::Shape& area,
         const TreeSupportSettings& config,
         bool roof,
@@ -173,7 +170,7 @@ public:
      * \param second[in] The second Polygon.
      * \return The union of both Shape
      */
-    [[nodiscard]] static types::geometry::Shape safeUnion(const types::geometry::Shape& first, const types::geometry::Shape& second = types::geometry::Shape())
+    [[nodiscard]] inline types::geometry::Shape safeUnion(const types::geometry::Shape& first, const types::geometry::Shape& second = types::geometry::Shape())
     {
         // The unionPolygons function can slowly remove Polygons under certain circumstances, because of rounding issues (Polygons that have a thin area).
         // This does not cause a problem when actually using it on large areas, but as influence areas (representing centerpoints) can be very thin, this does occur so this ugly
@@ -211,7 +208,7 @@ public:
      * min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy. \param simplifier[in] Pointer to Simplify object if
      * the offset operation also simplify the Polygon. Improves performance. \return The resulting Shape object.
      */
-    [[nodiscard]] static types::geometry::Shape safeOffsetInc(
+    [[nodiscard]] inline types::geometry::Shape safeOffsetInc(
         const types::geometry::Shape& me,
         types::coord_t distance,
         const types::geometry::Shape& collision,
@@ -292,7 +289,7 @@ public:
      * \param max_allowed_distance[in] The maximum distance a point may be moved. If not possible the point will be moved as far as possible in the direction of the outside of the
      * provided area. \return A Polyline object containing the moved points.
      */
-    [[nodiscard]] static types::geometry::OpenLinesSet
+    [[nodiscard]] inline types::geometry::OpenLinesSet
         movePointsOutside(const types::geometry::OpenLinesSet& polylines, const types::geometry::Shape& area, types::coord_t max_allowed_distance)
     {
         types::geometry::OpenLinesSet result;
@@ -305,7 +302,7 @@ public:
                 if (area.inside(p))
                 {
                     types::geometry::Point2LL next_outside = p;
-                    types::geometry::PolygonUtils::moveOutside(area, next_outside);
+                    utils::polygon_utils::moveOutside(area, next_outside);
                     if (types::geometry::vSize2(p - next_outside) < max_allowed_distance * max_allowed_distance)
                     {
                         next_line.push_back(next_outside);
@@ -331,7 +328,7 @@ public:
         return result;
     }
 
-    [[nodiscard]] static types::geometry::VariableWidthLines polyLineToVWL(const types::geometry::Shape& polylines, types::coord_t line_width)
+    [[nodiscard]] inline types::geometry::VariableWidthLines polyLineToVWL(const types::geometry::Shape& polylines, types::coord_t line_width)
     {
         types::geometry::VariableWidthLines result;
         for (auto path : polylines)
@@ -346,6 +343,4 @@ public:
         }
         return result;
     }
-};
-
-} // namespace curaengine
+} // namespace curaengine::utils::tree_support_utils

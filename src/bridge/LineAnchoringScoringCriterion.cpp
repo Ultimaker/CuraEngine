@@ -5,7 +5,7 @@
 
 #include <range/v3/algorithm/stable_sort.hpp>
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/TransformedShape.h"
 
 
@@ -217,7 +217,7 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
             continue;
         }
 
-        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
+        const std::optional<coord_t> intersection = linear_alg_2d::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
         if (intersection.has_value())
         {
             intersections.push_back(intersection.value());

@@ -3,7 +3,7 @@
 
 #include "infill/lightning/LightningTreeNode.h"
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 
 namespace curaengine::infill::lightning
@@ -190,7 +190,7 @@ bool LightningTreeNode::realign(const Shape& outlines, const LocToLineGrid& outl
             [&](const LightningTreeNodeSPtr& child)
             {
                 bool connect_branch = child->realign(outlines, outline_locator, rerooted_parts);
-                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p_, p_, outlines, outline_locator, coll, outline_locator.getCellSize() * 2))
+                if (connect_branch && polygon_utils::lineSegmentPolygonsIntersection(child->p_, p_, outlines, outline_locator, coll, outline_locator.getCellSize() * 2))
                 {
                     child->last_grounding_location_.reset();
                     child->parent_.reset();
@@ -266,7 +266,7 @@ LightningTreeNode::RectilinearJunction
             child_p = children_.front(); // recursive call to straighten might have removed the child
             const LightningTreeNodeSPtr& parent_node = parent_.lock();
             if (parent_node && types::geometry::vSize2(child_p->p_ - parent_node->p_) < max_remove_colinear_dist2
-                && LinearAlg2D::getDist2FromLineSegment(parent_node->p_, p_, child_p->p_) < close_enough)
+                && linear_alg_2d::getDist2FromLineSegment(parent_node->p_, p_, child_p->p_) < close_enough)
             {
                 child_p->parent_ = parent_;
                 for (auto& sibling : parent_node->children_)

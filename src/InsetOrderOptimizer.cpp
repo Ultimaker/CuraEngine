@@ -26,7 +26,7 @@
 #include "types/EZSeamType.h"
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/actions/dfs.h"
 
 namespace rg = ranges;
@@ -271,7 +271,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
 
             float t, u;
-            if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+            if (linear_alg_2d::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
             {
                 const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
                 const coord_t distance_sqd = types::geometry::vSize2(request_point - intersection);
@@ -293,7 +293,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
         {
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-            const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
+            const coord_t distance_sqd = linear_alg_2d::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
             if (distance_sqd < closest_distance_sqd)
             {
                 closest_distance_sqd = distance_sqd;
@@ -309,7 +309,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     {
         // In the second case (see above) the closest point hasn't actually been calculated yet,
         // since in that case we'de need the start and end points. So do that here.
-        closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+        closest_point = linear_alg_2d::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
     if (types::geometry::vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)

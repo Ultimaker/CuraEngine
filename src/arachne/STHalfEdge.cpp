@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "arachne/STHalfEdgeNode.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::arachne
 {

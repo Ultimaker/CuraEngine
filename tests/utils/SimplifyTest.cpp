@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "types/Coord_t.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
@@ -153,7 +153,7 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
     for (Point2LL v : circle)
     {
         Point2LL moved_point = v;
-        PolygonUtils::moveInside(simplified, moved_point);
+        polygon_utils::moveInside(simplified, moved_point);
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation_);
     }
@@ -161,7 +161,7 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
     for (Point2LL v : simplified)
     {
         Point2LL moved_point = v;
-        PolygonUtils::moveInside(circle, moved_point);
+        polygon_utils::moveInside(circle, moved_point);
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation_);
     }
@@ -286,7 +286,7 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
             // Both endpoints of this line segment must have a distance to the simplified polygon of 0, theoretically.
             // Due to rounding errors we'll allow up to 1 unit.
             Point2LL moved_point = polyline[i];
-            PolygonUtils::moveInside(simplified, moved_point);
+            polygon_utils::moveInside(simplified, moved_point);
             const coord_t deviation = vSize(moved_point - polyline[i]);
             EXPECT_LE(deviation, 1) << "The endpoints of long segments must still be in the simplified result.";
         }

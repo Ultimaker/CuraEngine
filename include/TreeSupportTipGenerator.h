@@ -103,7 +103,7 @@ private:
 
     /*!
      * \brief Creates a valid CrossInfillProvider
-     * Based on AreaSupport::precomputeCrossInfillTree, but calculates for each mesh separately
+     * Based on utils::area_support::precomputeCrossInfillTree, but calculates for each mesh separately
      * \param mesh[in] The mesh that is currently processed.
      * \param line_distance[in] The distance between the infill lines of the resulting infill
      * \param line_width[in] What is the width of a line used in the infill.

@@ -7,7 +7,7 @@
 #include "infill/lightning/GroundingLocation.h"
 #include "infill/lightning/LightningDistanceField.h"
 #include "infill/lightning/LightningTreeNode.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 
@@ -77,7 +77,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
     const SparseLightningTreeNodeGrid& tree_node_locator,
     const LightningTreeNodeSPtr& exclude_tree)
 {
-    ClosestPointPolygon cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+    ClosestPointPolygon cpp = polygon_utils::findClosest(unsupported_location, current_outlines);
     Point2LL node_location = cpp.p();
     const coord_t within_dist = types::geometry::vSize(node_location - unsupported_location);
 
@@ -92,7 +92,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
         {
             auto candidate_sub_tree = candidate_wptr.lock();
             if ((candidate_sub_tree && candidate_sub_tree != exclude_tree) && ! (exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree))
-                && ! PolygonUtils::polygonCollidesWithLineSegment(unsupported_location, candidate_sub_tree->getLocation(), outline_locator, &dummy))
+                && ! polygon_utils::polygonCollidesWithLineSegment(unsupported_location, candidate_sub_tree->getLocation(), outline_locator, &dummy))
             {
                 const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
                 if (candidate_dist < current_dist)
@@ -154,7 +154,7 @@ void LightningLayer::reconnectRoots(
             if (ground_loc != root_ptr->getLocation())
             {
                 Point2LL new_root_pt;
-                if (PolygonUtils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, within_max_dist))
+                if (polygon_utils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, within_max_dist))
                 {
                     auto new_root = LightningTreeNode::create(new_root_pt, new_root_pt);
                     root_ptr->addChild(new_root);

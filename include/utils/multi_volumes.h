@@ -20,9 +20,8 @@ void carveMultipleVolumes(std::vector<Slicer*>& meshes);
  */
 void generateMultipleVolumesOverlap(std::vector<Slicer*>& meshes);
 
-class MultiVolumes
+namespace utils::multi_volumes
 {
-public:
     /*!
      * Carve all cutting meshes.
      *
@@ -36,7 +35,7 @@ public:
      * \param[in,out] volumes The outline data of each mesh
      * \param meshes The meshes which contain the settings for each volume
      */
-    static void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes);
-};
+    void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes);
+} // namespace utils::multi_volumes
 
 } // namespace curaengine

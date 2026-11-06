@@ -35,7 +35,7 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
         int c = 255 - 200 * (w - .25);
         SVG::RgbColor clr(c, c, c);
         polys = polys.execute(ClipperLib::pftNonZero);
-        polys = PolygonUtils::connect(polys);
+        polys = polygon_utils::connect(polys);
         svg_.write(polys, { .surface = { clr } });
         if (! rounded_visualization)
             break;
@@ -103,7 +103,7 @@ void ToolpathVisualizer::widths(
     Point3LL wide(255, 0, 0);
     Point3LL narrow(0, 0, 255);
 
-    //     Polygons connecteds = PolygonUtils::connect(area_covered);
+    //     Polygons connecteds = polygon_utils::connect(area_covered);
     //     for (PolygonRef connected : connecteds)
     //         svg.writeAreas(connected, SVG::Color::Black, SVG::Color::NONE);
 

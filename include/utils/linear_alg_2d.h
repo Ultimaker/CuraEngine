@@ -3,7 +3,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cstdint>
 #include <optional>
+#include <utility>
 
 #include "types/geometry/Point2LL.h"
 
@@ -12,25 +15,20 @@ namespace curaengine::types::geometry
 class Point3Matrix;
 }
 
-namespace curaengine::types::geometry
+namespace curaengine::utils::linear_alg_2d
 {
-
-
-class LinearAlg2D
-{
-public:
-    static short pointLiesOnTheRightOfLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& p0, const types::geometry::Point2LL& p1)
+    inline short pointLiesOnTheRightOfLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& p0, const types::geometry::Point2LL& p1)
     {
         // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
         if (std::max(p0.X, p1.X) >= p.X)
         {
-            const coord_t pd_y = p1.Y - p0.Y;
+            const types::coord_t pd_y = p1.Y - p0.Y;
             if (pd_y < 0) // p0->p1 is 'falling'
             {
                 if (p1.Y <= p.Y && p0.Y > p.Y) // candidate
                 {
                     // dx > 0 if intersection is to right of p.X
-                    const coord_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X - p.X) * pd_y;
+                    const types::coord_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X - p.X) * pd_y;
                     if (dx == 0) // includes p == p1
                     {
                         return 0;
@@ -46,7 +44,7 @@ public:
                 if (p.Y < p1.Y) // candidate for p0->p1 'rising' and includes p.Y
                 {
                     // dx > 0 if intersection is to right of p.X
-                    const coord_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X - p0.X) * pd_y;
+                    const types::coord_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X - p0.X) * pd_y;
                     if (dx == 0) // includes p == p0
                     {
                         return 0;
@@ -84,14 +82,14 @@ public:
      *
      * \return Whether the two line segments intersect.
      */
-    static bool segmentSegmentIntersection(
+    bool segmentSegmentIntersection(
         const types::geometry::Point2LL& p1,
         const types::geometry::Point2LL& p2,
         const types::geometry::Point2LL& p3,
         const types::geometry::Point2LL& p4,
         float& t,
         float& u);
-    static bool lineLineIntersection(
+    bool lineLineIntersection(
         const types::geometry::Point2LL& p1,
         const types::geometry::Point2LL& p2,
         const types::geometry::Point2LL& p3,
@@ -99,7 +97,7 @@ public:
         float& t,
         float& u);
 
-    static bool lineLineIntersection(
+    bool lineLineIntersection(
         const types::geometry::Point2LL& a,
         const types::geometry::Point2LL& b,
         const types::geometry::Point2LL& c,
@@ -113,7 +111,7 @@ public:
      * @param line_y The Y coordinates of the horizontal line to intersect with
      * @return The x coordinate of the intersection, or nullopt if they don't intersect
      */
-    static std::optional<coord_t> lineHorizontalLineIntersection(const types::geometry::Point2LL& p1, const types::geometry::Point2LL& p2, const coord_t line_y);
+    std::optional<types::coord_t> lineHorizontalLineIntersection(const types::geometry::Point2LL& p1, const types::geometry::Point2LL& p2, const types::coord_t line_y);
 
     /*!
      * Computes the intersection between a segment and a horizontal line
@@ -122,7 +120,7 @@ public:
      * @param line_y The Y coordinates of the horizontal line to intersect with
      * @return The x coordinate of the intersection, or nullopt if they don't intersect
      */
-    static std::optional<coord_t> segmentHorizontalLineIntersection(const types::geometry::Point2LL& p1, const types::geometry::Point2LL& p2, const coord_t line_y);
+    std::optional<types::coord_t> segmentHorizontalLineIntersection(const types::geometry::Point2LL& p1, const types::geometry::Point2LL& p2, const types::coord_t line_y);
 
     /*!
      * Find whether a point projected on a line segment would be projected to
@@ -135,11 +133,11 @@ public:
      * \param b The end point of the line segment
      * \return the sign of the projection wrt the line segment
      */
-    inline static short pointIsProjectedBeyondLine(const types::geometry::Point2LL& from, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b)
+    inline short pointIsProjectedBeyondLine(const types::geometry::Point2LL& from, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b)
     {
         const types::geometry::Point2LL vec = b - a;
         const types::geometry::Point2LL point_vec = from - a;
-        const coord_t dot_prod = types::geometry::dot(point_vec, vec);
+        const types::coord_t dot_prod = types::geometry::dot(point_vec, vec);
         if (dot_prod < 0)
         { // point is projected to before ab
             return -1;
@@ -154,14 +152,14 @@ public:
     /*!
      * Find the point closest to \p from on the line segment from \p p0 to \p p1
      */
-    static types::geometry::Point2LL getClosestOnLineSegment(const types::geometry::Point2LL& from, const types::geometry::Point2LL& p0, const types::geometry::Point2LL& p1)
+    inline types::geometry::Point2LL getClosestOnLineSegment(const types::geometry::Point2LL& from, const types::geometry::Point2LL& p0, const types::geometry::Point2LL& p1)
     {
         const types::geometry::Point2LL direction = p1 - p0;
         const types::geometry::Point2LL to_from = from - p0;
-        const coord_t projected_x = types::geometry::dot(to_from, direction);
+        const types::coord_t projected_x = types::geometry::dot(to_from, direction);
 
-        const coord_t x_p0 = 0;
-        const coord_t x_p1 = types::geometry::vSize2(direction);
+        const types::coord_t x_p0 = 0;
+        const types::coord_t x_p1 = types::geometry::vSize2(direction);
 
         if (x_p1 == 0)
         {
@@ -190,7 +188,7 @@ public:
     /*!
      * Find the point closest to \p from on the line through \p p0 to \p p1
      */
-    static types::geometry::Point2LL getClosestOnLine(const types::geometry::Point2LL& from, const types::geometry::Point2LL& p0, const types::geometry::Point2LL& p1)
+    inline types::geometry::Point2LL getClosestOnLine(const types::geometry::Point2LL& from, const types::geometry::Point2LL& p0, const types::geometry::Point2LL& p1)
     {
         if (p1 == p0)
         {
@@ -199,7 +197,7 @@ public:
 
         const types::geometry::Point2LL direction = p1 - p0;
         const types::geometry::Point2LL to_from = from - p0;
-        const coord_t projected_x = types::geometry::dot(to_from, direction);
+        const types::coord_t projected_x = types::geometry::dot(to_from, direction);
         types::geometry::Point2LL ret = p0 + projected_x / types::geometry::vSize(direction) * direction / types::geometry::vSize(direction);
         return ret;
     }
@@ -215,7 +213,7 @@ public:
      * \param b2 second point on line b
      * \return A pair: the first point on line a and the second pouint on line b
      */
-    static std::pair<types::geometry::Point2LL, types::geometry::Point2LL>
+    std::pair<types::geometry::Point2LL, types::geometry::Point2LL>
         getClosestConnection(types::geometry::Point2LL a1, types::geometry::Point2LL a2, types::geometry::Point2LL b1, types::geometry::Point2LL b2);
 
     /*!
@@ -228,7 +226,7 @@ public:
      * \param c the second point on the line segment
      * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
      */
-    static coord_t
+    inline types::coord_t
         getDist2FromLineSegment(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::geometry::Point2LL& c, int16_t* b_is_beyond_ac = nullptr)
     {
         /*
@@ -247,12 +245,12 @@ public:
          * error = vSize(xb)
          */
         const types::geometry::Point2LL ac = c - a;
-        const coord_t ac_size = types::geometry::vSize(ac);
+        const types::coord_t ac_size = types::geometry::vSize(ac);
 
         const types::geometry::Point2LL ab = b - a;
         if (ac_size == 0)
         {
-            const coord_t ab_dist2 = types::geometry::vSize2(ab);
+            const types::coord_t ab_dist2 = types::geometry::vSize2(ab);
             if (ab_dist2 == 0 && b_is_beyond_ac)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
@@ -260,8 +258,8 @@ public:
             // otherwise variable b_is_beyond_ac remains its value; it doesn't make sense to choose between -1 and 1
             return ab_dist2;
         }
-        const coord_t projected_x = types::geometry::dot(ab, ac);
-        const coord_t ax_size = projected_x / ac_size;
+        const types::coord_t projected_x = types::geometry::dot(ab, ac);
+        const types::coord_t ax_size = projected_x / ac_size;
 
         if (ax_size < 0)
         { // b is 'before' segment ac
@@ -300,14 +298,14 @@ public:
      * \param d Another end point of the second line segment
      * \param max_dist The maximal distance between the two line segments for which this function will return true.
      */
-    static bool lineSegmentsAreCloserThan(
+    inline bool lineSegmentsAreCloserThan(
         const types::geometry::Point2LL& a,
         const types::geometry::Point2LL& b,
         const types::geometry::Point2LL& c,
         const types::geometry::Point2LL& d,
-        const coord_t max_dist)
+        const types::coord_t max_dist)
     {
-        const coord_t max_dist2 = max_dist * max_dist;
+        const types::coord_t max_dist2 = max_dist * max_dist;
 
         return getDist2FromLineSegment(a, c, b) <= max_dist2 || getDist2FromLineSegment(a, d, b) <= max_dist2 || getDist2FromLineSegment(c, a, d) <= max_dist2
             || getDist2FromLineSegment(c, b, d) <= max_dist2;
@@ -322,7 +320,7 @@ public:
      * \param c One end point of the second line segment
      * \param d Another end point of the second line segment
      */
-    static coord_t
+    inline types::coord_t
         getDist2BetweenLineSegments(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::geometry::Point2LL& c, const types::geometry::Point2LL& d)
     {
         return std::min(getDist2FromLineSegment(a, c, b), std::min(getDist2FromLineSegment(a, d, b), std::min(getDist2FromLineSegment(c, a, d), getDist2FromLineSegment(c, b, d))));
@@ -342,7 +340,7 @@ public:
      * \param b_from_transformed The transformed to location of line b
      * \return Whether the two line segments collide
      */
-    static bool lineSegmentsCollide(
+    bool lineSegmentsCollide(
         const types::geometry::Point2LL& a_from_transformed,
         const types::geometry::Point2LL& a_to_transformed,
         types::geometry::Point2LL b_from_transformed,
@@ -365,7 +363,7 @@ public:
      * \param c end of second line segment
      * \return the angle in radians between 0 and 2 * pi of the corner in \p b
      */
-    static double getAngleLeft(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::geometry::Point2LL& c);
+    double getAngleLeft(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::geometry::Point2LL& c);
 
     /*!
      * Returns the determinant of the 2D matrix defined by the the vectors ab and ap as rows.
@@ -378,7 +376,7 @@ public:
      * \param b the to point of the line
      * \return a positive value when \p p lies to the left of the line from \p a to \p b
      */
-    static inline coord_t pointIsLeftOfLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b)
+    inline types::coord_t pointIsLeftOfLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b)
     {
         return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
     }
@@ -395,11 +393,11 @@ public:
      * \param[out] result The result (if any was found)
      * \return Whether any such point has been found
      */
-    static bool getPointOnLineWithDist(
+    bool getPointOnLineWithDist(
         const types::geometry::Point2LL& p,
         const types::geometry::Point2LL& a,
         const types::geometry::Point2LL& b,
-        const coord_t dist,
+        const types::coord_t dist,
         types::geometry::Point2LL& result);
 
     /*!
@@ -410,7 +408,7 @@ public:
      * \param b One of the points through which the line goes.
      * \return The distance between the point and the line, squared.
      */
-    static coord_t getDist2FromLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b);
+    types::coord_t getDist2FromLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b);
 
     /*!
      * Get the distance from a point \p p to the line on which \p a and \p b lie.
@@ -423,7 +421,7 @@ public:
      * \param b One of the points through which the line goes.
      * \return The distance between the point and the line.
      */
-    static coord_t getDistFromLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b);
+    types::coord_t getDistFromLine(const types::geometry::Point2LL& p, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b);
 
     /*!
      * Check whether a corner is acute or obtuse.
@@ -438,7 +436,7 @@ public:
      * \param c end of second line segment
      * \return positive if acute, negative if obtuse, zero if 90 degree corner
      */
-    static inline coord_t isAcuteCorner(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::geometry::Point2LL& c)
+    inline types::coord_t isAcuteCorner(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::geometry::Point2LL& c)
     {
         const types::geometry::Point2LL ba = a - b;
         const types::geometry::Point2LL bc = c - b;
@@ -448,7 +446,7 @@ public:
     /*!
      * Get the rotation matrix for rotating around a specific point in place.
      */
-    static types::geometry::Point3Matrix rotateAround(const types::geometry::Point2LL& middle, double rotation);
+    types::geometry::Point3Matrix rotateAround(const types::geometry::Point2LL& middle, double rotation);
 
     /*!
      * Test whether a point is inside a corner.
@@ -457,7 +455,7 @@ public:
      *
      * Test whether the \p query_point is inside of a polygon w.r.t a single corner.
      */
-    static bool
+    bool
         isInsideCorner(const types::geometry::Point2LL a, const types::geometry::Point2LL b, const types::geometry::Point2LL c, const types::geometry::Point2LL query_point);
 
     /*!
@@ -470,8 +468,8 @@ public:
      * \param b The second point.
      * \param vec_len The lenght of the resultant vector. It's not wise to set this to 1, since we do tend to do integer math here.
      */
-    static types::geometry::Point2LL
-        getBisectorVector(const types::geometry::Point2LL& intersect, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const coord_t vec_len);
+    types::geometry::Point2LL
+        getBisectorVector(const types::geometry::Point2LL& intersect, const types::geometry::Point2LL& a, const types::geometry::Point2LL& b, const types::coord_t vec_len);
 
     /*!
      * Gets the actual extra width to be applied when using a sloped base like for the prime tower of the supports
@@ -481,8 +479,5 @@ public:
      * @param actual_height The height of the currently layer being processed
      * @return The extra width to be applied around the element to make the base
      */
-    static coord_t getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height);
-};
-
-
-} // namespace curaengine::types::geometry
+    types::coord_t getSlopedWidth(const types::coord_t base_width, const types::coord_t base_height, const double slope_magnitude, const types::coord_t actual_height);
+} // namespace curaengine::utils::linear_alg_2d

@@ -12,7 +12,7 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
@@ -22,7 +22,7 @@
 #include "prime_tower/PrimeTowerInterleaved.h"
 #include "prime_tower/PrimeTowerNormal.h"
 #include "types/PrimeTowerMode.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 
 
 namespace curaengine::prime_tower
@@ -46,7 +46,7 @@ PrimeTower::PrimeTower()
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
-    outer_poly_ = { PolygonUtils::makeDisc(middle_, tower_radius, circle_definition_), tower_radius };
+    outer_poly_ = { polygon_utils::makeDisc(middle_, tower_radius, circle_definition_), tower_radius };
     post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
 
     // Generate the base outline
@@ -56,9 +56,9 @@ PrimeTower::PrimeTower()
 
         for (coord_t z = 0; z < base_height; z += layer_height)
         {
-            const coord_t extra_radius = LinearAlg2D::getSlopedWidth(base_extra_radius, base_height, base_curve_magnitude, z);
+            const coord_t extra_radius = linear_alg_2d::getSlopedWidth(base_extra_radius, base_height, base_curve_magnitude, z);
             const coord_t total_radius = tower_radius + extra_radius;
-            base_occupied_outline_.push_back(OccupiedOutline{ PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
+            base_occupied_outline_.push_back(OccupiedOutline{ polygon_utils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
         }
     }
 }
@@ -89,10 +89,10 @@ void PrimeTower::generateBase()
                 const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
                 std::tuple<ClosedLinesSet, coord_t> outset
-                    = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
+                    = polygon_utils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
                 first_extruder_toolpaths.toolpaths.push_back(std::get<0>(outset));
 
-                base_extrusion_outline_.push_back(PolygonUtils::makeDisc(middle_, std::get<1>(outset), circle_definition_));
+                base_extrusion_outline_.push_back(polygon_utils::makeDisc(middle_, std::get<1>(outset), circle_definition_));
             }
         }
     }
@@ -110,7 +110,7 @@ void PrimeTower::generateFirtLayerInset()
             const Scene& scene = Application::getInstance().current_slice_->scene;
             const size_t extruder_nr = last_extruder_toolpaths.extruder_nr;
             const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
-            ClosedLinesSet pattern = PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
+            ClosedLinesSet pattern = polygon_utils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
             last_extruder_toolpaths.toolpaths.push_back(pattern);
         }
     }
@@ -131,7 +131,7 @@ std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const siz
     ClosedLinesSet toolpaths;
     while (current_volume < required_volume && current_outer_radius >= semi_line_width)
     {
-        ClosedPolyline circle = PolygonUtils::makeCircle(middle_, current_outer_radius, circle_definition_);
+        ClosedPolyline circle = polygon_utils::makeCircle(middle_, current_outer_radius, circle_definition_);
         toolpaths.push_back(circle);
         current_volume += static_cast<double>(circle.length() * line_width * layer_height) * flow;
         current_outer_radius -= line_width;
@@ -159,7 +159,7 @@ ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, co
         // Bridging distance is too small for a proper wheel pattern; use solid concentric circles instead.
         for (coord_t i = 0; i < nb_circles; ++i)
         {
-            toolpaths.push_back(PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
+            toolpaths.push_back(polygon_utils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
         }
     }
     else if (nb_annuli > 0)
@@ -173,7 +173,7 @@ ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, co
 
             const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(annulus_outer_radius)) / max_bridging_distance));
 
-            toolpaths.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
+            toolpaths.push_back(polygon_utils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
         }
     }
 
@@ -322,7 +322,7 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
 {
     PrimeTower* prime_tower = nullptr;
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
+    const size_t raft_total_extra_layers = raft::getTotalExtraLayers();
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
 
     std::vector<size_t> used_extruders_nrs;
@@ -366,7 +366,7 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
+    if (layer_nr != -LayerIndex(raft::getTotalExtraLayers()))
     {
         coord_t wipe_radius;
         auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());
@@ -390,7 +390,7 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder
 
         size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
         const AngleRadians angle = start_locations_step_ * current_start_location_idx;
-        const Point2LL prime_start = PolygonUtils::makeCirclePoint(middle_, wipe_radius, angle);
+        const Point2LL prime_start = polygon_utils::makeCirclePoint(middle_, wipe_radius, angle);
 
         gcode_layer.addTravel(prime_start);
     }

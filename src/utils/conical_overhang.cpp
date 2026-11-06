@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Tim Kuipers
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "ConicalOverhang.h"
+#include "utils/conical_overhang.h"
 
 #include "Mesh.h"
 #include "Slicer.h"
@@ -13,13 +13,13 @@
 #include "types/geometry/Simplify.h"
 #include "types/geometry/SingleShape.h"
 
-namespace curaengine
+namespace curaengine::utils::conical_overhang
 {
 using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
+void apply(Slicer* slicer, const Mesh& mesh)
 {
     const AngleRadians angle = mesh.settings_.get<AngleRadians>("conical_overhang_angle");
     const double max_hole_area = mesh.settings_.get<double>("conical_overhang_hole_size");
@@ -82,4 +82,4 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
     }
 }
 
-} // namespace curaengine
+} // namespace curaengine::utils::conical_overhang

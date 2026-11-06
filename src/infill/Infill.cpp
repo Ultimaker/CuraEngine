@@ -27,7 +27,7 @@
 #include "plugins/Slots.h"
 #include "types/EFillMethod.h"
 #include "types/UnionFind.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/OpenPolylineStitcher.h"
 #include "types/geometry/Point2D.h"
@@ -897,7 +897,7 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
 
     // Find a bisector of the intersection; specifically, the one that crosses the connection & offset it by 1/2 distance to each side.
     constexpr auto large_enough_vec_len = 0xFFFFFFFF;
-    const auto bisect = LinearAlg2D::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
+    const auto bisect = linear_alg_2d::getBisectorVector(intersect, connect_start, connect_end, large_enough_vec_len);
     const auto offset = ((at_distance / 2) * Point2LL(-bisect.Y, bisect.X)) / large_enough_vec_len;
     const auto q = intersect + offset;
     const auto r = q + bisect;
@@ -908,12 +908,12 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
     bool is_resolved = true;
 
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    is_resolved &= LinearAlg2D::lineLineIntersection(q, r, a->start_, a->end_, bend_a.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_a.value(), a->start_, a->end_) == 0;
-    is_resolved &= LinearAlg2D::lineLineIntersection(s, t, b->start_, b->end_, bend_b.value()) && LinearAlg2D::pointIsProjectedBeyondLine(bend_b.value(), b->start_, b->end_) == 0;
+    is_resolved &= linear_alg_2d::lineLineIntersection(q, r, a->start_, a->end_, bend_a.value()) && linear_alg_2d::pointIsProjectedBeyondLine(bend_a.value(), a->start_, a->end_) == 0;
+    is_resolved &= linear_alg_2d::lineLineIntersection(s, t, b->start_, b->end_, bend_b.value()) && linear_alg_2d::pointIsProjectedBeyondLine(bend_b.value(), b->start_, b->end_) == 0;
 
     // Also set the new end-points
-    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, q, r, end_a) && LinearAlg2D::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
-    is_resolved &= LinearAlg2D::lineLineIntersection(connect_start, connect_end, s, t, end_b) && LinearAlg2D::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
+    is_resolved &= linear_alg_2d::lineLineIntersection(connect_start, connect_end, q, r, end_a) && linear_alg_2d::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
+    is_resolved &= linear_alg_2d::lineLineIntersection(connect_start, connect_end, s, t, end_b) && linear_alg_2d::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
 
     if (is_resolved)
     {
@@ -1019,9 +1019,9 @@ void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std:
                         // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop'.
                         Point2LL intersect;
                         if (types::geometry::vSize2(previous_point - next_point) < half_line_distance_squared
-                            && LinearAlg2D::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
-                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
-                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0
+                            && linear_alg_2d::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
+                            && linear_alg_2d::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
+                            && linear_alg_2d::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0
                             && types::geometry::vSize2(previous_point - intersect) > epsilon_sqd && types::geometry::vSize2(next_point - intersect) > epsilon_sqd)
                         {
                             resolveIntersection(infill_line_width_, intersect, previous_point, next_point, previous_segment, crossing);

@@ -5,7 +5,7 @@
 
 #include "types/AngleRadians.h"
 #include "types/actions/smooth_fn.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 
 namespace curaengine::types::geometry
@@ -52,11 +52,11 @@ const Shape& MendedShape::getShape() const
                 }
             }
 
-            PolygonUtils::fixSelfIntersections(epsilon_offset, mended_shape);
+            polygon_utils::fixSelfIntersections(epsilon_offset, mended_shape);
             mended_shape.removeDegenerateVerts();
             mended_shape.removeColinearEdges(AngleRadians(0.005));
             // Removing collinear edges may introduce self intersections, so we need to fix them again
-            PolygonUtils::fixSelfIntersections(epsilon_offset, mended_shape);
+            polygon_utils::fixSelfIntersections(epsilon_offset, mended_shape);
             mended_shape.removeDegenerateVerts();
             mended_shape = mended_shape.unionPolygons();
             mended_shape = Simplify(*settings_).polygon(mended_shape).removeNearSelfIntersections();

@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/SegmentOverlapping.h"
 #include "types/geometry/SegmentOverlappingData.h"
@@ -30,13 +30,13 @@ void TransformedSegment::updateMinMax()
 
 void TransformedSegment::cropTop(const coord_t new_max_y_)
 {
-    setEnd(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start_, end_, new_max_y_).value_or(0), new_max_y_));
+    setEnd(Point2LL(linear_alg_2d::lineHorizontalLineIntersection(start_, end_, new_max_y_).value_or(0), new_max_y_));
 }
 
 /*! Move the segment minimum Y coordinate up, actually cropping it */
 void TransformedSegment::cropBottom(const coord_t new_min_y_)
 {
-    setStart(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start_, end_, new_min_y_).value_or(0), new_min_y_));
+    setStart(Point2LL(linear_alg_2d::lineHorizontalLineIntersection(start_, end_, new_min_y_).value_or(0), new_min_y_));
 }
 
 std::optional<SegmentOverlapping> TransformedSegment::calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
@@ -67,7 +67,7 @@ std::optional<SegmentOverlapping> TransformedSegment::calculateOverlapping(const
         // Segments are apparently intersecting each other
         float intersection_segment;
         float intersection_infill_line;
-        if (LinearAlg2D::segmentSegmentIntersection(start_, end_, other.start_, other.end_, intersection_segment, intersection_infill_line))
+        if (linear_alg_2d::segmentSegmentIntersection(start_, end_, other.start_, other.end_, intersection_segment, intersection_infill_line))
         {
             const Point2LL intersection = types::geometry::lerp(start_, end_, intersection_segment);
             if (intersection.Y >= overlapping.y_max - EPSILON)

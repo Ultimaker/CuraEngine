@@ -22,7 +22,7 @@
 #include "FanSpeedLayerTimeSettings.h"
 #include "PathAdapter.h"
 #include "PathOrderMonotonic.h"
-#include "Raft.h"
+#include "utils/raft.h"
 #include "RetractionAndWipeConfig.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
@@ -34,7 +34,7 @@
 #include "ZHopAntiOozing.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "arachne/SkeletalTrapezoidationGraph.h"
-#include "beading_strategy/BeadingStrategyFactory.h"
+#include "utils/beading_strategy_factory.h"
 #include "bridge/bridge.h"
 #include "communication/Communication.h"
 #include "gradual_flow/Processor.h"
@@ -46,9 +46,9 @@
 #include "types/Ratio.h"
 #include "types/SectionType.h"
 #include "types/geometry/ClosedLinesSet.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenPolyline.h"
-#include "types/geometry/PolygonUtils.h"
+#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "types/geometry/conversions/Point2D_Point2LL.h"
 #include "utils/math.h"
@@ -138,8 +138,8 @@ LayerPlan::LayerPlan(
     , final_travel_z_(z)
     , storage_(storage)
     , layer_nr_(layer_nr)
-    , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-    , layer_type_(Raft::getLayerType(layer_nr))
+    , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(raft::getTotalExtraLayers()))
+    , layer_type_(raft::getLayerType(layer_nr))
     , layer_thickness_(layer_thickness)
     , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders.size(), false)
     , current_mesh_(nullptr)
@@ -169,7 +169,7 @@ LayerPlan::LayerPlan(
         layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"), 0);
     }
     extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
-    const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
+    const auto is_raft_layer = layer_type_ == RaftLayerType::RaftBase || layer_type_ == RaftLayerType::RaftInterface || layer_type_ == RaftLayerType::RaftSurface;
     extruder_plans_.emplace_back(
         current_extruder,
         layer_nr,
@@ -204,23 +204,23 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
     {
         switch (layer_type_)
         {
-        case Raft::LayerType::RaftBase:
+        case RaftLayerType::RaftBase:
             comb_boundary = storage_.raft_base_outline.offset(MM2INT(0.1));
             break;
 
-        case Raft::LayerType::RaftInterface:
+        case RaftLayerType::RaftInterface:
             comb_boundary = storage_.raft_interface_outline.offset(MM2INT(0.1));
             break;
 
-        case Raft::LayerType::RaftSurface:
+        case RaftLayerType::RaftSurface:
             comb_boundary = storage_.raft_surface_outline.offset(MM2INT(0.1));
             break;
 
-        case Raft::LayerType::Airgap:
+        case RaftLayerType::Airgap:
             // do nothing for airgap
             break;
 
-        case Raft::LayerType::Model:
+        case RaftLayerType::Model:
             for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage_.meshes)
             {
                 const auto& mesh = *mesh_ptr;
@@ -319,7 +319,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
         extruder_plans_.back().extruder_nr_ = extruder_nr;
     }
 
-    const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
+    const auto is_raft_layer = layer_type_ == RaftLayerType::RaftBase || layer_type_ == RaftLayerType::RaftInterface || layer_type_ == RaftLayerType::RaftSurface;
     extruder_plans_.emplace_back(
         extruder_nr,
         layer_nr_,
@@ -361,10 +361,10 @@ void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::option
     constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boundary of a part to inside the part
     Point2LL p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2) != NO_INDEX)
+    if (polygon_utils::moveInside(comb_boundary_preferred_, p, distance, max_dist2) != NO_INDEX)
     {
         // Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2);
+        polygon_utils::moveInside(comb_boundary_preferred_, p, distance, max_dist2);
         if (comb_boundary_preferred_.inside(p) && (part == std::nullopt || part->outline.inside(p)))
         {
             addTravel_simple(p, path);
@@ -1314,7 +1314,7 @@ void LayerPlan::addWallLine(
             // what part of the line segment will be printed with what config.
             return false;
         }
-        return PolygonUtils::polygonCollidesWithLineSegment(mask, p0.toPoint2LL(), p1.toPoint2LL()) || mask.inside(p1.toPoint2LL(), true);
+        return polygon_utils::polygonCollidesWithLineSegment(mask, p0.toPoint2LL(), p1.toPoint2LL()) || mask.inside(p1.toPoint2LL(), true);
     };
 
     if (use_skin_config(roofing_mask_, roofing_config))
@@ -1833,7 +1833,7 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         constexpr bool restitch = false; // only a single line doesn't need stitching
         OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(OpenLinesSet(OpenPolyline({ p0.p_, p1.p_ })), restitch);
 
-        if (! PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
+        if (! polygon_utils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
         {
             ending_anchor_distance += line_distance;
 
@@ -1922,7 +1922,7 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         // see what other points in the bridge go over the max deviation, if any
         for (ptrdiff_t pt_idx = point_index(wall, bridge.wall_idx_start + direction); pt_idx != bridge.wall_idx_end; pt_idx = point_index(wall, pt_idx + direction))
         {
-            if (LinearAlg2D::getDistFromLine(wall[pt_idx].p_, start_pt, end_pt) > max_bridge_deviation)
+            if (linear_alg_2d::getDistFromLine(wall[pt_idx].p_, start_pt, end_pt) > max_bridge_deviation)
             {
                 // don't add a bridge -- we're over the max deviation here
                 return;
@@ -2621,7 +2621,7 @@ void LayerPlan::addLinesInGivenOrder(
 
     if (extra_inwards_start_move_length > 0 || extra_inwards_end_move_length > 0)
     {
-        const BeadingStrategyPtr beading_strategy = BeadingStrategyFactory::makeStrategy();
+        const BeadingStrategyPtr beading_strategy = beading_strategy_factory::makeStrategy();
         constexpr coord_t discretization_step_size = MM2INT(0.8);
         trapezoidation = std::make_unique<SkeletalTrapezoidation>(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::Infill);
     }
@@ -3284,7 +3284,7 @@ void LayerPlan::spiralizeWallSlice(
         // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
         // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
         // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
-        Point2LL join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx % wall.size()], wall[(seam_vertex_idx + 1) % wall.size()]);
+        Point2LL join_first_wall_at = linear_alg_2d::getClosestOnLineSegment(origin, wall[seam_vertex_idx % wall.size()], wall[(seam_vertex_idx + 1) % wall.size()]);
         if (types::geometry::vSize(join_first_wall_at - origin) > 10)
         {
             constexpr Ratio flow = 1.0_r;
@@ -3365,7 +3365,7 @@ void LayerPlan::spiralizeWallSlice(
         if (smooth_contours && ! is_bottom_layer && wall_point_idx < n_points)
         {
             // now find the point on the last wall that is closest to p
-            ClosestPointPolygon cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+            ClosestPointPolygon cpp = polygon_utils::findClosest(p, last_wall_polygons);
 
             // if we found a point and it's not further away than max_dist2, use it
             if (cpp.isValid() && types::geometry::vSize2(cpp.location_ - p) <= max_dist2)
@@ -3714,7 +3714,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
-    static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
+    static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(raft::getTotalExtraLayers()) };
     if (layer_nr_ == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
     {
         constexpr bool wait = false;

@@ -9,7 +9,7 @@
 
 #include "arachne/STHalfEdge.h"
 #include "arachne/SkeletalTrapezoidationGraph.h"
-#include "types/geometry/LinearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/macros.h"
 
 namespace curaengine::arachne
