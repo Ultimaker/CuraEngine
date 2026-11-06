@@ -1,11 +1,11 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "infill/LightningDistanceField.h"
+#include "infill/lightning/LightningDistanceField.h"
 
 #include "types/geometry/PolygonUtils.h"
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 using namespace types::geometry;
 using namespace types;
@@ -85,4 +85,4 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
     grid_.processNearby(added_leaf, supporting_radius_, process_func);
 }
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

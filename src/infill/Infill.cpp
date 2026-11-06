@@ -18,7 +18,7 @@
 #include "arachne/SkeletalTrapezoidation.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/LightningGenerator.h"
+#include "infill/lightning/LightningGenerator.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/RegularNGonalInfill.h"
 #include "infill/SierpinskiFill.h"
@@ -37,6 +37,7 @@
 
 namespace curaengine::infill
 {
+using namespace lightning;
 using namespace types::geometry;
 using namespace types;
 using namespace utils;

@@ -6,7 +6,7 @@
 #include "types/geometry/Polygon.h"
 #include "types/geometry/SquareGrid.h"
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 
 /*!
@@ -118,4 +118,4 @@ protected:
     std::unordered_map<types::geometry::SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid_;
 };
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "LightningLayer.h"
+#include "infill/lightning/LightningLayer.h"
 #include "types/geometry/PolygonUtils.h"
 
 namespace curaengine
@@ -14,7 +14,7 @@ class SliceMeshStorage;
 class SupportStorage;
 } // namespace curaengine
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 
 
@@ -154,4 +154,4 @@ protected:
     std::vector<LightningLayer> lightning_layers;
 };
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

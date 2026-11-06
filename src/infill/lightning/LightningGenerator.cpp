@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "infill/LightningGenerator.h"
+#include "infill/lightning/LightningGenerator.h"
 
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/reverse.hpp>
@@ -15,8 +15,8 @@
 #include "SupportInfillPart.h"
 #include "SupportLayer.h"
 #include "SupportStorage.h"
-#include "infill/LightningLayer.h"
-#include "infill/LightningTreeNode.h"
+#include "infill/lightning/LightningLayer.h"
+#include "infill/lightning/LightningTreeNode.h"
 #include "types/geometry/LinearAlg2D.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 
@@ -34,7 +34,7 @@
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 using namespace types::geometry;
 using namespace types;
@@ -195,4 +195,4 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
     }
 }
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

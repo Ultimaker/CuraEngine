@@ -1,11 +1,11 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "infill/GroundingLocation.h"
+#include "infill/lightning/GroundingLocation.h"
 
 #include <cassert>
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 using namespace types::geometry;
 
@@ -22,4 +22,4 @@ Point2LL GroundingLocation::p() const
     }
 }
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

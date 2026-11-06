@@ -13,7 +13,7 @@
 #include "types/geometry/PolygonUtils.h"
 #include "types/geometry/Shape.h"
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 
 constexpr types::coord_t locator_cell_size = 4000;
@@ -275,4 +275,4 @@ protected:
     std::optional<types::geometry::Point2LL> last_grounding_location_; //<! The last known grounding location, see 'getLastGroundingLocation()'.
 };
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

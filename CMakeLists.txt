@@ -140,16 +140,16 @@ set(engine_SRCS # Except main.cpp.
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
         src/infill/ZigzagConnectorProcessor.cpp
-        src/infill/LightningDistanceField.cpp
-        src/infill/LightningGenerator.cpp
-        src/infill/LightningLayer.cpp
-        src/infill/LightningTreeNode.cpp
+        src/infill/lightning/LightningDistanceField.cpp
+        src/infill/lightning/LightningGenerator.cpp
+        src/infill/lightning/LightningLayer.cpp
+        src/infill/lightning/LightningTreeNode.cpp
         src/infill/RegularNGonalInfill.cpp
         src/infill/SierpinskiFill.cpp
         src/infill/SierpinskiFillProvider.cpp
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
-        src/infill/GroundingLocation.cpp
+        src/infill/lightning/GroundingLocation.cpp
 
         src/routing/Comb.cpp
         src/routing/GCodePath.cpp

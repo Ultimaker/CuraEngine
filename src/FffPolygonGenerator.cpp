@@ -48,7 +48,7 @@
 #include "WallsComputation.h"
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/LightningGenerator.h"
+#include "infill/lightning/LightningGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
@@ -73,6 +73,7 @@ namespace curaengine
 {
 using namespace types::geometry;
 using namespace infill;
+using namespace infill::lightning;
 using namespace progress;
 using namespace types;
 using namespace utils;

@@ -7,7 +7,7 @@
 
 #include "Settings.h"
 #include "WallToolPathGenerator.h"
-#include "infill/LightningGenerator.h"
+#include "infill/lightning/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "types/AngleDegrees.h"
 #include "types/EFillMethod.h"
@@ -217,7 +217,7 @@ public:
         int layer_idx,
         types::SectionType section_type,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
-        const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
+        const std::shared_ptr<lightning::LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
         const types::geometry::Shape& prevent_small_exposed_to_air = types::geometry::Shape(),
         const types::coord_t minimum_line_length = 0,
@@ -402,7 +402,7 @@ private:
         const Settings& settings,
         const int layer_idx,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
-        const std::shared_ptr<LightningLayer>& lightning_layer,
+        const std::shared_ptr<lightning::LightningLayer>& lightning_layer,
         const SliceMeshStorage* mesh,
         const types::coord_t minimum_line_length);
 
@@ -417,7 +417,7 @@ private:
         const Settings& settings,
         const int layer_idx,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
-        const std::shared_ptr<LightningLayer>& lightning_layer,
+        const std::shared_ptr<lightning::LightningLayer>& lightning_layer,
         const SliceMeshStorage* mesh);
 
     /*!
@@ -459,7 +459,7 @@ private:
      * see https://hal.archives-ouvertes.fr/hal-02155929/document
      * \param result (output) The resulting polygons
      */
-    void generateLightningInfill(const types::geometry::Shape& outline, const std::shared_ptr<LightningLayer>& lightning_layer, types::geometry::OpenLinesSet& result_lines);
+    void generateLightningInfill(const types::geometry::Shape& outline, const std::shared_ptr<lightning::LightningLayer>& lightning_layer, types::geometry::OpenLinesSet& result_lines);
 
     /*!
      * Generate sparse concentric infill

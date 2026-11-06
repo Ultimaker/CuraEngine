@@ -11,9 +11,13 @@
 
 namespace curaengine::infill
 {
-class LightningGenerator;
 class SierpinskiFillProvider;
 } // namespace curaengine::infill
+
+namespace curaengine::infill::lightning
+{
+class LightningGenerator;
+} // namespace curaengine::infill::lightning
 
 namespace curaengine
 {
@@ -33,7 +37,7 @@ public:
 
     std::vector<SupportLayer> supportLayers;
     std::shared_ptr<infill::SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
-    std::shared_ptr<infill::LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
+    std::shared_ptr<infill::lightning::LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     SupportStorage();
     ~SupportStorage();

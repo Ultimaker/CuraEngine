@@ -6,8 +6,8 @@
 #include <memory>
 #include <vector>
 
-#include "infill/GroundingLocation.h"
-#include "infill/LightningTreeNode.h"
+#include "infill/lightning/GroundingLocation.h"
+#include "infill/lightning/LightningTreeNode.h"
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/PolygonUtils.h"
 
@@ -17,7 +17,7 @@ template<class Val>
 class SparsePointGridInclusive;
 }
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
@@ -72,4 +72,4 @@ public:
 
     void fillLocator(SparseLightningTreeNodeGrid& tree_node_locator);
 };
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

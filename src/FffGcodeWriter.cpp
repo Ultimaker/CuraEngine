@@ -65,6 +65,7 @@ namespace curaengine
 {
 using namespace types::geometry;
 using namespace infill;
+using namespace infill::lightning;
 using namespace progress;
 using namespace types;
 using namespace utils;

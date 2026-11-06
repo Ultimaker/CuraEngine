@@ -1,12 +1,12 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "infill/LightningTreeNode.h"
+#include "infill/lightning/LightningTreeNode.h"
 
 #include "types/geometry/LinearAlg2D.h"
 #include "types/geometry/OpenLinesSet.h"
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 using namespace types::geometry;
 using namespace types;
@@ -435,4 +435,4 @@ void LightningTreeNode::removeJunctionOverlap(OpenLinesSet& result_lines, const 
     }
 }
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning

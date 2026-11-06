@@ -1,17 +1,17 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "infill/LightningLayer.h"
+#include "infill/lightning/LightningLayer.h"
 
 #include "SliceDataStorage.h"
-#include "infill/GroundingLocation.h"
-#include "infill/LightningDistanceField.h"
-#include "infill/LightningTreeNode.h"
+#include "infill/lightning/GroundingLocation.h"
+#include "infill/lightning/LightningDistanceField.h"
+#include "infill/lightning/LightningTreeNode.h"
 #include "types/geometry/LinearAlg2D.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 
-namespace curaengine::infill
+namespace curaengine::infill::lightning
 {
 using namespace types::geometry;
 using namespace types;
@@ -224,4 +224,4 @@ OpenLinesSet LightningLayer::convertToLines(const Shape& limit_to_outline, const
     return result_lines;
 }
 
-} // namespace curaengine::infill
+} // namespace curaengine::infill::lightning
