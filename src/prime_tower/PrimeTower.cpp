@@ -341,10 +341,10 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
 
         switch (method)
         {
-        case PrimeTowerMode::NORMAL:
+        case PrimeTowerMode::Normal:
             prime_tower = new PrimeTowerNormal(used_extruders_nrs);
             break;
-        case PrimeTowerMode::INTERLEAVED:
+        case PrimeTowerMode::Interleaved:
             prime_tower = new PrimeTowerInterleaved();
             break;
         }

@@ -10,9 +10,9 @@ namespace curaengine::types
  */
 enum class ESupportStructure
 {
-    NORMAL,
-    TREE,
-    PLUGIN,
+    Normal,
+    Tree,
+    Plugin,
 };
 
 } // namespace curaengine::types

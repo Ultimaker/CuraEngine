@@ -101,7 +101,7 @@ void InsetOrderOptimizer::optimize()
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
     const auto inset_direction = settings_.get<InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
 
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    const bool outer_to_inner = inset_direction == InsetDirection::OutsideIn;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
@@ -163,18 +163,18 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
     constexpr Ratio flow = 1.0_r;
     bool added_something = false;
 
-    ForceRetract force_retract = ForceRetract::AUTOMATIC;
+    ForceRetract force_retract = ForceRetract::Automatic;
     switch (retract_before_outer_wall)
     {
-    case RetractBeforeOuterWall::AUTOMATIC:
-        force_retract = ForceRetract::AUTOMATIC;
+    case RetractBeforeOuterWall::Automatic:
+        force_retract = ForceRetract::Automatic;
         break;
-    case RetractBeforeOuterWall::RETRACTED:
-        force_retract = ForceRetract::RETRACTED;
+    case RetractBeforeOuterWall::Retracted:
+        force_retract = ForceRetract::Retracted;
         break;
-    case RetractBeforeOuterWall::NOT_RETRACTED:
-    case RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
-        force_retract = ForceRetract::NOT_RETRACTED;
+    case RetractBeforeOuterWall::NotRetracted:
+    case RetractBeforeOuterWall::NotRetractedFromInfill:
+        force_retract = ForceRetract::NotRetracted;
         break;
     }
 
@@ -192,7 +192,7 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
         const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
-        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::AUTOMATIC;
+        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::Automatic;
         const bool scarf_seam = scarf_seam_ && is_outer_wall;
         const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
@@ -222,10 +222,10 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
             override_areas);
         added_something = true;
 
-        if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
+        if (retract_before_outer_wall == RetractBeforeOuterWall::NotRetractedFromInfill)
         {
             // Only the first should be forced, the next ones use auto
-            force_retract = ForceRetract::AUTOMATIC;
+            force_retract = ForceRetract::Automatic;
         }
     }
 
@@ -240,10 +240,10 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     Point2LL request_point;
     switch (z_seam_config_.type_)
     {
-    case EZSeamType::USER_SPECIFIED:
+    case EZSeamType::UserSpecified:
         request_point = z_seam_config_.pos_;
         break;
-    case EZSeamType::SHORTEST:
+    case EZSeamType::Shortest:
         request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
         break;
     default:
@@ -255,7 +255,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
     bool should_recalculate_closest = false;
-    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+    if (z_seam_config_.type_ == EZSeamType::UserSpecified)
     {
         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
         // since you want the seam-line to be continuous in 3D space.

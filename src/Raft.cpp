@@ -145,7 +145,7 @@ coord_t Raft::getZdiffBetweenRaftAndLayer0()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::Raft)
     {
         return 0;
     }
@@ -162,7 +162,7 @@ size_t Raft::getFillerLayerCount()
 coord_t Raft::getFillerLayerHeight()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::Raft)
     {
         const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
         return normal_layer_height;
@@ -179,7 +179,7 @@ size_t Raft::getTotalExtraLayers()
 size_t Raft::getBaseLayers()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::Raft)
     {
         return 0;
     }
@@ -224,7 +224,7 @@ Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
 size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::Raft)
     {
         return 0;
     }

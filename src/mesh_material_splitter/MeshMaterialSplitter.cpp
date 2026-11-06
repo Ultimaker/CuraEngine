@@ -416,7 +416,7 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
     const coord_t initial_layer_thickness = thickness;
     constexpr bool use_variable_layer_heights = false;
     constexpr std::vector<AdaptiveLayer>* adaptive_layers = nullptr;
-    constexpr SlicingTolerance slicing_tolerance = SlicingTolerance::INCLUSIVE;
+    constexpr SlicingTolerance slicing_tolerance = SlicingTolerance::Inclusive;
 
     // There is some margin in the voxel grid around the mesh, so get the actual mesh bounding box and see how many layers are actually covered
     AABB3D mesh_bounding_box = mesh.getAABB();
@@ -599,7 +599,7 @@ void propagateVoxels(
 
     while (! evaluated_voxels.empty())
     {
-        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, std::min(iteration, estimated_iterations) + delta_iterations, total_estimated_iterations);
+        Progress::messageProgress(Progress::Stage::SplitMultiMaterial, std::min(iteration, estimated_iterations) + delta_iterations, total_estimated_iterations);
 
         // Make the list of new voxels to be evaluated, based on which were evaluated before
         spdlog::debug("Finding voxels around {} voxels for iteration {}", evaluated_voxels.size(), iteration);

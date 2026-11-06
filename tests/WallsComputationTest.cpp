@@ -118,7 +118,7 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     part.outline.push_back(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
@@ -141,7 +141,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     part.outline.push_back(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
 
     // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
@@ -162,7 +162,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     part.outline.push_back(ff_holes);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
 
     const bool outer_to_inner = false;
     std::vector<ExtrusionLine> all_paths;
@@ -188,26 +188,26 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
             {
                 if (line.is_odd)
                 {
-                    svg.writePolyline(line.toPolygon(), SVG::Color::YELLOW);
+                    svg.writePolyline(line.toPolygon(), SVG::Color::Yellow);
                     svg.writePoints(line.toPolygon(), true);
                 }
                 else
-                    svg.writePolygon(line.toPolygon(), SVG::Color::GREEN);
+                    svg.writePolygon(line.toPolygon(), SVG::Color::Green);
             }
         }
-        svg.writePolygons(part.outline, SVG::Color::RED);
-        svg.writePolygons(part.inner_area, SVG::Color::YELLOW);
+        svg.writePolygons(part.outline, SVG::Color::Red);
+        svg.writePolygons(part.inner_area, SVG::Color::Yellow);
         svg.nextLayer();
         for (auto [first, second] : order)
         {
             if (! second->is_odd)
-                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::BLUE);
+                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::Blue);
         }
         svg.nextLayer();
         for (auto [first, second] : order)
         {
             if (second->is_odd)
-                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::MAGENTA);
+                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::Magenta);
         }
     }
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT

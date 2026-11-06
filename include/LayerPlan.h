@@ -186,8 +186,8 @@ private:
 
     enum CombBoundary
     {
-        MINIMUM,
-        PREFERRED
+        Minimum,
+        Preferred
     };
 
     /*!
@@ -415,7 +415,7 @@ public:
      */
     path_planning::GCodePath& addTravel(
         const types::geometry::Point2LL& p,
-        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
+        const ForceRetract force_retract = ForceRetract::Automatic,
         const types::coord_t z_offset = 0,
         const std::optional<types::coord_t> max_distance_ignore_combing = std::nullopt);
 
@@ -529,7 +529,7 @@ public:
         types::coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const types::Ratio& flow_ratio = 1.0_r,
-        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
+        const ForceRetract force_retract = ForceRetract::Automatic,
         bool scarf_seam = false,
         bool smooth_speed = false,
         const OverrideAreas& override_areas = {});
@@ -575,7 +575,7 @@ public:
         types::coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const types::Ratio flow_ratio = 1.0_r,
-        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
+        const ForceRetract force_retract = ForceRetract::Automatic,
         bool reverse_order = false,
         const std::optional<types::geometry::Point2LL> start_near_location = std::optional<types::geometry::Point2LL>(),
         bool scarf_seam = false,
@@ -760,7 +760,7 @@ public:
         const types::ZSeamConfig& z_seam_config = types::ZSeamConfig(),
         types::coord_t wall_0_wipe_dist = 0,
         double flow_ratio = 1.0,
-        const ForceRetract force_retract = ForceRetract::AUTOMATIC);
+        const ForceRetract force_retract = ForceRetract::Automatic);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -970,14 +970,14 @@ private:
      * \brief Compute the preferred or minimum combing boundary
      *
      * Minimum combing boundary:
-     *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
-     *  - If CombingMode::NO_SKIN: Add the outline offset, subtract skin (infill and inner walls).
-     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *  - If CombingMode::All: Add the outline offset (skin, infill and inner walls).
+     *  - If CombingMode::NoSkin: Add the outline offset, subtract skin (infill and inner walls).
+     *  - If CombingMode::Infill: Add the infill (infill only).
      *
      * Preferred combing boundary:
-     *  - If CombingMode::ALL: Add the increased outline offset (skin, infill and part of the inner walls).
-     *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
-     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *  - If CombingMode::All: Add the increased outline offset (skin, infill and part of the inner walls).
+     *  - If CombingMode::NoSkin: Add the increased outline offset, subtract skin (infill and part of the inner walls).
+     *  - If CombingMode::Infill: Add the infill (infill only).
      *
      * \param boundary_type The boundary type to compute.
      * \return the combing boundary or an empty Shape if no combing is required
@@ -1042,7 +1042,7 @@ private:
         types::coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const types::Ratio flow_ratio = 1.0_r,
-        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
+        const ForceRetract force_retract = ForceRetract::Automatic,
         bool reverse_order = false,
         bool scarf_seam = false,
         bool smooth_speed = false,

@@ -7,15 +7,15 @@ namespace curaengine::types
 {
 enum class SectionType : int
 {
-    NA = -1,
-    WALL = 1,
-    INFILL = 2,
-    SKIN = 3,
-    SUPPORT = 4,
-    ADHESION = 5,
-    IRONING = 6,
-    MESH = 7,
-    DOTS = 8,
-    CONCENTRIC_INFILL = 9
+    Na = -1,
+    Wall = 1,
+    Infill = 2,
+    Skin = 3,
+    Support = 4,
+    Adhesion = 5,
+    Ironing = 6,
+    Mesh = 7,
+    Dots = 8,
+    ConcentricInfill = 9
 };
 } // namespace curaengine::types

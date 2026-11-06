@@ -563,7 +563,7 @@ private:
         const std::optional<RetractionAmounts>& retraction_amounts = std::nullopt);
 
     /*!
-     * The writeTravel and/or writeExtrusion when flavor == BFB
+     * The writeTravel and/or writeExtrusion when flavor == Bfb
      * \param x build plate x
      * \param y build plate y
      * \param z build plate z

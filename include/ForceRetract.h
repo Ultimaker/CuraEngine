@@ -11,9 +11,9 @@ namespace curaengine
  */
 enum class ForceRetract
 {
-    AUTOMATIC, // Let retraction be calculated automatically for the travel move
-    RETRACTED, // Force travel move to be retracted
-    NOT_RETRACTED, // Force travel move not to be retracted
+    Automatic, // Let retraction be calculated automatically for the travel move
+    Retracted, // Force travel move to be retracted
+    NotRetracted, // Force travel move not to be retracted
 };
 
 } // namespace curaengine

@@ -62,7 +62,7 @@ Slicer::Slicer(
     spdlog::info("Slice of mesh took {}", std::chrono::duration<double>(slice_timer.restart()));
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
-    scripta::log("sliced_polygons", layers, SectionType::NA);
+    scripta::log("sliced_polygons", layers, SectionType::Na);
     spdlog::info("Make polygons took {}", std::chrono::duration<double>(slice_timer.restart()));
 }
 
@@ -99,7 +99,7 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 Point3LL p2 = v2.p_;
 
                 // Compensate for points exactly on the slice-boundary, except for 'inclusive', which already handles this correctly.
-                if (slicing_tolerance != SlicingTolerance::INCLUSIVE)
+                if (slicing_tolerance != SlicingTolerance::Inclusive)
                 {
                     p0.z_ += static_cast<int>(p0.z_ == z) * -static_cast<int>(p0.z_ < 1);
                     p1.z_ += static_cast<int>(p1.z_ == z) * -static_cast<int>(p1.z_ < 1);
@@ -214,13 +214,13 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
     layers_res.resize(slice_layer_count);
 
     // set (and initialize compensation for) initial layer, depending on slicing mode
-    layers_res[0].z_ = slicing_tolerance == SlicingTolerance::INCLUSIVE ? 0 : std::max(0LL, initial_layer_thickness - thickness);
+    layers_res[0].z_ = slicing_tolerance == SlicingTolerance::Inclusive ? 0 : std::max(0LL, initial_layer_thickness - thickness);
     coord_t adjusted_layer_offset = initial_layer_thickness;
     if (use_variable_layer_heights)
     {
         layers_res[0].z_ = (*adaptive_layers)[0].z_position_;
     }
-    else if (slicing_tolerance == SlicingTolerance::MIDDLE)
+    else if (slicing_tolerance == SlicingTolerance::Middle)
     {
         layers_res[0].z_ = initial_layer_thickness / 2;
         adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
@@ -253,20 +253,20 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
     switch (slicing_tolerance)
     {
-    case SlicingTolerance::INCLUSIVE:
+    case SlicingTolerance::Inclusive:
         for (size_t layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons_ = layers[layer_nr].polygons_.unionPolygons(layers[layer_nr + 1].polygons_);
         }
         break;
-    case SlicingTolerance::EXCLUSIVE:
+    case SlicingTolerance::Exclusive:
         for (size_t layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons_ = layers[layer_nr].polygons_.intersection(layers[layer_nr + 1].polygons_);
         }
         layers.back().polygons_.clear();
         break;
-    case SlicingTolerance::MIDDLE:
+    case SlicingTolerance::Middle:
     default:
         // do nothing
         ;

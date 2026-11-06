@@ -7,9 +7,9 @@ namespace curaengine::types
 {
 enum class SupportDistPriority
 {
-    XY_OVERRIDES_Z,
-    Z_OVERRIDES_XY,
-    PLUGIN,
+    XyOverridesZ,
+    ZOverridesXy,
+    Plugin,
 };
 
 } // namespace curaengine::types

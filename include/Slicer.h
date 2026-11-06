@@ -120,7 +120,7 @@ private:
 
     /*! Creates the polygons in layers.
      * \param[in] mesh The mesh which is analyzed.
-     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
+     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (Middle/Inclusive/Exclusive).
      * \param[in, out] layers The polygon are created here.
      */
     static void makePolygons(Mesh& mesh, types::SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
@@ -128,7 +128,7 @@ private:
     /*! Creates a vector of layers and set their z value.
      * \param[in] mesh The mesh which is analyzed.
      * \param[in] slice_layer_count The amount of layers which shall be sliced.
-     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
+     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (Middle/Inclusive/Exclusive).
      * \param[in] initial_layer_thickness Thickness of the first layer.
      * \param[in] thickness Thickness of the layers (apart the first one).
      * \param[in] use_variable_layer_heights Shall we use adaptive layer heights.

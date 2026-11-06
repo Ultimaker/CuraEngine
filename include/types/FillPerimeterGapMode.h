@@ -7,9 +7,9 @@ namespace curaengine::types
 {
 enum class FillPerimeterGapMode
 {
-    NOWHERE,
-    EVERYWHERE,
-    PLUGIN,
+    Nowhere,
+    Everywhere,
+    Plugin,
 };
 
 } // namespace curaengine::types

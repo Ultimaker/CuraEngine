@@ -7,8 +7,8 @@ namespace curaengine
 
 enum class RestPreference
 {
-    BUILDPLATE,
-    GRACEFUL
+    BuildPlate,
+    Graceful
 };
 
 } // namespace curaengine

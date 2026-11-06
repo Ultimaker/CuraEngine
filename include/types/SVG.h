@@ -35,17 +35,17 @@ class SVG : NoCopy
 public:
     enum class Color
     {
-        BLACK,
-        WHITE,
-        GRAY,
-        RED,
-        BLUE,
-        GREEN,
-        LIME,
-        ORANGE,
-        MAGENTA,
-        YELLOW,
-        RAINBOW, // used for making the color change throughout the polygon which is drawn
+        Black,
+        White,
+        Gray,
+        Red,
+        Blue,
+        Green,
+        Lime,
+        Orange,
+        Magenta,
+        Yellow,
+        Rainbow, // used for making the color change throughout the polygon which is drawn
     };
 
     enum class FillRule
@@ -74,7 +74,7 @@ public:
 
     struct ElementAttributes
     {
-        ColorObject color{ Color::BLACK };
+        ColorObject color{ Color::Black };
         double alpha{ 1.0 };
 
         ElementAttributes() = default;
@@ -99,7 +99,7 @@ public:
 
         bool isRainbow() const
         {
-            return std::holds_alternative<Color>(color) && std::get<Color>(color) == Color::RAINBOW;
+            return std::holds_alternative<Color>(color) && std::get<Color>(color) == Color::Rainbow;
         }
     };
 
@@ -333,7 +333,7 @@ public:
     void writeArrow(
         const types::geometry::Point2LL& a,
         const types::geometry::Point2LL& b,
-        const ColorObject color = Color::BLACK,
+        const ColorObject color = Color::Black,
         const double stroke_width = 1.0,
         const double head_size = 5.0) const;
 

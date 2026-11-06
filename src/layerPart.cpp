@@ -53,7 +53,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     std::vector<SingleShape> result;
     const bool union_layers = settings.get<bool>("meshfix_union_all");
     const ESurfaceMode surface_only = settings.get<ESurfaceMode>("magic_mesh_surface_mode");
-    if (surface_only == ESurfaceMode::SURFACE && ! union_layers)
+    if (surface_only == ESurfaceMode::Surface && ! union_layers)
     { // Don't do anything with overlapping areas; no union nor xor
         result.reserve(layer->polygons_.size());
         for (const Polygon& poly : layer->polygons_)
@@ -105,7 +105,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
-        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.open_polylines.size() > 0))
+        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal && layer_storage.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             break;

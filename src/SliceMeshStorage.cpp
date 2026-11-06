@@ -46,7 +46,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
             return false;
         }
     }
-    if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr)
+    if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr)
     {
         return true;
     }
@@ -102,7 +102,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
         }
     }
-    if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr
+    if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr
         && layer.open_polylines.size() > 0)
     {
         return true;

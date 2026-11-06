@@ -7,10 +7,10 @@ namespace curaengine
 
 enum class AvoidanceType
 {
-    SLOW,
-    FAST_SAFE,
-    FAST,
-    COLLISION
+    Slow,
+    FastSafe,
+    Fast,
+    Collision
 };
 
 } // namespace curaengine

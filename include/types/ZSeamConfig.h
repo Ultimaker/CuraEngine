@@ -50,9 +50,9 @@ struct ZSeamConfig
      * \param by how much to simplify the curvature (when detecting corners), as otherwise 'smooth' corners are penalized.
      */
     ZSeamConfig(
-        const EZSeamType type = EZSeamType::SHORTEST,
+        const EZSeamType type = EZSeamType::Shortest,
         const types::geometry::Point2LL pos = types::geometry::Point2LL(0, 0),
-        const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
+        const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::ZSeamCornerPrefInner,
         const types::coord_t simplify_curvature = 0);
 };
 

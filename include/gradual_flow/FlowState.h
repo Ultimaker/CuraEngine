@@ -7,8 +7,8 @@ namespace curaengine::gradual_flow
 {
 enum class FlowState
 {
-    STABLE,
-    TRANSITION,
-    UNDEFINED
+    Stable,
+    Transition,
+    Undefined
 };
 } // namespace curaengine::gradual_flow

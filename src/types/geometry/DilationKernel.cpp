@@ -26,7 +26,7 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
             for (coord_t z = start.z_; z < end.z_; z++)
             {
                 GridPoint3 current(x, y, z);
-                if (type != Type::CUBE)
+                if (type != Type::Cube)
                 {
                     GridPoint3 limit((x < 0) ? start.x_ : end.x_ - 1, (y < 0) ? start.y_ : end.y_ - 1, (z < 0) ? start.z_ : end.z_ - 1);
                     if (limit.x_ == 0)
@@ -36,7 +36,7 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
                     if (limit.z_ == 0)
                         limit.z_ = 1;
                     const GridPoint3 rel_dists = mult * current / limit;
-                    if ((type == Type::DIAMOND && rel_dists.x_ + rel_dists.y_ + rel_dists.z_ > mult) || (type == Type::PRISM && rel_dists.x_ + rel_dists.y_ > mult))
+                    if ((type == Type::Diamond && rel_dists.x_ + rel_dists.y_ + rel_dists.z_ > mult) || (type == Type::Prism && rel_dists.x_ + rel_dists.y_ > mult))
                     {
                         continue; // don't consider this cell
                     }

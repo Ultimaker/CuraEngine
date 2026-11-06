@@ -12,24 +12,24 @@ namespace curaengine::types
  */
 enum class EFillMethod
 {
-    LINES,
-    GRID,
-    CUBIC,
-    CUBICSUBDIV,
-    TETRAHEDRAL,
-    QUARTER_CUBIC,
-    TRIANGLES,
-    TRIHEXAGON,
-    CONCENTRIC,
-    ZIG_ZAG,
-    CROSS,
-    CROSS_3D,
-    GYROID,
-    LIGHTNING,
-    HONEYCOMB,
-    OCTAGON,
-    NONE, // NOTE: Should remain second last! Before PLUGIN (Might be used in testing to enumerate the enum.)
-    PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
+    Lines,
+    Grid,
+    Cubic,
+    CubicSubdiv,
+    Tetrahedral,
+    QuarterCubic,
+    Triangles,
+    TriHexagon,
+    Concentric,
+    ZigZag,
+    Cross,
+    Cross3D,
+    Gyroid,
+    Lightning,
+    Honeycomb,
+    Octagon,
+    None, // NOTE: Should remain second last! Before Plugin (Might be used in testing to enumerate the enum.)
+    Plugin, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
 } // namespace curaengine::types

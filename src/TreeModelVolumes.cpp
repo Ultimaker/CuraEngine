@@ -82,7 +82,7 @@ TreeModelVolumes::TreeModelVolumes(
 
     for (const auto data_pair : layer_outlines_)
     {
-        support_rests_on_model_ |= data_pair.first.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
+        support_rests_on_model_ |= data_pair.first.get<ESupportType>("support_type") == ESupportType::Everywhere;
         min_maximum_deviation = std::min(min_maximum_deviation, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution = std::min(min_maximum_resolution, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
         min_maximum_area_deviation = std::min(min_maximum_area_deviation, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
@@ -92,7 +92,7 @@ TreeModelVolumes::TreeModelVolumes(
     current_outline_idx_ = mesh_to_layeroutline_idx[current_mesh_idx];
     const TreeSupportSettings config(layer_outlines_[current_outline_idx_].first);
 
-    if (config.support_overrides == SupportDistPriority::Z_OVERRIDES_XY)
+    if (config.support_overrides == SupportDistPriority::ZOverridesXy)
     {
         current_min_xy_dist_ = config.xy_min_distance;
 
@@ -293,7 +293,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
         {
             calculatePlaceables(relevant_avoidance_radiis_to_model);
         }
-        if (support_rest_preference_ == RestPreference::BUILDPLATE)
+        if (support_rest_preference_ == RestPreference::BuildPlate)
         {
             calculateAvoidance(relevant_avoidance_radiis);
         }
@@ -305,7 +305,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
             calculateAvoidanceToModel(relevant_avoidance_radiis_to_model);
             // FIXME: When nowait (parellel-for) is implemented, ensure here the following is calculated: calculateAvoidanceToModel.
         }
-        if (support_rest_preference_ == RestPreference::BUILDPLATE)
+        if (support_rest_preference_ == RestPreference::BuildPlate)
         {
             // FIXME: When nowait (parellel-for) is implemented, ensure here the following is calculated: calculateAvoidance.
         }
@@ -414,9 +414,9 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
     radius += (min_xy_dist ? 0 : current_min_xy_dist_delta_);
     radius = ceilRadius(radius);
 
-    if (radius >= increase_until_radius_ + current_min_xy_dist_delta_ && type == AvoidanceType::FAST_SAFE) // no holes anymore by definition at this request
+    if (radius >= increase_until_radius_ + current_min_xy_dist_delta_ && type == AvoidanceType::FastSafe) // no holes anymore by definition at this request
     {
-        type = AvoidanceType::FAST;
+        type = AvoidanceType::Fast;
     }
 
     const RadiusLayerPair key{ radius, layer_idx };
@@ -425,19 +425,19 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
     std::mutex* mutex_ptr = nullptr;
     switch (type)
     {
-    case AvoidanceType::FAST:
+    case AvoidanceType::Fast:
         cache_ptr = to_model ? &avoidance_cache_to_model_ : &avoidance_cache_;
         mutex_ptr = to_model ? critical_avoidance_cache_to_model_.get() : critical_avoidance_cache_.get();
         break;
-    case AvoidanceType::SLOW:
+    case AvoidanceType::Slow:
         cache_ptr = to_model ? &avoidance_cache_to_model_slow_ : &avoidance_cache_slow_;
         mutex_ptr = to_model ? critical_avoidance_cache_to_model_slow_.get() : critical_avoidance_cache_slow_.get();
         break;
-    case AvoidanceType::FAST_SAFE:
+    case AvoidanceType::FastSafe:
         cache_ptr = to_model ? &avoidance_cache_hole_to_model_ : &avoidance_cache_hole_;
         mutex_ptr = to_model ? critical_avoidance_cache_holefree_to_model_.get() : critical_avoidance_cache_holefree_.get();
         break;
-    case AvoidanceType::COLLISION:
+    case AvoidanceType::Collision:
         if (layer_idx <= max_layer_idx_without_blocker_)
         {
             return getCollision(radius, layer_idx, true);
@@ -470,7 +470,7 @@ const Shape& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx
             key.second,
             coord_t(type));
     }
-    if (type == AvoidanceType::COLLISION)
+    if (type == AvoidanceType::Collision)
     {
         calculateCollisionAvoidance(key);
     }
@@ -578,7 +578,7 @@ Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, Lay
     const SliceLayer& layer = mesh.layers[layer_idx];
 
     layer.getOutlines(total, external_polys_only);
-    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal)
     {
         total = total.unionPolygons(layer.open_polylines.offset(FUDGE_LENGTH * 2));
     }
@@ -624,7 +624,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 std::unordered_map<RadiusLayerPair, Shape> data_placeable;
 
                 const coord_t layer_height = layer_outlines_[outline_idx].first.get<coord_t>("layer_height");
-                const bool support_rests_on_this_model = layer_outlines_[outline_idx].first.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
+                const bool support_rests_on_this_model = layer_outlines_[outline_idx].first.get<ESupportType>("support_type") == ESupportType::Everywhere;
                 const coord_t z_distance_bottom = layer_outlines_[outline_idx].first.get<coord_t>("support_bottom_distance");
                 const size_t z_distance_bottom_layers = utils::round_up_divide(z_distance_bottom, layer_height);
                 const coord_t z_distance_top_layers = utils::round_up_divide(layer_outlines_[outline_idx].first.get<coord_t>("support_top_distance"), layer_height);
@@ -746,7 +746,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL)
                 {
                     precalculation_progress_ += TREE_PROGRESS_PRECALC_COLL / keys.size();
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -874,7 +874,7 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
             std::vector<std::pair<RadiusLayerPair, Shape>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Shape>(RadiusLayerPair(radius, -1), Shape()));
             RadiusLayerPair key(radius, 0);
 
-            Shape latest_avoidance = getAvoidance(radius, start_layer - 1, AvoidanceType::COLLISION, true, true);
+            Shape latest_avoidance = getAvoidance(radius, start_layer - 1, AvoidanceType::Collision, true, true);
             for (const LayerIndex layer : ranges::views::iota(static_cast<size_t>(start_layer), max_required_layer + 1UL))
             {
                 key.second = layer;
@@ -923,7 +923,7 @@ Shape TreeModelVolumes::safeOffset(const Shape& me, coord_t distance, ClipperLib
 void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& keys)
 {
     // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better parallelization.
-    const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
+    const std::vector<AvoidanceType> all_types = { AvoidanceType::Slow, AvoidanceType::FastSafe, AvoidanceType::Fast };
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
     utils::parallel_for<size_t>(
@@ -935,8 +935,8 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
 
             const size_t type_idx = iter_idx % all_types.size();
             const AvoidanceType type = all_types[type_idx];
-            const bool slow = type == AvoidanceType::SLOW;
-            const bool holefree = type == AvoidanceType::FAST_SAFE;
+            const bool slow = type == AvoidanceType::Slow;
+            const bool holefree = type == AvoidanceType::FastSafe;
 
             const coord_t radius = keys[key_idx].first;
             const LayerIndex max_required_layer = keys[key_idx].second;
@@ -997,7 +997,7 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
                 {
                     precalculation_progress_ += support_rests_on_model_ ? 0.4 : 1 * TREE_PROGRESS_PRECALC_AVO / (keys.size() * 3);
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -1054,7 +1054,7 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
                 {
                     precalculation_progress_ += 0.2 * TREE_PROGRESS_PRECALC_AVO / (keys.size());
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 
@@ -1069,7 +1069,7 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
 void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPair>& keys)
 {
     // For every RadiusLayer pair there are 3 avoidances that have to be calculated, calculated in the same parallel_for loop for better parallelization.
-    const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
+    const std::vector<AvoidanceType> all_types = { AvoidanceType::Slow, AvoidanceType::FastSafe, AvoidanceType::Fast };
     // TODO: This should be a parallel for nowait (non-blocking), but as the parallel-for situation (as in, proper compiler support) continues to change, we're using the 'normal'
     // one right now.
     utils::parallel_for<size_t>(
@@ -1080,8 +1080,8 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
             const size_t key_idx = iter_idx / 3;
             const size_t type_idx = iter_idx % all_types.size();
             const AvoidanceType type = all_types[type_idx];
-            const bool slow = type == AvoidanceType::SLOW;
-            const bool holefree = type == AvoidanceType::FAST_SAFE;
+            const bool slow = type == AvoidanceType::Slow;
+            const bool holefree = type == AvoidanceType::FastSafe;
             const coord_t radius = keys[key_idx].first;
             const LayerIndex max_required_layer = keys[key_idx].second;
 
@@ -1146,7 +1146,7 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
                 if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
                 {
                     precalculation_progress_ += 0.4 * TREE_PROGRESS_PRECALC_AVO / (keys.size() * 3);
-                    Progress::messageProgress(Progress::Stage::SUPPORT, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
                 }
             }
 

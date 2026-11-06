@@ -50,30 +50,30 @@ class DensityProvider;
  * The direction of the space filling curve along each triangle is recorded:
  *
  * |\                           |\                                        .
- * |B \  AC_TO_BC               |B \   AC_TO_AB                           .
+ * |B \  AcToBc                 |B \   AcToAb                             .
  * |  ↑ \                       |  ↑ \                                    .
  * |  ↑  C\  subdivides into    |C_↑__A\                                  .
  * |  ↑   /                     |C ↑  B/                                  .
  * |  ↑ /                       |  ↑ /                                    .
- * |A /                         |A /   AB_TO_BC                           .
+ * |A /                         |A /   AbToBc                             .
  * |/                           |/                                        .
  *                                                                        .
  * |\                           |\                                        .
- * |B \  AC_TO_AB               |B \   AC_TO_BC                           .
+ * |B \  AcToAb                 |B \   AcToBc                             .
  * |    \                       |↖   \                                    .
  * |↖    C\  subdivides into    |C_↖__A\                                  .
  * |  ↖   /                     |C ↑  B/                                  .
  * |    /                       |  ↑ /                                    .
- * |A /                         |A /   AB_TO_BC                           .
+ * |A /                         |A /   AbToBc                             .
  * |/                           |/                                        .
  *                                                                        .
  * |\                           |\                                        .
- * |B \  AB_TO_BC               |B \   AC_TO_AB                           .
+ * |B \  AbToBc                 |B \   AcToAb                             .
  * |  ↗ \                       |  ↑ \                                    .
  * |↗    C\  subdivides into    |C_↑__A\                                  .
  * |      /                     |C ↗  B/                                  .
  * |    /                       |↗   /                                    .
- * |A /                         |A /   AC_TO_BC                           .
+ * |A /                         |A /   AcToBc                             .
  * |/                           |/                                        .
  *
  *
@@ -102,9 +102,9 @@ class DensityProvider;
  *
  * === CONSTRAINTS ===
  *
- * When subdividing an AC_TO_AB or an AB_TO_BC triangle, the place where the Sierpinski curve intersects AB changes.
+ * When subdividing an AcToAb or an AbToBc triangle, the place where the Sierpinski curve intersects AB changes.
  * In order to maintain a connected Sierpinski curve, we need to subdivide the (respectively) next / previous as well.
- * A triangle is said to be constrained by a preceding AC_TO_AB triangle or a consecutive AB_TO_BC triangle
+ * A triangle is said to be constrained by a preceding AcToAb triangle or a consecutive AbToBc triangle
  * if the requested density warrants a subdivision, but the connected triangle is of a different recursion depth:
  * _______                                  .
  * \      |\                                .
@@ -254,9 +254,9 @@ protected:
          */
         enum class SierpinskiDirection
         {
-            AC_TO_AB,
-            AC_TO_BC,
-            AB_TO_BC
+            AcToAb,
+            AcToBc,
+            AbToBc
         };
         const types::geometry::Point2LL straight_corner_; //!< C, the 90* corner of the triangle
         const types::geometry::Point2LL a_; //!< The corner closer to the start of the space filling curve
@@ -296,7 +296,7 @@ protected:
             : straight_corner_(types::geometry::no_point)
             , a_(types::geometry::no_point)
             , b_(types::geometry::no_point)
-            , dir_(SierpinskiDirection::AB_TO_BC)
+            , dir_(SierpinskiDirection::AbToBc)
             , straight_corner_is_left_(false)
             , depth_(0)
             , requested_length_(0)

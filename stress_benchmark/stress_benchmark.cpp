@@ -163,7 +163,7 @@ void handleChildProcess(const auto& shapes, const auto& settings)
     }
     LayerIndex layer_idx(100);
     WallsComputation walls_computation(settings, layer_idx);
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
     exit(EXIT_SUCCESS);
 }
 

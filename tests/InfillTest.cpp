@@ -36,14 +36,14 @@ coord_t getPatternMultiplier(const EFillMethod& pattern)
 {
     switch (pattern)
     {
-    case EFillMethod::GRID: // fallthrough
-    case EFillMethod::TETRAHEDRAL: // fallthrough
-    case EFillMethod::QUARTER_CUBIC:
+    case EFillMethod::Grid: // fallthrough
+    case EFillMethod::Tetrahedral: // fallthrough
+    case EFillMethod::QuarterCubic:
         return 2;
-    case EFillMethod::TRIANGLES: // fallthrough
-    case EFillMethod::TRIHEXAGON: // fallthrough
-    case EFillMethod::CUBIC: // fallthrough
-    case EFillMethod::CUBICSUBDIV:
+    case EFillMethod::Triangles: // fallthrough
+    case EFillMethod::TriHexagon: // fallthrough
+    case EFillMethod::Cubic: // fallthrough
+    case EFillMethod::CubicSubdiv:
         return 3;
     default:
         return 1;
@@ -91,7 +91,7 @@ public:
     InfillTestParameters()
         : valid(false)
         , fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests.")
-        , params(InfillParameters(EFillMethod::NONE, false, false, 0))
+        , params(InfillParameters(EFillMethod::None, false, false, 0))
         , name("UNNAMED")
     {
     }
@@ -147,11 +147,11 @@ void writeTestcaseSVG(const InfillTestParameters& params)
     AABB aabb(params.outline_polygons);
 
     SVG svgFile(filename.c_str(), aabb);
-    svgFile.writePolygons(params.outline_polygons, SVG::Color::BLUE);
+    svgFile.writePolygons(params.outline_polygons, SVG::Color::Blue);
     svgFile.nextLayer();
-    svgFile.writePolylines(params.result_lines, SVG::Color::RED);
+    svgFile.writePolylines(params.result_lines, SVG::Color::Red);
     svgFile.nextLayer();
-    svgFile.writePolygons(params.result_polygons, SVG::Color::MAGENTA);
+    svgFile.writePolygons(params.result_polygons, SVG::Color::Magenta);
     // Note: SVG writes 'itself' when the object is destroyed.
 }
 #endif // TEST_INFILL_SVG_OUTPUT
@@ -185,7 +185,7 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
     std::vector<VariableWidthLines> result_paths;
     Shape result_polygons;
     OpenLinesSet result_lines;
-    infill.generate(result_paths, result_polygons, result_lines, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
+    infill.generate(result_paths, result_polygons, result_lines, infill_settings, 1, SectionType::Infill, nullptr, nullptr);
 
     InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
     return result;
@@ -210,11 +210,11 @@ std::vector<InfillTestParameters> generateInfillTests()
      *  - Gyroid, honeycomb and octagon since they don't handle the 100% infill and related cases well
      *  - Concentric and ZigZag, since they now use a method that starts from an extra infill wall, which fail these tests (TODO!)
      */
-    std::vector<EFillMethod> skip_methods = { EFillMethod::CONCENTRIC, EFillMethod::ZIG_ZAG,   EFillMethod::CROSS,     EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV,
-                                              EFillMethod::GYROID,     EFillMethod::LIGHTNING, EFillMethod::HONEYCOMB, EFillMethod::OCTAGON };
+    std::vector<EFillMethod> skip_methods = { EFillMethod::Concentric, EFillMethod::ZigZag,   EFillMethod::Cross,     EFillMethod::Cross3D, EFillMethod::CubicSubdiv,
+                                              EFillMethod::Gyroid,     EFillMethod::Lightning, EFillMethod::Honeycomb, EFillMethod::Octagon };
 
     std::vector<EFillMethod> methods;
-    for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
+    for (int i_method = 0; i_method < static_cast<int>(EFillMethod::None); ++i_method)
     {
         const auto method = static_cast<EFillMethod>(i_method);
         if (std::find(skip_methods.begin(), skip_methods.end(), method) == skip_methods.end()) // Only use if not in skipped.
@@ -272,7 +272,7 @@ TEST_P(InfillTest, TestInfillSanity)
     ASSERT_FALSE(params.result_polygons.empty() && params.result_lines.empty()) << "Infill should have been generated.";
 
     long double worst_case_zig_zag_added_area = 0;
-    if (params.params.zig_zagify || params.params.pattern == EFillMethod::ZIG_ZAG)
+    if (params.params.zig_zagify || params.params.pattern == EFillMethod::ZigZag)
     {
         worst_case_zig_zag_added_area = params.outline_polygons.length() * INFILL_LINE_WIDTH;
     }

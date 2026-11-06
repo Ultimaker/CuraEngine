@@ -50,9 +50,9 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
                                                          : 0)
     , connect_length_(
           (config_.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate")) + std::max(2 * config_.min_radius - 1.0 * config_.support_line_width, 0.0))
-    , support_tree_branch_distance_((config_.support_pattern == EFillMethod::TRIANGLES ? 3 : (config_.support_pattern == EFillMethod::GRID ? 2 : 1)) * connect_length_)
+    , support_tree_branch_distance_((config_.support_pattern == EFillMethod::Triangles ? 3 : (config_.support_pattern == EFillMethod::Grid ? 2 : 1)) * connect_length_)
     , support_roof_line_distance_(
-          use_fake_roof_ ? (config_.support_pattern == EFillMethod::TRIANGLES ? 3 : (config_.support_pattern == EFillMethod::GRID ? 2 : 1))
+          use_fake_roof_ ? (config_.support_pattern == EFillMethod::Triangles ? 3 : (config_.support_pattern == EFillMethod::Grid ? 2 : 1))
                                * (config_.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate"))
                          : mesh.settings.get<coord_t>("support_roof_line_distance"))
     , // todo propper
@@ -63,7 +63,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , support_tree_limit_branch_reach_(mesh.settings.get<bool>("support_tree_limit_branch_reach"))
     , support_tree_branch_reach_limit_(support_tree_limit_branch_reach_ ? mesh.settings.get<coord_t>("support_tree_branch_reach_limit") : 0)
     , z_distance_delta_(std::min(config_.z_distance_top_layers + 1, mesh.overhang_areas.size()))
-    , xy_overrides_(config_.support_overrides == SupportDistPriority::XY_OVERRIDES_Z)
+    , xy_overrides_(config_.support_overrides == SupportDistPriority::XyOverridesZ)
     , tip_roof_size_(force_tip_to_roof_ ? INT2MM2(config_.min_radius * config_.min_radius) * std::numbers::pi : 0)
     , force_minimum_roof_area_(use_fake_roof_ || SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT)
     , already_inserted_(mesh.overhang_areas.size())
@@ -120,7 +120,7 @@ std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::c
     // NOTE: The volumes below (on which '.inside(p, true)' is called each time below) are the same each time. The values being calculated here are strictly local as well.
     //       So they could in theory be pre-calculated here (outside of the loop). However, when I refatored it to be that way, it seemed to cause deadlocks each time for some
     //       settings.
-    // NOTE2: When refactoring ensure that avoidance to buildplate is only requested when support_rest_preference == RestPreference::BUILDPLATE as otherwise it has not been
+    // NOTE2: When refactoring ensure that avoidance to buildplate is only requested when support_rest_preference == RestPreference::BuildPlate as otherwise it has not been
     // precalculated (causing long delays while it is calculated when requested here).
 
     std::vector<LineInformation> result;
@@ -130,28 +130,28 @@ std::vector<TreeSupportTipGenerator::LineInformation> TreeSupportTipGenerator::c
         LineInformation res_line;
         for (const Point2LL& p : line)
         {
-            if (config_.support_rest_preference == RestPreference::BUILDPLATE
-                && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, false, ! xy_overrides_).inside(p, true))
+            if (config_.support_rest_preference == RestPreference::BuildPlate
+                && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::FastSafe, false, ! xy_overrides_).inside(p, true))
             {
-                res_line.emplace_back(p, LineStatus::TO_BP_SAFE);
+                res_line.emplace_back(p, LineStatus::ToBpSafe);
             }
             else if (
-                config_.support_rest_preference == RestPreference::BUILDPLATE
-                && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::FAST, false, ! xy_overrides_).inside(p, true))
+                config_.support_rest_preference == RestPreference::BuildPlate
+                && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::Fast, false, ! xy_overrides_).inside(p, true))
             {
-                res_line.emplace_back(p, LineStatus::TO_BP);
+                res_line.emplace_back(p, LineStatus::ToBp);
             }
-            else if (config_.support_rests_on_model && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, true, ! xy_overrides_).inside(p, true))
+            else if (config_.support_rests_on_model && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::FastSafe, true, ! xy_overrides_).inside(p, true))
             {
-                res_line.emplace_back(p, LineStatus::TO_MODEL_GRACIOUS_SAFE);
+                res_line.emplace_back(p, LineStatus::ToModelGraciousSafe);
             }
-            else if (config_.support_rests_on_model && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::FAST, true, ! xy_overrides_).inside(p, true))
+            else if (config_.support_rests_on_model && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::Fast, true, ! xy_overrides_).inside(p, true))
             {
-                res_line.emplace_back(p, LineStatus::TO_MODEL_GRACIOUS);
+                res_line.emplace_back(p, LineStatus::ToModelGracious);
             }
-            else if (config_.support_rests_on_model && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::COLLISION, true, ! xy_overrides_).inside(p, true))
+            else if (config_.support_rests_on_model && ! volumes_.getAvoidance(config_.getRadius(0), layer_idx, AvoidanceType::Collision, true, ! xy_overrides_).inside(p, true))
             {
-                res_line.emplace_back(p, LineStatus::TO_MODEL);
+                res_line.emplace_back(p, LineStatus::ToModel);
             }
             else if (! res_line.empty())
             {
@@ -188,34 +188,34 @@ std::function<bool(std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>)> Tr
 {
     std::function<bool(std::pair<Point2LL, LineStatus>)> evaluatePoint = [this, current_layer](std::pair<Point2LL, LineStatus> p)
     {
-        if (config_.support_rest_preference != RestPreference::GRACEFUL
+        if (config_.support_rest_preference != RestPreference::Graceful
             && ! volumes_
                      .getAvoidance(
                          config_.getRadius(0),
                          current_layer - 1,
-                         p.second == LineStatus::TO_BP_SAFE ? AvoidanceType::FAST_SAFE : AvoidanceType::FAST,
+                         p.second == LineStatus::ToBpSafe ? AvoidanceType::FastSafe : AvoidanceType::Fast,
                          false,
                          ! xy_overrides_)
                      .inside(p.first, true))
         {
             return true;
         }
-        if (config_.support_rests_on_model && (p.second != LineStatus::TO_BP && p.second != LineStatus::TO_BP_SAFE))
+        if (config_.support_rests_on_model && (p.second != LineStatus::ToBp && p.second != LineStatus::ToBpSafe))
         {
-            if (p.second == LineStatus::TO_MODEL_GRACIOUS || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE)
+            if (p.second == LineStatus::ToModelGracious || p.second == LineStatus::ToModelGraciousSafe)
             {
                 return ! volumes_
                              .getAvoidance(
                                  config_.getRadius(0),
                                  current_layer - 1,
-                                 p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE ? AvoidanceType::FAST_SAFE : AvoidanceType::FAST,
+                                 p.second == LineStatus::ToModelGraciousSafe ? AvoidanceType::FastSafe : AvoidanceType::Fast,
                                  true,
                                  ! xy_overrides_)
                              .inside(p.first, true);
             }
             else
             {
-                return ! volumes_.getAvoidance(config_.getRadius(0), current_layer - 1, AvoidanceType::COLLISION, true, ! xy_overrides_).inside(p.first, true);
+                return ! volumes_.getAvoidance(config_.getRadius(0), current_layer - 1, AvoidanceType::Collision, true, ! xy_overrides_).inside(p.first, true);
             }
         }
         return false;
@@ -392,7 +392,7 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
 
 std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const
 {
-    if (config_.support_pattern == EFillMethod::CROSS || config_.support_pattern == EFillMethod::CROSS_3D)
+    if (config_.support_pattern == EFillMethod::Cross || config_.support_pattern == EFillMethod::Cross3D)
     {
         AABB3D aabb;
         if (! mesh.isModelMesh())
@@ -501,7 +501,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const SliceMeshStorage& mesh)
                                        .getAvoidance(
                                            config_.getRadius(0),
                                            layer_idx,
-                                           (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                           (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::Fast : AvoidanceType::Collision,
                                            config_.support_rests_on_model,
                                            ! xy_overrides_)
                                        .offset(-config_.getRadius(0), ClipperLib::jtRound);
@@ -525,7 +525,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const SliceMeshStorage& mesh)
                                                  .getAvoidance(
                                                      config_.getRadius(0),
                                                      layer_idx - (dtt_roof + 1),
-                                                     (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                                     (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::Fast : AvoidanceType::Collision,
                                                      config_.support_rests_on_model,
                                                      ! xy_overrides_)
                                                  .offset(-config_.getRadius(0), ClipperLib::jtRound);
@@ -585,7 +585,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const SliceMeshStorage& mesh)
                                            .getAvoidance(
                                                config_.getRadius(0),
                                                layer_idx,
-                                               (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                                               (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::Fast : AvoidanceType::Collision,
                                                config_.support_rests_on_model,
                                                ! xy_overrides_)
                                            .offset(-(config_.getRadius(0)), ClipperLib::jtRound);
@@ -643,9 +643,9 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
     bool skip_ovalisation,
     std::vector<Point2LL> additional_ovalization_targets)
 {
-    const bool to_bp = p.second == LineStatus::TO_BP || p.second == LineStatus::TO_BP_SAFE;
-    const bool gracious = to_bp || p.second == LineStatus::TO_MODEL_GRACIOUS || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
-    const bool safe_radius = p.second == LineStatus::TO_BP_SAFE || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
+    const bool to_bp = p.second == LineStatus::ToBp || p.second == LineStatus::ToBpSafe;
+    const bool gracious = to_bp || p.second == LineStatus::ToModelGracious || p.second == LineStatus::ToModelGraciousSafe;
+    const bool safe_radius = p.second == LineStatus::ToBpSafe || p.second == LineStatus::ToModelGraciousSafe;
     if (! config_.support_rests_on_model && ! to_bp)
     {
         spdlog::warn("Tried to add an invalid support point");
@@ -891,7 +891,7 @@ void TreeSupportTipGenerator::generateTips(
             Shape relevant_forbidden = volumes_.getAvoidance(
                 config_.getRadius(0),
                 layer_idx,
-                (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::Fast : AvoidanceType::Collision,
                 config_.support_rests_on_model,
                 ! xy_overrides_);
             // ^^^ Take the least restrictive avoidance possible
@@ -1013,7 +1013,7 @@ void TreeSupportTipGenerator::generateTips(
                         LineInformation res_line;
                         for (Point2LL p : line)
                         {
-                            res_line.emplace_back(p, LineStatus::INVALID);
+                            res_line.emplace_back(p, LineStatus::Invalid);
                         }
                         overhang_lines.emplace_back(res_line);
                     }
@@ -1024,7 +1024,7 @@ void TreeSupportTipGenerator::generateTips(
                         Shape relevant_forbidden_below = volumes_.getAvoidance(
                             config_.getRadius(0),
                             layer_idx - lag_ctr,
-                            (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::FAST : AvoidanceType::COLLISION,
+                            (only_gracious_ || ! config_.support_rests_on_model) ? AvoidanceType::Fast : AvoidanceType::Collision,
                             config_.support_rests_on_model,
                             ! xy_overrides_);
                         // It is not required to offset the forbidden area here as the points won't change:

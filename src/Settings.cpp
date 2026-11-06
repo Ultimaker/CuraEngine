@@ -234,13 +234,13 @@ DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std
     switch (types::hash_enum(value))
     {
     case "full"_sw:
-        return DraftShieldHeightLimitation::FULL;
+        return DraftShieldHeightLimitation::Full;
     case "limited"_sw:
-        return DraftShieldHeightLimitation::LIMITED;
+        return DraftShieldHeightLimitation::Limited;
     case "plugin"_sw:
-        return DraftShieldHeightLimitation::PLUGIN;
+        return DraftShieldHeightLimitation::Plugin;
     default:
-        return DraftShieldHeightLimitation::FULL;
+        return DraftShieldHeightLimitation::Full;
     }
 }
 
@@ -354,29 +354,29 @@ EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "Marlin"_sw:
-        return EGCodeFlavor::MARLIN;
+        return EGCodeFlavor::Marlin;
     case "Griffin"_sw:
-        return EGCodeFlavor::GRIFFIN;
+        return EGCodeFlavor::Griffin;
     case "Cheetah"_sw:
-        return EGCodeFlavor::CHEETAH;
+        return EGCodeFlavor::Cheetah;
     case "UltiGCode"_sw:
-        return EGCodeFlavor::ULTIGCODE;
+        return EGCodeFlavor::UltiGCode;
     case "Makerbot"_sw:
-        return EGCodeFlavor::MAKERBOT;
+        return EGCodeFlavor::MakerBot;
     case "BFB"_sw:
-        return EGCodeFlavor::BFB;
+        return EGCodeFlavor::Bfb;
     case "MACH3"_sw:
-        return EGCodeFlavor::MACH3;
+        return EGCodeFlavor::Mach3;
     case "RepRap (Volumetric)"_sw:
-        return EGCodeFlavor::MARLIN_VOLUMATRIC;
+        return EGCodeFlavor::MarlinVolumatric;
     case "Repetier"_sw:
-        return EGCodeFlavor::REPETIER;
+        return EGCodeFlavor::Repetier;
     case "RepRap (RepRap)"_sw:
-        return EGCodeFlavor::REPRAP;
+        return EGCodeFlavor::RepRap;
     case "plugin"_sw:
-        return EGCodeFlavor::PLUGIN;
+        return EGCodeFlavor::Plugin;
     default:
-        return EGCodeFlavor::MARLIN;
+        return EGCodeFlavor::Marlin;
     }
 }
 
@@ -388,43 +388,43 @@ EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "none"_sw:
-        return EFillMethod::NONE;
+        return EFillMethod::None;
     case "lines"_sw:
-        return EFillMethod::LINES;
+        return EFillMethod::Lines;
     case "grid"_sw:
-        return EFillMethod::GRID;
+        return EFillMethod::Grid;
     case "cubic"_sw:
-        return EFillMethod::CUBIC;
+        return EFillMethod::Cubic;
     case "cubicsubdiv"_sw:
-        return EFillMethod::CUBICSUBDIV;
+        return EFillMethod::CubicSubdiv;
     case "tetrahedral"_sw:
-        return EFillMethod::TETRAHEDRAL;
+        return EFillMethod::Tetrahedral;
     case "quarter_cubic"_sw:
-        return EFillMethod::QUARTER_CUBIC;
+        return EFillMethod::QuarterCubic;
     case "triangles"_sw:
-        return EFillMethod::TRIANGLES;
+        return EFillMethod::Triangles;
     case "trihexagon"_sw:
-        return EFillMethod::TRIHEXAGON;
+        return EFillMethod::TriHexagon;
     case "concentric"_sw:
-        return EFillMethod::CONCENTRIC;
+        return EFillMethod::Concentric;
     case "zigzag"_sw:
-        return EFillMethod::ZIG_ZAG;
+        return EFillMethod::ZigZag;
     case "cross"_sw:
-        return EFillMethod::CROSS;
+        return EFillMethod::Cross;
     case "cross_3d"_sw:
-        return EFillMethod::CROSS_3D;
+        return EFillMethod::Cross3D;
     case "gyroid"_sw:
-        return EFillMethod::GYROID;
+        return EFillMethod::Gyroid;
     case "lightning"_sw:
-        return EFillMethod::LIGHTNING;
+        return EFillMethod::Lightning;
     case "honeycomb"_sw:
-        return EFillMethod::HONEYCOMB;
+        return EFillMethod::Honeycomb;
     case "octagon"_sw:
-        return EFillMethod::OCTAGON;
+        return EFillMethod::Octagon;
     case "plugin"_sw:
-        return EFillMethod::PLUGIN;
+        return EFillMethod::Plugin;
     default:
-        return EFillMethod::NONE;
+        return EFillMethod::None;
     }
 }
 
@@ -436,17 +436,17 @@ EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "skirt"_sw:
-        return EPlatformAdhesion::SKIRT;
+        return EPlatformAdhesion::Skirt;
     case "brim"_sw:
-        return EPlatformAdhesion::BRIM;
+        return EPlatformAdhesion::Brim;
     case "raft"_sw:
-        return EPlatformAdhesion::RAFT;
+        return EPlatformAdhesion::Raft;
     case "none"_sw:
-        return EPlatformAdhesion::NONE;
+        return EPlatformAdhesion::None;
     case "plugin"_sw:
-        return EPlatformAdhesion::PLUGIN;
+        return EPlatformAdhesion::Plugin;
     default:
-        return EPlatformAdhesion::SKIRT;
+        return EPlatformAdhesion::Skirt;
     }
 }
 
@@ -458,15 +458,15 @@ ESupportType Settings::get<ESupportType>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "none"_sw:
-        return ESupportType::NONE;
+        return ESupportType::None;
     case "everywhere"_sw:
-        return ESupportType::EVERYWHERE;
+        return ESupportType::Everywhere;
     case "buildplate"_sw:
-        return ESupportType::PLATFORM_ONLY;
+        return ESupportType::PlatformOnly;
     case "plugin"_sw:
-        return ESupportType::PLUGIN;
+        return ESupportType::Plugin;
     default:
-        return ESupportType::NONE;
+        return ESupportType::None;
     }
 }
 
@@ -478,13 +478,13 @@ ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "normal"_sw:
-        return ESupportStructure::NORMAL;
+        return ESupportStructure::Normal;
     case "tree"_sw:
-        return ESupportStructure::TREE;
+        return ESupportStructure::Tree;
     case "plugin"_sw:
-        return ESupportStructure::PLUGIN;
+        return ESupportStructure::Plugin;
     default:
-        return ESupportStructure::NORMAL;
+        return ESupportStructure::Normal;
     }
 }
 
@@ -497,17 +497,17 @@ EZSeamType Settings::get<EZSeamType>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "shortest"_sw:
-        return EZSeamType::SHORTEST;
+        return EZSeamType::Shortest;
     case "random"_sw:
-        return EZSeamType::RANDOM;
+        return EZSeamType::Random;
     case "back"_sw:
-        return EZSeamType::USER_SPECIFIED;
+        return EZSeamType::UserSpecified;
     case "sharpest_corner"_sw:
-        return EZSeamType::SHARPEST_CORNER;
+        return EZSeamType::SharpestCorner;
     case "plugin"_sw:
-        return EZSeamType::PLUGIN;
+        return EZSeamType::Plugin;
     default:
-        return EZSeamType::SHORTEST;
+        return EZSeamType::Shortest;
     }
 }
 
@@ -519,16 +519,16 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
     switch (types::hash_enum(value))
     {
     case "z_seam_corner_outer"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
+        return EZSeamCornerPrefType::ZSeamCornerPrefOuter;
     case "z_seam_corner_any"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY;
+        return EZSeamCornerPrefType::ZSeamCornerPrefAny;
     case "z_seam_corner_weighted"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
+        return EZSeamCornerPrefType::ZSeamCornerPrefWeighted;
     case "plugin"_sw:
-        return EZSeamCornerPrefType::PLUGIN;
+        return EZSeamCornerPrefType::Plugin;
     case "z_seam_corner_inner"_sw:
     default:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
+        return EZSeamCornerPrefType::ZSeamCornerPrefInner;
     }
 }
 
@@ -540,15 +540,15 @@ ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "normal"_sw:
-        return ESurfaceMode::NORMAL;
+        return ESurfaceMode::Normal;
     case "surface"_sw:
-        return ESurfaceMode::SURFACE;
+        return ESurfaceMode::Surface;
     case "both"_sw:
-        return ESurfaceMode::BOTH;
+        return ESurfaceMode::Both;
     case "plugin"_sw:
-        return ESurfaceMode::PLUGIN;
+        return ESurfaceMode::Plugin;
     default:
-        return ESurfaceMode::NORMAL;
+        return ESurfaceMode::Normal;
     }
 }
 
@@ -560,13 +560,13 @@ FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key)
     switch (types::hash_enum(value))
     {
     case "nowhere"_sw:
-        return FillPerimeterGapMode::NOWHERE;
+        return FillPerimeterGapMode::Nowhere;
     case "everywhere"_sw:
-        return FillPerimeterGapMode::EVERYWHERE;
+        return FillPerimeterGapMode::Everywhere;
     case "plugin"_sw:
-        return FillPerimeterGapMode::PLUGIN;
+        return FillPerimeterGapMode::Plugin;
     default:
-        return FillPerimeterGapMode::NOWHERE;
+        return FillPerimeterGapMode::Nowhere;
     }
 }
 
@@ -578,13 +578,13 @@ BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "rectangular"_sw:
-        return BuildPlateShape::RECTANGULAR;
+        return BuildPlateShape::Rectangular;
     case "elliptic"_sw:
-        return BuildPlateShape::ELLIPTIC;
+        return BuildPlateShape::Elliptic;
     case "plugin"_sw:
-        return BuildPlateShape::PLUGIN;
+        return BuildPlateShape::Plugin;
     default:
-        return BuildPlateShape::RECTANGULAR;
+        return BuildPlateShape::Rectangular;
     }
 }
 
@@ -596,19 +596,19 @@ CombingMode Settings::get<CombingMode>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "all"_sw:
-        return CombingMode::ALL;
+        return CombingMode::All;
     case "off"_sw:
-        return CombingMode::OFF;
+        return CombingMode::Off;
     case "noskin"_sw:
-        return CombingMode::NO_SKIN;
+        return CombingMode::NoSkin;
     case "no_outer_surfaces"_sw:
-        return CombingMode::NO_OUTER_SURFACES;
+        return CombingMode::NoOuterSurfaces;
     case "infill"_sw:
-        return CombingMode::INFILL;
+        return CombingMode::Infill;
     case "plugin"_sw:
-        return CombingMode::PLUGIN;
+        return CombingMode::Plugin;
     default:
-        return CombingMode::ALL;
+        return CombingMode::All;
     }
 }
 
@@ -620,13 +620,13 @@ SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) c
     switch (types::hash_enum(value))
     {
     case "xy_overrides_z"_sw:
-        return SupportDistPriority::XY_OVERRIDES_Z;
+        return SupportDistPriority::XyOverridesZ;
     case "z_overrides_xy"_sw:
-        return SupportDistPriority::Z_OVERRIDES_XY;
+        return SupportDistPriority::ZOverridesXy;
     case "plugin"_sw:
-        return SupportDistPriority::PLUGIN;
+        return SupportDistPriority::Plugin;
     default:
-        return SupportDistPriority::XY_OVERRIDES_Z;
+        return SupportDistPriority::XyOverridesZ;
     }
 }
 
@@ -638,15 +638,15 @@ SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "middle"_sw:
-        return SlicingTolerance::MIDDLE;
+        return SlicingTolerance::Middle;
     case "inclusive"_sw:
-        return SlicingTolerance::INCLUSIVE;
+        return SlicingTolerance::Inclusive;
     case "exclusive"_sw:
-        return SlicingTolerance::EXCLUSIVE;
+        return SlicingTolerance::Exclusive;
     case "plugin"_sw:
-        return SlicingTolerance::PLUGIN;
+        return SlicingTolerance::Plugin;
     default:
-        return SlicingTolerance::MIDDLE;
+        return SlicingTolerance::Middle;
     }
 }
 
@@ -658,13 +658,13 @@ InsetDirection Settings::get<InsetDirection>(const std::string& key) const
     switch (types::hash_enum(value))
     {
     case "inside_out"_sw:
-        return InsetDirection::INSIDE_OUT;
+        return InsetDirection::InsideOut;
     case "outside_in"_sw:
-        return InsetDirection::OUTSIDE_IN;
+        return InsetDirection::OutsideIn;
     case "plugin"_sw:
-        return InsetDirection::PLUGIN;
+        return InsetDirection::Plugin;
     default:
-        return InsetDirection::INSIDE_OUT;
+        return InsetDirection::InsideOut;
     }
 }
 
@@ -674,10 +674,10 @@ PrimeTowerMode Settings::get<PrimeTowerMode>(const std::string& key) const
     const std::string& value = get<std::string>(key);
     if (value == "interleaved")
     {
-        return PrimeTowerMode::INTERLEAVED;
+        return PrimeTowerMode::Interleaved;
     }
 
-    return PrimeTowerMode::NORMAL;
+    return PrimeTowerMode::Normal;
 }
 
 template<>
@@ -686,15 +686,15 @@ BrimLocation Settings::get<BrimLocation>(const std::string& key) const
     const std::string& value = get<std::string>(key);
     if (value == "everywhere")
     {
-        return BrimLocation::EVERYWHERE;
+        return BrimLocation::Everywhere;
     }
     else if (value == "inside")
     {
-        return BrimLocation::INSIDE;
+        return BrimLocation::Inside;
     }
     else // Default.
     {
-        return BrimLocation::OUTSIDE;
+        return BrimLocation::Outside;
     }
 }
 
@@ -704,15 +704,15 @@ CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::stri
     const std::string& value = get<std::string>(key);
     if (value == "all_fans")
     {
-        return CoolDuringExtruderSwitch::ALL_FANS;
+        return CoolDuringExtruderSwitch::AllFans;
     }
     else if (value == "only_last_extruder")
     {
-        return CoolDuringExtruderSwitch::ONLY_LAST_EXTRUDER;
+        return CoolDuringExtruderSwitch::OnlyLastExtruder;
     }
     else // Default.
     {
-        return CoolDuringExtruderSwitch::UNCHANGED;
+        return CoolDuringExtruderSwitch::Unchanged;
     }
 }
 
@@ -722,15 +722,15 @@ InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::stri
     const std::string& value = get<std::string>(key);
     if (value == "end_close_to_seam")
     {
-        return InfillStartEndPreference::END_CLOSE_TO_SEAM;
+        return InfillStartEndPreference::EndCloseToSeam;
     }
     else if (value == "start_random")
     {
-        return InfillStartEndPreference::START_RANDOM;
+        return InfillStartEndPreference::StartRandom;
     }
     else // Default.
     {
-        return InfillStartEndPreference::START_CLOSEST;
+        return InfillStartEndPreference::StartClosest;
     }
 }
 
@@ -740,19 +740,19 @@ RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& 
     const std::string& value = get<std::string>(key);
     if (value == "force_retracted")
     {
-        return RetractBeforeOuterWall::RETRACTED;
+        return RetractBeforeOuterWall::Retracted;
     }
     else if (value == "force_not_retracted")
     {
-        return RetractBeforeOuterWall::NOT_RETRACTED;
+        return RetractBeforeOuterWall::NotRetracted;
     }
     else if (value == "force_not_retracted_from_infill")
     {
-        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
+        return RetractBeforeOuterWall::NotRetractedFromInfill;
     }
     else // Default.
     {
-        return RetractBeforeOuterWall::AUTOMATIC;
+        return RetractBeforeOuterWall::Automatic;
     }
 }
 

@@ -147,8 +147,8 @@ LayerPlan::LayerPlan(
     , last_planned_extruder_(&Application::getInstance().current_slice_->scene.extruders[start_extruder])
     , first_travel_destination_is_inside_(false)
     , // set properly when addTravel is called for the first time (otherwise not set properly)
-    comb_boundary_minimum_(computeCombBoundary(CombBoundary::MINIMUM))
-    , comb_boundary_preferred_(computeCombBoundary(CombBoundary::PREFERRED))
+    comb_boundary_minimum_(computeCombBoundary(CombBoundary::Minimum))
+    , comb_boundary_preferred_(computeCombBoundary(CombBoundary::Preferred))
     , comb_move_inside_distance_(comb_move_inside_distance)
     , fan_speed_layer_time_settings_per_extruder_(fan_speed_layer_time_settings_per_extruder)
 {
@@ -156,7 +156,7 @@ LayerPlan::LayerPlan(
     was_inside_ = true; // not used, because the first travel move is bogus
     is_inside_ = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     const auto& local_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (local_settings.get<CombingMode>("retraction_combing") != CombingMode::OFF && local_settings.get<coord_t>("retraction_combing_avoid_distance") > 0)
+    if (local_settings.get<CombingMode>("retraction_combing") != CombingMode::Off && local_settings.get<coord_t>("retraction_combing_avoid_distance") > 0)
     {
         comb_ = new Comb(storage, layer_nr, comb_boundary_minimum_, comb_boundary_preferred_, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
     }
@@ -200,7 +200,7 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
     Shape comb_boundary;
     const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
-    if (mesh_combing_mode != CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
+    if (mesh_combing_mode != CombingMode::Off && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NoSkin))
     {
         switch (layer_type_)
         {
@@ -235,10 +235,10 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 coord_t offset;
                 switch (boundary_type)
                 {
-                case CombBoundary::MINIMUM:
+                case CombBoundary::Minimum:
                     offset = -(mesh.settings.get<coord_t>("machine_nozzle_size") / 2 + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
                     break;
-                case CombBoundary::PREFERRED:
+                case CombBoundary::Preferred:
                     offset = -(mesh.settings.get<coord_t>("retraction_combing_avoid_distance") + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
                     break;
                 default:
@@ -252,18 +252,18 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     Shape part_combing_boundary;
 
-                    if (combing_mode == CombingMode::INFILL)
+                    if (combing_mode == CombingMode::Infill)
                     {
                         part_combing_boundary = part.infill_area;
                     }
                     else
                     {
                         part_combing_boundary = part.outline.offset(10).offset(offset - 10);
-                        if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
+                        if (combing_mode == CombingMode::NoSkin) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                         {
                             part_combing_boundary = part_combing_boundary.difference(part.inner_area.difference(part.infill_area));
                         }
-                        else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
+                        else if (combing_mode == CombingMode::NoOuterSurfaces)
                         {
                             for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
@@ -428,7 +428,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
     else if (
-        force_retract == ForceRetract::RETRACTED && last_planned_position_
+        force_retract == ForceRetract::Retracted && last_planned_position_
         && ! types::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
@@ -516,7 +516,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
         }
     }
 
-    if (force_retract == ForceRetract::NOT_RETRACTED)
+    if (force_retract == ForceRetract::NotRetracted)
     {
         path->retract = false;
     }
@@ -2623,7 +2623,7 @@ void LayerPlan::addLinesInGivenOrder(
     {
         const BeadingStrategyPtr beading_strategy = BeadingStrategyFactory::makeStrategy();
         constexpr coord_t discretization_step_size = MM2INT(0.8);
-        trapezoidation = std::make_unique<SkeletalTrapezoidation>(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::INFILL);
+        trapezoidation = std::make_unique<SkeletalTrapezoidation>(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::Infill);
     }
 
     for (size_t order_idx = 0; order_idx < lines.size(); order_idx++)
@@ -2715,7 +2715,7 @@ void LayerPlan::addLinesInGivenOrder(
             }
 
             constexpr coord_t z_offset{ 0 };
-            addTravel(start, ForceRetract::AUTOMATIC, z_offset, max_distance_ignore_combing);
+            addTravel(start, ForceRetract::Automatic, z_offset, max_distance_ignore_combing);
         }
 
         Point2LL p0 = start;
@@ -4184,7 +4184,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         scripta::log(
             "extruder_plan_2",
             extruder_plan.paths_,
-            SectionType::NA,
+            SectionType::Na,
             layer_nr_,
             scripta::CellVDI{ "flow", &GCodePath::flow },
             scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
@@ -4307,7 +4307,7 @@ void LayerPlan::applyModifyPlugin()
         scripta::log(
             "extruder_plan_0",
             extruder_plan.paths_,
-            SectionType::NA,
+            SectionType::Na,
             layer_nr_,
             scripta::CellVDI{ "flow", &GCodePath::flow },
             scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
@@ -4355,7 +4355,7 @@ void LayerPlan::applyModifyPlugin()
         scripta::log(
             "extruder_plan_1",
             extruder_plan.paths_,
-            SectionType::NA,
+            SectionType::Na,
             layer_nr_,
             scripta::CellVDI{ "flow", &GCodePath::flow },
             scripta::CellVDI{ "width_factor", &GCodePath::width_factor },

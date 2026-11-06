@@ -50,11 +50,11 @@ private:
      * \brief Helper function to get the actual height of the draft shield.
      *
      * The draft shield is the height of the print if we've set the draft shield
-     * limitation to FULL. Otherwise the height is set to the height limit
+     * limitation to Full. Otherwise the height is set to the height limit
      * setting. If the draft shield is disabled, the height is always 0.
      *
      * \param total_layers The total number of layers in the print (the height
-     * of the draft shield if the limit is FULL.
+     * of the draft shield if the limit is Full.
      * \return The actual height of the draft shield.
      */
     size_t getDraftShieldLayerCount(const size_t total_layers) const;

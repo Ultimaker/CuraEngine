@@ -10,9 +10,9 @@ namespace curaengine::types
  */
 enum class InfillStartEndPreference
 {
-    START_CLOSEST, // Just start at the vertex that is the closest to current position
-    START_RANDOM, // Pick a random line to start at
-    END_CLOSE_TO_SEAM // End close to the next wall seam, and split an infill line to provide a proper position if required
+    StartClosest, // Just start at the vertex that is the closest to current position
+    StartRandom, // Pick a random line to start at
+    EndCloseToSeam // End close to the next wall seam, and split an infill line to provide a proper position if required
 };
 
 } // namespace curaengine::types

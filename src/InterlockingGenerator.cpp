@@ -60,10 +60,10 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             coord_t beam_width_b = mesh_b.mesh->settings_.get<coord_t>("interlocking_beam_width");
 
             // TODO: why are these two kernels different kernel types?!
-            const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
+            const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::Prism);
 
             const bool air_filtering = boundary_avoidance > 0;
-            const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::PRISM);
+            const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::Prism);
 
             const coord_t cell_width = beam_width_a + beam_width_b;
             const Point3LL cell_size(cell_width, cell_width, 2 * beam_layer_count);

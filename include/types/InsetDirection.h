@@ -13,19 +13,19 @@ enum class InsetDirection
     /*!
      * The innermost wall is printed first, then the second-innermost wall, etc.
      */
-    INSIDE_OUT,
+    InsideOut,
 
     /*!
      * The outermost wall is printed first, then the second wall, etc.
      */
-    OUTSIDE_IN,
+    OutsideIn,
 
     /*!
      * If the innermost wall is a central wall, it is printed last. Otherwise
      * prints the same as inside out.
      */
-    CENTER_LAST,
-    PLUGIN,
+    CenterLast,
+    Plugin,
 };
 
 } // namespace curaengine::types

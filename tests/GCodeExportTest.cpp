@@ -59,7 +59,7 @@ public:
         gcode.current_travel_acceleration_ = -1.0;
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
-        gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.setFlavor(EGCodeFlavor::Marlin);
         gcode.bed_temperature_ = 0;
         gcode.initial_bed_temp_ = 0;
         gcode.total_bounding_box_ = AABB3D();
@@ -221,7 +221,7 @@ public:
         gcode.current_travel_acceleration_ = -1.0;
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
-        gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.setFlavor(EGCodeFlavor::Marlin);
         gcode.initial_bed_temp_ = 0;
         gcode.bed_temperature_ = 0;
         gcode.total_bounding_box_ = AABB3D();
@@ -238,7 +238,7 @@ public:
 TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
-    gcode.flavor_ = EGCodeFlavor::GRIFFIN;
+    gcode.flavor_ = EGCodeFlavor::Griffin;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
         Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
@@ -316,7 +316,7 @@ INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, test
  */
 TEST_F(GCodeExportTest, HeaderUltiGCode)
 {
-    gcode.flavor_ = EGCodeFlavor::ULTIGCODE;
+    gcode.flavor_ = EGCodeFlavor::UltiGCode;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
@@ -339,7 +339,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 TEST_F(GCodeExportTest, HeaderRepRap)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::REPRAP;
+    gcode.flavor_ = EGCodeFlavor::RepRap;
     gcode.extruder_attr_[0].filament_area_ = 5.0;
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
@@ -358,7 +358,7 @@ TEST_F(GCodeExportTest, HeaderRepRap)
 TEST_F(GCodeExportTest, HeaderMarlin)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::MARLIN;
+    gcode.flavor_ = EGCodeFlavor::Marlin;
     gcode.extruder_attr_[0].filament_area_ = 5.0;
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
@@ -377,7 +377,7 @@ TEST_F(GCodeExportTest, HeaderMarlin)
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::MARLIN_VOLUMATRIC;
+    gcode.flavor_ = EGCodeFlavor::MarlinVolumatric;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };

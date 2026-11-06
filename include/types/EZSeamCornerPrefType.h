@@ -7,11 +7,11 @@ namespace curaengine::types
 {
 enum class EZSeamCornerPrefType
 {
-    Z_SEAM_CORNER_PREF_INNER,
-    Z_SEAM_CORNER_PREF_OUTER,
-    Z_SEAM_CORNER_PREF_ANY,
-    Z_SEAM_CORNER_PREF_WEIGHTED,
-    PLUGIN,
+    ZSeamCornerPrefInner,
+    ZSeamCornerPrefOuter,
+    ZSeamCornerPrefAny,
+    ZSeamCornerPrefWeighted,
+    Plugin,
 };
 
 } // namespace curaengine::types

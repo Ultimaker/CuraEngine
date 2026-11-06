@@ -130,7 +130,7 @@ Shape SliceDataStorage::getLayerOutlines(
                 }
                 const SliceLayer& layer = mesh->layers[layer_nr];
                 layer.getOutlines(total, external_polys_only);
-                if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+                if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal)
                 {
                     total = total.unionPolygons(layer.open_polylines.offset(MM2INT(0.1)));
                 }
@@ -192,7 +192,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     const Settings& mesh_group_settings = mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-    if (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)
+    if (adhesion_type == EPlatformAdhesion::Skirt || adhesion_type == EPlatformAdhesion::Brim)
     {
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
         {
@@ -207,7 +207,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
             ret[skirt_brim_extruder_nr] = true;
         }
     }
-    else if (adhesion_type == EPlatformAdhesion::RAFT)
+    else if (adhesion_type == EPlatformAdhesion::Raft)
     {
         ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_] = true;
         const size_t num_interface_layers = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<size_t>("raft_interface_layers");
@@ -273,7 +273,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
             include_helper_parts = false;
         }
     }
-    else if (layer_nr > 0 || adhesion_type == EPlatformAdhesion::RAFT)
+    else if (layer_nr > 0 || adhesion_type == EPlatformAdhesion::Raft)
     { // only include adhesion only for layers where platform adhesion actually occurs
         // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
         include_adhesion = false;
@@ -281,7 +281,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
 
     if (include_adhesion)
     {
-        if (layer_nr == 0 && (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM))
+        if (layer_nr == 0 && (adhesion_type == EPlatformAdhesion::Skirt || adhesion_type == EPlatformAdhesion::Brim))
         {
             for (size_t extruder_nr = 0; extruder_nr < extruders.size(); ++extruder_nr)
             {
@@ -291,7 +291,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
                 }
             }
         }
-        if (adhesion_type == EPlatformAdhesion::RAFT)
+        if (adhesion_type == EPlatformAdhesion::Raft)
         {
             const Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
             if (layer_type == Raft::RaftBase)
@@ -486,7 +486,7 @@ Shape SliceDataStorage::getRawMachineBorder() const
     Polygon& outline = border.back();
     switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
     {
-    case BuildPlateShape::ELLIPTIC:
+    case BuildPlateShape::Elliptic:
     {
         // Construct an ellipse to approximate the build volume.
         const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
@@ -499,7 +499,7 @@ Shape SliceDataStorage::getRawMachineBorder() const
         }
         break;
     }
-    case BuildPlateShape::RECTANGULAR:
+    case BuildPlateShape::Rectangular:
     default:
         outline = machine_size.flatten().toPolygon();
         break;

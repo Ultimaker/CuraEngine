@@ -34,26 +34,26 @@ public:
      */
     enum class Stage : unsigned int
     {
-        START = 0,
-        SPLIT_MULTIMATERIAL = 1,
-        SLICING = 2,
-        PARTS = 3,
-        INSET_SKIN = 4,
-        SUPPORT = 5,
-        EXPORT = 6,
-        FINISH = 7
+        Start = 0,
+        SplitMultiMaterial = 1,
+        Slicing = 2,
+        Parts = 3,
+        InsetSkin = 4,
+        Support = 5,
+        Export = 6,
+        Finish = 7
     };
 
 private:
     static constexpr std::array<double, N_PROGRESS_STAGES> times{
-        0.0, // START   = 0,
-        50.0, // SPLIT_MULTIMATERIAL = 1
-        5.269, // SLICING = 1,
-        1.533, // PARTS   = 2,
-        71.811, // INSET_SKIN = 3
-        51.009, // SUPPORT = 4,
-        154.62, // EXPORT  = 5,
-        0.1 // FINISH  = 6
+        0.0, // Start   = 0,
+        50.0, // SplitMultiMaterial = 1
+        5.269, // Slicing = 1,
+        1.533, // Parts   = 2,
+        71.811, // InsetSkin = 3
+        51.009, // Support = 4,
+        154.62, // Export  = 5,
+        0.1 // Finish  = 6
     };
 
     static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };

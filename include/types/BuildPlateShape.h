@@ -7,9 +7,9 @@ namespace curaengine::types
 {
 enum class BuildPlateShape
 {
-    RECTANGULAR,
-    ELLIPTIC,
-    PLUGIN,
+    Rectangular,
+    Elliptic,
+    Plugin,
 };
 
 } // namespace curaengine::types

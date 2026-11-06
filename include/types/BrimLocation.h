@@ -10,13 +10,13 @@ namespace curaengine::types
  */
 enum class BrimLocation
 {
-    OUTSIDE = 0x01, // Brim only on the outside of the model
-    INSIDE = 0x02, // Brim only on the inside of the model
-    EVERYWHERE = 0x03, // Brim on both the outside and inside of the model
+    Outside = 0x01, // Brim only on the outside of the model
+    Inside = 0x02, // Brim only on the inside of the model
+    Everywhere = 0x03, // Brim on both the outside and inside of the model
 };
 
 /*!
- * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
+ * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::Outside)
  */
 [[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)
 {

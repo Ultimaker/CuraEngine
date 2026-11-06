@@ -39,7 +39,7 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
 {
     if (fill_pattern_for_all_layers)
     {
-        if (pattern == EFillMethod::CROSS_3D)
+        if (pattern == EFillMethod::Cross3D)
         {
             return fill_pattern_for_all_layers->generateCross(z, line_width / 2, pocket_size);
         }

@@ -151,11 +151,11 @@ void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylin
     Polygons lines_after;
     lines_after.set(intersected);
     SVG svg(filename, AABB(outs));
-    svg.writePolygons(outs, SVG::Color::BLACK);
+    svg.writePolygons(outs, SVG::Color::Black);
     svg.nextLayer();
-    svg.writePolylines(lines_after, SVG::Color::RED);
+    svg.writePolylines(lines_after, SVG::Color::Red);
     svg.nextLayer();
-    svg.writePolylines(lines, SVG::Color::GREEN);
+    svg.writePolylines(lines, SVG::Color::Green);
 #endif // TEST_INFILL_SVG_OUTPUT
 }
 

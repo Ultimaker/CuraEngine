@@ -37,27 +37,27 @@ std::string SVG::toString(const Color color)
 {
     switch (color)
     {
-    case SVG::Color::BLACK:
+    case SVG::Color::Black:
         return "black";
-    case SVG::Color::WHITE:
+    case SVG::Color::White:
         return "white";
-    case SVG::Color::GRAY:
+    case SVG::Color::Gray:
         return "gray";
-    case SVG::Color::RED:
+    case SVG::Color::Red:
         return "red";
-    case SVG::Color::BLUE:
+    case SVG::Color::Blue:
         return "blue";
-    case SVG::Color::GREEN:
+    case SVG::Color::Green:
         return "green";
-    case SVG::Color::LIME:
+    case SVG::Color::Lime:
         return "lime";
-    case SVG::Color::ORANGE:
+    case SVG::Color::Orange:
         return "orange";
-    case SVG::Color::MAGENTA:
+    case SVG::Color::Magenta:
         return "magenta";
-    case SVG::Color::YELLOW:
+    case SVG::Color::Yellow:
         return "yellow";
-    case SVG::Color::RAINBOW: // rainbow case should never be reached
+    case SVG::Color::Rainbow: // rainbow case should never be reached
         return "none";
     default:
         return "black";
@@ -68,26 +68,26 @@ SVG::RgbColor SVG::toRgb(const Color color)
 {
     switch (color)
     {
-    case SVG::Color::WHITE:
+    case SVG::Color::White:
         return RgbColor(255, 255, 255);
-    case SVG::Color::GRAY:
+    case SVG::Color::Gray:
         return RgbColor(128, 128, 128);
-    case SVG::Color::RED:
+    case SVG::Color::Red:
         return RgbColor(255, 0, 0);
-    case SVG::Color::BLUE:
+    case SVG::Color::Blue:
         return RgbColor(0, 0, 255);
-    case SVG::Color::GREEN:
+    case SVG::Color::Green:
         return RgbColor(0, 255, 0);
-    case SVG::Color::LIME:
+    case SVG::Color::Lime:
         return RgbColor(191, 255, 0);
-    case SVG::Color::ORANGE:
+    case SVG::Color::Orange:
         return RgbColor(255, 165, 0);
-    case SVG::Color::MAGENTA:
+    case SVG::Color::Magenta:
         return RgbColor(255, 0, 255);
-    case SVG::Color::YELLOW:
+    case SVG::Color::Yellow:
         return RgbColor(255, 255, 0);
-    case SVG::Color::BLACK:
-    case SVG::Color::RAINBOW: // rainbow case should never be reached
+    case SVG::Color::Black:
+    case SVG::Color::Rainbow: // rainbow case should never be reached
         return RgbColor(0, 0, 0);
     }
 

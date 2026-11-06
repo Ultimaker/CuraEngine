@@ -263,13 +263,13 @@ TEST_F(SettingsTest, LimitToExtruder)
 TEST_F(SettingsTest, PluginExtendedEnum)
 {
     settings.add("infill_type", "PLUGIN::plugin_1::MOZAIC");
-    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::PLUGIN);
+    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::Plugin);
 }
 
 TEST_F(SettingsTest, EnumStringSwitch)
 {
     settings.add("infill_type", "lightning");
-    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::LIGHTNING);
+    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::Lightning);
 }
 
 } // namespace curaengine

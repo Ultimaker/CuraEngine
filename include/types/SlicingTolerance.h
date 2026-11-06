@@ -7,10 +7,10 @@ namespace curaengine::types
 {
 enum class SlicingTolerance
 {
-    MIDDLE,
-    INCLUSIVE,
-    EXCLUSIVE,
-    PLUGIN,
+    Middle,
+    Inclusive,
+    Exclusive,
+    Plugin,
 };
 
 } // namespace curaengine::types

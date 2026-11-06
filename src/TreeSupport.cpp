@@ -68,7 +68,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     {
         SliceMeshStorage& mesh = *mesh_ptr;
         const bool non_supportable_mesh = ! mesh.isModelMesh() || mesh.settings.get<bool>("support_mesh");
-        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
+        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::Tree || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
             || non_supportable_mesh)
         {
             continue;
@@ -153,7 +153,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
                     exlude_at_layer.push_back(part.outline_);
                 }
                 exclude[layer_idx] = exlude_at_layer.unionPolygons();
-                scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::SUPPORT, layer_idx);
+                scripta::log("tree_support_exclude", exclude[layer_idx], SectionType::Support, layer_idx);
             });
         config = processing.first; // This struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generateInitialAreas have knowledge of
                                    // the existence of multiple meshes being processed.
@@ -682,7 +682,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
         increased = *parent->area_;
     }
 
-    if ((mergelayer || current_elem->to_buildplate_) && config.support_rest_preference == RestPreference::BUILDPLATE)
+    if ((mergelayer || current_elem->to_buildplate_) && config.support_rest_preference == RestPreference::BuildPlate)
     {
         to_bp_data = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type_, false, settings.use_min_distance_)));
         if (! current_elem->to_buildplate_ && to_bp_data.area() > 1) // mostly happening in the tip, but with merges one should check every time, just to be sure.
@@ -708,7 +708,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
             else
             {
                 to_model_data
-                    = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, AvoidanceType::COLLISION, true, settings.use_min_distance_)));
+                    = TreeSupportUtils::safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, AvoidanceType::Collision, true, settings.use_min_distance_)));
             }
         }
     }
@@ -737,7 +737,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                                       .difference(volumes_.getAvoidance(
                                           next_radius,
                                           layer_idx - 1,
-                                          current_elem->to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION,
+                                          current_elem->to_model_gracious_ ? settings.type_ : AvoidanceType::Collision,
                                           true,
                                           settings.use_min_distance_))
                                       .unionPolygons();
@@ -799,16 +799,16 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
         // ^^^ Is nearly all of the time 1, but sometimes an increase of 1 could cause the radius to become bigger than recommendedMinRadius, which could cause the radius to become
         // bigger than precalculated.
 
-        // If the support_rest_preference is GRACEFUL, increase buildplate_radius_increases anyway. This does ONLY affect the CollisionRadius, as the regular radius only includes
-        // the buildplate_radius_increases when the SupportElement is to_buildplate (which it can not be when support_rest_preference is GRACEFUL). If the branch later rests on the
+        // If the support_rest_preference is Graceful, increase buildplate_radius_increases anyway. This does ONLY affect the CollisionRadius, as the regular radius only includes
+        // the buildplate_radius_increases when the SupportElement is to_buildplate (which it can not be when support_rest_preference is Graceful). If the branch later rests on the
         // buildplate the to_buildplate flag will only need to be updated to ensure that the radius is also correctly increased. Downside is that the enlargement of the
         // CollisionRadius can cause branches, that could rest on the model if the radius was not increased, to instead rest on the buildplate. A better way could be changing
         // avoidance to model to not include the buildplate and then calculate avoidances by combining the to model avoidance without the radius increase with the to buildplate
         // avoidance with the larger radius. This would require ensuring all requests for the avoidance would have to ensure that the correct hybrid avoidance is requested (which
-        // would only be relevant when support_rest_preference is GRACEFUL) Also unioning areas when an avoidance is requested may also have a relevant performance impact, so there
+        // would only be relevant when support_rest_preference is Graceful) Also unioning areas when an avoidance is requested may also have a relevant performance impact, so there
         // can be an argument made that the current workaround is preferable.
         const bool increase_bp_foot
-            = planned_foot_increase > 0 && (current_elem->to_buildplate_ || (current_elem->to_model_gracious_ && config.support_rest_preference == RestPreference::GRACEFUL));
+            = planned_foot_increase > 0 && (current_elem->to_buildplate_ || (current_elem->to_model_gracious_ && config.support_rest_preference == RestPreference::Graceful));
 
 
         if (increase_bp_foot && config.getRadius(current_elem) >= config.branch_radius && config.getRadius(current_elem) >= config.increase_radius_until_radius)
@@ -829,7 +829,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
             if (config.support_rests_on_model && (! current_elem->to_buildplate_ || mergelayer))
             {
                 to_model_data = TreeSupportUtils::safeUnion(increased.difference(
-                    volumes_.getAvoidance(radius, layer_idx - 1, current_elem->to_model_gracious_ ? settings.type_ : AvoidanceType::COLLISION, true, settings.use_min_distance_)));
+                    volumes_.getAvoidance(radius, layer_idx - 1, current_elem->to_model_gracious_ ? settings.type_ : AvoidanceType::Collision, true, settings.use_min_distance_)));
             }
             check_layer_data = current_elem->to_buildplate_ ? to_bp_data : to_model_data;
             if (check_layer_data.area() < 1)
@@ -999,7 +999,7 @@ void TreeSupport::increaseAreas(
             };
 
             const bool parent_moved_slow = elem->last_area_increase_.increase_speed_ < config.maximum_move_distance;
-            const bool avoidance_speed_mismatch = parent_moved_slow && elem->last_area_increase_.type_ != AvoidanceType::SLOW;
+            const bool avoidance_speed_mismatch = parent_moved_slow && elem->last_area_increase_.type_ != AvoidanceType::Slow;
             if (elem->last_area_increase_.move_ && elem->last_area_increase_.no_error_ && elem->can_use_safe_radius_ && ! mergelayer && ! avoidance_speed_mismatch
                 && (elem->distance_to_top_ >= config.tip_layers || parent_moved_slow))
             {
@@ -1029,31 +1029,31 @@ void TreeSupport::increaseAreas(
             {
                 // If the radius until which it is always increased can not be guaranteed, move fast. This is to avoid holes smaller than the real branch radius.
                 // This does not guarantee the avoidance of such holes, but ensures they are avoided if possible.
-                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true); // Did we go through the hole.
+                insertSetting(AreaIncreaseSettings(AvoidanceType::Slow, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true); // Did we go through the hole.
                 // In many cases the definition of hole is overly restrictive, so to avoid unnecessary fast movement in the tip, it is ignored there for a bit.
                 // This CAN cause a branch to go though a hole it otherwise may have avoided.
                 if (elem->distance_to_top_ < utils::round_up_divide(config.tip_layers, 2))
                 {
-                    insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true);
+                    insertSetting(AreaIncreaseSettings(AvoidanceType::Fast, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true);
                 }
                 insertSetting(
-                    AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, increase_radius, no_error, ! use_min_radius, ! move),
+                    AreaIncreaseSettings(AvoidanceType::FastSafe, fast_speed, increase_radius, no_error, ! use_min_radius, ! move),
                     true); // Did we manage to avoid the hole,
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FastSafe, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::Fast, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
             }
             else
             {
-                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::Slow, slow_speed, increase_radius, no_error, ! use_min_radius, move), true);
                 // While moving fast to be able to increase the radius (b) may seems preferable (over a) this can cause the a sudden skip in movement, which looks similar to a
                 // layer shift and can reduce stability. As such idx have chosen to only use the user setting for radius increases as a friendly recommendation.
-                insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, ! increase_radius, no_error, ! use_min_radius, move), true); // a (See above.)
+                insertSetting(AreaIncreaseSettings(AvoidanceType::Slow, slow_speed, ! increase_radius, no_error, ! use_min_radius, move), true); // a (See above.)
                 if (elem->distance_to_top_ < config.tip_layers)
                 {
-                    insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, slow_speed, increase_radius, no_error, ! use_min_radius, move), true);
+                    insertSetting(AreaIncreaseSettings(AvoidanceType::FastSafe, slow_speed, increase_radius, no_error, ! use_min_radius, move), true);
                 }
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, increase_radius, no_error, ! use_min_radius, move), true); // b (See above.)
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FastSafe, fast_speed, increase_radius, no_error, ! use_min_radius, move), true); // b (See above.)
+                insertSetting(AreaIncreaseSettings(AvoidanceType::FastSafe, fast_speed, ! increase_radius, no_error, ! use_min_radius, move), true);
             }
 
             if (elem->use_min_xy_dist_)
@@ -1070,7 +1070,7 @@ void TreeSupport::increaseAreas(
             }
 
             insertSetting(
-                AreaIncreaseSettings(AvoidanceType::FAST, fast_speed, ! increase_radius, ! no_error, elem->use_min_xy_dist_, move),
+                AreaIncreaseSettings(AvoidanceType::Fast, fast_speed, ! increase_radius, ! no_error, elem->use_min_xy_dist_, move),
                 true); // simplifying is very important for performance, but before an error is compensated by moving faster it makes sense to check to see if the simplifying has
                        // caused issues
 
@@ -1081,12 +1081,12 @@ void TreeSupport::increaseAreas(
                 || (! elem->to_model_gracious_ && (parent->area_->intersection(volumes_.getAccumulatedPlaceable0(layer_idx)).empty()))) // Error case.
             {
                 // It is normal that we won't be able to find a new area at some point in time if we won't be able to reach layer 0 aka have to connect with the model.
-                insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed * 1.5, ! increase_radius, ! no_error, elem->use_min_xy_dist_, move), true);
+                insertSetting(AreaIncreaseSettings(AvoidanceType::Fast, fast_speed * 1.5, ! increase_radius, ! no_error, elem->use_min_xy_dist_, move), true);
             }
             if (elem->distance_to_top_ < elem->dont_move_until_ && elem->can_use_safe_radius_) // Only do not move when holes would be avoided in every case.
             {
                 insertSetting(
-                    AreaIncreaseSettings(AvoidanceType::SLOW, 0, increase_radius, no_error, ! use_min_radius, ! move),
+                    AreaIncreaseSettings(AvoidanceType::Slow, 0, increase_radius, no_error, ! use_min_radius, ! move),
                     false); // Only do not move when already in a no hole avoidance with the regular xy distance.
             }
 
@@ -1220,7 +1220,7 @@ void TreeSupport::increaseAreas(
                         elem->result_on_layer_ = parent->result_on_layer_;
                     }
 
-                    elem->can_use_safe_radius_ = settings.type_ != AvoidanceType::FAST;
+                    elem->can_use_safe_radius_ = settings.type_ != AvoidanceType::Fast;
 
                     if (! settings.use_min_distance_)
                     {
@@ -1367,7 +1367,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
         }
 
         progress_total += data_size_inverse * TREE_PROGRESS_AREA_CALC;
-        Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+        Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
     time_keeper.registerTime("Creating influence areas: increase", std::chrono::milliseconds{ 10 }, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
@@ -1417,7 +1417,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
         LayerIndex last_successfull_layer = layer_idx;
 
         bool set = false;
-        if (config.support_rest_preference != RestPreference::BUILDPLATE && layer_idx == 0)
+        if (config.support_rest_preference != RestPreference::BuildPlate && layer_idx == 0)
         {
             set = true;
         }
@@ -1476,7 +1476,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
         }
 
         // If resting on the buildplate keep bp location
-        if (config.support_rest_preference != RestPreference::BUILDPLATE && last_successfull_layer == 0)
+        if (config.support_rest_preference != RestPreference::BuildPlate && last_successfull_layer == 0)
         {
             return false;
         }
@@ -1498,7 +1498,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
     {
         Point2LL best = first_elem->next_position_;
         Shape valid_place_area
-            = first_elem->area_->difference(volumes_.getAvoidance(config.getCollisionRadius(first_elem), layer_idx, AvoidanceType::COLLISION, first_elem->use_min_xy_dist_));
+            = first_elem->area_->difference(volumes_.getAvoidance(config.getCollisionRadius(first_elem), layer_idx, AvoidanceType::Collision, first_elem->use_min_xy_dist_));
 
         if (! valid_place_area.inside(best, true))
         {
@@ -1556,7 +1556,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
 
         setPointsOnAreas(init); // Also set the parent nodes, as these will be required for the first iteration of the loop below.
 
-        if (config.support_rest_preference != RestPreference::BUILDPLATE)
+        if (config.support_rest_preference != RestPreference::BuildPlate)
         {
             if (setToModelContact(move_bounds, init, 0))
             {
@@ -1564,7 +1564,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement::P
             }
             else
             {
-                // If the support_rest_preference is GRACEFUL the collision radius is increased, but the radius will only be increased if the element is to_buildplate, so if the
+                // If the support_rest_preference is Graceful the collision radius is increased, but the radius will only be increased if the element is to_buildplate, so if the
                 // branch rests on the buildplate, the element will have to be updated to include this information.
                 init->setToBuildplateForAllParents(true);
             }
@@ -1780,7 +1780,7 @@ void TreeSupport::generateBranchAreas(
                 {
                     std::lock_guard<std::mutex> critical_section_progress(critical_sections);
                     progress_total += TREE_PROGRESS_GENERATE_BRANCH_AREAS / progress_report_steps;
-                    Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+                    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
                 }
             }
         });
@@ -1848,7 +1848,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     }
 
     progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
-    Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     // ^^^ It is just assumed that both smoothing loops together are one third of the time spent in this function. This was guessed.
     //     As the whole function is only 10%, and the smoothing is hard to predict a progress report in the loop may be not useful.
 
@@ -1910,7 +1910,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     }
 
     progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
-    Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
 }
 
 void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement::Ptr>>& layer_tree_polygons)
@@ -2205,7 +2205,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
     const CenterGrid& center_locator_per_layer,
     SliceDataStorage& storage)
 {
-    InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
+    InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SupportLinesOverwriteInterface;
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
                           + TREE_PROGRESS_SMOOTH_BRANCH_AREAS;
 
@@ -2235,15 +2235,15 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             {
                 switch (interface_pref)
                 {
-                case InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT:
+                case InterfacePreference::InterfaceAreaOverwritesSupport:
                     support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(storage.support.supportLayers[layer_idx].support_roof);
                     break;
 
-                case InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE:
+                case InterfacePreference::SupportAreaOverwritesInterface:
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(support_layer_storage[layer_idx]);
                     break;
 
-                case InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT:
+                case InterfacePreference::InterfaceLinesOverwriteSupport:
                 {
                     Shape interface_lines = TreeSupportUtils::generateSupportInfillLines(
                                                 storage.support.supportLayers[layer_idx].support_roof,
@@ -2258,7 +2258,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 }
                 break;
 
-                case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
+                case InterfacePreference::SupportLinesOverwriteInterface:
                 {
                     Shape tree_lines;
                     tree_lines = tree_lines.unionPolygons(
@@ -2276,7 +2276,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 }
                 break;
 
-                case InterfacePreference::NOTHING:
+                case InterfacePreference::Nothing:
                     break;
                 }
             }
@@ -2369,7 +2369,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
                 progress_total += TREE_PROGRESS_FINALIZE_BRANCH_AREAS / support_layer_storage.size();
-                Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+                Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
             }
 
             {
@@ -2538,7 +2538,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
         {
             support_layer_storage[layer_idx].push_back(additional_required_support_area[layer_idx]);
         }
-        scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
+        scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::Support, layer_idx);
     }
 
     filterFloatingLines(support_layer_storage);
@@ -2556,7 +2556,7 @@ void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>
         for (const TreeSupportElement::Ptr element : elements)
         {
             element->saveToObj(obj, z, config.layer_height);
-            obj.writeSphere(Point3D(Point3LL(element->result_on_layer_, z), 1.0), config.layer_height / 2.0, SVG::Color::RED);
+            obj.writeSphere(Point3D(Point3LL(element->result_on_layer_, z), 1.0), config.layer_height / 2.0, SVG::Color::Red);
         }
     }
 }

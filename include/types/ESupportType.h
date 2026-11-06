@@ -10,10 +10,10 @@ namespace curaengine::types
  */
 enum class ESupportType
 {
-    NONE,
-    PLATFORM_ONLY,
-    EVERYWHERE,
-    PLUGIN,
+    None,
+    PlatformOnly,
+    Everywhere,
+    Plugin,
 };
 
 } // namespace curaengine::types

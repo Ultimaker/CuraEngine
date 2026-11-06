@@ -68,8 +68,8 @@ class Infill
     constexpr bool calcConnectLines(const types::EFillMethod pattern, const bool zig_zaggify)
     {
         return zig_zaggify
-            && (pattern == types::EFillMethod::LINES || pattern == types::EFillMethod::TRIANGLES || pattern == types::EFillMethod::GRID || pattern == types::EFillMethod::CUBIC
-                || pattern == types::EFillMethod::TETRAHEDRAL || pattern == types::EFillMethod::QUARTER_CUBIC || pattern == types::EFillMethod::TRIHEXAGON);
+            && (pattern == types::EFillMethod::Lines || pattern == types::EFillMethod::Triangles || pattern == types::EFillMethod::Grid || pattern == types::EFillMethod::Cubic
+                || pattern == types::EFillMethod::Tetrahedral || pattern == types::EFillMethod::QuarterCubic || pattern == types::EFillMethod::TriHexagon);
     }
 
 public:

@@ -69,7 +69,7 @@ bool rangeOverlaps(const std::pair<coord_t, coord_t>& range_b, const std::pair<c
     return len_total < (len_b + len_a);
 }
 
-constexpr EFillMethod pattern = EFillMethod::LINES;
+constexpr EFillMethod pattern = EFillMethod::Lines;
 constexpr bool zig_zagify = false;
 constexpr bool connect_polygons = false;
 constexpr coord_t line_distance = 350;
@@ -109,7 +109,7 @@ bool getInfillLines(const std::string& filename, const AngleRadians& angle, Open
         Settings infill_settings;
         std::vector<VariableWidthLines> result_paths;
         Shape dummy_polys;
-        infill_comp.generate(result_paths, dummy_polys, output, infill_settings, 1, SectionType::INFILL, nullptr, nullptr);
+        infill_comp.generate(result_paths, dummy_polys, output, infill_settings, 1, SectionType::Infill, nullptr, nullptr);
     }
     return true;
 }
@@ -146,13 +146,13 @@ void writeDebugSVG(
     for (const auto& section : sections)
     {
         ++color_id;
-        SVG::Color section_color{ (SVG::Color)(((int)SVG::Color::GRAY) + (color_id % 7)) };
+        SVG::Color section_color{ (SVG::Color)(((int)SVG::Color::Gray) + (color_id % 7)) };
         for (const auto& path : section)
         {
             svgFile.writePolyline(path.vertices, section_color);
         }
     }
-    svgFile.writeArrow(Point{ 0, 0 }, monotonic_vec, SVG::Color::BLACK);
+    svgFile.writeArrow(Point{ 0, 0 }, monotonic_vec, SVG::Color::Black);
     // Note: SVG writes 'itself' when the object is destroyed.
 }
 #endif // TEST_PATHS_SVG_OUTPUT

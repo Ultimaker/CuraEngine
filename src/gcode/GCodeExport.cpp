@@ -80,7 +80,7 @@ GCodeExport::GCodeExport()
     current_jerk_ = -1.0;
 
     is_z_hopped_ = 0;
-    setFlavor(EGCodeFlavor::MARLIN);
+    setFlavor(EGCodeFlavor::Marlin);
     initial_bed_temp_ = 0;
     bed_temperature_ = 0;
     build_volume_temperature_ = 0;
@@ -141,7 +141,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     relative_extrusion_ = mesh_group->settings.get<bool>("relative_extrusion");
     always_write_active_tool_ = mesh_group->settings.get<bool>("machine_always_write_active_tool");
 
-    if (flavor_ == EGCodeFlavor::BFB)
+    if (flavor_ == EGCodeFlavor::Bfb)
     {
         new_line_ = "\r\n";
     }
@@ -193,7 +193,7 @@ void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extrude
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 {
     extruder_attr_[extruder_nr].initial_temp_ = temp;
-    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH || flavor_ == EGCodeFlavor::ULTIGCODE)
+    if (flavor_ == EGCodeFlavor::Griffin || flavor_ == EGCodeFlavor::Cheetah || flavor_ == EGCodeFlavor::UltiGCode)
     {
         extruder_attr_[extruder_nr].current_temperature_ = temp;
     }
@@ -203,25 +203,25 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
 {
     switch (flavor)
     {
-    case EGCodeFlavor::BFB:
+    case EGCodeFlavor::Bfb:
         return "BFB";
-    case EGCodeFlavor::MACH3:
+    case EGCodeFlavor::Mach3:
         return "Mach3";
-    case EGCodeFlavor::MAKERBOT:
+    case EGCodeFlavor::MakerBot:
         return "Makerbot";
-    case EGCodeFlavor::ULTIGCODE:
+    case EGCodeFlavor::UltiGCode:
         return "UltiGCode";
-    case EGCodeFlavor::MARLIN_VOLUMATRIC:
+    case EGCodeFlavor::MarlinVolumatric:
         return "Marlin(Volumetric)";
-    case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::Griffin:
         return "Griffin";
-    case EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::Cheetah:
         return "Cheetah";
-    case EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::Repetier:
         return "Repetier";
-    case EGCodeFlavor::REPRAP:
+    case EGCodeFlavor::RepRap:
         return "RepRap";
-    case EGCodeFlavor::MARLIN:
+    case EGCodeFlavor::Marlin:
     default:
         return "Marlin";
     }
@@ -236,8 +236,8 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
     switch (flavor_)
     {
-    case EGCodeFlavor::GRIFFIN:
-    case EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::Griffin:
+    case EGCodeFlavor::Cheetah:
     {
         prefix << ";START_OF_HEADER" << new_line_;
         prefix << ";HEADER_VERSION:0.1" << new_line_;
@@ -317,14 +317,14 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
     default:
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
         prefix << ";TIME:" << static_cast<int>(print_time) << new_line_;
-        if (flavor_ == EGCodeFlavor::ULTIGCODE)
+        if (flavor_ == EGCodeFlavor::UltiGCode)
         {
             prefix << ";MATERIAL:" << ((filament_used.size() >= 1) ? static_cast<int>(filament_used[0]) : 6666) << new_line_;
             prefix << ";MATERIAL2:" << ((filament_used.size() >= 2) ? static_cast<int>(filament_used[1]) : 0) << new_line_;
 
             prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("machine_nozzle_size") << new_line_;
         }
-        else if (flavor_ == EGCodeFlavor::REPRAP || flavor_ == EGCodeFlavor::MARLIN || flavor_ == EGCodeFlavor::MARLIN_VOLUMATRIC)
+        else if (flavor_ == EGCodeFlavor::RepRap || flavor_ == EGCodeFlavor::Marlin || flavor_ == EGCodeFlavor::MarlinVolumatric)
         {
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
@@ -335,7 +335,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                     {
                         prefix << ", ";
                     }
-                    if (flavor_ != EGCodeFlavor::MARLIN_VOLUMATRIC)
+                    if (flavor_ != EGCodeFlavor::MarlinVolumatric)
                     {
                         prefix << filament_used[i] / (1000 * extruder_attr_[i].filament_area_) << "m";
                     }
@@ -410,7 +410,7 @@ Point2LL GCodeExport::getNozzleOffset(const int extruder_train) const
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor_ = flavor;
-    if (flavor == EGCodeFlavor::MACH3)
+    if (flavor == EGCodeFlavor::Mach3)
     {
         for (int n = 0; n < MAX_EXTRUDERS; n++)
         {
@@ -424,7 +424,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
             extruder_attr_[n].extruder_character_ = 'E';
         }
     }
-    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::UltiGCode || flavor == EGCodeFlavor::MarlinVolumatric)
     {
         is_volumetric_ = true;
     }
@@ -520,7 +520,7 @@ void GCodeExport::setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftove
 
 bool GCodeExport::machineHandlesRetraction() const
 {
-    return extruder_attr_[0].machine_firmware_retract_ || flavor_ == EGCodeFlavor::BFB;
+    return extruder_attr_[0].machine_firmware_retract_ || flavor_ == EGCodeFlavor::Bfb;
 }
 
 double GCodeExport::mm3ToE(double mm3) const
@@ -693,7 +693,7 @@ void GCodeExport::writeRaw(const std::string& gcode)
 
 void GCodeExport::resetExtrusionMode()
 {
-    const bool set_relative_extrusion_mode = getFlavor() == EGCodeFlavor::REPRAP;
+    const bool set_relative_extrusion_mode = getFlavor() == EGCodeFlavor::RepRap;
     writeExtrusionMode(set_relative_extrusion_mode);
 }
 
@@ -741,7 +741,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         writeResolvableGCode(machine_start_gcode, DynamicExtruderContext::Initial);
     }
 
-    if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
+    if (getFlavor() == EGCodeFlavor::Griffin || getFlavor() == EGCodeFlavor::Cheetah)
     {
         std::ostringstream tmp;
         tmp << "T" << start_extruder_nr;
@@ -775,14 +775,14 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
     startExtruder(start_extruder_nr);
 
-    if (getFlavor() == EGCodeFlavor::BFB)
+    if (getFlavor() == EGCodeFlavor::Bfb)
     {
         writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
         writeLine(tmp.str());
     }
-    else if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
+    else if (getFlavor() == EGCodeFlavor::Griffin || getFlavor() == EGCodeFlavor::Cheetah)
     { // initialize extruder trains
         ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
@@ -796,7 +796,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     {
         writeExtrusionMode(true);
     }
-    if (getFlavor() != EGCodeFlavor::GRIFFIN && getFlavor() != EGCodeFlavor::CHEETAH)
+    if (getFlavor() != EGCodeFlavor::Griffin && getFlavor() != EGCodeFlavor::Cheetah)
     {
         if (mesh_group_settings.get<bool>("retraction_enable"))
         {
@@ -908,14 +908,14 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 
     switch (getFlavor())
     {
-    case EGCodeFlavor::ULTIGCODE:
+    case EGCodeFlavor::UltiGCode:
         return;
-    case EGCodeFlavor::GRIFFIN:
-    case EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::Griffin:
+    case EGCodeFlavor::Cheetah:
         wait_start_extruder = true;
         break;
     default:
-        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP || ! extruders_used[0])
+        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::RepRap || ! extruders_used[0])
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
@@ -938,8 +938,8 @@ bool GCodeExport::needPrimeBlob() const
 {
     switch (getFlavor())
     {
-    case EGCodeFlavor::GRIFFIN:
-    case EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::Griffin:
+    case EGCodeFlavor::Cheetah:
         return true;
     default:
         // TODO: change this once priming for other firmware types is implemented
@@ -964,7 +964,7 @@ void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, doubl
 
 void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance)
 {
-    if (flavor_ == EGCodeFlavor::BFB)
+    if (flavor_ == EGCodeFlavor::Bfb)
     {
         writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, speed, 0.0, PrintFeatureType::MoveUnretracted);
         return;
@@ -974,7 +974,7 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const st
 
 void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
-    if (flavor_ == EGCodeFlavor::BFB)
+    if (flavor_ == EGCodeFlavor::Bfb)
     {
         writeMoveBFB(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature);
         return;
@@ -1265,8 +1265,8 @@ void GCodeExport::writeUnretractionAndPrime()
     }
     extruder_attr_[current_extruder_].prime_volume_ = 0.0;
 
-    if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::BFB
-        && flavor_ != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
+    if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::Bfb
+        && flavor_ != EGCodeFlavor::MakerBot) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
                                               // every 10m, just to be sure.
     {
         resetExtrusionValue();
@@ -1281,7 +1281,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr_[current_extruder_];
 
-    if (flavor_ == EGCodeFlavor::BFB) // BitsFromBytes does automatic retraction.
+    if (flavor_ == EGCodeFlavor::Bfb) // BitsFromBytes does automatic retraction.
     {
         if (extruder_switch)
         {
@@ -1332,7 +1332,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             return true;
         }
         *output_stream_ << "G10";
-        if (extruder_switch && flavor_ == EGCodeFlavor::REPETIER)
+        if (extruder_switch && flavor_ == EGCodeFlavor::Repetier)
         {
             *output_stream_ << " S1";
         }
@@ -1583,7 +1583,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     extruder_attr_[new_extruder].is_used_ = true;
     if (new_extruder != current_extruder_) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
-        if (flavor_ == EGCodeFlavor::MAKERBOT)
+        if (flavor_ == EGCodeFlavor::MakerBot)
         {
             *output_stream_ << "M135 T" << new_extruder << new_line_;
         }
@@ -1709,7 +1709,7 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         writeTravel(prime_pos, travel_speed);
     }
 
-    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
+    if (flavor_ == EGCodeFlavor::Griffin || flavor_ == EGCodeFlavor::Cheetah)
     {
         bool should_correct_z = false;
 
@@ -1753,7 +1753,7 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
     const auto iterator = current_fans_speeds_.find(fan_number);
     const std::optional<double> current_fan_speed = (iterator != current_fans_speeds_.end()) ? std::optional<double>(iterator->second) : std::nullopt;
 
-    if (flavor_ == EGCodeFlavor::MAKERBOT)
+    if (flavor_ == EGCodeFlavor::MakerBot)
     {
         // Makerbot cannot PWM the fan speed, only turn it on or off
 
@@ -1850,9 +1850,9 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         return;
     }
 
-    if (wait && flavor_ != EGCodeFlavor::MAKERBOT)
+    if (wait && flavor_ != EGCodeFlavor::MakerBot)
     {
-        if (flavor_ == EGCodeFlavor::MARLIN)
+        if (flavor_ == EGCodeFlavor::Marlin)
         {
             *output_stream_ << "M105" << new_line_; // get temperatures from the last update, the M109 will not let get the target temperature
         }
@@ -1877,7 +1877,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         // Some firmwares (ie Smoothieware) change tools every time a "T" command is read - even on a M104 line, so we need to switch back to the active tool.
         *output_stream_ << "T" << current_extruder_ << new_line_;
     }
-    if (wait && flavor_ == EGCodeFlavor::MAKERBOT)
+    if (wait && flavor_ == EGCodeFlavor::MakerBot)
     {
         // Makerbot doesn't use M109 for heat-and-wait. Instead, use M104 and then wait using M116.
         *output_stream_ << "M116" << new_line_;
@@ -1887,7 +1887,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
 
 void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, const bool wait)
 {
-    if (flavor_ == EGCodeFlavor::ULTIGCODE)
+    if (flavor_ == EGCodeFlavor::UltiGCode)
     { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
         return;
     }
@@ -1896,7 +1896,7 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     {
         if (wait)
         {
-            if (flavor_ == EGCodeFlavor::MARLIN)
+            if (flavor_ == EGCodeFlavor::Marlin)
             {
                 *output_stream_ << "M140 S"; // set the temperature, it will be used as target temperature from M105
                 *output_stream_ << PrecisionedDouble{ 1, temperature } << new_line_;
@@ -1917,7 +1917,7 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
 
 void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
 {
-    if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
+    if (flavor_ == EGCodeFlavor::UltiGCode || flavor_ == EGCodeFlavor::Griffin || flavor_ == EGCodeFlavor::Cheetah)
     {
         // UltiMaker printers don't support build volume temperature commands.
         return;
@@ -1937,20 +1937,20 @@ void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
-    case EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::Repetier:
         if (current_print_acceleration_ != acceleration)
         {
             *output_stream_ << "M201 X" << PrecisionedDouble{ 0, acceleration } << " Y" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
-    case EGCodeFlavor::REPRAP:
+    case EGCodeFlavor::RepRap:
         if (current_print_acceleration_ != acceleration)
         {
             *output_stream_ << "M204 P" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
     default:
-        // MARLIN, etc. only have one acceleration for both print and travel
+        // Marlin, etc. only have one acceleration for both print and travel
         if (current_print_acceleration_ != acceleration)
         {
             *output_stream_ << "M204 S" << PrecisionedDouble{ 0, acceleration } << new_line_;
@@ -1965,20 +1965,20 @@ void GCodeExport::writeTravelAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
-    case EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::Repetier:
         if (current_travel_acceleration_ != acceleration)
         {
             *output_stream_ << "M202 X" << PrecisionedDouble{ 0, acceleration } << " Y" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
-    case EGCodeFlavor::REPRAP:
+    case EGCodeFlavor::RepRap:
         if (current_travel_acceleration_ != acceleration)
         {
             *output_stream_ << "M204 T" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
     default:
-        // MARLIN, etc. only have one acceleration for both print and travel
+        // Marlin, etc. only have one acceleration for both print and travel
         writePrintAcceleration(acceleration);
         break;
     }
@@ -1992,13 +1992,13 @@ void GCodeExport::writeJerk(const Velocity& jerk)
     {
         switch (getFlavor())
         {
-        case EGCodeFlavor::REPETIER:
+        case EGCodeFlavor::Repetier:
             *output_stream_ << "M207 X" << PrecisionedDouble{ 2, jerk } << new_line_;
             break;
-        case EGCodeFlavor::REPRAP:
+        case EGCodeFlavor::RepRap:
             *output_stream_ << "M566 X" << PrecisionedDouble{ 2, jerk * 60 } << " Y" << PrecisionedDouble{ 2, jerk * 60 } << new_line_;
             break;
-        case EGCodeFlavor::CHEETAH:
+        case EGCodeFlavor::Cheetah:
             *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
             break;
         default:
@@ -2007,7 +2007,7 @@ void GCodeExport::writeJerk(const Velocity& jerk)
         }
         current_jerk_ = jerk;
 
-        if (getFlavor() == EGCodeFlavor::CHEETAH)
+        if (getFlavor() == EGCodeFlavor::Cheetah)
         {
             estimate_calculator_.setMaxXyJerk(jerk / 200);
         }
@@ -2192,14 +2192,14 @@ void GCodeExport::writePrepareFansForNozzleSwitch()
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
     const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
 
-    if (cool_during_switch != CoolDuringExtruderSwitch::UNCHANGED)
+    if (cool_during_switch != CoolDuringExtruderSwitch::Unchanged)
     {
         const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
 
         for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
         {
             double fan_speed;
-            if (cool_during_switch == CoolDuringExtruderSwitch::ALL_FANS || fan_number == current_extruder_fan_number)
+            if (cool_during_switch == CoolDuringExtruderSwitch::AllFans || fan_number == current_extruder_fan_number)
             {
                 fan_speed = 100.0;
             }
@@ -2226,7 +2226,7 @@ void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed
         {
             new_fan_speed = current_extruder_new_speed;
         }
-        else if (cool_during_switch == CoolDuringExtruderSwitch::UNCHANGED)
+        else if (cool_during_switch == CoolDuringExtruderSwitch::Unchanged)
         {
             continue;
         }

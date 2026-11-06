@@ -736,7 +736,7 @@ void SkeletalTrapezoidation::updateIsCentral()
         {
             edge.data_.setIsCentral(edge.twin_->data_.isCentral());
         }
-        else if (edge.data_.type_ == SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD)
+        else if (edge.data_.type_ == SkeletalTrapezoidationEdge::EdgeType::ExtraVd)
         {
             edge.data_.setIsCentral(false);
         }
@@ -1484,9 +1484,9 @@ void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionE
             Point2LL mid = a + types::geometry::normal(ab, end_pos);
 
             assert(last_edge_replacing_input->data_.isCentral());
-            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
+            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::ExtraVd);
             last_edge_replacing_input = graph_.insertNode(last_edge_replacing_input, mid, new_node_bead_count);
-            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
+            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::ExtraVd);
             assert(last_edge_replacing_input->data_.isCentral());
         }
     }
@@ -1568,9 +1568,9 @@ void SkeletalTrapezoidation::generateExtraRibs()
             Point2LL mid = a + types::geometry::normal(ab, end_pos);
 
             assert(last_edge_replacing_input->data_.isCentral());
-            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
+            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::ExtraVd);
             last_edge_replacing_input = graph_.insertNode(last_edge_replacing_input, mid, new_node_bead_count);
-            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
+            assert(last_edge_replacing_input->data_.type_ != SkeletalTrapezoidationEdge::EdgeType::ExtraVd);
             assert(last_edge_replacing_input->data_.isCentral());
         }
     }

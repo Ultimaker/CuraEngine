@@ -247,13 +247,13 @@ std::vector<bool> is_long = { false, true }; // Is the travel move longer than r
 std::vector<bool> is_long_combing = { false, true }; // Is the total travel distance longer than retraction_combing_max_distance.
 enum AddTravelTestScene
 {
-    OPEN, // The travel move goes through open air. There's nothing in the entire layer.
-    INSIDE, // The travel move goes through a part on the inside.
-    OBSTRUCTION, // The travel move goes through open air, but there's something in the way that needs to be avoided.
-    INSIDE_OBSTRUCTION, // The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
-    OTHER_PART // The travel move goes from one part to another.
+    Open, // The travel move goes through open air. There's nothing in the entire layer.
+    Inside, // The travel move goes through a part on the inside.
+    Obstruction, // The travel move goes through open air, but there's something in the way that needs to be avoided.
+    InsideObstruction, // The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
+    OtherPart // The travel move goes from one part to another.
 };
-std::vector<AddTravelTestScene> scene = { OPEN, INSIDE, OBSTRUCTION, INSIDE_OBSTRUCTION, OTHER_PART };
+std::vector<AddTravelTestScene> scene = { Open, Inside, Obstruction, InsideObstruction, OtherPart };
 
 /*!
  * Parameters for the AddTravelTest class.
@@ -291,7 +291,7 @@ struct AddTravelParameters
      */
     bool throughOutside() const
     {
-        return scene == AddTravelTestScene::OPEN || scene == AddTravelTestScene::OBSTRUCTION || scene == AddTravelTestScene::OTHER_PART;
+        return scene == AddTravelTestScene::Open || scene == AddTravelTestScene::Obstruction || scene == AddTravelTestScene::OtherPart;
     }
 
     /*!
@@ -300,7 +300,7 @@ struct AddTravelParameters
      */
     bool throughWalls() const
     {
-        return scene == AddTravelTestScene::OTHER_PART;
+        return scene == AddTravelTestScene::OtherPart;
     }
 };
 
@@ -328,7 +328,7 @@ public:
     Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
     AddTravelTest()
-        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
+        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::Open))
     {
         around_start_end.push_back(Point2LL(-100, -100));
         around_start_end.push_back(Point2LL(500100, -100));
@@ -376,27 +376,27 @@ public:
         Shape slice_data;
         switch (parameters.scene)
         {
-        case OPEN:
+        case Open:
             layer_plan.setIsInside(false);
             layer_plan.was_inside_ = false;
             break;
-        case INSIDE:
+        case Inside:
             slice_data.push_back(around_start_end);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;
-        case OBSTRUCTION:
+        case Obstruction:
             slice_data.push_back(between);
             layer_plan.setIsInside(false);
             layer_plan.was_inside_ = false;
             break;
-        case INSIDE_OBSTRUCTION:
+        case InsideObstruction:
             slice_data.push_back(around_start_end);
             slice_data.push_back(between_hole);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;
-        case OTHER_PART:
+        case OtherPart:
             slice_data.push_back(around_start);
             slice_data.push_back(around_end);
             layer_plan.setIsInside(true);

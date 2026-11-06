@@ -46,7 +46,7 @@ BENCHMARK_DEFINE_F(ScoringTestFixture, ScoringTest_WorstCase)(benchmark::State& 
         main_criteria_pass.outsider_delta_threshold = 0.05;
 
         types::scoring::BestElementFinder::WeighedCriterion main_criterion;
-        main_criterion.criterion = std::make_shared<types::scoring::CornerScoringCriterion>(points, types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED);
+        main_criterion.criterion = std::make_shared<types::scoring::CornerScoringCriterion>(points, types::EZSeamCornerPrefType::ZSeamCornerPrefWeighted);
         main_criteria_pass.criteria.push_back(main_criterion);
 
         best_element_finder.appendCriteriaPass(main_criteria_pass);

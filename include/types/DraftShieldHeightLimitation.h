@@ -10,9 +10,9 @@ namespace curaengine::types
  */
 enum class DraftShieldHeightLimitation
 {
-    FULL, // Draft shield takes full height of the print.
-    LIMITED, // Draft shield is limited by draft_shield_height setting.
-    PLUGIN,
+    Full, // Draft shield takes full height of the print.
+    Limited, // Draft shield is limited by draft_shield_height setting.
+    Plugin,
 };
 
 } // namespace curaengine::types

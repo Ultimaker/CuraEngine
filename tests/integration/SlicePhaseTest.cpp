@@ -92,7 +92,7 @@ TEST_F(SlicePhaseTest, Cube)
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cube_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
-    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::Middle, initial_layer_thickness);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
@@ -153,7 +153,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cylinder_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
-    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::Middle, initial_layer_thickness);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 

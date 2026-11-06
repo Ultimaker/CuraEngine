@@ -59,32 +59,32 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
 
     switch (infill_pattern)
     {
-    case EFillMethod::CROSS:
-    case EFillMethod::CROSS_3D:
+    case EFillMethod::Cross:
+    case EFillMethod::Cross3D:
         bridge_angle = 22.5;
         break;
-    case EFillMethod::GYROID:
-    case EFillMethod::CONCENTRIC:
-    case EFillMethod::LIGHTNING:
-    case EFillMethod::PLUGIN:
-    case EFillMethod::NONE:
+    case EFillMethod::Gyroid:
+    case EFillMethod::Concentric:
+    case EFillMethod::Lightning:
+    case EFillMethod::Plugin:
+    case EFillMethod::None:
         bridge_angle = 45;
         break;
-    case EFillMethod::CUBICSUBDIV:
+    case EFillMethod::CubicSubdiv:
         bridge_angle = infill_angle_below + 45;
         break;
-    case EFillMethod::TRIANGLES:
-    case EFillMethod::LINES:
-    case EFillMethod::TRIHEXAGON:
-    case EFillMethod::CUBIC:
-    case EFillMethod::ZIG_ZAG:
-    case EFillMethod::HONEYCOMB:
-    case EFillMethod::OCTAGON:
+    case EFillMethod::Triangles:
+    case EFillMethod::Lines:
+    case EFillMethod::TriHexagon:
+    case EFillMethod::Cubic:
+    case EFillMethod::ZigZag:
+    case EFillMethod::Honeycomb:
+    case EFillMethod::Octagon:
         bridge_angle = infill_angle_below + 90;
         break;
-    case EFillMethod::QUARTER_CUBIC:
-    case EFillMethod::TETRAHEDRAL:
-    case EFillMethod::GRID:
+    case EFillMethod::QuarterCubic:
+    case EFillMethod::Tetrahedral:
+    case EFillMethod::Grid:
         bridge_angle = infill_angle_below;
         break;
     }

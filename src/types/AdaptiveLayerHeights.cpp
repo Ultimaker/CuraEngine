@@ -90,7 +90,7 @@ void AdaptiveLayerHeights::calculateLayers()
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
             const coord_t lower_bound = z_level;
             // if slicing tolerance "middle" is used, a layer is interpreted as the middle of the upper and lower bounds.
-            const coord_t upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? (layer_height / 2) : layer_height);
+            const coord_t upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::Middle) ? (layer_height / 2) : layer_height);
 
             if (layer_height == allowed_layer_heights_[0])
             {

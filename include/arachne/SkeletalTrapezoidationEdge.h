@@ -18,9 +18,9 @@ class SkeletalTrapezoidationEdge
 private:
     enum class Central : int
     {
-        UNKNOWN = -1,
-        NO = 0,
-        YES = 1
+        Unknown = -1,
+        No = 0,
+        Yes = 1
     };
 
 public:
@@ -58,34 +58,34 @@ public:
 
     enum class EdgeType : int
     {
-        NORMAL = 0, // from voronoi diagram
-        EXTRA_VD = 1, // introduced to voronoi diagram in order to make the gMAT
-        TRANSITION_END = 2 // introduced to voronoi diagram in order to make the gMAT
+        Normal = 0, // from voronoi diagram
+        ExtraVd = 1, // introduced to voronoi diagram in order to make the gMAT
+        TransitionEnd = 2 // introduced to voronoi diagram in order to make the gMAT
     };
     EdgeType type_;
 
     SkeletalTrapezoidationEdge()
-        : SkeletalTrapezoidationEdge(EdgeType::NORMAL)
+        : SkeletalTrapezoidationEdge(EdgeType::Normal)
     {
     }
     SkeletalTrapezoidationEdge(const EdgeType& type)
         : type_(type)
-        , is_central(Central::UNKNOWN)
+        , is_central(Central::Unknown)
     {
     }
 
     bool isCentral() const
     {
-        assert(is_central != Central::UNKNOWN);
-        return is_central == Central::YES;
+        assert(is_central != Central::Unknown);
+        return is_central == Central::Yes;
     }
     void setIsCentral(bool b)
     {
-        is_central = b ? Central::YES : Central::NO;
+        is_central = b ? Central::Yes : Central::No;
     }
     bool centralIsSet() const
     {
-        return is_central != Central::UNKNOWN;
+        return is_central != Central::Unknown;
     }
 
     bool hasTransitions(bool ignore_empty = false) const

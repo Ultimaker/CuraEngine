@@ -207,7 +207,7 @@ public:
         {
             if (use_shortest_for_inner_walls_ && ! path.is_outer_wall)
             {
-                path.seam_config_ = types::ZSeamConfig(types::EZSeamType::SHORTEST);
+                path.seam_config_ = types::ZSeamConfig(types::EZSeamType::Shortest);
                 path.force_start_index_ = std::nullopt;
             }
             else
@@ -245,8 +245,8 @@ public:
         {
             for (auto& path : paths_)
             {
-                if (path.seam_config_.type_ == types::EZSeamType::RANDOM || path.seam_config_.type_ == types::EZSeamType::USER_SPECIFIED
-                    || path.seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER)
+                if (path.seam_config_.type_ == types::EZSeamType::Random || path.seam_config_.type_ == types::EZSeamType::UserSpecified
+                    || path.seam_config_.type_ == types::EZSeamType::SharpestCorner)
                 {
                     if (! path.is_closed_ || path.converted_->empty())
                     {
@@ -659,8 +659,8 @@ protected:
                 continue;
             }
 
-            const bool precompute_start = path->seam_config_.type_ == types::EZSeamType::RANDOM || path->seam_config_.type_ == types::EZSeamType::USER_SPECIFIED
-                                       || path->seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER;
+            const bool precompute_start = path->seam_config_.type_ == types::EZSeamType::Random || path->seam_config_.type_ == types::EZSeamType::UserSpecified
+                                       || path->seam_config_.type_ == types::EZSeamType::SharpestCorner;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -784,7 +784,7 @@ protected:
 
         types::scoring::BestElementFinder::WeighedCriterion main_criterion;
 
-        if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
+        if (path.force_start_index_.has_value()) // Handles EZSeamType::UserSpecified with "seam_on_vertex" disabled
         {
             // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
             constexpr double distance_divider = 1.0;
@@ -792,15 +792,15 @@ protected:
             main_criterion.criterion
                 = std::make_shared<types::scoring::DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
         }
-        else if (path.seam_config_.type_ == types::EZSeamType::SHORTEST || path.seam_config_.type_ == types::EZSeamType::USER_SPECIFIED)
+        else if (path.seam_config_.type_ == types::EZSeamType::Shortest || path.seam_config_.type_ == types::EZSeamType::UserSpecified)
         {
             main_criterion.criterion = std::make_shared<types::scoring::DistanceScoringCriterion>(points, target_pos);
         }
-        else if (path.seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER && path.seam_config_.corner_pref_ != types::EZSeamCornerPrefType::PLUGIN)
+        else if (path.seam_config_.type_ == types::EZSeamType::SharpestCorner && path.seam_config_.corner_pref_ != types::EZSeamCornerPrefType::Plugin)
         {
             main_criterion.criterion = std::make_shared<types::scoring::CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
         }
-        else if (path.seam_config_.type_ == types::EZSeamType::RANDOM)
+        else if (path.seam_config_.type_ == types::EZSeamType::Random)
         {
             main_criterion.criterion = std::make_shared<types::scoring::RandomScoringCriterion>();
         }
@@ -826,7 +826,7 @@ protected:
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
         // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-        if (path.seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER)
+        if (path.seam_config_.type_ == types::EZSeamType::SharpestCorner)
         {
             const types::geometry::AABB path_bounding_box(points);
 

@@ -34,7 +34,7 @@ public:
     void writeSphere(
         const types::geometry::Point3D& position,
         const double radius = 1.0,
-        const SVG::Color color = SVG::Color::BLACK,
+        const SVG::Color color = SVG::Color::Black,
         const size_t latitude_segments = 4,
         const size_t longitude_segments = 8);
 
@@ -42,18 +42,18 @@ public:
         const types::geometry::Point3D& p0,
         const types::geometry::Point3D& p1,
         const types::geometry::Point3D& p2,
-        const SVG::Color color = SVG::Color::BLACK,
+        const SVG::Color color = SVG::Color::Black,
         const std::optional<types::geometry::Point2F>& uv0 = std::nullopt,
         const std::optional<types::geometry::Point2F>& uv1 = std::nullopt,
         const std::optional<types::geometry::Point2F>& uv2 = std::nullopt);
 
-    void write(const Mesh& mesh, const SVG::Color color = SVG::Color::BLACK);
+    void write(const Mesh& mesh, const SVG::Color color = SVG::Color::Black);
 
     void write(const geometry::VoxelGrid& voxel_grid);
 
-    void write(const types::geometry::Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
+    void write(const types::geometry::Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::Black);
 
-    void write(const types::geometry::Shape& shape, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
+    void write(const types::geometry::Shape& shape, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::Black);
 
 private:
     struct Triangle

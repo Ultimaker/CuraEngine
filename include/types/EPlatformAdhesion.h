@@ -10,11 +10,11 @@ namespace curaengine::types
  */
 enum class EPlatformAdhesion
 {
-    SKIRT,
-    BRIM,
-    RAFT,
-    NONE,
-    PLUGIN,
+    Skirt,
+    Brim,
+    Raft,
+    None,
+    Plugin,
 };
 
 } // namespace curaengine::types

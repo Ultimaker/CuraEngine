@@ -161,9 +161,9 @@ void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point2LL start_sou
     node_t* node = &nodes_.front();
     node->data_.distance_to_boundary_ = 0;
 
-    edges_.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
+    edges_.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::ExtraVd));
     edge_t* forth_edge = &edges_.front();
-    edges_.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
+    edges_.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::ExtraVd));
     edge_t* back_edge = &edges_.front();
 
     prev_edge->next_ = forth_edge;
@@ -202,9 +202,9 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     edge_t* first = &edge;
     edges_.emplace_back(SkeletalTrapezoidationEdge());
     edge_t* second = &edges_.back();
-    edges_.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
+    edges_.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TransitionEnd));
     edge_t* outward_edge = &edges_.back();
-    edges_.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
+    edges_.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TransitionEnd));
     edge_t* inward_edge = &edges_.back();
 
     if (edge_before)

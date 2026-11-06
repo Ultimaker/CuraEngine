@@ -41,19 +41,19 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 
     switch (corner_preference_)
     {
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+    case EZSeamCornerPrefType::ZSeamCornerPrefInner:
         // Give advantage to concave corners. More advantage for sharper corners.
         score = utils::inverse_lerp(1.0, -1.0, corner_angle);
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+    case EZSeamCornerPrefType::ZSeamCornerPrefOuter:
         // Give advantage to convex corners. More advantage for sharper corners.
         score = utils::inverse_lerp(-1.0, 1.0, corner_angle);
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+    case EZSeamCornerPrefType::ZSeamCornerPrefAny:
         // Still give sharper corners more advantage.
         score = std::abs(corner_angle);
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+    case EZSeamCornerPrefType::ZSeamCornerPrefWeighted:
         // Give sharper corners some advantage, but sharper concave corners even more.
         if (corner_angle < 0)
         {
@@ -64,7 +64,7 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
             score = corner_angle / 2.0;
         }
         break;
-    case EZSeamCornerPrefType::PLUGIN:
+    case EZSeamCornerPrefType::Plugin:
         break;
     }
 

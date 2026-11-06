@@ -656,7 +656,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
 
     const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
-    const auto is_connected = mesh.settings.get<bool>("zig_zaggify_infill") || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::ZIG_ZAG;
+    const auto is_connected = mesh.settings.get<bool>("zig_zaggify_infill") || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::ZigZag;
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -672,7 +672,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 infill_wall_width,
                 mesh.settings,
                 layer_idx,
-                SectionType::SKIN);
+                SectionType::Skin);
 
             if (infill_area.empty() || layer_idx < mesh_min_layer || layer_idx > mesh_max_layer)
             { // initialize infill_area_per_combine_per_density empty

@@ -15,7 +15,7 @@ using namespace utils;
 
 void ToolpathVisualizer::outline(const Shape& input)
 {
-    svg_.write(input, { .surface = { SVG::Color::GRAY } });
+    svg_.write(input, { .surface = { SVG::Color::Gray } });
     svg_.nextLayer();
 }
 
@@ -105,7 +105,7 @@ void ToolpathVisualizer::widths(
 
     //     Polygons connecteds = PolygonUtils::connect(area_covered);
     //     for (PolygonRef connected : connecteds)
-    //         svg.writeAreas(connected, SVG::Color::BLACK, SVG::Color::NONE);
+    //         svg.writeAreas(connected, SVG::Color::Black, SVG::Color::NONE);
 
     for (double w = 0.9; w > 0.25; w = 1.0 - (1.0 - w) * 1.2)
     {

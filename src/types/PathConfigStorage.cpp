@@ -119,7 +119,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
             GCodePathConfig{ .type = PrintFeatureType::SkirtBrim,
                              .line_width = static_cast<coord_t>(
                                  train.settings_.get<coord_t>("skirt_brim_line_width")
-                                 * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
+                                 * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Raft)
                                         ? 1.0_r
                                         : line_width_factor_per_extruder[extruder_nr])) // cause it's also used for the draft/ooze shield
                              ,
@@ -133,7 +133,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
                 .type = PrintFeatureType::PrimeTower,
                 .line_width = static_cast<coord_t>(
                     train.settings_.get<coord_t>("prime_tower_line_width")
-                    * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[extruder_nr])),
+                    * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Raft) ? 1.0_r : line_width_factor_per_extruder[extruder_nr])),
                 .layer_thickness = layer_thickness,
                 .flow = train.settings_.get<Ratio>("prime_tower_flow") * ((layer_nr == 0) ? train.settings_.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
                 .speed_derivatives = SpeedDerivatives{ .speed = train.settings_.get<Velocity>("speed_prime_tower"),
@@ -149,7 +149,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 
     support_infill_config.reserve(MAX_INFILL_COMBINE);
     const double support_infill_line_width_factor
-        = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[support_infill_extruder_nr];
+        = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Raft) ? 1.0_r : line_width_factor_per_extruder[support_infill_extruder_nr];
     for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
     {
         support_infill_config.emplace_back(

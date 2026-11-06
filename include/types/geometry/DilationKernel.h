@@ -41,9 +41,9 @@ struct DilationKernel
      */
     enum class Type
     {
-        CUBE,
-        DIAMOND,
-        PRISM
+        Cube,
+        Diamond,
+        Prism
     };
     GridPoint3 kernel_size_; //!< Size of the kernel in number of voxel cells
     Type type_;

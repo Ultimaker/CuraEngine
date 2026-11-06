@@ -19,7 +19,7 @@ enum class EGCodeFlavor
      *  Retraction is done on E values with G1. Start/end code is added.
      *  M106 Sxxx and M107 are used to turn the fan on/off.
      **/
-    MARLIN = 0,
+    Marlin = 0,
     /**
      * UltiGCode flavored is Marlin based GCode.
      *  UltiGCode uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
@@ -29,7 +29,7 @@ enum class EGCodeFlavor
      *  Start/end code is not added.
      *  M106 Sxxx and M107 are used to turn the fan on/off.
      **/
-    ULTIGCODE = 1,
+    UltiGCode = 1,
     /**
      * Makerbot flavored GCode.
      *  Looks a lot like RepRap GCode with a few changes. Requires MakerWare to convert to X3G files.
@@ -39,7 +39,7 @@ enum class EGCodeFlavor
      *   Fan OFF is M127 T0
      *   Homing is done with G162 X Y F2000
      **/
-    MAKERBOT = 2,
+    MakerBot = 2,
 
     /**
      * Bits From Bytes GCode.
@@ -47,13 +47,13 @@ enum class EGCodeFlavor
      *  Need X,Y,Z,F on every line.
      *  Needs extruder ON/OFF (M101, M103), has auto-retrection (M227 S[2560*mm] P[2560*mm])
      **/
-    BFB = 3,
+    Bfb = 3,
 
     /**
      * MACH3 GCode
      *  MACH3 is CNC control software, which expects A/B/C/D for extruders, instead of E.
      **/
-    MACH3 = 4,
+    Mach3 = 4,
     /**
      * RepRap volumatric flavored GCode is Marlin based GCode.
      *  Volumatric uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
@@ -62,7 +62,7 @@ enum class EGCodeFlavor
      *  Retraction is done with G10 and G11. Retraction settings are ignored. G10 S1 is used for multi-extruder switch retraction.
      *  M106 Sxxx and M107 are used to turn the fan on/off.
      **/
-    MARLIN_VOLUMATRIC = 5,
+    MarlinVolumatric = 5,
     /**
      * Griffin flavored is Marlin based GCode.
      *  This is a type of RepRap used for machines with multiple extruder trains.
@@ -72,21 +72,21 @@ enum class EGCodeFlavor
      *  Retraction is done on E values with G1. Start/end code is added.
      *  M227 is used to initialize a single extrusion train.
      **/
-    GRIFFIN = 6,
+    Griffin = 6,
     /**
      * Cheetah flavored is Griffin based, but with the Cheetah planner.
      *  This means it has a jerk-limited motion profile based on real jerk (instead of Marlin's jump).
      *  The jerk value is set using M215 in m/s^3
      **/
-    CHEETAH = 61,
+    Cheetah = 61,
 
-    REPETIER = 7,
+    Repetier = 7,
 
     /**
      * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
      **/
-    REPRAP = 8,
-    PLUGIN = 9,
+    RepRap = 8,
+    Plugin = 9,
 };
 
 } // namespace curaengine::types

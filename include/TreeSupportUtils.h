@@ -101,16 +101,16 @@ public:
         types::geometry::Shape gaps;
         // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
-        const types::EFillMethod pattern = generate_support_supporting ? types::EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
+        const types::EFillMethod pattern = generate_support_supporting ? types::EFillMethod::Grid : roof ? config.roof_pattern : config.support_pattern;
 
-        if (pattern == types::EFillMethod::LIGHTNING)
+        if (pattern == types::EFillMethod::Lightning)
         {
             // This can't be done for lightning infill since it requires the support to be generated first. Final result is good enough though,
             // because it propagates to properly support the top area, compensating for the same feature of the tree support.
             return {};
         }
 
-        const bool zig_zaggify_infill = roof ? pattern == types::EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
+        const bool zig_zaggify_infill = roof ? pattern == types::EFillMethod::ZigZag : config.zig_zaggify_support;
         const bool connect_polygons = false;
         constexpr types::coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
@@ -161,7 +161,7 @@ public:
 
         types::geometry::Shape areas;
         types::geometry::OpenLinesSet lines;
-        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, types::SectionType::SUPPORT, cross_fill_provider);
+        roof_computation.generate(toolpaths, areas, lines, config.settings, layer_idx, types::SectionType::Support, cross_fill_provider);
         lines.push_back(toPolylines(areas));
         lines.push_back(toPolylines(toolpaths));
         return lines;

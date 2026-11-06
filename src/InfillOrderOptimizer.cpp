@@ -177,7 +177,7 @@ bool InfillOrderOptimizer::addToLayer(
 
     layer_plan.setIsInside(true); // going to print stuff inside print object
     std::optional<Point2LL> near_start_location;
-    if (settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::START_RANDOM)
+    if (settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::StartRandom)
     {
         srand(layer_plan.getLayerNr());
         const InfillPart& first_part = infill_parts_.front();
@@ -352,7 +352,7 @@ void InfillOrderOptimizer::addToLayer(
             for (const std::vector<VariableWidthLines>& tool_paths : *part.paths.extrusion_lines)
             {
                 constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(EZSeamType::USER_SPECIFIED, near_start_location.value_or(mesh.getZSeamHint()));
+                const ZSeamConfig z_seam_config(EZSeamType::UserSpecified, near_start_location.value_or(mesh.getZSeamHint()));
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     layer_plan,
@@ -449,16 +449,16 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
 {
     SpaceFillType space_fill_type;
     coord_t wipe_dist;
-    if (infill_pattern == EFillMethod::GRID || infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::TRIANGLES || infill_pattern == EFillMethod::CUBIC
-        || infill_pattern == EFillMethod::TETRAHEDRAL || infill_pattern == EFillMethod::QUARTER_CUBIC || infill_pattern == EFillMethod::CUBICSUBDIV
-        || infill_pattern == EFillMethod::LIGHTNING)
+    if (infill_pattern == EFillMethod::Grid || infill_pattern == EFillMethod::Lines || infill_pattern == EFillMethod::Triangles || infill_pattern == EFillMethod::Cubic
+        || infill_pattern == EFillMethod::Tetrahedral || infill_pattern == EFillMethod::QuarterCubic || infill_pattern == EFillMethod::CubicSubdiv
+        || infill_pattern == EFillMethod::Lightning)
     {
         space_fill_type = SpaceFillType::Lines;
         wipe_dist = settings.get<coord_t>("infill_wipe_dist");
     }
     else
     {
-        space_fill_type = (infill_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+        space_fill_type = (infill_pattern == EFillMethod::ZigZag) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
         wipe_dist = 0;
     }
 
@@ -477,7 +477,7 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
         order_requirements,
         start_move_inwards_length,
         end_move_inwards_length,
-        MendedShape(&settings, SectionType::INFILL, &infill_inner_contour));
+        MendedShape(&settings, SectionType::Infill, &infill_inner_contour));
 }
 
 void InfillOrderOptimizer::addSkinSupportLinesToLayer(

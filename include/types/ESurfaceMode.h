@@ -7,10 +7,10 @@ namespace curaengine::types
 {
 enum class ESurfaceMode
 {
-    NORMAL,
-    SURFACE,
-    BOTH,
-    PLUGIN,
+    Normal,
+    Surface,
+    Both,
+    Plugin,
 };
 
 } // namespace curaengine::types

@@ -7,12 +7,12 @@ namespace curaengine::types
 {
 enum class CombingMode
 {
-    OFF,
-    ALL,
-    NO_SKIN,
-    NO_OUTER_SURFACES,
-    INFILL,
-    PLUGIN,
+    Off,
+    All,
+    NoSkin,
+    NoOuterSurfaces,
+    Infill,
+    Plugin,
 };
 
 } // namespace curaengine::types

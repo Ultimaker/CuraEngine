@@ -7,11 +7,11 @@ namespace curaengine
 
 enum class InterfacePreference
 {
-    INTERFACE_AREA_OVERWRITES_SUPPORT,
-    SUPPORT_AREA_OVERWRITES_INTERFACE,
-    INTERFACE_LINES_OVERWRITE_SUPPORT,
-    SUPPORT_LINES_OVERWRITE_INTERFACE,
-    NOTHING
+    InterfaceAreaOverwritesSupport,
+    SupportAreaOverwritesInterface,
+    InterfaceLinesOverwriteSupport,
+    SupportLinesOverwriteInterface,
+    Nothing
 };
 
 } // namespace curaengine

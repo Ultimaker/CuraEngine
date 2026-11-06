@@ -42,7 +42,7 @@ const Shape& MendedShape::getShape() const
             mended_shape = shape_->offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
             mended_shape.removeSmallAreas(small_area_length * small_area_length, false);
             mended_shape = Simplify(*settings_).polygon(mended_shape);
-            if (settings_->get<bool>("meshfix_fluid_motion_enabled") && section_type_ != SectionType::SUPPORT)
+            if (settings_->get<bool>("meshfix_fluid_motion_enabled") && section_type_ != SectionType::Support)
             {
                 // No need to smooth support walls
                 auto smoother = types::actions::smooth(*settings_);

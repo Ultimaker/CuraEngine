@@ -42,12 +42,12 @@ public:
 private:
     enum class LineStatus
     {
-        INVALID,
-        TO_MODEL,
-        TO_MODEL_GRACIOUS,
-        TO_MODEL_GRACIOUS_SAFE,
-        TO_BP,
-        TO_BP_SAFE
+        Invalid,
+        ToModel,
+        ToModelGracious,
+        ToModelGraciousSafe,
+        ToBp,
+        ToBpSafe
     };
 
     using LineInformation = std::vector<std::pair<types::geometry::Point2LL, TreeSupportTipGenerator::LineStatus>>;

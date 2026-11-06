@@ -28,7 +28,7 @@ struct AreaIncreaseSettings
     {
     }
 
-    AvoidanceType type_{ AvoidanceType::FAST };
+    AvoidanceType type_{ AvoidanceType::Fast };
     types::coord_t increase_speed_{ 0 };
     bool increase_radius_{ false };
     bool no_error_{ false };

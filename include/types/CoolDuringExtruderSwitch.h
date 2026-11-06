@@ -10,9 +10,9 @@ namespace curaengine::types
  */
 enum class CoolDuringExtruderSwitch
 {
-    UNCHANGED, // Let fans as they are during nozzle switch (historical behavior)
-    ONLY_LAST_EXTRUDER, // Turn on fan of the previously used extruder to cool it down, turn others off
-    ALL_FANS, // Turn on all fans
+    Unchanged, // Let fans as they are during nozzle switch (historical behavior)
+    OnlyLastExtruder, // Turn on fan of the previously used extruder to cool it down, turn others off
+    AllFans, // Turn on all fans
 };
 
 } // namespace curaengine::types

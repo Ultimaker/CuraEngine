@@ -124,19 +124,19 @@ TEST_F(VoxelUtilsTest, TestWalkBasic)
             AABB aabb(polys);
             aabb.expand(cell_size.vSize());
             SVG svg("/tmp/VoxelUtilsTest_walkPolygons.svg", aabb);
-            svg.writeAreas(voxel_area, SVG::Color::RED);
+            svg.writeAreas(voxel_area, SVG::Color::Red);
             svg.nextLayer();
             svg.writePolygons(polys);
             svg.nextLayer();
-            svg.writePolygons(voxel_area, SVG::Color::MAGENTA);
+            svg.writePolygons(voxel_area, SVG::Color::Magenta);
             svg.nextLayer();
-            svg.writePolygons(voxel_area.offset(e), SVG::Color::ORANGE);
+            svg.writePolygons(voxel_area.offset(e), SVG::Color::Orange);
             svg.nextLayer();
-            svg.writePolygons(polylines.offsetPolyLine(e / 2, ClipperLib::jtRound), SVG::Color::GRAY);
+            svg.writePolygons(polylines.offsetPolyLine(e / 2, ClipperLib::jtRound), SVG::Color::Gray);
             svg.nextLayer();
-            svg.writePolygons(polylines.offsetPolyLine(max_dist_from_poly), SVG::Color::GRAY);
+            svg.writePolygons(polylines.offsetPolyLine(max_dist_from_poly), SVG::Color::Gray);
             svg.nextLayer();
-            svg.writePolygons(voxel_area.difference(polylines.offsetPolyLine(max_dist_from_poly)), SVG::Color::BLUE);
+            svg.writePolygons(voxel_area.difference(polylines.offsetPolyLine(max_dist_from_poly)), SVG::Color::Blue);
         }
 #endif // TEST_SVG_OUTPUT
 
@@ -163,15 +163,15 @@ TEST_F(VoxelUtilsTest, TestWalkBasic)
             AABB aabb(polys);
             aabb.expand(cell_size.vSize());
             SVG svg("/tmp/VoxelUtilsTest_walkAreas.svg", aabb);
-            svg.writeAreas(polys.offset(-e), SVG::Color::GRAY);
+            svg.writeAreas(polys.offset(-e), SVG::Color::Gray);
             svg.nextLayer();
-            svg.writeAreas(voxel_area, SVG::Color::ORANGE);
+            svg.writeAreas(voxel_area, SVG::Color::Orange);
             svg.nextLayer();
             svg.writePolygons(polys);
             svg.nextLayer();
-            svg.writePolygons(voxel_area, SVG::Color::MAGENTA);
+            svg.writePolygons(voxel_area, SVG::Color::Magenta);
             svg.nextLayer();
-            svg.writePolygons(polys.offset(max_dist_from_poly), SVG::Color::GRAY);
+            svg.writePolygons(polys.offset(max_dist_from_poly), SVG::Color::Gray);
         }
 #endif // TEST_SVG_OUTPUT
 
@@ -201,7 +201,7 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
         }
         coord_t kernel_s = 1 + (poly_idx % 5);
         GridPoint3 kernel_size(kernel_s, kernel_s, 1);
-        DilationKernel kernel(kernel_size, DilationKernel::Type::CUBE);
+        DilationKernel kernel(kernel_size, DilationKernel::Type::Cube);
 
         Point3 applied_offset = cell_size * kernel_size / 2 - cell_size / 2;
         coord_t max_dist_from_poly = vSize(Point(cell_size.x, cell_size.y) + Point(applied_offset.x, applied_offset.y)) + e;
@@ -238,7 +238,7 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
             AABB aabb(polys);
             aabb.expand(cell_size.vSize()*2);
             SVG svg("/tmp/VoxelUtilsTest_walkPolygons.svg", aabb);
-            svg.writeAreas(voxel_area, SVG::Color::RED);
+            svg.writeAreas(voxel_area, SVG::Color::Red);
             svg.nextLayer();
             svg.writePolygons(polys);
             svg.nextLayer();
@@ -246,13 +246,13 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
             const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * cell_size / 2;
             Polygons translated = polys;
             translated.translate(Point(translation.x, translation.y));
-            svg.writePolygons(translated, SVG::Color::GREEN);
+            svg.writePolygons(translated, SVG::Color::Green);
             svg.nextLayer();
-            svg.writePolygons(voxel_area, SVG::Color::MAGENTA);
+            svg.writePolygons(voxel_area, SVG::Color::Magenta);
             svg.nextLayer();
-            svg.writePolygons(polylines.offsetPolyLine(min_dist_from_poly, ClipperLib::jtRound), SVG::Color::GRAY);
+            svg.writePolygons(polylines.offsetPolyLine(min_dist_from_poly, ClipperLib::jtRound), SVG::Color::Gray);
             svg.nextLayer();
-            svg.writePolygons(polylines.offsetPolyLine(max_dist_from_poly, ClipperLib::jtRound), SVG::Color::GRAY);
+            svg.writePolygons(polylines.offsetPolyLine(max_dist_from_poly, ClipperLib::jtRound), SVG::Color::Gray);
         }
 #endif // TEST_SVG_OUTPUT
 
@@ -279,17 +279,17 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
             AABB aabb(polys);
             aabb.expand(cell_size.vSize());
             SVG svg("/tmp/VoxelUtilsTest_walkAreas.svg", aabb);
-            svg.writeAreas(polys.offset(-e), SVG::Color::GRAY);
+            svg.writeAreas(polys.offset(-e), SVG::Color::Gray);
             svg.nextLayer();
-            svg.writeAreas(voxel_area, SVG::Color::ORANGE);
+            svg.writeAreas(voxel_area, SVG::Color::Orange);
             svg.nextLayer();
             svg.writePolygons(polys);
             svg.nextLayer();
-            svg.writePolygons(voxel_area, SVG::Color::MAGENTA);
+            svg.writePolygons(voxel_area, SVG::Color::Magenta);
             svg.nextLayer();
-            svg.writePolygons(polys.offset(max_dist_from_poly, ClipperLib::jtRound), SVG::Color::GRAY);
+            svg.writePolygons(polys.offset(max_dist_from_poly, ClipperLib::jtRound), SVG::Color::Gray);
             svg.nextLayer();
-            svg.writePolygons(polys.offset(min_dist_from_poly, ClipperLib::jtRound), SVG::Color::GRAY);
+            svg.writePolygons(polys.offset(min_dist_from_poly, ClipperLib::jtRound), SVG::Color::Gray);
         }
 #endif // TEST_SVG_OUTPUT
 

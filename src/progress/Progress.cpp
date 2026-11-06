@@ -59,7 +59,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
             time_keeper->restart();
         }
 
-        if (static_cast<int>(stage) < static_cast<int>(Stage::FINISH))
+        if (static_cast<int>(stage) < static_cast<int>(Stage::Finish))
         {
             spdlog::info("Starting {}...", names.at(static_cast<size_t>(stage)));
         }
@@ -83,7 +83,7 @@ void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t tota
             first_skipped_layer.reset();
         }
 
-        messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
+        messageProgress(Stage::Export, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
 
         time_keeper.logRegisteredTimes(fmt::format("Layer export [{}]", layer_nr));
     }

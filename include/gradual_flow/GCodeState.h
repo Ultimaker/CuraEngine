@@ -23,7 +23,7 @@ struct GCodeState
     double discretized_duration_remaining{ 0.0 }; // s
     double target_end_flow{ 0.0 }; // um^3/s
     double reset_flow_duration{ 0.0 }; // s
-    FlowState flow_state{ FlowState::UNDEFINED };
+    FlowState flow_state{ FlowState::Undefined };
 
     std::vector<FlowLimitedPath> processGcodePaths(const std::vector<FlowLimitedPath>& gcode_paths)
     {
@@ -75,13 +75,13 @@ struct GCodeState
         {
             if (path.isRetract() || path.totalDuration() > reset_flow_duration)
             {
-                flow_state = FlowState::UNDEFINED;
+                flow_state = FlowState::Undefined;
             }
             return { path };
         }
 
         // After a long travel move we want to reset the flow to the target end flow
-        if (flow_state == FlowState::UNDEFINED && direction == utils::Direction::Forward)
+        if (flow_state == FlowState::Undefined && direction == utils::Direction::Forward)
         {
             current_flow = path.targetFlow();
         }
@@ -91,7 +91,7 @@ struct GCodeState
         {
             current_flow = target_flow;
             discretized_duration_remaining = 0;
-            flow_state = FlowState::STABLE;
+            flow_state = FlowState::Stable;
             return { path };
         }
 
@@ -114,7 +114,7 @@ struct GCodeState
             }
             else
             {
-                flow_state = FlowState::TRANSITION;
+                flow_state = FlowState::Transition;
                 return { partitioned_gcode_path };
             }
         }
@@ -133,7 +133,7 @@ struct GCodeState
             {
                 remaining_path.speed = segment_speed;
                 discretized_duration_remaining = std::max(discretized_duration_remaining - remaining_path.totalDuration(), .0);
-                flow_state = discretized_duration_remaining > 0. ? FlowState::TRANSITION : FlowState::STABLE;
+                flow_state = discretized_duration_remaining > 0. ? FlowState::Transition : FlowState::Stable;
                 discretized_paths.emplace_back(remaining_path);
                 return discretized_paths;
             }
@@ -155,14 +155,14 @@ struct GCodeState
             }
             else
             {
-                flow_state = FlowState::TRANSITION;
+                flow_state = FlowState::Transition;
                 discretized_duration_remaining = remaining_partition_duration;
                 return discretized_paths;
             }
         }
         discretized_paths.emplace_back(remaining_path);
 
-        flow_state = discretized_duration_remaining > 0. ? FlowState::TRANSITION : FlowState::STABLE;
+        flow_state = discretized_duration_remaining > 0. ? FlowState::Transition : FlowState::Stable;
 
         return discretized_paths;
     }

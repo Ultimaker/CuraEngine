@@ -25,7 +25,7 @@ public:
 
 
     types::geometry::Shape outline_polygons;
-    types::EFillMethod pattern{ types::EFillMethod::LINES };
+    types::EFillMethod pattern{ types::EFillMethod::Lines };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
     types::coord_t line_distance{ 800 };
@@ -117,7 +117,7 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
         std::vector<types::geometry::VariableWidthLines> result_paths;
         types::geometry::Shape result_polygons;
         types::geometry::OpenLinesSet result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, 0, types::SectionType::INFILL, nullptr, nullptr);
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, types::SectionType::Infill, nullptr, nullptr);
     }
 }
 

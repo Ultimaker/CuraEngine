@@ -118,7 +118,7 @@ void Infill::generate(
     // is split into a small region that will be filled with walls and the normal region
     // that will be filled with the pattern. This split of regions is not needed if the
     // infill pattern is concentric or if the small_area_width is zero.
-    if (pattern_ != EFillMethod::CONCENTRIC && small_area_width_ > 0)
+    if (pattern_ != EFillMethod::Concentric && small_area_width_ > 0)
     {
         const auto too_small_length = INT2MM(static_cast<double>(infill_line_width_) / 2.0);
 
@@ -173,12 +173,12 @@ void Infill::generate(
     scripta::log("infill_inner_contour_1", inner_contour_, section_type, layer_idx);
 
     // apply an extra offset in case the pattern prints along the sides of the area.
-    if (pattern_ == EFillMethod::ZIG_ZAG // Zig-zag prints the zags along the walls.
+    if (pattern_ == EFillMethod::ZigZag // Zig-zag prints the zags along the walls.
         || (zig_zaggify_
-            && (pattern_ == EFillMethod::LINES // Zig-zaggified infill patterns print their zags along the walls.
-                || pattern_ == EFillMethod::TRIANGLES || pattern_ == EFillMethod::GRID || pattern_ == EFillMethod::CUBIC || pattern_ == EFillMethod::TETRAHEDRAL
-                || pattern_ == EFillMethod::QUARTER_CUBIC || pattern_ == EFillMethod::TRIHEXAGON || pattern_ == EFillMethod::GYROID || pattern_ == EFillMethod::HONEYCOMB
-                || pattern_ == EFillMethod::OCTAGON || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D))
+            && (pattern_ == EFillMethod::Lines // Zig-zaggified infill patterns print their zags along the walls.
+                || pattern_ == EFillMethod::Triangles || pattern_ == EFillMethod::Grid || pattern_ == EFillMethod::Cubic || pattern_ == EFillMethod::Tetrahedral
+                || pattern_ == EFillMethod::QuarterCubic || pattern_ == EFillMethod::TriHexagon || pattern_ == EFillMethod::Gyroid || pattern_ == EFillMethod::Honeycomb
+                || pattern_ == EFillMethod::Octagon || pattern_ == EFillMethod::Cross || pattern_ == EFillMethod::Cross3D))
         || infill_multiplier_ % 2
                == 0) // Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
@@ -311,34 +311,34 @@ void Infill::generateForIsland(
 
     switch (pattern_)
     {
-    case EFillMethod::GRID:
+    case EFillMethod::Grid:
         generateGridInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::LINES:
+    case EFillMethod::Lines:
         generateLineInfill(outline, result_lines, line_distance_, fill_angle_, 0, crossings_on_line);
         break;
-    case EFillMethod::CUBIC:
+    case EFillMethod::Cubic:
         generateCubicInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::TETRAHEDRAL:
+    case EFillMethod::Tetrahedral:
         generateTetrahedralInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::QUARTER_CUBIC:
+    case EFillMethod::QuarterCubic:
         generateQuarterCubicInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::TRIANGLES:
+    case EFillMethod::Triangles:
         generateTriangleInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::TRIHEXAGON:
+    case EFillMethod::TriHexagon:
         generateTrihexagonInfill(outline, result_lines, crossings_on_line);
         break;
-    case EFillMethod::CONCENTRIC:
+    case EFillMethod::Concentric:
         generateConcentricInfill(outline, toolpaths, settings, layer_idx);
         break;
-    case EFillMethod::ZIG_ZAG:
+    case EFillMethod::ZigZag:
         generateZigZagInfill(outline, result_lines, line_distance_, fill_angle_, crossings_on_line);
         break;
-    case EFillMethod::CUBICSUBDIV:
+    case EFillMethod::CubicSubdiv:
         if (! mesh)
         {
             spdlog::error("Cannot generate Cubic Subdivision infill without a mesh!");
@@ -346,8 +346,8 @@ void Infill::generateForIsland(
         }
         generateCubicSubDivInfill(outline, result_lines, *mesh);
         break;
-    case EFillMethod::CROSS:
-    case EFillMethod::CROSS_3D:
+    case EFillMethod::Cross:
+    case EFillMethod::Cross3D:
         if (! cross_fill_provider)
         {
             spdlog::error("Cannot generate Cross infill without a cross fill provider!\n");
@@ -355,20 +355,20 @@ void Infill::generateForIsland(
         }
         generateCrossInfill(outline, *cross_fill_provider, result_polygons, result_lines);
         break;
-    case EFillMethod::GYROID:
+    case EFillMethod::Gyroid:
         generateGyroidInfill(outline, result_lines, result_polygons);
         break;
-    case EFillMethod::LIGHTNING:
+    case EFillMethod::Lightning:
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
         generateLightningInfill(outline, lightning_trees, result_lines);
         break;
-    case EFillMethod::HONEYCOMB:
+    case EFillMethod::Honeycomb:
         generateHoneycombInfill(outline, result_lines, result_polygons);
         break;
-    case EFillMethod::OCTAGON:
+    case EFillMethod::Octagon:
         generateOctagonInfill(outline, result_lines, result_polygons);
         break;
-    case EFillMethod::PLUGIN:
+    case EFillMethod::Plugin:
     {
 #ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
         auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = plugins::slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
@@ -399,8 +399,8 @@ void Infill::generateForIsland(
     result_polygons = simplifier.polygon(result_polygons);
 
     if (! skip_line_stitching_
-        && (zig_zaggify_ || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D || pattern_ == EFillMethod::CUBICSUBDIV || pattern_ == EFillMethod::GYROID
-            || pattern_ == EFillMethod::HONEYCOMB || pattern_ == EFillMethod::OCTAGON || pattern_ == EFillMethod::ZIG_ZAG))
+        && (zig_zaggify_ || pattern_ == EFillMethod::Cross || pattern_ == EFillMethod::Cross3D || pattern_ == EFillMethod::CubicSubdiv || pattern_ == EFillMethod::Gyroid
+            || pattern_ == EFillMethod::Honeycomb || pattern_ == EFillMethod::Octagon || pattern_ == EFillMethod::ZigZag))
     { // don't stitch for non-zig-zagged line infill types
         OpenLinesSet stitched_lines;
         OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
@@ -411,7 +411,7 @@ void Infill::generateForIsland(
 
 void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
 {
-    if (pattern_ == EFillMethod::CONCENTRIC)
+    if (pattern_ == EFillMethod::Concentric)
     {
         result_polygons = result_polygons.processEvenOdd(); // make into areas
     }
@@ -520,7 +520,7 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
         constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the inner wall.
         constexpr auto wall_generator{ WallToolPathGenerator::Arachne };
         WallToolPaths
-            wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL, wall_generator);
+            wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::ConcentricInfill, wall_generator);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 

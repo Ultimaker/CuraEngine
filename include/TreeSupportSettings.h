@@ -52,16 +52,16 @@ struct TreeSupportSettings
         , increase_radius_until_dtt(
               increase_radius_until_radius <= branch_radius ? tip_layers * (increase_radius_until_radius / branch_radius)
                                                             : (increase_radius_until_radius - branch_radius) / (branch_radius * diameter_angle_scale_factor))
-        , support_rests_on_model(mesh_group_settings.get<types::ESupportType>("support_type") == types::ESupportType::EVERYWHERE)
+        , support_rests_on_model(mesh_group_settings.get<types::ESupportType>("support_type") == types::ESupportType::Everywhere)
         , support_rest_preference(
-              (support_rests_on_model && mesh_group_settings.get<std::string>("support_tree_rest_preference") == "graceful") ? RestPreference::GRACEFUL
-                                                                                                                             : RestPreference::BUILDPLATE)
+              (support_rests_on_model && mesh_group_settings.get<std::string>("support_tree_rest_preference") == "graceful") ? RestPreference::Graceful
+                                                                                                                             : RestPreference::BuildPlate)
         , xy_distance(mesh_group_settings.get<types::coord_t>("support_xy_distance"))
         , bp_radius(mesh_group_settings.get<types::coord_t>("support_tree_bp_diameter") / 2)
         , diameter_scale_bp_radius(std::min(sin(0.7) * static_cast<double>(layer_height) / static_cast<double>(branch_radius), 1.0 / (branch_radius / (support_line_width / 2.0))))
         , // Either 40° or as much as possible so that 2 lines will overlap by at least 50%, whichever is smaller.
         support_overrides(mesh_group_settings.get<types::SupportDistPriority>("support_xy_overrides_z"))
-        , xy_min_distance(support_overrides == types::SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<types::coord_t>("support_xy_distance_overhang") : xy_distance)
+        , xy_min_distance(support_overrides == types::SupportDistPriority::ZOverridesXy ? mesh_group_settings.get<types::coord_t>("support_xy_distance_overhang") : xy_distance)
         , z_distance_top(mesh_group_settings.get<types::coord_t>("support_top_distance"))
         , z_distance_top_layers(utils::round_up_divide(z_distance_top, layer_height))
         , z_distance_bottom_layers(utils::round_up_divide(mesh_group_settings.get<types::coord_t>("support_bottom_distance"), layer_height))
@@ -109,11 +109,11 @@ struct TreeSupportSettings
             = [&](std::vector<types::AngleDegrees>& angles, types::EFillMethod pattern) { // (logic) from getInterfaceAngles in FFFGcodeWriter.
                   if (angles.empty())
                   {
-                      if (pattern == types::EFillMethod::CONCENTRIC)
+                      if (pattern == types::EFillMethod::Concentric)
                       {
                           angles.push_back(0); // Concentric has no rotation.
                       }
-                      else if (pattern == types::EFillMethod::TRIANGLES)
+                      else if (pattern == types::EFillMethod::Triangles)
                       {
                           angles.push_back(90); // Triangular support interface shouldn't alternate every layer.
                       }
@@ -141,11 +141,11 @@ struct TreeSupportSettings
 
         getInterfaceAngles(support_roof_angles, roof_pattern);
         const std::unordered_map<std::string, InterfacePreference> interface_map
-            = { { "support_area_overwrite_interface_area", InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE },
-                { "interface_area_overwrite_support_area", InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT },
-                { "support_lines_overwrite_interface_area", InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE },
-                { "interface_lines_overwrite_support_area", InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT },
-                { "nothing", InterfacePreference::NOTHING } };
+            = { { "support_area_overwrite_interface_area", InterfacePreference::SupportAreaOverwritesInterface },
+                { "interface_area_overwrite_support_area", InterfacePreference::InterfaceAreaOverwritesSupport },
+                { "support_lines_overwrite_interface_area", InterfacePreference::SupportLinesOverwriteInterface },
+                { "interface_lines_overwrite_support_area", InterfacePreference::InterfaceLinesOverwriteSupport },
+                { "nothing", InterfacePreference::Nothing } };
         interface_preference = interface_map.at(mesh_group_settings.get<std::string>("support_interface_priority"));
     }
 
@@ -451,7 +451,7 @@ public:
             && support_wall_thickness_layer_smooth == other.support_wall_thickness_layer_smooth &&
                // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for
                // interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
-               (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE
+               (interface_preference == InterfacePreference::InterfaceAreaOverwritesSupport || interface_preference == InterfacePreference::SupportAreaOverwritesInterface
                 || (settings.get<bool>("fill_outline_gaps") == other.settings.get<bool>("fill_outline_gaps")
                     && settings.get<types::coord_t>("min_bead_width") == other.settings.get<types::coord_t>("min_bead_width")
                     && settings.get<types::AngleRadians>("wall_transition_angle") == other.settings.get<types::AngleRadians>("wall_transition_angle")

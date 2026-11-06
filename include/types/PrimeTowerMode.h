@@ -13,13 +13,13 @@ enum class PrimeTowerMode
     /*!
      * Prime tower that minimizes time and used filament as much as possible.
      */
-    INTERLEAVED,
+    Interleaved,
 
     /*!
      * Prime tower that minimizes time and used filament, but doesn't allow
      * for printing two different filaments over each other.
      */
-    NORMAL,
+    Normal,
 };
 
 } // namespace curaengine::types

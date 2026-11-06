@@ -74,8 +74,8 @@ void SierpinskiFill::createTree()
 
     bool root_straight_corner_is_left = false;
     int root_depth = 1;
-    root_.children.emplace_back(rb, aabb_.min_, aabb_.max_, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, root_straight_corner_is_left, root_depth);
-    root_.children.emplace_back(lt, aabb_.max_, aabb_.min_, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, root_straight_corner_is_left, root_depth);
+    root_.children.emplace_back(rb, aabb_.min_, aabb_.max_, SierpinskiTriangle::SierpinskiDirection::AcToAb, root_straight_corner_is_left, root_depth);
+    root_.children.emplace_back(lt, aabb_.max_, aabb_.min_, SierpinskiTriangle::SierpinskiDirection::AcToAb, root_straight_corner_is_left, root_depth);
     for (SierpinskiTriangle& triangle : root_.children)
     {
         createTree(triangle);
@@ -99,17 +99,17 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
         switch (t.dir_)
         {
         default:
-        case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
-            first_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
-            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+        case SierpinskiTriangle::SierpinskiDirection::AbToBc:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AcToBc;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AcToAb;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
-            first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
-            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
+        case SierpinskiTriangle::SierpinskiDirection::AcToAb:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AbToBc;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AcToBc;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
-            first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
-            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+        case SierpinskiTriangle::SierpinskiDirection::AcToBc:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AbToBc;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AcToAb;
             break;
         }
         sub_root.children.emplace_back(middle, t.a_, t.straight_corner_, first_dir, ! t.straight_corner_is_left_, t.depth_ + 1);
@@ -127,7 +127,7 @@ void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
     double short_length = .5 * types::geometry::vSizeMM(ac);
     double long_length = .5 * types::geometry::vSizeMM(triangle.b_ - triangle.a_);
     triangle.area_ = area;
-    triangle.realized_length_ = (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_BC) ? long_length : short_length;
+    triangle.realized_length_ = (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AcToBc) ? long_length : short_length;
     for (SierpinskiTriangle& child : triangle.children)
     {
         createTreeStatistics(child);
@@ -215,11 +215,11 @@ bool SierpinskiFill::subdivideAll()
             // so then the range will be two long rather than one.
             std::list<SierpinskiTriangle*>::iterator begin = it;
             std::list<SierpinskiTriangle*>::iterator end = std::next(it);
-            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && end != sequence_.end())
+            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AcToAb && end != sequence_.end())
             {
                 continue; // don't subdivide these two triangles just yet, wait till next iteration
             }
-            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && begin != sequence_.begin())
+            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AbToBc && begin != sequence_.begin())
             {
                 begin = std::prev(it);
                 assert((*begin)->depth_ == triangle.depth_ || isConstrainedBackward(it));
@@ -547,12 +547,12 @@ void SierpinskiFill::diffuseError()
 
         std::list<SierpinskiTriangle*>::iterator begin = it;
         std::list<SierpinskiTriangle*>::iterator end = std::next(it);
-        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && end != sequence_.end())
+        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AcToAb && end != sequence_.end())
         {
             pair_constrained_nodes++;
             continue; // don't subdivide these two triangles just yet, wait till next iteration
         }
-        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && begin != sequence_.begin())
+        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AbToBc && begin != sequence_.begin())
         {
             begin = std::prev(it);
             assert((*begin)->depth_ == triangle.depth_ || isConstrainedBackward(it));
@@ -596,7 +596,7 @@ bool SierpinskiFill::isConstrainedBackward(std::list<SierpinskiTriangle*>::itera
 {
     SierpinskiTriangle* node = *it;
     SierpinskiTriangle* prev = *std::prev(it);
-    if (it != sequence_.begin() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && prev->depth_ < node->depth_)
+    if (it != sequence_.begin() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AbToBc && prev->depth_ < node->depth_)
         return true;
     return false;
 }
@@ -604,7 +604,7 @@ bool SierpinskiFill::isConstrainedForward(std::list<SierpinskiTriangle*>::iterat
 {
     SierpinskiTriangle* node = *it;
     SierpinskiTriangle* next = *std::next(it);
-    if (std::next(it) != sequence_.end() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && next->depth_ < node->depth_)
+    if (std::next(it) != sequence_.end() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AcToAb && next->depth_ < node->depth_)
         return true;
     return false;
 }
@@ -623,15 +623,15 @@ double SierpinskiFill::getSubdivisionError(std::list<SierpinskiTriangle*>::itera
 
 void SierpinskiFill::debugOutput(SVG& svg)
 {
-    svg.write(aabb_.toPolygon(), { .surface = { SVG::Color::RED } });
+    svg.write(aabb_.toPolygon(), { .surface = { SVG::Color::Red } });
 
     // draw triangles
     for (SierpinskiTriangle* node : sequence_)
     {
         SierpinskiTriangle& triangle = *node;
-        svg.write(triangle.a_, triangle.b_, { .line = { SVG::Color::GRAY } });
-        svg.write(triangle.a_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
-        svg.write(triangle.b_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
+        svg.write(triangle.a_, triangle.b_, { .line = { SVG::Color::Gray } });
+        svg.write(triangle.a_, triangle.straight_corner_, { .line = { SVG::Color::Gray } });
+        svg.write(triangle.b_, triangle.straight_corner_, { .line = { SVG::Color::Gray } });
     }
 }
 
@@ -641,13 +641,13 @@ SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getFromEdge()
     Edge ret;
     switch (dir_)
     {
-    case SierpinskiDirection::AB_TO_BC:
+    case SierpinskiDirection::AbToBc:
         ret = Edge{ a_, b_ };
         break;
-    case SierpinskiDirection::AC_TO_AB:
+    case SierpinskiDirection::AcToAb:
         ret = Edge{ straight_corner_, a_ };
         break;
-    case SierpinskiDirection::AC_TO_BC:
+    case SierpinskiDirection::AcToBc:
         ret = Edge{ straight_corner_, a_ };
         break;
     }
@@ -663,13 +663,13 @@ SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getToEdge()
     Edge ret;
     switch (dir_)
     {
-    case SierpinskiDirection::AB_TO_BC:
+    case SierpinskiDirection::AbToBc:
         ret = Edge{ straight_corner_, b_ };
         break;
-    case SierpinskiDirection::AC_TO_AB:
+    case SierpinskiDirection::AcToAb:
         ret = Edge{ b_, a_ };
         break;
-    case SierpinskiDirection::AC_TO_BC:
+    case SierpinskiDirection::AcToBc:
         ret = Edge{ straight_corner_, b_ };
         break;
     }
@@ -711,13 +711,13 @@ Polygon SierpinskiFill::generateCross() const
         Point2LL edge_middle = triangle.a_ + triangle.b_ + triangle.straight_corner_;
         switch (triangle.dir_)
         {
-        case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
+        case SierpinskiTriangle::SierpinskiDirection::AbToBc:
             edge_middle -= triangle.a_;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
+        case SierpinskiTriangle::SierpinskiDirection::AcToAb:
             edge_middle -= triangle.straight_corner_;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
+        case SierpinskiTriangle::SierpinskiDirection::AcToBc:
             edge_middle -= triangle.a_;
             break;
         }

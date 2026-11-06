@@ -134,7 +134,7 @@ void MeshGroup::finalize()
         settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
     for (const auto& [idx, mesh] : meshes | ranges::views::enumerate)
     {
-        scripta::log(fmt::format("mesh_{}", idx), mesh, SectionType::NA);
+        scripta::log(fmt::format("mesh_{}", idx), mesh, SectionType::Na);
     }
 }
 
