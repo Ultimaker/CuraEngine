@@ -24,8 +24,6 @@ TEST(CoordTTest, TestConstexprConversions)
     static_assert(std::is_same_v<decltype(&MM2INT), coord_t (*)(double)>);
     static_assert(std::is_same_v<decltype(&MM2_2INT), coord_t (*)(double)>);
     static_assert(std::is_same_v<decltype(&MM3_2INT), coord_t (*)(double)>);
-    static_assert(std::is_same_v<decltype(&INT2MICRON), coord_t (*)(coord_t)>);
-    static_assert(std::is_same_v<decltype(&MICRON2INT), coord_t (*)(coord_t)>);
     static_assert(INT2MM(1500) == 1.5);
     static_assert(INT2MM2(-1500000) == -1.5);
     static_assert(MM2INT(0.0005) == 1);
@@ -39,12 +37,6 @@ TEST(CoordTTest, TestConstexprConversions)
     static_assert(MM2INT(0.0) == 0);
     static_assert(MM2_2INT(0.0) == 0);
     static_assert(MM3_2INT(0.0) == 0);
-    static_assert(INT2MICRON(0) == 0);
-    static_assert(MICRON2INT(0) == 0);
-    static_assert(INT2MICRON(-42) == -42);
-    static_assert(MICRON2INT(42) == 42);
-    EXPECT_EQ(INT2MICRON(-42), -42);
-    EXPECT_EQ(MICRON2INT(static_cast<coord_t>(1.5)), 1);
 }
 
 TEST(CoordTTest, TestConversionRoundingAndPrecision)
@@ -104,9 +96,7 @@ TEST(CoordTTest, TestConversionsEvaluateArgumentOnce)
     EXPECT_EQ(MM2INT(value()), 1500);
     EXPECT_EQ(MM2_2INT(value()), 1500000);
     EXPECT_EQ(MM3_2INT(value()), 1500000000);
-    EXPECT_EQ(INT2MICRON(static_cast<coord_t>(value())), 1);
-    EXPECT_EQ(MICRON2INT(static_cast<coord_t>(value())), 1);
-    EXPECT_EQ(calls, 7);
+    EXPECT_EQ(calls, 5);
 }
 
 TEST(CoordTTest, TestFuzzyZero)

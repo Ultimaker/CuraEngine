@@ -49,16 +49,6 @@ static constexpr coord_t operator""_mu(unsigned long long i)
     return static_cast<coord_t>(n * 1000000000 + 0.5 * ((n > 0) - (n < 0)));
 }
 
-[[nodiscard]] constexpr coord_t INT2MICRON(coord_t n)
-{
-    return n;
-}
-
-[[nodiscard]] constexpr coord_t MICRON2INT(coord_t n)
-{
-    return n;
-}
-
 template<types::floating_point FactorType>
 [[nodiscard]] inline coord_t lerp(coord_t a, coord_t b, FactorType t)
 {
