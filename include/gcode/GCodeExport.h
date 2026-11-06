@@ -181,7 +181,7 @@ private:
         }
     };
 
-    ExtruderTrainAttributes extruder_attr_[MAX_EXTRUDERS];
+    ExtruderTrainAttributes extruder_attr_[max_extruders];
     bool use_extruder_offset_to_offset_coords_;
     std::string machine_name_;
     std::string slice_uuid_; //!< The UUID of the current slice.

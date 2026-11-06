@@ -50,7 +50,7 @@ public:
      * \param snap_distance Points closer than this distance are considered to
      * be the same point.
      */
-    static void stitch(const InputPaths& lines, InputPaths& result_lines, OutputPaths& result_polygons, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
+    static void stitch(const InputPaths& lines, InputPaths& result_lines, OutputPaths& result_polygons, coord_t max_stitch_distance = mmToInt(0.1), coord_t snap_distance = 10);
 
     /*!
      * Whether a polyline is allowed to be reversed. (Not true for wall polylines which are not odd)

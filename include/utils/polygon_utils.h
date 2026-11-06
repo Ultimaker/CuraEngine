@@ -656,7 +656,7 @@ namespace curaengine::utils::polygon_utils
      * @param extra_widen An extra widening value to be applied (since we end-up by an offset anyway)
      * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
      */
-    types::geometry::Shape getRawWideAreas(const types::geometry::Shape& shape, const types::coord_t min_width, const types::coord_t extra_widen = types::EPSILON);
+    types::geometry::Shape getRawWideAreas(const types::geometry::Shape& shape, const types::coord_t min_width, const types::coord_t extra_widen = types::epsilon);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).

@@ -270,13 +270,13 @@ private:
     /*!
      * \brief Whether only support that can rest on a flat surface should be supported.
      */
-    const bool only_gracious_ = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
+    const bool only_gracious_ = support_tree_only_gracious_to_model;
 
     /*!
      * \brief Whether minimum_roof_area is a hard limit. If false the roof will be combined with roof above and below, to see if a part of this roof may be part of a valid roof
      * further up/down.
      */
-    const bool force_minimum_roof_area_ = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
+    const bool force_minimum_roof_area_ = support_tree_minimum_roof_area_hard_limit;
 
     /*!
      * \brief Distance between branches when the branches support a support pattern

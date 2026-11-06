@@ -141,7 +141,7 @@ public:
 
     Point3LL toPoint3()
     {
-        return Point3LL(MM2INT(x_), MM2INT(y_), MM2INT(z_));
+        return Point3LL(mmToInt(x_), mmToInt(y_), mmToInt(z_));
     }
 };
 

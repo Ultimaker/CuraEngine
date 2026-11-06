@@ -74,7 +74,7 @@ const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
 
 [[nodiscard]] double GCodePathConfig::calculateExtrusion() const noexcept
 {
-    return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
+    return intToMm(line_width) * intToMm(layer_thickness) * double(flow);
 }
 
 

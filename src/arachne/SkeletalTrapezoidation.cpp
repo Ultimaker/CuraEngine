@@ -32,7 +32,7 @@ using namespace utils;
 using types::operator""_r;
 
 // Limit the search for adjacent beads; larger values trade search time for more beading reuse.
-constexpr int SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX = 1000;
+constexpr int skeletal_trapezoidation_bead_search_max = 1000;
 
 
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point2LL p)
@@ -2000,7 +2000,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
         first = false;
     }
 
-    for (coord_t counter = 0; counter < SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX; counter++)
+    for (coord_t counter = 0; counter < skeletal_trapezoidation_bead_search_max; counter++)
     { // Prevent endless recursion
         if (further_edges.empty())
             return nullptr;

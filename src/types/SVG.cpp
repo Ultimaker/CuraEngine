@@ -619,7 +619,7 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
     {
         write(Point2LL(x, aabb_.min_.Y), Point2LL(x, aabb_.max_.Y), visual_attributes);
         std::stringstream ss;
-        ss << INT2MM(x);
+        ss << intToMm(x);
         write(
             ss.str(),
             Point2LL(x, std::llrint(static_cast<double>(aabb_.min_.Y) + static_cast<double>(aabb_.max_.Y - aabb_.min_.Y) * dist_from_edge)),
@@ -630,7 +630,7 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
     {
         write(Point2LL(aabb_.min_.X, y), Point2LL(aabb_.max_.Y, y), visual_attributes);
         std::stringstream ss;
-        ss << INT2MM(y);
+        ss << intToMm(y);
         write(
             ss.str(),
             Point2LL(std::llrint(static_cast<double>(aabb_.min_.X) + static_cast<double>(aabb_.max_.X - aabb_.min_.X) * dist_from_edge), y),

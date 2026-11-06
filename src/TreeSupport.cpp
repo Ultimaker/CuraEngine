@@ -57,7 +57,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
         TreeSupportSettings::some_model_contains_thick_roof |= mesh.settings.get<coord_t>("support_roof_height") >= 2 * mesh.settings.get<coord_t>("layer_height");
         TreeSupportSettings::has_to_rely_on_min_xy_dist_only |= mesh.settings.get<coord_t>("support_top_distance") == 0
                                                              || mesh.settings.get<coord_t>("support_bottom_distance") == 0
-                                                             || mesh.settings.get<coord_t>("min_feature_size") < (FUDGE_LENGTH * 2);
+                                                             || mesh.settings.get<coord_t>("min_feature_size") < (fudge_length * 2);
     }
 
     const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_painted_support;
@@ -158,7 +158,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         config = processing.first; // This struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generateInitialAreas have knowledge of
                                    // the existence of multiple meshes being processed.
         progress_multiplier = 1.0 / double(grouped_meshes.size());
-        progress_offset = counter == 0 ? 0 : TREE_PROGRESS_TOTAL * (double(counter) * progress_multiplier);
+        progress_offset = counter == 0 ? 0 : tree_progress_total * (double(counter) * progress_multiplier);
         volumes_ = TreeModelVolumes(
             storage,
             config.maximum_move_distance,
@@ -380,7 +380,7 @@ void TreeSupport::mergeHelper(
                     smaller_rad.second,
                     real_radius_delta,
                     volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
-                    2 * (config.xy_distance + smaller_collision_radius - EPSILON), // Epsilon avoids possible rounding errors
+                    2 * (config.xy_distance + smaller_collision_radius - epsilon), // Epsilon avoids possible rounding errors
                     0,
                     0,
                     config.support_line_distance / 2,
@@ -392,7 +392,7 @@ void TreeSupport::mergeHelper(
                 {
                     // Check if the overlap is large enough (Small ares tend to attract rounding errors in clipper). While 25 was guessed as enough, i did not have reason to change
                     // it.
-                    if (intersect.offset(-FUDGE_LENGTH / 2).area() <= 1)
+                    if (intersect.offset(-fudge_length / 2).area() <= 1)
                     {
                         continue;
                     }
@@ -434,7 +434,7 @@ void TreeSupport::mergeHelper(
                             infl_small,
                             real_radius_delta,
                             volumes_.getCollision(smaller_collision_radius, layer_idx - 1, use_min_radius),
-                            2 * (config.xy_distance + smaller_collision_radius - EPSILON),
+                            2 * (config.xy_distance + smaller_collision_radius - epsilon),
                             0,
                             0,
                             config.support_line_distance / 2,
@@ -777,7 +777,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                 if (current_elem->to_buildplate_)
                 {
                     new_to_bp_data = to_bp_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem->use_min_xy_dist_));
-                    if (new_to_bp_data.area() > EPSILON)
+                    if (new_to_bp_data.area() > epsilon)
                     {
                         to_bp_data = new_to_bp_data;
                     }
@@ -785,7 +785,7 @@ TreeSupportElement::Ptr TreeSupport::increaseSingleArea(
                 if (config.support_rests_on_model && (! current_elem->to_buildplate_ || mergelayer))
                 {
                     new_to_model_data = to_model_data.difference(volumes_.getCollision(config.getRadius(current_elem), layer_idx - 1, current_elem->use_min_xy_dist_));
-                    if (new_to_model_data.area() > EPSILON)
+                    if (new_to_model_data.area() > epsilon)
                     {
                         to_model_data = new_to_model_data;
                     }
@@ -918,7 +918,7 @@ void TreeSupport::increaseAreas(
             // As the branch may have become larger the distance between these 2 walls is smaller than the distance of the center points.
             // These extra distance is added to the movement distance possible for this layer.
 
-            coord_t extra_speed = EPSILON; // The extra speed is added to both movement distances. Also move 5 microns faster than allowed to avoid rounding errors, this may cause
+            coord_t extra_speed = epsilon; // The extra speed is added to both movement distances. Also move 5 microns faster than allowed to avoid rounding errors, this may cause
                                            // issues at VERY VERY small layer heights.
             coord_t extra_slow_speed = 0; // Only added to the slow movement distance.
             const coord_t ceiled_parent_radius = volumes_.ceilRadius(config.getCollisionRadius(parent), parent->use_min_xy_dist_);
@@ -1152,7 +1152,7 @@ void TreeSupport::increaseAreas(
                 {
                     // If the area becomes for whatever reason something that clipper sees as a line, offset would stop working, so ensure that even if if wrongly would be a line,
                     // it still actually has an area that can be increased
-                    Shape lines_offset = tree_support_utils::toPolylines(*parent->area_).offset(EPSILON);
+                    Shape lines_offset = tree_support_utils::toPolylines(*parent->area_).offset(epsilon);
                     Shape base_error_area = parent->area_->unionPolygons(lines_offset);
                     result = increaseSingleArea(settings, layer_idx, parent, base_error_area, to_bp_data, to_model_data, inc_wo_collision, settings.increase_speed_, mergelayer);
 
@@ -1280,7 +1280,7 @@ void TreeSupport::increaseAreas(
 void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TimeKeeper& time_keeper)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
-    double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
+    double progress_total = tree_progress_precalc_avo + tree_progress_precalc_coll + tree_progress_generate_nodes;
 
     auto dur_inc = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
     auto dur_merge = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
@@ -1366,8 +1366,8 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement::Pt
             move_bounds[layer_idx - 1].emplace(elem);
         }
 
-        progress_total += data_size_inverse * TREE_PROGRESS_AREA_CALC;
-        Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+        progress_total += data_size_inverse * tree_progress_area_calc;
+        Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, tree_progress_total);
     }
 
     time_keeper.registerTime("Creating influence areas: increase", std::chrono::milliseconds{ 10 }, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
@@ -1450,7 +1450,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement::Ptr
         // Could not find valid placement, even though it should exist => error handling
         if (! set)
         {
-            if (SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL)
+            if (support_tree_only_gracious_to_model)
             {
                 spdlog::warn("No valid placement found for to model gracious element on layer {}: REMOVING BRANCH", layer_idx);
                 for (LayerIndex layer = layer_idx; layer <= first_elem->next_height_; layer++)
@@ -1638,7 +1638,7 @@ void TreeSupport::generateBranchAreas(
     std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons,
     const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order)
 {
-    double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC;
+    double progress_total = tree_progress_precalc_avo + tree_progress_precalc_coll + tree_progress_generate_nodes + tree_progress_area_calc;
     constexpr int progress_report_steps = 10;
     Polygon branch_circle; // Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
 
@@ -1721,7 +1721,7 @@ void TreeSupport::generateBranchAreas(
                 }
 
                 poly = poly.unionPolygons()
-                           .offset(std::min(static_cast<coord_t>(FUDGE_LENGTH), config.support_line_width / 4))
+                           .offset(std::min(static_cast<coord_t>(fudge_length), config.support_line_width / 4))
                            .difference(volumes_.getCollision(0, linear_data[idx].first, parent_uses_min || elem->use_min_xy_dist_));
                 // ^^^ There seem to be some rounding errors, causing a branch to be a tiny bit further away from the model that it has to be. This can cause the tip to be slightly
                 // further away front the overhang (x/y wise) than optimal.
@@ -1761,7 +1761,7 @@ void TreeSupport::generateBranchAreas(
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
                                 Point2LL from = elem->result_on_layer_;
                                 polygon_utils::moveInside(part, from, 0);
-                                if (types::geometry::vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
+                                if (types::geometry::vSize2(elem->result_on_layer_ - from) < (fudge_length * fudge_length) / 4)
                                 {
                                     polygons_with_correct_center = polygons_with_correct_center.unionPolygons(part);
                                 }
@@ -1779,8 +1779,8 @@ void TreeSupport::generateBranchAreas(
             {
                 {
                     std::lock_guard<std::mutex> critical_section_progress(critical_sections);
-                    progress_total += TREE_PROGRESS_GENERATE_BRANCH_AREAS / progress_report_steps;
-                    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+                    progress_total += tree_progress_generate_branch_areas / progress_report_steps;
+                    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, tree_progress_total);
                 }
             }
         });
@@ -1794,7 +1794,7 @@ void TreeSupport::generateBranchAreas(
 
 void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons)
 {
-    double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS;
+    double progress_total = tree_progress_precalc_avo + tree_progress_precalc_coll + tree_progress_generate_nodes + tree_progress_area_calc + tree_progress_generate_branch_areas;
     const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // This is the upper limit a radius may change per layer. +1 to avoid rounding errors.
 
     // Smooth upward.
@@ -1847,8 +1847,8 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
         }
     }
 
-    progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
-    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+    progress_total += tree_progress_smooth_branch_areas / 2;
+    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, tree_progress_total);
     // ^^^ It is just assumed that both smoothing loops together are one third of the time spent in this function. This was guessed.
     //     As the whole function is only 10%, and the smoothing is hard to predict a progress report in the loop may be not useful.
 
@@ -1909,8 +1909,8 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
         }
     }
 
-    progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
-    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+    progress_total += tree_progress_smooth_branch_areas / 2;
+    Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, tree_progress_total);
 }
 
 void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement::Ptr>>& layer_tree_polygons)
@@ -1981,7 +1981,7 @@ void TreeSupport::dropNonGraciousAreas(
                     for (const Shape& layer_tree_polygon : layer_tree_polygons[layer_index] | ranges::views::values)
                     {
                         // Remove parts of the support that are absorbed by the actual trees
-                        rest_support = rest_support.difference(layer_tree_polygon.offset(-EPSILON));
+                        rest_support = rest_support.difference(layer_tree_polygon.offset(-epsilon));
                     }
                     dropped_down_area.emplace_back(layer_index, rest_support);
                 }
@@ -1989,7 +1989,7 @@ void TreeSupport::dropNonGraciousAreas(
                 if (! rest_support.empty())
                 {
                     // If there is some remainder after dropping the area to the bottom, that means it could not actually reach the model or another branch, so discard the piece
-                    rest_support = rest_support.offset(EPSILON);
+                    rest_support = rest_support.offset(epsilon);
                     for (Shape& dropped_area_on_layer : dropped_down_area | ranges::views::values)
                     {
                         dropped_area_on_layer = dropped_area_on_layer.difference(rest_support);
@@ -2006,7 +2006,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     const coord_t closing_dist = config.support_wall_thickness;
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
-    const double small_area_length = INT2MM(config.support_line_width) / 2.0;
+    const double small_area_length = intToMm(config.support_line_width) / 2.0;
 
     std::function<void(Shape&)> reversePolygon = [&](Shape& poly)
     {
@@ -2024,7 +2024,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-            support_layer_storage[layer_idx] = config.simplifier.polygon(polygon_utils::unionManySmall(support_layer_storage[layer_idx].smooth(FUDGE_LENGTH)))
+            support_layer_storage[layer_idx] = config.simplifier.polygon(polygon_utils::unionManySmall(support_layer_storage[layer_idx].smooth(fudge_length)))
                                                    .offset(-open_close_distance)
                                                    .offset(open_close_distance * 2)
                                                    .offset(-open_close_distance);
@@ -2089,7 +2089,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             for (auto [idx, hole] : holeparts[layer_idx] | ranges::views::enumerate)
             {
                 AABB hole_aabb = AABB(hole);
-                hole_aabb.expand(EPSILON);
+                hole_aabb.expand(epsilon);
                 if (hole.size() > 1)
                 {
                     // The hole contains other branches! It can not be fully removed.
@@ -2206,8 +2206,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
     SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SupportLinesOverwriteInterface;
-    double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
-                          + TREE_PROGRESS_SMOOTH_BRANCH_AREAS;
+    double progress_total = tree_progress_precalc_avo + tree_progress_precalc_coll + tree_progress_generate_nodes + tree_progress_area_calc + tree_progress_generate_branch_areas
+                          + tree_progress_smooth_branch_areas;
 
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
     std::mutex critical_sections;
@@ -2336,7 +2336,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 // For each point L (actually) inside the connected support part, retrieve the wall-width and area that the branch representing point L would have at that point.
                 SparsePointGridInclusive<coord_t>::Elem nearest;
                 const AABB aabb(support_part);
-                const coord_t search_radius = EPSILON + std::max(aabb.width(), aabb.height()) / 2;
+                const coord_t search_radius = epsilon + std::max(aabb.width(), aabb.height()) / 2;
                 const auto located_data = center_locator->getNearby(aabb.getMiddle(), search_radius);
 
                 // Take the weighted average of the wall-widths and areas of all points inside the support part, where the area is weighted by the area of the branch at that point.
@@ -2368,8 +2368,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
             {
                 std::lock_guard<std::mutex> critical_section_progress(critical_sections);
-                progress_total += TREE_PROGRESS_FINALIZE_BRANCH_AREAS / support_layer_storage.size();
-                Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+                progress_total += tree_progress_finalize_branch_areas / support_layer_storage.size();
+                Progress::messageProgress(Progress::Stage::Support, progress_total * progress_multiplier + progress_offset, tree_progress_total);
             }
 
             {
@@ -2453,7 +2453,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
         center_locator_per_layer.size(),
         [&](const size_t layer_idx)
         {
-            center_locator_per_layer[layer_idx] = std::make_unique<SparsePointGridInclusive<std::pair<coord_t, float>>>(config.branch_radius * 2 + EPSILON);
+            center_locator_per_layer[layer_idx] = std::make_unique<SparsePointGridInclusive<std::pair<coord_t, float>>>(config.branch_radius * 2 + epsilon);
             auto* center_locator = center_locator_per_layer[layer_idx].get();
 
             for (const auto& elem : move_bounds[layer_idx])
@@ -2465,7 +2465,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
                                                config.support_wall_thickness_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
                                      / std::max(coord_t{ 1 }, config.support_wall_thickness_layer_smooth);
                 const coord_t nominal_wall_width
-                    = std::lerp(config.support_enlarged_wall_thickness, std::max(coord_t{ EPSILON }, config.support_wall_thickness), std::clamp(lerp_mul, 0.f, 1.f));
+                    = std::lerp(config.support_enlarged_wall_thickness, std::max(coord_t{ epsilon }, config.support_wall_thickness), std::clamp(lerp_mul, 0.f, 1.f));
 
 
                 const auto center = (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ? elem->result_on_layer_ : elem->target_position_;

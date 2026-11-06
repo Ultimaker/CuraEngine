@@ -70,12 +70,12 @@ std::optional<SegmentOverlapping> TransformedSegment::calculateOverlapping(const
         if (linear_alg_2d::segmentSegmentIntersection(start_, end_, other.start_, other.end_, intersection_segment, intersection_infill_line))
         {
             const Point2LL intersection = types::geometry::lerp(start_, end_, intersection_segment);
-            if (intersection.Y >= overlapping.y_max - EPSILON)
+            if (intersection.Y >= overlapping.y_max - epsilon)
             {
                 // Intersection is very close from top, consider as if not intersecting
                 sign_max = sign_min;
             }
-            else if (intersection.Y <= overlapping.y_min + EPSILON)
+            else if (intersection.Y <= overlapping.y_min + epsilon)
             {
                 // Intersection is very close from bottom, consider as if not intersecting
                 sign_min = sign_max;

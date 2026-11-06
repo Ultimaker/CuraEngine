@@ -36,7 +36,7 @@ public:
      * \brief Translate the double value in degrees to an AngleRadians instance.
      */
     AngleRadians(double value)
-        : value_(std::fmod(std::fmod(value, utils::TAU) + utils::TAU, utils::TAU))
+        : value_(std::fmod(std::fmod(value, utils::tau) + utils::tau, utils::tau))
     {
     }
 
@@ -53,23 +53,23 @@ public:
      */
     AngleRadians operator+(const AngleRadians& other) const
     {
-        return std::fmod(std::fmod(value_ + other.value_, utils::TAU) + utils::TAU, utils::TAU);
+        return std::fmod(std::fmod(value_ + other.value_, utils::tau) + utils::tau, utils::tau);
     }
 
     AngleRadians& operator+=(const AngleRadians& other)
     {
-        value_ = std::fmod(std::fmod(value_ + other.value_, utils::TAU) + utils::TAU, utils::TAU);
+        value_ = std::fmod(std::fmod(value_ + other.value_, utils::tau) + utils::tau, utils::tau);
         return *this;
     }
 
     AngleRadians operator-(const AngleRadians& other) const
     {
-        return std::fmod(std::fmod(value_ - other.value_, utils::TAU) + utils::TAU, utils::TAU);
+        return std::fmod(std::fmod(value_ - other.value_, utils::tau) + utils::tau, utils::tau);
     }
 
     AngleRadians& operator-=(const AngleRadians& other)
     {
-        value_ = std::fmod(std::fmod(value_ - other.value_, utils::TAU) + utils::TAU, utils::TAU);
+        value_ = std::fmod(std::fmod(value_ - other.value_, utils::tau) + utils::tau, utils::tau);
         return *this;
     }
 
@@ -103,7 +103,7 @@ namespace curaengine::types
 {
 
 inline AngleRadians::AngleRadians(const AngleDegrees& value)
-    : value_(value.value_ * utils::TAU / 360.0)
+    : value_(value.value_ * utils::tau / 360.0)
 {
 }
 

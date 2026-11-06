@@ -185,8 +185,8 @@ TEST_F(MoveInsideTest, pointyCorner)
     inside.push_back(pointy_square);
     ClosestPointPolygon cpp = polygon_utils::ensureInsideOrOutside(inside, result, 10);
 
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_TRUE(inside.inside(result)) << from << " couldn't be moved inside.";
 }
 
@@ -199,8 +199,8 @@ TEST_F(MoveInsideTest, pointyCornerFail)
     inside.push_back(pointy_square);
 
     ClosestPointPolygon cpp = polygon_utils::moveInside2(inside, result, 10);
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_FALSE(inside.inside(result)) << from << " could be moved inside, while it was designed to fail.";
 }
 
@@ -213,8 +213,8 @@ TEST_F(MoveInsideTest, outsidePointyCorner)
     inside.push_back(pointy_square);
 
     const ClosestPointPolygon cpp = polygon_utils::ensureInsideOrOutside(inside, result, -10);
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_TRUE(! inside.inside(result)) << from << " couldn't be moved outside.";
 }
 
@@ -228,8 +228,8 @@ TEST_F(MoveInsideTest, outsidePointyCornerFail)
     inside.push_back(pointy_square);
 
     const ClosestPointPolygon cpp = polygon_utils::moveInside2(inside, result, -10);
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_FALSE(! inside.inside(result)) << from << " could be moved outside to " << result << ", while it was designed to fail.";
 }
 

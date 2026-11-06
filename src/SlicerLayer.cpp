@@ -18,9 +18,9 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
-constexpr int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
-constexpr int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
+constexpr int largest_neglected_gap_first_phase = mmToInt(0.01); //!< distance between two line segments regarded as connected
+constexpr int largest_neglected_gap_second_phase = mmToInt(0.02); //!< distance between two line segments regarded as connected
+constexpr int max_stitch1 = mmToInt(10.0); //!< maximal distance stitched between open polylines to form polygons
 
 void SlicerLayer::makeBasicPolygonLoops(OpenLinesSet& open_polylines)
 {
@@ -133,7 +133,7 @@ void SlicerLayer::stitch(OpenLinesSet& open_polylines)
     connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
 }
 
-const SlicerLayer::Terminus SlicerLayer::Terminus::INVALID_TERMINUS{ ~static_cast<Index>(0U) };
+const SlicerLayer::Terminus SlicerLayer::Terminus::invalid_terminus{ ~static_cast<Index>(0U) };
 
 bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch& other) const
 {
@@ -430,7 +430,7 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
     {
         m_terminus_old_to_cur_map[old_terms[idx].asIndex()] = next_terms[idx];
         Terminus next_term = next_terms[idx];
-        if (next_term != Terminus::INVALID_TERMINUS)
+        if (next_term != Terminus::invalid_terminus)
         {
             m_terminus_cur_to_old_map[next_term.asIndex()] = old_terms[idx];
         }
@@ -438,7 +438,7 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
     // remove next locations that no longer exist
     for (size_t rem_idx = 0U; rem_idx != num_removed_terms; ++rem_idx)
     {
-        m_terminus_cur_to_old_map[removed_cur_terms[rem_idx].asIndex()] = Terminus::INVALID_TERMINUS;
+        m_terminus_cur_to_old_map[removed_cur_terms[rem_idx].asIndex()] = Terminus::invalid_terminus;
     }
 }
 
@@ -448,7 +448,7 @@ void SlicerLayer::connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t
 
     std::priority_queue<PossibleStitch> stitch_queue = findPossibleStitches(open_polylines, max_dist, cell_size, allow_reverse);
 
-    static const Terminus INVALID_TERMINUS = Terminus::INVALID_TERMINUS;
+    static const Terminus invalid_terminus = Terminus::invalid_terminus;
     Terminus::Index terminus_end_idx = Terminus::endIndexFromPolylineEndIndex(open_polylines.size());
     // Keeps track of how polyline end point locations move around
     TerminusTrackingMap terminus_tracking_map(terminus_end_idx);
@@ -461,14 +461,14 @@ void SlicerLayer::connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t
         stitch_queue.pop();
         Terminus old_terminus_0 = next_stitch.terminus_0;
         Terminus terminus_0 = terminus_tracking_map.getCurFromOld(old_terminus_0);
-        if (terminus_0 == INVALID_TERMINUS)
+        if (terminus_0 == invalid_terminus)
         {
             // if we already used this terminus, then this stitch is no longer usable
             continue;
         }
         Terminus old_terminus_1 = next_stitch.terminus_1;
         Terminus terminus_1 = terminus_tracking_map.getCurFromOld(old_terminus_1);
-        if (terminus_1 == INVALID_TERMINUS)
+        if (terminus_1 == invalid_terminus)
         {
             // if we already used this terminus, then this stitch is no longer usable
             continue;
@@ -509,7 +509,7 @@ void SlicerLayer::connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t
 
         // update terminus_tracking_map
         Terminus cur_terms[4] = { { best_polyline_0_idx, false }, { best_polyline_0_idx, true }, { best_polyline_1_idx, false }, { best_polyline_1_idx, true } };
-        Terminus next_terms[4] = { { best_polyline_0_idx, false }, INVALID_TERMINUS, INVALID_TERMINUS, { best_polyline_0_idx, true } };
+        Terminus next_terms[4] = { { best_polyline_0_idx, false }, invalid_terminus, invalid_terminus, { best_polyline_0_idx, true } };
         if (reverse[0])
         {
             std::swap(next_terms[0], next_terms[1]);
@@ -707,7 +707,7 @@ std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(Point2L
                 if (distOnLine >= 0 && distOnLine <= lineLength)
                 {
                     Point2LL q = p0 + pDiff * distOnLine / lineLength;
-                    if (types::geometry::shorterThan(q - input, MM2INT(0.1)))
+                    if (types::geometry::shorterThan(q - input, mmToInt(0.1)))
                     {
                         ClosePolygonResult ret;
                         ret.polygonIdx = n;

@@ -244,9 +244,9 @@ private:
      */
     void addPoint3D(const Point3LL& point)
     {
-        points.push_back(INT2MM(point.x_));
-        points.push_back(INT2MM(point.y_));
-        points.push_back(INT2MM(point.z_));
+        points.push_back(intToMm(point.x_));
+        points.push_back(intToMm(point.y_));
+        points.push_back(intToMm(point.z_));
         last_point = point;
     }
 
@@ -273,8 +273,8 @@ private:
     {
         addPoint3D(point);
         line_types.push_back(print_feature_type);
-        line_widths.push_back(INT2MM(width));
-        line_thicknesses.push_back(INT2MM(thickness));
+        line_widths.push_back(intToMm(width));
+        line_thicknesses.push_back(intToMm(thickness));
         line_velocities.push_back(velocity);
         line_attributes.push_back(static_cast<uint32_t>(print_attributes.value()));
     }

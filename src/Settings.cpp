@@ -181,7 +181,7 @@ LayerIndex Settings::get<LayerIndex>(const std::string& key) const
 template<>
 coord_t Settings::get<coord_t>(const std::string& key) const
 {
-    return MM2INT(get<double>(key)); // The settings are all in millimetres, but we need to interpret them as microns.
+    return mmToInt(get<double>(key)); // The settings are all in millimetres, but we need to interpret them as microns.
 }
 
 template<>
@@ -289,7 +289,7 @@ Shape Settings::get<Shape>(const std::string& key) const
                 {
                     double first = std::stod(first_substring);
                     double second = std::stod(second_substring);
-                    poly.emplace_back(MM2INT(first), MM2INT(second));
+                    poly.emplace_back(mmToInt(first), mmToInt(second));
                 }
                 catch (const std::invalid_argument& e)
                 {

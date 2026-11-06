@@ -287,7 +287,7 @@ void InfillOrderOptimizer::addToLayer(
 {
     const bool enable_travel_optimization = settings.get<bool>("infill_enable_travel_optimization");
     constexpr Ratio flow_ratio = 1.0_r;
-    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr double fan_speed = GCodePathConfig::fan_speed_default;
     const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
     switch (part.area)
@@ -493,7 +493,7 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
     const bool enable_travel_optimization,
     const Ratio& flow_ratio) const
 {
-    const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::FAN_SPEED_DEFAULT;
+    const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::fan_speed_default;
     constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
     constexpr coord_t skin_support_wipe_dist = 0;
     constexpr OverrideAreas override_areas;

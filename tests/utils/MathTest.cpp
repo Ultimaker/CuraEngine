@@ -20,7 +20,7 @@ using namespace utils;
 
 TEST(MathTest, TestMathematicalConstants)
 {
-    static_assert(TAU == 2.0 * std::numbers::pi);
+    static_assert(tau == 2.0 * std::numbers::pi);
     EXPECT_EQ(one_over_sqrt_2, std::sqrt(1.0 / 2.0));
     EXPECT_EQ(one_over_sqrt_3, std::sqrt(1.0 / 3.0));
     EXPECT_EQ(one_over_sqrt_6, std::sqrt(1.0 / 6.0));

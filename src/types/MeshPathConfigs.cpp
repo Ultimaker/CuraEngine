@@ -85,7 +85,7 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                    .jerk = mesh.settings.get<Velocity>("jerk_wall_0") },
                             .is_bridge_path = true,
                             .fan_speed = mesh.settings.get<bool>("cool_fan_enabled") ? static_cast<double>(mesh.settings.get<Ratio>("bridge_fan_speed") * 100.0)
-                                                                                     : GCodePathConfig::FAN_SPEED_DEFAULT }
+                                                                                     : GCodePathConfig::fan_speed_default }
     , bridge_insetX_config{ .type = PrintFeatureType::InnerWall,
                             .line_width = static_cast<coord_t>(
                                 mesh.settings.get<coord_t>("wall_line_width_x")
@@ -97,7 +97,7 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                    .jerk = mesh.settings.get<Velocity>("jerk_wall_x") },
                             .is_bridge_path = true,
                             .fan_speed = mesh.settings.get<bool>("cool_fan_enabled") ? static_cast<double>(mesh.settings.get<Ratio>("bridge_fan_speed") * 100.0)
-                                                                                     : GCodePathConfig::FAN_SPEED_DEFAULT }
+                                                                                     : GCodePathConfig::fan_speed_default }
     , skin_config{ .type = PrintFeatureType::Skin,
                    .line_width = static_cast<coord_t>(
                        mesh.settings.get<coord_t>("skin_line_width") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_]),
@@ -117,7 +117,7 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                  .jerk = mesh.settings.get<Velocity>("jerk_topbottom") },
                           .is_bridge_path = true,
                           .fan_speed = mesh.settings.get<bool>("cool_fan_enabled") ? static_cast<double>(mesh.settings.get<Ratio>("bridge_fan_speed") * 100.0)
-                                                                                   : GCodePathConfig::FAN_SPEED_DEFAULT }
+                                                                                   : GCodePathConfig::fan_speed_default }
     , bridge_skin_config2{ .type = PrintFeatureType::Skin,
                            .line_width = static_cast<coord_t>(
                                mesh.settings.get<coord_t>("skin_line_width")
@@ -129,7 +129,7 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                   .jerk = mesh.settings.get<Velocity>("jerk_topbottom") },
                            .is_bridge_path = true,
                            .fan_speed = mesh.settings.get<bool>("cool_fan_enabled") ? static_cast<double>(mesh.settings.get<Ratio>("bridge_fan_speed_2") * 100.0)
-                                                                                    : GCodePathConfig::FAN_SPEED_DEFAULT }
+                                                                                    : GCodePathConfig::fan_speed_default }
     , bridge_skin_config3{ .type = PrintFeatureType::Skin,
                            .line_width = static_cast<coord_t>(
                                mesh.settings.get<coord_t>("skin_line_width")
@@ -141,7 +141,7 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                   .jerk = mesh.settings.get<Velocity>("jerk_topbottom") },
                            .is_bridge_path = true,
                            .fan_speed = mesh.settings.get<bool>("cool_fan_enabled") ? static_cast<double>(mesh.settings.get<Ratio>("bridge_fan_speed_3") * 100.0)
-                                                                                    : GCodePathConfig::FAN_SPEED_DEFAULT }
+                                                                                    : GCodePathConfig::fan_speed_default }
     , roofing_config{ .type = PrintFeatureType::Skin,
                       .line_width = mesh.settings.get<coord_t>("roofing_line_width"),
                       .layer_thickness = layer_thickness,
@@ -173,9 +173,9 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                   .jerk = mesh.settings.get<Velocity>("jerk_infill") } }
 
 {
-    infill_config.reserve(MAX_INFILL_COMBINE);
+    infill_config.reserve(max_infill_combine);
 
-    for (const auto combine_idx : ranges::views::iota(1, MAX_INFILL_COMBINE + 1))
+    for (const auto combine_idx : ranges::views::iota(1, max_infill_combine + 1))
     {
         infill_config.emplace_back(
             GCodePathConfig{

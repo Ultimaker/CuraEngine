@@ -598,23 +598,23 @@ TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
     constexpr Ratio overhang_speed_ratio = 0.5_r;
     Shape overhang_region;
     overhang_region.emplace_back();
-    overhang_region.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
-    overhang_region.back().emplace_back(MM2INT(1000), -MM2INT(1000));
-    overhang_region.back().emplace_back(MM2INT(1000), MM2INT(1000));
-    overhang_region.back().emplace_back(-MM2INT(1000), MM2INT(1000));
+    overhang_region.back().emplace_back(-mmToInt(1000), -mmToInt(1000));
+    overhang_region.back().emplace_back(mmToInt(1000), -mmToInt(1000));
+    overhang_region.back().emplace_back(mmToInt(1000), mmToInt(1000));
+    overhang_region.back().emplace_back(-mmToInt(1000), mmToInt(1000));
 
     const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, overhang_speed_ratio } };
 
     const GCodePathConfig config{
         .type = PrintFeatureType::OuterWall,
-        .line_width = MM2INT(0.4),
-        .layer_thickness = MM2INT(0.1),
+        .line_width = mmToInt(0.4),
+        .layer_thickness = mmToInt(0.1),
         .flow = 1.0_r,
         .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
     };
 
     // SetUp() placed last_planned_position at (0,0). Move somewhere entirely in the overhang zone.
-    layer_plan.addExtrusionMove(Point3LL(MM2INT(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(mmToInt(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     const bool any_reduced = std::any_of(
@@ -638,31 +638,31 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     // overhang_region: the rest of a huge area outside the square — gets speed_ratio = 0.5 (overhang)
     Shape supported_region;
     supported_region.emplace_back();
-    supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
-    supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
+    supported_region.back().emplace_back(-mmToInt(10), -mmToInt(10));
+    supported_region.back().emplace_back( mmToInt(10), -mmToInt(10));
+    supported_region.back().emplace_back( mmToInt(10),  mmToInt(10));
+    supported_region.back().emplace_back(-mmToInt(10),  mmToInt(10));
 
     Shape full_area;
     full_area.emplace_back();
-    full_area.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
-    full_area.back().emplace_back(MM2INT(1000), -MM2INT(1000));
-    full_area.back().emplace_back(MM2INT(1000), MM2INT(1000));
-    full_area.back().emplace_back(-MM2INT(1000), MM2INT(1000));
+    full_area.back().emplace_back(-mmToInt(1000), -mmToInt(1000));
+    full_area.back().emplace_back(mmToInt(1000), -mmToInt(1000));
+    full_area.back().emplace_back(mmToInt(1000), mmToInt(1000));
+    full_area.back().emplace_back(-mmToInt(1000), mmToInt(1000));
 
     const Shape overhang_region = full_area.difference(supported_region);
     const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, 0.5_r } };
 
     const GCodePathConfig config{
         .type = PrintFeatureType::OuterWall,
-        .line_width = MM2INT(0.4),
-        .layer_thickness = MM2INT(0.1),
+        .line_width = mmToInt(0.4),
+        .layer_thickness = mmToInt(0.1),
         .flow = 1.0_r,
         .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
     };
 
     // Start at (0,0) inside the square. Move to (50mm,0,0), crossing the boundary at x=10mm.
-    layer_plan.addExtrusionMove(Point3LL(MM2INT(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(mmToInt(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     bool found_full_speed = false;

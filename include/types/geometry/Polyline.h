@@ -181,7 +181,7 @@ public:
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is
      removed
      */
-    void simplify(const types::coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const types::coord_t allowed_error_distance_squared = 25);
+    void simplify(const types::coord_t smallest_line_segment_squared = mmToInt(0.01) * mmToInt(0.01), const types::coord_t allowed_error_distance_squared = 25);
 };
 
 } // namespace curaengine::types::geometry

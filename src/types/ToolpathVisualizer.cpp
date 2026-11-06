@@ -80,9 +80,9 @@ void ToolpathVisualizer::width_legend(const Shape& input, coord_t nozzle_size, c
     all_segments_plus.emplace_back(legend_segment); // colored
 
     Point2LL legend_text_offset(nozzle_size, 0);
-    svg_.write(to_string(INT2MM(legend_top.w_)), legend_top.p_ + legend_text_offset, { true });
-    svg_.write(to_string(INT2MM(legend_btm.w_)), legend_btm.p_ + legend_text_offset, { true });
-    svg_.write(to_string(INT2MM(legend_mid.w_)), legend_mid.p_ + legend_text_offset, { true });
+    svg_.write(to_string(intToMm(legend_top.w_)), legend_top.p_ + legend_text_offset, { true });
+    svg_.write(to_string(intToMm(legend_btm.w_)), legend_btm.p_ + legend_text_offset, { true });
+    svg_.write(to_string(intToMm(legend_mid.w_)), legend_mid.p_ + legend_text_offset, { true });
     svg_.write(legend_top.p_, legend_top.p_ + legend_text_offset, { .line = {} });
     svg_.write(legend_btm.p_, legend_btm.p_ + legend_text_offset, { .line = {} });
     svg_.write(legend_mid.p_, legend_mid.p_ + legend_text_offset, { .line = {} });
@@ -115,7 +115,7 @@ void ToolpathVisualizer::widths(
             ExtrusionSegment ss = all_segments[segment_idx];
             //             ss.from.w *= w;
             //             ss.to.w *= w;
-            for (ExtrusionSegment s : ss.discretize(MM2INT(0.1)))
+            for (ExtrusionSegment s : ss.discretize(mmToInt(0.1)))
             {
                 coord_t avg_w = (s.from_.w_ + s.to_.w_) / 2;
                 Point3LL clr;

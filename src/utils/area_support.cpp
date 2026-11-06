@@ -696,7 +696,7 @@ Shape join(const SliceDataStorage& storage, const Shape& supportLayer_up, Shape&
             constexpr unsigned int circle_resolution = 50;
             for (unsigned int i = 0; i < circle_resolution; i++)
             {
-                const AngleRadians angle = TAU * i / circle_resolution;
+                const AngleRadians angle = tau * i / circle_resolution;
                 const Point3LL machine_middle = storage.machine_size.getMiddle();
                 const coord_t x = machine_middle.x_ + cos(angle) * width / 2;
                 const coord_t y = machine_middle.y_ + sin(angle) * depth / 2;
@@ -1702,12 +1702,12 @@ std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& stor
 
     if (! support_layer.force_overhang.empty())
     {
-        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang.intersection(outlines.difference(original_outlines_below.offset(EPSILON))));
+        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang.intersection(outlines.difference(original_outlines_below.offset(epsilon))));
     }
 
     Shape overhang_extended = basic_overhang
                                   // +0.1mm for easier joining with support from layer above
-                                  .offset(max_dist_from_lower_layer * layers_below + MM2INT(0.1));
+                                  .offset(max_dist_from_lower_layer * layers_below + mmToInt(0.1));
     Shape full_overhang = overhang_extended.intersection(outlines);
 
     return std::make_pair(basic_overhang, full_overhang);

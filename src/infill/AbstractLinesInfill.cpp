@@ -102,7 +102,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 }
             }
 
-            if (outline_point_index == 0 || types::geometry::vSize2(op0 - cur_point) > MM2INT(0.1))
+            if (outline_point_index == 0 || types::geometry::vSize2(op0 - cur_point) > mmToInt(0.1))
             {
                 // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -141,7 +141,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 // make the chain end the current point and add it to the connector line
                 cur_point = split_lines[chain_index].chain[point_index];
 
-                if (drawing && connector_points.size() > 0 && types::geometry::vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
+                if (drawing && connector_points.size() > 0 && types::geometry::vSize2(cur_point - connector_points.back()) < mmToInt(0.1))
                 {
                     // this chain end will be too close to the last connector point so throw away the last connector point
                     connector_points.pop_back();

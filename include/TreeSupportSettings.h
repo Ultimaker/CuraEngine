@@ -39,8 +39,8 @@ struct TreeSupportSettings
         , min_radius(mesh_group_settings.get<types::coord_t>("support_tree_tip_diameter") / 2)
         , // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
         max_radius(mesh_group_settings.get<types::coord_t>("support_tree_max_diameter") / 2)
-        , maximum_move_distance((angle < utils::TAU / 4) ? std::llround(tan(angle) * layer_height) : std::numeric_limits<types::coord_t>::max())
-        , maximum_move_distance_slow((angle_slow < utils::TAU / 4) ? std::llround(tan(angle_slow) * layer_height) : std::numeric_limits<types::coord_t>::max())
+        , maximum_move_distance((angle < utils::tau / 4) ? std::llround(tan(angle) * layer_height) : std::numeric_limits<types::coord_t>::max())
+        , maximum_move_distance_slow((angle_slow < utils::tau / 4) ? std::llround(tan(angle_slow) * layer_height) : std::numeric_limits<types::coord_t>::max())
         , support_bottom_layers(
               mesh_group_settings.get<bool>("support_bottom_enable") ? utils::round_divide(mesh_group_settings.get<types::coord_t>("support_bottom_height"), layer_height) : 0)
         , tip_layers(std::max(std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height), 1LL))

@@ -30,36 +30,36 @@ public:
     bool connect_polygons{ true };
     types::coord_t line_distance{ 800 };
 
-    types::coord_t INFILL_LINE_WIDTH = 350;
-    types::coord_t INFILL_OVERLAP = 0;
-    size_t INFILL_MULTIPLIER = 1;
-    types::AngleDegrees FILL_ANGLE = 0.;
-    types::coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
-    types::coord_t SHIFT = 0;
-    types::coord_t MAX_RESOLUTION = 10;
-    types::coord_t MAX_DEVIATION = 5;
+    types::coord_t infill_line_width = 350;
+    types::coord_t infill_overlap = 0;
+    size_t infill_multiplier = 1;
+    types::AngleDegrees fill_angle = 0.;
+    types::coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
+    types::coord_t shift = 0;
+    types::coord_t max_resolution = 10;
+    types::coord_t max_deviation = 5;
 
     void SetUp(const ::benchmark::State& state)
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(types::MM2INT(100), 0);
-        square_shape.back().emplace_back(types::MM2INT(100), types::MM2INT(100));
-        square_shape.back().emplace_back(0, types::MM2INT(100));
+        square_shape.back().emplace_back(types::mmToInt(100), 0);
+        square_shape.back().emplace_back(types::mmToInt(100), types::mmToInt(100));
+        square_shape.back().emplace_back(0, types::mmToInt(100));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(types::MM2INT(90), 0);
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(50));
-        ff_holes.back().emplace_back(0, types::MM2INT(50));
+        ff_holes.back().emplace_back(types::mmToInt(90), 0);
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(50));
+        ff_holes.back().emplace_back(0, types::mmToInt(50));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(90));
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(40));
-        ff_holes.back().emplace_back(types::MM2INT(40), types::MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(40), types::mmToInt(25));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(types::MM2INT(60), types::MM2INT(90));
-        ff_holes.back().emplace_back(types::MM2INT(60), types::MM2INT(40));
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(25));
 
         outline_polygons.push_back(square_shape);
         outline_polygons.push_back(ff_holes);
@@ -102,15 +102,15 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
         zig_zagify,
         connect_polygons,
         outline_polygons,
-        INFILL_LINE_WIDTH,
+        infill_line_width,
         line_distance,
-        INFILL_OVERLAP,
-        INFILL_MULTIPLIER,
-        FILL_ANGLE,
-        Z,
-        SHIFT,
-        MAX_RESOLUTION,
-        MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
+        infill_overlap,
+        infill_multiplier,
+        fill_angle,
+        z,
+        shift,
+        max_resolution,
+        max_deviation); // There are some optional parameters, but these will do for now (future improvement?).
 
     for (auto _ : st)
     {

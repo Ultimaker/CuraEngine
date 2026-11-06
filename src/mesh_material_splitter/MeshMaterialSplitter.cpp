@@ -423,7 +423,7 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
     const size_t margin_below_mesh = rasterized_mesh.toLocalZ(std::max(mesh_bounding_box.min_.z_, static_cast<coord_t>(0)));
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
-    const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
+    const double xy_offset = intToMm(std::max(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
     Mesh sliced_mesh = mesh;
     sliced_mesh.settings_.add("xy_offset", std::to_string(xy_offset));
     sliced_mesh.settings_.add("xy_offset_layer_0", std::to_string(xy_offset));

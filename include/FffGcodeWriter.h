@@ -84,7 +84,7 @@ private:
      * the layer numbers are all zero (or less in case of raft)
      * or they are the first layer at which the extruder is needed
      */
-    types::LayerIndex extruder_prime_layer_nr[MAX_EXTRUDERS];
+    types::LayerIndex extruder_prime_layer_nr[max_extruders];
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time
                                                                                        //!< and fan speeds. Configured for each extruder.
@@ -619,7 +619,7 @@ private:
         const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        double fan_speed = GCodePathConfig::fan_speed_default,
         std::optional<types::coord_t> forced_small_area_width = std::nullopt,
         const OverrideAreas& override_areas = {}) const;
 

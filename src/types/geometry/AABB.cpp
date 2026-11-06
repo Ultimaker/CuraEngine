@@ -20,8 +20,8 @@ using namespace utils;
 
 
 AABB::AABB()
-    : min_(POINT_MAX, POINT_MAX)
-    , max_(POINT_MIN, POINT_MIN)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
 {
 }
 
@@ -41,22 +41,22 @@ AABB::AABB(const std::initializer_list<Point2LL>& points)
 }
 
 AABB::AABB(const Shape& shape)
-    : min_(POINT_MAX, POINT_MAX)
-    , max_(POINT_MIN, POINT_MIN)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
 {
     calculate(shape);
 }
 
 AABB::AABB(const OpenLinesSet& lines)
-    : min_(POINT_MAX, POINT_MAX)
-    , max_(POINT_MIN, POINT_MIN)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
 {
     calculate(lines);
 }
 
 AABB::AABB(const PointsSet& poly)
-    : min_(POINT_MAX, POINT_MAX)
-    , max_(POINT_MIN, POINT_MIN)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
 {
     calculate(poly);
 }
@@ -95,8 +95,8 @@ coord_t AABB::distanceSquared(const AABB& other) const
 
 void AABB::calculate(const Shape& shape)
 {
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
+    min_ = Point2LL(point_max, point_max);
+    max_ = Point2LL(point_min, point_min);
     for (const Polygon& poly : shape)
     {
         for (const Point2LL& point : poly)
@@ -108,8 +108,8 @@ void AABB::calculate(const Shape& shape)
 
 void AABB::calculate(const OpenLinesSet& lines)
 {
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
+    min_ = Point2LL(point_max, point_max);
+    max_ = Point2LL(point_min, point_min);
     for (const OpenPolyline& line : lines)
     {
         for (const Point2LL& point : line)
@@ -121,8 +121,8 @@ void AABB::calculate(const OpenLinesSet& lines)
 
 void AABB::calculate(const PointsSet& poly)
 {
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
+    min_ = Point2LL(point_max, point_max);
+    max_ = Point2LL(point_min, point_min);
     for (const Point2LL& p : poly)
     {
         include(p);
@@ -152,7 +152,7 @@ coord_t AABB::area() const
     if (max_.X < min_.X || max_.Y < min_.Y)
     {
         return -1;
-    } // Do the unititialized check explicitly, so there aren't any problems with over/underflow and POINT_MAX/POINT_MIN.
+    } // Do the unititialized check explicitly, so there aren't any problems with over/underflow and point_max/point_min.
     return (max_.X - min_.X) * (max_.Y - min_.Y);
 }
 
@@ -196,7 +196,7 @@ void AABB::include(const AABB& other)
 
 void AABB::expand(int dist)
 {
-    if (min_ == Point2LL(POINT_MAX, POINT_MAX) || max_ == Point2LL(POINT_MIN, POINT_MIN))
+    if (min_ == Point2LL(point_max, point_max) || max_ == Point2LL(point_min, point_min))
     {
         return;
     }

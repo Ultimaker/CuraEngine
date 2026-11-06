@@ -261,7 +261,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 {
     if (empty())
     {
-        return NO_INDEX;
+        return no_index;
     }
 
     // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
@@ -298,7 +298,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
     }
 
     int64_t min_x_uneven = std::numeric_limits<int64_t>::max();
-    size_t ret = NO_INDEX;
+    size_t ret = no_index;
     size_t n_unevens = 0;
     for (size_t array_idx = 0; array_idx < size(); array_idx++)
     {
@@ -314,7 +314,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
     }
     if (n_unevens % 2 == 0)
     {
-        ret = NO_INDEX;
+        ret = no_index;
     }
     return ret;
 }

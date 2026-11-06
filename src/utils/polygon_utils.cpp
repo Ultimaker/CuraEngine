@@ -162,8 +162,8 @@ Point2LL getVertexInwardNormal(const Polyline& poly, unsigned int point_idx)
     }
     const Point2LL& p2 = poly[p2_idx];
 
-    Point2LL off0 = types::geometry::turn90CCW(types::geometry::normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
-    Point2LL off1 = types::geometry::turn90CCW(types::geometry::normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
+    Point2LL off0 = types::geometry::turn90CCW(types::geometry::normal(p1 - p0, mmToInt(10.0))); // 10.0 for some precision
+    Point2LL off1 = types::geometry::turn90CCW(types::geometry::normal(p2 - p1, mmToInt(10.0))); // 10.0 for some precision
     Point2LL n = off0 + off1;
     return n;
 }
@@ -263,7 +263,7 @@ size_t moveInside(const Shape& polygons, Point2LL& from, int distance, int64_t m
 {
     Point2LL ret = from;
     int64_t bestDist2 = std::numeric_limits<int64_t>::max();
-    size_t bestPoly = NO_INDEX;
+    size_t bestPoly = no_index;
     bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -311,8 +311,8 @@ size_t moveInside(const Shape& polygons, Point2LL& from, int distance, int64_t m
                         else
                         {
                             Point2LL inward_dir = types::geometry::turn90CCW(
-                                types::geometry::normal(ab, MM2INT(10.0)) + types::geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
-                            // MM2INT(10.0) to retain precision for the eventual normalization
+                                types::geometry::normal(ab, mmToInt(10.0)) + types::geometry::normal(p1 - p0, mmToInt(10.0))); // inward direction irrespective of sign of [distance]
+                            // mmToInt(10.0) to retain precision for the eventual normalization
                             ret = x + types::geometry::normal(inward_dir, distance);
                             is_already_on_correct_side_of_boundary = types::geometry::dot(inward_dir, p - x) * distance >= 0;
                         }
@@ -376,7 +376,7 @@ size_t moveInside(const Shape& polygons, Point2LL& from, int distance, int64_t m
         from = ret;
         return bestPoly;
     }
-    return NO_INDEX;
+    return no_index;
 }
 
 // Version that works on single PolygonRef.
@@ -437,8 +437,8 @@ unsigned int moveInside(const ClosedPolyline& polygon, Point2LL& from, int dista
                     else
                     {
                         Point2LL inward_dir = types::geometry::turn90CCW(
-                            types::geometry::normal(ab, MM2INT(10.0)) + types::geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
-                        // MM2INT(10.0) to retain precision for the eventual normalization
+                            types::geometry::normal(ab, mmToInt(10.0)) + types::geometry::normal(p1 - p0, mmToInt(10.0))); // inward direction irrespective of sign of [distance]
+                        // mmToInt(10.0) to retain precision for the eventual normalization
                         ret = x + types::geometry::normal(inward_dir, distance);
                         is_already_on_correct_side_of_boundary = types::geometry::dot(inward_dir, p - x) * distance >= 0;
                     }
@@ -643,12 +643,12 @@ void walkToNearestSmallestConnection(ClosestPointPolygon& poly1_result, ClosestP
     const Polygon& poly2 = *poly2_result.poly_;
     size_t poly1_idx = poly1_result.poly_idx_;
     size_t poly2_idx = poly2_result.poly_idx_;
-    if (poly1_result.point_idx_ == NO_INDEX || poly2_result.point_idx_ == NO_INDEX)
+    if (poly1_result.point_idx_ == no_index || poly2_result.point_idx_ == no_index)
     {
         return;
     }
 
-    int equilibirum_limit = MM2INT(0.1); // hard coded value
+    int equilibirum_limit = mmToInt(0.1); // hard coded value
     for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
     {
         unsigned int pos1_before = poly1_result.point_idx_;
@@ -902,7 +902,7 @@ std::optional<ClosestPointPolygon>
     Point2LL best(0, 0);
 
     int64_t closest_dist2_score = std::numeric_limits<int64_t>::max();
-    PolygonsPointIndex best_point_poly_idx(nullptr, NO_INDEX, NO_INDEX);
+    PolygonsPointIndex best_point_poly_idx(nullptr, no_index, no_index);
     for (PolygonsPointIndex& point_poly_index : near_lines)
     {
         const Polygon& poly = polygons[point_poly_index.poly_idx_];
@@ -918,7 +918,7 @@ std::optional<ClosestPointPolygon>
             best_point_poly_idx = point_poly_index;
         }
     }
-    if (best_point_poly_idx.poly_idx_ == NO_INDEX)
+    if (best_point_poly_idx.poly_idx_ == no_index)
     {
         return std::optional<ClosestPointPolygon>();
     }
@@ -1319,7 +1319,7 @@ ClosedPolyline makeWheel(const Point2LL& mid, const coord_t inner_radius, const 
     ClosedPolyline wheel;
 
     const size_t nb_spokes = semi_nb_spokes * 2;
-    const double spoke_angle_step = TAU / static_cast<double>(nb_spokes);
+    const double spoke_angle_step = tau / static_cast<double>(nb_spokes);
     const double arc_angle_step = spoke_angle_step / static_cast<double>(arc_angle_resolution);
 
     for (size_t spoke = 0; spoke < nb_spokes; ++spoke)
@@ -1541,7 +1541,7 @@ bool mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination,
     }
 
     // Now calculate the actual growing area, which is the intersection of the offset source with the allowed growing area
-    const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
+    const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(epsilon);
     if (actual_grow_area.empty())
     {
         return false;
@@ -1556,13 +1556,13 @@ bool mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination,
 Shape getThinAreas(const Shape& shape, const coord_t max_width)
 {
     // Extract the wide areas, then do a difference to actually keep only the thin areas
-    return shape.difference(getRawWideAreas(shape, max_width, EPSILON));
+    return shape.difference(getRawWideAreas(shape, max_width, epsilon));
 }
 
 Shape getWideAreas(const Shape& shape, const coord_t min_width)
 {
     // Extract the raw wide areas, then do an intersection to keep them inside the original shape
-    return shape.intersection(getRawWideAreas(shape, min_width, EPSILON));
+    return shape.intersection(getRawWideAreas(shape, min_width, epsilon));
 }
 
 Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen)

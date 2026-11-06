@@ -25,13 +25,13 @@ class Settings;
 class TimeEstimateCalculator
 {
 public:
-    static constexpr double MINIMUM_PLANNER_SPEED = 0.05; // mm/sec
+    static constexpr double minimum_planner_speed = 0.05; // mm/sec
 
-    constexpr static size_t NUM_AXIS = 4;
-    constexpr static size_t X_AXIS = 0;
-    constexpr static size_t Y_AXIS = 1;
-    constexpr static size_t Z_AXIS = 2;
-    constexpr static size_t E_AXIS = 3;
+    constexpr static size_t num_axis = 4;
+    constexpr static size_t x_axis = 0;
+    constexpr static size_t y_axis = 1;
+    constexpr static size_t z_axis = 2;
+    constexpr static size_t e_axis = 3;
 
 
     class Position
@@ -39,7 +39,7 @@ public:
     public:
         Position()
         {
-            for (unsigned int n = 0; n < NUM_AXIS; n++)
+            for (unsigned int n = 0; n < num_axis; n++)
                 axis[n] = 0;
         }
         Position(double x, double y, double z, double e)
@@ -49,7 +49,7 @@ public:
             axis[2] = z;
             axis[3] = e;
         }
-        double axis[NUM_AXIS];
+        double axis[num_axis];
 
         double& operator[](const size_t n)
         {
@@ -82,10 +82,10 @@ public:
     };
 
 private:
-    types::Velocity max_feedrate[NUM_AXIS] = { 600.0, 600.0, 40.0, 25.0 }; // mm/s
+    types::Velocity max_feedrate[num_axis] = { 600.0, 600.0, 40.0, 25.0 }; // mm/s
     types::Velocity minimumfeedrate = 0.01;
     types::Acceleration acceleration = 3000.0;
-    types::Acceleration max_acceleration[NUM_AXIS] = { 9000.0, 9000.0, 100.0, 10000.0 };
+    types::Acceleration max_acceleration[num_axis] = { 9000.0, 9000.0, 100.0, 10000.0 };
     types::Velocity max_xy_jerk = 20.0;
     types::Velocity max_z_jerk = 0.4;
     types::Velocity max_e_jerk = 5.0;

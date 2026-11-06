@@ -13,7 +13,7 @@ namespace curaengine::utils
 {
 namespace details
 {
-inline constexpr static bool ALLOW_REMOTE_CHANNELS = ENABLE_REMOTE_PLUGINS;
+inline constexpr static bool allow_remote_channels = ENABLE_REMOTE_PLUGINS;
 } // namespace details
 
 std::shared_ptr<grpc::Channel> createChannel(const types::ChannelSetupConfiguration& config)
@@ -25,7 +25,7 @@ std::shared_ptr<grpc::Channel> createChannel(const types::ChannelSetupConfigurat
             spdlog::info("Create local channel on port {}.", actual_config.port);
             return grpc::InsecureChannelCredentials();
         }
-        if (details::ALLOW_REMOTE_CHANNELS)
+        if (details::allow_remote_channels)
         {
             spdlog::info("Create local channel on port {}.", actual_config.port);
             auto creds_config = grpc::SslCredentialsOptions();

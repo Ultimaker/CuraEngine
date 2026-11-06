@@ -32,14 +32,14 @@ size_t PartsView::getPartContaining(size_t poly_idx, size_t* boundary_poly_idx) 
             return part_idx_now;
         }
     }
-    return NO_INDEX;
+    return no_index;
 }
 
 SingleShape PartsView::assemblePart(size_t part_idx) const
 {
     const PartsView& partsView = *this;
     SingleShape ret;
-    if (part_idx != NO_INDEX)
+    if (part_idx != no_index)
     {
         for (size_t poly_idx_ff : partsView[part_idx])
         {
@@ -53,7 +53,7 @@ SingleShape PartsView::assemblePartContaining(size_t poly_idx, size_t* boundary_
 {
     SingleShape ret;
     size_t part_idx = getPartContaining(poly_idx, boundary_poly_idx);
-    if (part_idx != NO_INDEX)
+    if (part_idx != no_index)
     {
         return assemblePart(part_idx);
     }

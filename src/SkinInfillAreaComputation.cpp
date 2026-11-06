@@ -33,7 +33,7 @@ using namespace infill;
 using namespace types;
 using namespace utils;
 
-constexpr double MIN_AREA_SIZE = 0.4 * 0.4;
+constexpr double min_area_size = 0.4 * 0.4;
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {
@@ -158,7 +158,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     // Now combine the resized top skin and bottom skin.
     Shape skin = top_skin.unionPolygons(bottom_skin);
 
-    skin.removeSmallAreas(MIN_AREA_SIZE);
+    skin.removeSmallAreas(min_area_size);
     // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
     part.infill_area = part.inner_area.difference(skin);
 
@@ -296,18 +296,18 @@ void SkinInfillAreaComputation::applySkinExpansion(const Shape& original_outline
     // setting the miter limit this high is that for arbitrary small angles
     // the offsetted polygon becomes arbitrary large. This is not an issue
     // as the final polygon is limited (intersected) with the original polygon.
-    constexpr double MITER_LIMIT = 10000000.0;
+    constexpr double miter_limit = 10000000.0;
     // Remove thin pieces of support for Skin Removal Width.
     if (bottom_skin_preshrink_ > 0 || (min_width == 0 && bottom_skin_expand_distance_ != 0))
     {
-        downskin = downskin.offset(-bottom_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT)
-                       .offset(bottom_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT)
+        downskin = downskin.offset(-bottom_skin_preshrink_ / 2, ClipperLib::jtMiter, miter_limit)
+                       .offset(bottom_skin_preshrink_ / 2, ClipperLib::jtMiter, miter_limit)
                        .intersection(downskin);
         should_bottom_be_clipped = true; // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
     if (top_skin_preshrink_ > 0 || (min_width == 0 && top_skin_expand_distance_ != 0))
     {
-        upskin = upskin.offset(-top_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT).offset(top_skin_preshrink_ / 2, ClipperLib::jtMiter, MITER_LIMIT);
+        upskin = upskin.offset(-top_skin_preshrink_ / 2, ClipperLib::jtMiter, miter_limit).offset(top_skin_preshrink_ / 2, ClipperLib::jtMiter, miter_limit);
         should_top_be_clipped = true; // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 
@@ -325,12 +325,12 @@ void SkinInfillAreaComputation::applySkinFillSmallInfillGaps(Shape& skin, Shape&
 {
     // First do an opening to close the small gaps within the skin
     const coord_t opening_offset = skin_line_width_ * 2;
-    const Shape opened_skin = skin.offset(opening_offset).offset(-opening_offset - EPSILON);
+    const Shape opened_skin = skin.offset(opening_offset).offset(-opening_offset - epsilon);
 
     // Now extract the filled gaps by removing the initial skin
     const Shape filled_areas = opened_skin.difference(skin);
     // Only keep the filled gaps that overlap infill areas
-    const Shape filled_areas_over_infill = filled_areas.intersection(infill).offset(EPSILON);
+    const Shape filled_areas_over_infill = filled_areas.intersection(infill).offset(epsilon);
 
     // Expand skin and shrink infill with the filled gaps
     skin = skin.unionPolygons(filled_areas_over_infill);
@@ -346,7 +346,7 @@ void SkinInfillAreaComputation::applySkinFillSmallInfillGaps(Shape& skin, Shape&
 void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
 {
     // Generate infill everywhere where there wasn't any skin.
-    part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
+    part.infill_area.removeSmallAreas(min_area_size);
 }
 
 // No "xx_layer_count" as this is done per layer.

@@ -132,7 +132,7 @@ Shape SliceDataStorage::getLayerOutlines(
                 layer.getOutlines(total, external_polys_only);
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal)
                 {
-                    total = total.unionPolygons(layer.open_polylines.offset(MM2INT(0.1)));
+                    total = total.unionPolygons(layer.open_polylines.offset(mmToInt(0.1)));
                 }
             }
         }
@@ -399,7 +399,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 
     std::vector<bool> extruder_is_used = getExtrudersUsed();
 
-    constexpr coord_t prime_clearance = MM2INT(6.5);
+    constexpr coord_t prime_clearance = mmToInt(6.5);
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
         if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])

@@ -76,7 +76,7 @@ class LayerPlanBuffer
 public:
     LayerPlanBuffer(gcode::GCodeExport& gcode)
         : gcode_(gcode)
-        , extruder_used_in_meshgroup_(MAX_EXTRUDERS, false)
+        , extruder_used_in_meshgroup_(max_extruders, false)
     {
     }
 

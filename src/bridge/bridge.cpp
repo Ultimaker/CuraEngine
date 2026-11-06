@@ -190,7 +190,7 @@ std::optional<AngleDegrees> bridgeAngle(
         return std::nullopt;
     }
 
-    bridging_area = skin_outline.difference(supported_regions.offset(EPSILON));
+    bridging_area = skin_outline.difference(supported_regions.offset(epsilon));
 
     prev_layer_infill = skin_outline.intersection(prev_layer_infill);
     const Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);
@@ -553,7 +553,7 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
 
     // Perform a morphological closing to remove overlapping lines
-    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
+    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(epsilon).offset(-epsilon).intersection(infill_contour);
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }

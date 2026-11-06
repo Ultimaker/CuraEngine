@@ -263,7 +263,7 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
     reordered.reserve(polylines.size());
 
     // Create a bucket grid to be able to find adjacent lines quickly.
-    SparsePointGridInclusive<Path*> line_bucket_grid(MM2INT(2)); // Grid size of 2mm.
+    SparsePointGridInclusive<Path*> line_bucket_grid(mmToInt(2)); // Grid size of 2mm.
     for (Path* polyline : polylines)
     {
         if (! polyline->converted_->empty())

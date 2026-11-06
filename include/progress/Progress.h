@@ -18,7 +18,7 @@ namespace curaengine::progress
 {
 
 
-static constexpr size_t N_PROGRESS_STAGES = 8;
+static constexpr size_t n_progress_stages = 8;
 
 /*!
  * Class for handling the progress bar and the progress logging.
@@ -45,7 +45,7 @@ public:
     };
 
 private:
-    static constexpr std::array<double, N_PROGRESS_STAGES> times{
+    static constexpr std::array<double, n_progress_stages> times{
         0.0, // Start   = 0,
         50.0, // SplitMultiMaterial = 1
         5.269, // Slicing = 1,
@@ -56,8 +56,8 @@ private:
         0.1 // Finish  = 6
     };
 
-    static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };
-    static std::array<double, N_PROGRESS_STAGES> accumulated_times; //!< Time past before each stage
+    static constexpr std::array<std::string_view, n_progress_stages> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };
+    static std::array<double, n_progress_stages> accumulated_times; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
     static std::optional<types::LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
     /*!

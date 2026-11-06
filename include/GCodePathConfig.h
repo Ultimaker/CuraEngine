@@ -19,7 +19,7 @@ namespace curaengine
  */
 struct GCodePathConfig
 {
-    static constexpr double FAN_SPEED_DEFAULT = -1.0;
+    static constexpr double fan_speed_default = -1.0;
 
     types::coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
     PrintFeatureType type{}; //!< name of the feature type
@@ -28,7 +28,7 @@ struct GCodePathConfig
     types::Ratio flow{}; //!< extrusion flow modifier.
     routing::SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
-    double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double fan_speed{ fan_speed_default }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
     types::Temperature temperature_delta;
 

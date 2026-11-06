@@ -13,7 +13,7 @@ class PointMatrix;
 class Point3Matrix;
 
 const static int clipper_init = (0);
-inline constexpr size_t NO_INDEX = std::numeric_limits<size_t>::max();
+inline constexpr size_t no_index = std::numeric_limits<size_t>::max();
 
 /*!
  * \brief Base class for all geometry containers representing a set of points.

@@ -64,7 +64,7 @@ std::string transliterate(const std::string& text)
 }
 
 GCodeExport::GCodeExport()
-    : current_position_(0, 0, MM2INT(20))
+    : current_position_(0, 0, mmToInt(20))
     , layer_nr_(0)
     , relative_extrusion_(false)
     , template_resolver_(std::make_shared<GcodeTemplateResolver>())
@@ -282,12 +282,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             total_bounding_box_.min_ = Point3LL(0, 0, 0);
             total_bounding_box_.max_ = Point3LL(10, 10, 10);
         }
-        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
-        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
-        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box_.min_.z_) << new_line_;
-        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box_.max_.x_) << new_line_;
-        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
-        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
+        prefix << ";PRINT.SIZE.MIN.X:" << intToMm(total_bounding_box_.min_.x_) << new_line_;
+        prefix << ";PRINT.SIZE.MIN.Y:" << intToMm(total_bounding_box_.min_.y_) << new_line_;
+        prefix << ";PRINT.SIZE.MIN.Z:" << intToMm(total_bounding_box_.min_.z_) << new_line_;
+        prefix << ";PRINT.SIZE.MAX.X:" << intToMm(total_bounding_box_.max_.x_) << new_line_;
+        prefix << ";PRINT.SIZE.MAX.Y:" << intToMm(total_bounding_box_.max_.y_) << new_line_;
+        prefix << ";PRINT.SIZE.MAX.Z:" << intToMm(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";SLICE_UUID:" << slice_uuid_ << new_line_;
 
         if (ppr_enable_)
@@ -352,12 +352,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << new_line_;
             prefix << ";Layer height: " << Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height") << new_line_;
         }
-        prefix << ";MINX:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
-        prefix << ";MINY:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
-        prefix << ";MINZ:" << INT2MM(total_bounding_box_.min_.z_) << new_line_;
-        prefix << ";MAXX:" << INT2MM(total_bounding_box_.max_.x_) << new_line_;
-        prefix << ";MAXY:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
-        prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
+        prefix << ";MINX:" << intToMm(total_bounding_box_.min_.x_) << new_line_;
+        prefix << ";MINY:" << intToMm(total_bounding_box_.min_.y_) << new_line_;
+        prefix << ";MINZ:" << intToMm(total_bounding_box_.min_.z_) << new_line_;
+        prefix << ";MAXX:" << intToMm(total_bounding_box_.max_.x_) << new_line_;
+        prefix << ";MAXY:" << intToMm(total_bounding_box_.max_.y_) << new_line_;
+        prefix << ";MAXZ:" << intToMm(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
     }
 
@@ -393,7 +393,7 @@ void GCodeExport::setLayerNr(const LayerIndex& layer_nr)
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
 {
     assert(extruder_nr >= 0);
-    assert(extruder_nr < MAX_EXTRUDERS);
+    assert(extruder_nr < max_extruders);
     return extruder_attr_[extruder_nr].is_used_;
 }
 
@@ -412,14 +412,14 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     this->flavor_ = flavor;
     if (flavor == EGCodeFlavor::Mach3)
     {
-        for (int n = 0; n < MAX_EXTRUDERS; n++)
+        for (int n = 0; n < max_extruders; n++)
         {
             extruder_attr_[n].extruder_character_ = 'A' + n;
         }
     }
     else
     {
-        for (int n = 0; n < MAX_EXTRUDERS; n++)
+        for (int n = 0; n < max_extruders; n++)
         {
             extruder_attr_[n].extruder_character_ = 'E';
         }
@@ -476,7 +476,7 @@ size_t GCodeExport::getExtruderNr() const
 
 void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diameter)
 {
-    const double r = INT2MM(diameter) / 2.0;
+    const double r = intToMm(diameter) / 2.0;
     const double area = std::numbers::pi * r * r;
     extruder_attr_[extruder].filament_area_ = area;
 }
@@ -582,7 +582,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
     {
         total_print_times_[i] = 0.0;
     }
-    for (unsigned int e = 0; e < MAX_EXTRUDERS; e++)
+    for (unsigned int e = 0; e < max_extruders; e++)
     {
         extruder_attr_[e].total_filament_ = 0.0;
         extruder_attr_[e].current_temperature_ = 0;
@@ -1045,7 +1045,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
 
     current_position_ = Point3LL(x, y, z);
     estimate_calculator_.plan(
-        TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+        TimeEstimateCalculator::Position(intToMm(current_position_.x_), intToMm(current_position_.y_), intToMm(current_position_.z_), eToMm(current_e_value_)),
         speed,
         feature);
 }
@@ -1065,7 +1065,7 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(current_position_ != no_point3);
     assert(Point3LL(x, y, z) != no_point3);
-    assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert((Point3LL(x, y, z) - current_position_).vSize() < mmToInt(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
     const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
@@ -1092,7 +1092,7 @@ void GCodeExport::writeExtrusion(
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(current_position_ != no_point3);
     assert(Point3LL(x, y, z) != no_point3);
-    assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert((Point3LL(x, y, z) - current_position_).vSize() < mmToInt(1000)); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif // ASSERT_INSANE_OUTPUT
 #ifdef DEBUG
@@ -1212,7 +1212,7 @@ void GCodeExport::writeFXYZE(
     *output_stream_ << new_line_;
 
     current_position_ = Point3LL(x, y, z);
-    estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
+    estimate_calculator_.plan(TimeEstimateCalculator::Position(intToMm(x), intToMm(y), intToMm(z), eToMm(e)), speed, feature);
 }
 
 void GCodeExport::writeUnretractionAndPrime()
@@ -1234,7 +1234,7 @@ void GCodeExport::writeUnretractionAndPrime()
                 current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
             }
             estimate_calculator_.plan(
-                TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+                TimeEstimateCalculator::Position(intToMm(current_position_.x_), intToMm(current_position_.y_), intToMm(current_position_.z_), eToMm(current_e_value_)),
                 25.0,
                 PrintFeatureType::StationaryRetractUnretract);
         }
@@ -1246,7 +1246,7 @@ void GCodeExport::writeUnretractionAndPrime()
                             << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
             current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
             estimate_calculator_.plan(
-                TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+                TimeEstimateCalculator::Position(intToMm(current_position_.x_), intToMm(current_position_.y_), intToMm(current_position_.z_), eToMm(current_e_value_)),
                 current_speed_,
                 PrintFeatureType::StationaryRetractUnretract);
         }
@@ -1259,7 +1259,7 @@ void GCodeExport::writeUnretractionAndPrime()
         *output_stream_ << PrecisionedDouble{ 5, output_e } << new_line_;
         current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
         estimate_calculator_.plan(
-            TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+            TimeEstimateCalculator::Position(intToMm(current_position_.x_), intToMm(current_position_.y_), intToMm(current_position_.z_), eToMm(current_e_value_)),
             current_speed_,
             PrintFeatureType::StationaryRetractUnretract);
     }
@@ -1340,9 +1340,9 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         // Assume default UM2 retraction settings.
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(
-                INT2MM(current_position_.x_),
-                INT2MM(current_position_.y_),
-                INT2MM(current_position_.z_),
+                intToMm(current_position_.x_),
+                intToMm(current_position_.y_),
+                intToMm(current_position_.z_),
                 eToMm(current_e_value_ + retraction_amounts.diff_e)),
             25.0,
             PrintFeatureType::StationaryRetractUnretract); // TODO: hardcoded values!
@@ -1357,7 +1357,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream_ << new_line_;
         current_speed_ = speed;
         estimate_calculator_.plan(
-            TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
+            TimeEstimateCalculator::Position(intToMm(current_position_.x_), intToMm(current_position_.y_), intToMm(current_position_.z_), eToMm(current_e_value_)),
             current_speed_,
             PrintFeatureType::StationaryRetractUnretract);
         extr_attr.last_retraction_prime_speed_ = config.primeSpeed;
@@ -1447,7 +1447,7 @@ PrintFeatureType
     {
         travel_move_type = extruder_attr.retraction_e_amount_current_ > 0.0 ? PrintFeatureType::MoveRetracted : PrintFeatureType::MoveUnretracted;
     }
-    const int display_width = extruder_attr.retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
+    const int display_width = extruder_attr.retraction_e_amount_current_ ? mmToInt(0.2) : mmToInt(0.1);
     const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
     Application::getInstance().communication_->sendLineTo(travel_move_type, p, display_width, layer_height, speed);
 
@@ -2067,26 +2067,26 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
     extra_global_settings.emplace("filament_cost", filaments_costs);
 
     const AABB& initial_layer_bb = print_info.initial_layer_bb;
-    extra_global_settings.emplace("initial_layer_bb_min_x", INT2MM(initial_layer_bb.min_.X));
-    extra_global_settings.emplace("initial_layer_bb_max_x", INT2MM(initial_layer_bb.max_.X));
-    extra_global_settings.emplace("initial_layer_bb_min_y", INT2MM(initial_layer_bb.min_.Y));
-    extra_global_settings.emplace("initial_layer_bb_max_y", INT2MM(initial_layer_bb.max_.Y));
-    extra_global_settings.emplace("initial_layer_bb_width", INT2MM(initial_layer_bb.width()));
-    extra_global_settings.emplace("initial_layer_bb_height", INT2MM(initial_layer_bb.height()));
+    extra_global_settings.emplace("initial_layer_bb_min_x", intToMm(initial_layer_bb.min_.X));
+    extra_global_settings.emplace("initial_layer_bb_max_x", intToMm(initial_layer_bb.max_.X));
+    extra_global_settings.emplace("initial_layer_bb_min_y", intToMm(initial_layer_bb.min_.Y));
+    extra_global_settings.emplace("initial_layer_bb_max_y", intToMm(initial_layer_bb.max_.Y));
+    extra_global_settings.emplace("initial_layer_bb_width", intToMm(initial_layer_bb.width()));
+    extra_global_settings.emplace("initial_layer_bb_height", intToMm(initial_layer_bb.height()));
 
-    extra_global_settings.emplace("total_bb_min_x", INT2MM(total_bounding_box_.min_.x_));
-    extra_global_settings.emplace("total_bb_max_x", INT2MM(total_bounding_box_.max_.x_));
-    extra_global_settings.emplace("total_bb_min_y", INT2MM(total_bounding_box_.min_.y_));
-    extra_global_settings.emplace("total_bb_max_y", INT2MM(total_bounding_box_.max_.y_));
-    extra_global_settings.emplace("total_bb_min_z", INT2MM(total_bounding_box_.min_.z_));
-    extra_global_settings.emplace("total_bb_max_z", INT2MM(total_bounding_box_.max_.z_));
-    extra_global_settings.emplace("total_bb_width", INT2MM(total_bounding_box_.spanX()));
-    extra_global_settings.emplace("total_bb_depth", INT2MM(total_bounding_box_.spanY()));
-    extra_global_settings.emplace("total_bb_height", INT2MM(total_bounding_box_.spanZ()));
+    extra_global_settings.emplace("total_bb_min_x", intToMm(total_bounding_box_.min_.x_));
+    extra_global_settings.emplace("total_bb_max_x", intToMm(total_bounding_box_.max_.x_));
+    extra_global_settings.emplace("total_bb_min_y", intToMm(total_bounding_box_.min_.y_));
+    extra_global_settings.emplace("total_bb_max_y", intToMm(total_bounding_box_.max_.y_));
+    extra_global_settings.emplace("total_bb_min_z", intToMm(total_bounding_box_.min_.z_));
+    extra_global_settings.emplace("total_bb_max_z", intToMm(total_bounding_box_.max_.z_));
+    extra_global_settings.emplace("total_bb_width", intToMm(total_bounding_box_.spanX()));
+    extra_global_settings.emplace("total_bb_depth", intToMm(total_bounding_box_.spanY()));
+    extra_global_settings.emplace("total_bb_height", intToMm(total_bounding_box_.spanZ()));
 
-    std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS); // To be used by the formula engine
-    std::vector<bool> is_extruder_used_bool(MAX_EXTRUDERS); // To be used for the header creation
-    for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
+    std::vector<cfe::eval::Value> is_extruder_used(max_extruders); // To be used by the formula engine
+    std::vector<bool> is_extruder_used_bool(max_extruders); // To be used for the header creation
+    for (size_t extruder_nr = 0; extruder_nr < max_extruders; ++extruder_nr)
     {
         const bool is_this_extruder_used = extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value();
         is_extruder_used_bool[extruder_nr] = is_this_extruder_used;

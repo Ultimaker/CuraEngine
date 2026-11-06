@@ -28,7 +28,7 @@ class TimeKeeper;
 
 namespace curaengine
 {
-constexpr types::coord_t FUDGE_LENGTH = 50;
+constexpr types::coord_t fudge_length = 50;
 
 class SliceDataStorage;
 class SliceMeshStorage;

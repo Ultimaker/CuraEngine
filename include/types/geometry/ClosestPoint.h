@@ -22,7 +22,7 @@ struct ClosestPoint
     ClosestPoint(types::geometry::Point2LL p, size_t pos, const LineType* poly)
         : location_(p)
         , poly_(poly)
-        , poly_idx_(NO_INDEX)
+        , poly_idx_(no_index)
         , point_idx_(pos)
     {
     }
@@ -37,14 +37,14 @@ struct ClosestPoint
 
     ClosestPoint(const LineType* poly)
         : poly_(poly)
-        , poly_idx_(NO_INDEX)
-        , point_idx_(NO_INDEX)
+        , poly_idx_(no_index)
+        , point_idx_(no_index)
     {
     }
 
     ClosestPoint()
-        : poly_idx_(NO_INDEX)
-        , point_idx_(NO_INDEX)
+        : poly_idx_(no_index)
+        , point_idx_(no_index)
     {
     }
 
@@ -55,7 +55,7 @@ struct ClosestPoint
 
     bool isValid() const
     {
-        return point_idx_ != NO_INDEX;
+        return point_idx_ != no_index;
     }
 
     bool operator==(const ClosestPoint& rhs) const

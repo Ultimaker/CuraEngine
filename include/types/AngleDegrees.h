@@ -97,7 +97,7 @@ namespace curaengine::types
 {
 
 inline AngleDegrees::AngleDegrees(const AngleRadians& value)
-    : value_(value.value_ * 360 / utils::TAU)
+    : value_(value.value_ * 360 / utils::tau)
 {
 }
 

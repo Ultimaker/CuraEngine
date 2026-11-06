@@ -38,23 +38,23 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(types::MM2INT(100), 0);
-        square_shape.back().emplace_back(types::MM2INT(100), types::MM2INT(100));
-        square_shape.back().emplace_back(0, types::MM2INT(100));
+        square_shape.back().emplace_back(types::mmToInt(100), 0);
+        square_shape.back().emplace_back(types::mmToInt(100), types::mmToInt(100));
+        square_shape.back().emplace_back(0, types::mmToInt(100));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(types::MM2INT(90), 0);
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(50));
-        ff_holes.back().emplace_back(0, types::MM2INT(50));
+        ff_holes.back().emplace_back(types::mmToInt(90), 0);
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(50));
+        ff_holes.back().emplace_back(0, types::mmToInt(50));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(90));
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(40));
-        ff_holes.back().emplace_back(types::MM2INT(40), types::MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(40), types::mmToInt(25));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(types::MM2INT(60), types::MM2INT(90));
-        ff_holes.back().emplace_back(types::MM2INT(60), types::MM2INT(40));
-        ff_holes.back().emplace_back(types::MM2INT(90), types::MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(25));
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");

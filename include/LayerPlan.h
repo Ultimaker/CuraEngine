@@ -152,7 +152,7 @@ private:
      * Whether the skirt or brim polygons have been processed into planned paths
      * for each extruder train.
      */
-    bool skirt_brim_is_processed_[MAX_EXTRUDERS];
+    bool skirt_brim_is_processed_[max_extruders];
 
     std::vector<ExtruderPlan> extruder_plans_; //!< should always contain at least one ExtruderPlan
 
@@ -465,7 +465,7 @@ public:
         const types::Ratio width_factor = 1.0_r,
         const bool spiralize = false,
         const types::Ratio speed_factor = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const double fan_speed = GCodePathConfig::fan_speed_default,
         const bool travel_to_z = true,
         const PrintSegmentAttributes& print_attributes = {});
 
@@ -478,7 +478,7 @@ public:
         const types::Ratio width_factor = 1.0_r,
         const bool spiralize = false,
         const types::Ratio speed_factor = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const double fan_speed = GCodePathConfig::fan_speed_default,
         const bool travel_to_z = true);
 
     /*!
@@ -789,7 +789,7 @@ public:
         const types::coord_t wipe_dist = 0,
         const types::Ratio flow_ratio = 1.0,
         const std::optional<types::geometry::Point2LL> near_start_location = std::optional<types::geometry::Point2LL>(),
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const double fan_speed = GCodePathConfig::fan_speed_default,
         const OverrideAreas& override_areas = {},
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const types::geometry::Polyline*, const types::geometry::Polyline*>& order_requirements
@@ -820,7 +820,7 @@ public:
         const types::coord_t wipe_dist = 0,
         const types::Ratio flow_ratio = 1.0,
         const std::optional<types::geometry::Point2LL> near_start_location = std::optional<types::geometry::Point2LL>(),
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const double fan_speed = GCodePathConfig::fan_speed_default,
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const types::geometry::Polyline*, const types::geometry::Polyline*>& order_requirements
         = PathOrderOptimizer<const types::geometry::Polyline*>::no_order_requirements_);
@@ -858,7 +858,7 @@ public:
         const types::coord_t exclude_distance = 0,
         const types::coord_t wipe_dist = 0,
         const types::Ratio flow_ratio = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const double fan_speed = GCodePathConfig::fan_speed_default,
         const bool interlaced = false,
         const OverrideAreas& override_areas = {},
         const std::optional<types::coord_t> max_distance_ignore_combing = std::nullopt);

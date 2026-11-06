@@ -145,9 +145,9 @@ public:
 
     [[nodiscard]] double vSizeMM() const
     {
-        double fx = INT2MM(x_);
-        double fy = INT2MM(y_);
-        double fz = INT2MM(z_);
+        double fx = intToMm(x_);
+        double fy = intToMm(y_);
+        double fz = intToMm(z_);
         return sqrt(fx * fx + fy * fy + fz * fz);
     }
 

@@ -65,7 +65,7 @@ std::list<size_t> OrderOptimizer<T>::optimize(const types::geometry::Point2LL& s
 
     while (! item_idx_list.empty())
     {
-        coord_t shortest_distance = POINT_MAX;
+        coord_t shortest_distance = point_max;
         size_t shortest_distance_item_idx = -1;
         size_t idx_in_list = -1;
 

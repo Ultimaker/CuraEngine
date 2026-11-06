@@ -189,7 +189,7 @@ void Polygon::smoothOutward(const AngleDegrees min_angle, int shortcut_length, P
 
         const Point2LL v10 = p0 - p1;
         const Point2LL v12 = p2 - p1;
-        double cos_angle = INT2MM2(dot(v10, v12)) / vSizeMM(v10) / vSizeMM(v12);
+        double cos_angle = intToMm2(dot(v10, v12)) / vSizeMM(v10) / vSizeMM(v12);
         bool is_left_angle = linear_alg_2d::pointIsLeftOfLine(p1, p0, p2) > 0;
         if (cos_angle > cos_min_angle && is_left_angle)
         {
@@ -473,7 +473,7 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPol
         const Point2LL v02_2 = p0_2 - p2_2;
         const int64_t v02_2_size = vSize(v02_2);
         double progress
-            = std::min(1.0, INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
+            = std::min(1.0, intToMm(shortcut_length - v02_size) / intToMm(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
         assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
         const Point2LL new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
         p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);

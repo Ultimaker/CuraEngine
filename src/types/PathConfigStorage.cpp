@@ -147,10 +147,10 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
         mesh_configs.emplace_back(*mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder);
     }
 
-    support_infill_config.reserve(MAX_INFILL_COMBINE);
+    support_infill_config.reserve(max_infill_combine);
     const double support_infill_line_width_factor
         = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Raft) ? 1.0_r : line_width_factor_per_extruder[support_infill_extruder_nr];
-    for (int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
+    for (int combine_idx = 0; combine_idx < max_infill_combine; combine_idx++)
     {
         support_infill_config.emplace_back(
             GCodePathConfig{ .type = PrintFeatureType::Support,
@@ -189,7 +189,7 @@ void MeshPathConfigs::smoothAllSpeeds(const SpeedDerivatives& first_layer_config
     insetX_config.speed_derivatives.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
     skin_config.speed_derivatives.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
     ironing_config.speed_derivatives.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
-    for (size_t idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+    for (size_t idx = 0; idx < max_infill_combine; idx++)
     {
         // Infill speed (per combine part per mesh).
         infill_config[idx].speed_derivatives.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
@@ -214,7 +214,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
             const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
             const size_t extruder_nr_support_infill
                 = mesh_group_settings.get<ExtruderTrain&>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr").extruder_nr_;
-            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+            for (unsigned int idx = 0; idx < max_infill_combine; idx++)
             {
                 support_infill_config[idx].speed_derivatives.smoothSpeed(
                     global_first_layer_config_per_extruder[extruder_nr_support_infill],

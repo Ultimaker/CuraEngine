@@ -61,7 +61,7 @@ std::optional<Segment3LL> Segment3LL::intersectionWithLayer(
     const Point3LL new_segment_start = function_crop_point(start_, segment_start_inside, layer_start, layer_end);
     const Point3LL new_segment_end = function_crop_point(end_, segment_end_inside, layer_start, layer_end);
 
-    if ((new_segment_end - new_segment_start).vSize2() < EPSILON * EPSILON)
+    if ((new_segment_end - new_segment_start).vSize2() < epsilon * epsilon)
     {
         return std::nullopt;
     }

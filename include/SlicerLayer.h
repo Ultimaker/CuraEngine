@@ -120,7 +120,7 @@ private:
          *
          * This is used to record when Terminus are removed.
          */
-        static const Terminus INVALID_TERMINUS;
+        static const Terminus invalid_terminus;
 
         /*! Constructor leaving uninitialized. */
         Terminus()
@@ -283,15 +283,15 @@ private:
          *
          * If the old location is no longer the endpoint of a polyline
          * in the polyline vector, then this returns
-         * Terminus::INVALID_TERMINUS.  As long as the old location is
+         * Terminus::invalid_terminus.  As long as the old location is
          * still an endpoint in the polyline vector, then
          * getCurFromOld(old) will always refer to the same point.
          * Endpoints are removed from the polyline vector as polylines
          * are merged or converted to Polygons.
          *
          * \param old The old Terminus location.  Must not be
-         *     INVALID_TERMINUS.
-         * \return The current Terminus location or INVALID_TERMINUS
+         *     invalid_terminus.
+         * \return The current Terminus location or invalid_terminus
          *     if the old endpoint is no longer an endpoint.
          */
         Terminus getCurFromOld(const Terminus& old) const
@@ -302,9 +302,9 @@ private:
         /*! Given the current Terminus location returns the old location.
          *
          * \param cur The current Terminus location.  Must not be
-         *     INVALID_TERMINUS.
+         *     invalid_terminus.
          * \return The old Terminus location.  Returns
-         *     INVALID_TERMINUS if the old Terminus location was
+         *     invalid_terminus if the old Terminus location was
          *     removed (used to form a Polygon).
          */
         Terminus getOldFromCur(const Terminus& cur) const
@@ -320,8 +320,8 @@ private:
         void markRemoved(const Terminus& cur)
         {
             Terminus old = getOldFromCur(cur);
-            m_terminus_old_to_cur_map[old.asIndex()] = Terminus::INVALID_TERMINUS;
-            m_terminus_cur_to_old_map[cur.asIndex()] = Terminus::INVALID_TERMINUS;
+            m_terminus_old_to_cur_map[old.asIndex()] = Terminus::invalid_terminus;
+            m_terminus_cur_to_old_map[cur.asIndex()] = Terminus::invalid_terminus;
         }
 
         /*! Update the map for movement of Terminus.
@@ -330,7 +330,7 @@ private:
          * locations.  next_terms[i] should refer to the same point as
          * cur_terms[i] for i < num_terms, unless the Terminus was
          * removed.  If the Terminus was removed, next_terms[i] should
-         * be INVALID_TERMINUS.
+         * be invalid_terminus.
          *
          * removed_cur_terms should refer to those Terminus that are
          * no longer present after the update.  removed_cur_terms
@@ -343,9 +343,9 @@ private:
          *
          * \param num_terms The number of Terminus that changed.
          * \param cur_terms The current Terminus locations.  Must be
-         *     of size num_terms.  Must not contain INVALID_TERMINUS.
+         *     of size num_terms.  Must not contain invalid_terminus.
          * \param next_terms The Terminus locations after the update.
-         *     Must be of size num_terms.  A value of INVALID_TERMINUS
+         *     Must be of size num_terms.  A value of invalid_terminus
          *     indicates that the Terminus was removed.
          * \param num_removed_terms The number of Terminus locations
          *     that are being removed by the update.

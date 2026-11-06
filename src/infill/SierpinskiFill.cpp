@@ -123,7 +123,7 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 {
     Point2LL ac = triangle.straight_corner_ - triangle.a_;
-    double area = 0.5 * INT2MM2(types::geometry::vSize2(ac));
+    double area = 0.5 * intToMm2(types::geometry::vSize2(ac));
     double short_length = .5 * types::geometry::vSizeMM(ac);
     double long_length = .5 * types::geometry::vSizeMM(triangle.b_ - triangle.a_);
     triangle.area_ = area;
@@ -145,7 +145,7 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
         triangle_aabb.include(triangle.straight_corner_);
         AABB3D triangle_aabb3d(Point3LL(triangle_aabb.min_.X, triangle_aabb.min_.Y, 0), Point3LL(triangle_aabb.max_.X, triangle_aabb.max_.Y, 1));
         double density = density_provider_(triangle_aabb3d); // The density of the square around the triangle is a rough estimate of the density of the triangle.
-        triangle.requested_length_ = density * triangle.area_ / INT2MM(line_width_);
+        triangle.requested_length_ = density * triangle.area_ / intToMm(line_width_);
     }
     else
     { // bubble total up requested_length and total_child_realized_length
@@ -724,7 +724,7 @@ Polygon SierpinskiFill::generateCross() const
         ret.push_back(edge_middle / 2);
     }
 
-    double realized_length = INT2MM(ret.length());
+    double realized_length = intToMm(ret.length());
     double requested_length = root_.requested_length_;
     double error = (realized_length - requested_length) / requested_length;
     spdlog::debug("realized_length: {}, requested_length: {}  :: {}% error", realized_length, requested_length, 0.01 * static_cast<int>(10000 * error));

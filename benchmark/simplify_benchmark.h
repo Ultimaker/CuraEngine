@@ -23,7 +23,7 @@ namespace curaengine
 class SimplifyTestFixture : public benchmark::Fixture
 {
 public:
-    const std::vector<std::string> POLYGON_FILENAMES = { std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave.txt").string(),
+    const std::vector<std::string> polygon_filenames = { std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave_hole.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_square.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_square_hole.txt").string(),
@@ -38,7 +38,7 @@ public:
 
     void SetUp(const ::benchmark::State& state)
     {
-        readTestPolygons(POLYGON_FILENAMES, shapes);
+        readTestPolygons(polygon_filenames, shapes);
     }
 
     void TearDown(const ::benchmark::State& state)
@@ -48,7 +48,7 @@ public:
 
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
 {
-    types::geometry::Simplify simplify(types::MM2INT(0.25), types::MM2INT(0.025), 50000);
+    types::geometry::Simplify simplify(types::mmToInt(0.25), types::mmToInt(0.025), 50000);
     for (auto _ : st)
     {
         types::geometry::Shape simplified;
@@ -69,7 +69,7 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
         types::geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, types::MM2INT(0.25), types::MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, types::mmToInt(0.25), types::mmToInt(0.025), 50000));
         }
     }
 }

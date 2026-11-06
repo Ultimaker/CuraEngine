@@ -31,10 +31,10 @@ double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position
         distance = types::geometry::vSizeMM(candidate_position - target_pos_);
         break;
     case DistanceType::XOnly:
-        distance = INT2MM(std::abs(candidate_position.X - target_pos_.X));
+        distance = intToMm(std::abs(candidate_position.X - target_pos_.X));
         break;
     case DistanceType::YOnly:
-        distance = INT2MM(std::abs(candidate_position.Y - target_pos_.Y));
+        distance = intToMm(std::abs(candidate_position.Y - target_pos_.Y));
         break;
     }
 

@@ -19,7 +19,7 @@ namespace curaengine::progress
 using namespace types;
 using namespace types::geometry;
 using namespace utils;
-std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
+std::array<double, n_progress_stages> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;
 std::optional<LayerIndex> Progress::first_skipped_layer{};
 
@@ -32,7 +32,7 @@ double Progress::calcOverallProgress(Stage stage, double stage_progress)
 void Progress::init()
 {
     double accumulated_time = 0;
-    for (size_t stage = 0; stage < N_PROGRESS_STAGES; stage++)
+    for (size_t stage = 0; stage < n_progress_stages; stage++)
     {
         accumulated_times.at(static_cast<size_t>(stage)) = accumulated_time;
         accumulated_time += times.at(static_cast<size_t>(stage));

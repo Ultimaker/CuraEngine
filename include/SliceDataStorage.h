@@ -38,7 +38,7 @@ public:
 
     SupportStorage support;
 
-    std::vector<types::geometry::MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
+    std::vector<types::geometry::MixedLinesSet> skirt_brim[max_extruders]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     types::geometry::MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.

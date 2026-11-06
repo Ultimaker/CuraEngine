@@ -13,7 +13,7 @@
 namespace curaengine::utils
 {
 
-inline constexpr double TAU = 2.0 * std::numbers::pi;
+inline constexpr double tau = 2.0 * std::numbers::pi;
 // Rationalized forms retain the rounding of the former decimal constants.
 inline constexpr double one_over_sqrt_2 = std::numbers::sqrt2 / 2.0;
 inline constexpr double one_over_sqrt_3 = std::numbers::sqrt3 / 3.0;

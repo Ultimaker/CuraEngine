@@ -20,7 +20,7 @@ namespace curaengine::types::geometry
 class MixedPolylineStitcher : public PolylineStitcher<types::geometry::OpenLinesSet, types::geometry::ClosedLinesSet, types::geometry::OpenPolyline, types::geometry::Point2LL>
 {
 public:
-    static void stitch(const types::geometry::OpenLinesSet& lines, types::geometry::MixedLinesSet& result, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10);
+    static void stitch(const types::geometry::OpenLinesSet& lines, types::geometry::MixedLinesSet& result, coord_t max_stitch_distance = mmToInt(0.1), coord_t snap_distance = 10);
 };
 
 } // namespace curaengine::types::geometry

@@ -16,7 +16,7 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-const int vertex_meld_distance = MM2INT(0.03);
+const int vertex_meld_distance = mmToInt(0.03);
 /*!
  * returns a hash for the location, but first divides by the vertex_meld_distance,
  * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.

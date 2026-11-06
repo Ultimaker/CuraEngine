@@ -98,7 +98,7 @@ TreeModelVolumes::TreeModelVolumes(
 
         if (TreeSupportSettings::has_to_rely_on_min_xy_dist_only)
         {
-            current_min_xy_dist_ = std::max(current_min_xy_dist_, coord_t(FUDGE_LENGTH * 2));
+            current_min_xy_dist_ = std::max(current_min_xy_dist_, coord_t(fudge_length * 2));
         }
 
         current_min_xy_dist_delta_ = std::max(config.xy_distance - current_min_xy_dist_, coord_t(0));
@@ -155,7 +155,7 @@ TreeModelVolumes::TreeModelVolumes(
                 anti_overhang_[layer_idx].push_back(additional_excluded_areas[layer_idx]);
             }
 
-            if (SUPPORT_TREE_AVOID_SUPPORT_BLOCKER)
+            if (support_tree_avoid_support_blocker)
             {
                 anti_overhang_[layer_idx].push_back(storage.support.supportLayers[layer_idx].anti_overhang);
             }
@@ -580,7 +580,7 @@ Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, Lay
     layer.getOutlines(total, external_polys_only);
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal)
     {
-        total = total.unionPolygons(layer.open_polylines.offset(FUDGE_LENGTH * 2));
+        total = total.unionPolygons(layer.open_polylines.offset(fudge_length * 2));
     }
     const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t maximum_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
@@ -743,10 +743,10 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
             {
                 std::lock_guard<std::mutex> critical_section(*critical_progress_);
 
-                if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL)
+                if (precalculated_ && precalculation_progress_ < tree_progress_precalc_coll)
                 {
-                    precalculation_progress_ += TREE_PROGRESS_PRECALC_COLL / keys.size();
-                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    precalculation_progress_ += tree_progress_precalc_coll / keys.size();
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, tree_progress_total);
                 }
             }
 
@@ -783,7 +783,7 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPa
                 // Logically increase the collision by increase_until_radius
                 const coord_t radius = key.first;
                 const coord_t increase_radius_ceil = ceilRadius(increase_until_radius_, false) - ceilRadius(radius, true);
-                Shape col = getCollision(increase_until_radius_, layer_idx, false).offset(EPSILON - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
+                Shape col = getCollision(increase_until_radius_, layer_idx, false).offset(epsilon - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
                 // ^^^ That last 'unionPolygons' is important as otherwise holes(in form of lines that will increase to holes in a later step) can get unioned onto the area.
                 col = simplifier_.polygon(col);
                 data[RadiusLayerPair(radius, layer_idx)] = col;
@@ -823,7 +823,7 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
         return;
     }
     Shape accumulated_placeable_0
-        = start_layer == 1 ? machine_area_ : getAccumulatedPlaceable0(start_layer - 1).offset(FUDGE_LENGTH + (current_min_xy_dist_ + current_min_xy_dist_delta_));
+        = start_layer == 1 ? machine_area_ : getAccumulatedPlaceable0(start_layer - 1).offset(fudge_length + (current_min_xy_dist_ + current_min_xy_dist_delta_));
     // ^^^ The calculation here is done on the areas that are increased by xy_distance, but the result is saved without xy_distance,
     // so here it "restores" the previous state to continue calculating from about where it ended.
     // It would be better to ensure placeable areas of radius 0 do not include the xy distance, and removing the code compensating for it here and in calculatePlaceables.
@@ -831,7 +831,7 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
 
     for (LayerIndex layer = start_layer; layer <= max_layer; layer++)
     {
-        accumulated_placeable_0 = accumulated_placeable_0.unionPolygons(getPlaceableAreas(0, layer).offset(FUDGE_LENGTH)).difference(anti_overhang_[layer]);
+        accumulated_placeable_0 = accumulated_placeable_0.unionPolygons(getPlaceableAreas(0, layer).offset(fudge_length)).difference(anti_overhang_[layer]);
         std::lock_guard<std::mutex> critical_section(*critical_accumulated_placeables_cache_radius_0_);
         accumulated_placeable_0 = simplifier_.polygon(accumulated_placeable_0);
         data[layer] = std::pair(layer, accumulated_placeable_0);
@@ -994,10 +994,10 @@ void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& key
             {
                 std::lock_guard<std::mutex> critical_section(*critical_progress_);
 
-                if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
+                if (precalculated_ && precalculation_progress_ < tree_progress_precalc_coll + tree_progress_precalc_avo)
                 {
-                    precalculation_progress_ += support_rests_on_model_ ? 0.4 : 1 * TREE_PROGRESS_PRECALC_AVO / (keys.size() * 3);
-                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    precalculation_progress_ += support_rests_on_model_ ? 0.4 : 1 * tree_progress_precalc_avo / (keys.size() * 3);
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, tree_progress_total);
                 }
             }
 
@@ -1051,10 +1051,10 @@ void TreeModelVolumes::calculatePlaceables(const std::deque<RadiusLayerPair>& ke
             {
                 std::lock_guard<std::mutex> critical_section(*critical_progress_);
 
-                if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
+                if (precalculated_ && precalculation_progress_ < tree_progress_precalc_coll + tree_progress_precalc_avo)
                 {
-                    precalculation_progress_ += 0.2 * TREE_PROGRESS_PRECALC_AVO / (keys.size());
-                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    precalculation_progress_ += 0.2 * tree_progress_precalc_avo / (keys.size());
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, tree_progress_total);
                 }
             }
 
@@ -1143,10 +1143,10 @@ void TreeModelVolumes::calculateAvoidanceToModel(const std::deque<RadiusLayerPai
             {
                 std::lock_guard<std::mutex> critical_section(*critical_progress_);
 
-                if (precalculated_ && precalculation_progress_ < TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_PRECALC_AVO)
+                if (precalculated_ && precalculation_progress_ < tree_progress_precalc_coll + tree_progress_precalc_avo)
                 {
-                    precalculation_progress_ += 0.4 * TREE_PROGRESS_PRECALC_AVO / (keys.size() * 3);
-                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, TREE_PROGRESS_TOTAL);
+                    precalculation_progress_ += 0.4 * tree_progress_precalc_avo / (keys.size() * 3);
+                    Progress::messageProgress(Progress::Stage::Support, precalculation_progress_ * progress_multiplier_ + progress_offset_, tree_progress_total);
                 }
             }
 
@@ -1257,10 +1257,10 @@ coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
         return radius_0_;
     }
 
-    coord_t exponential_result = SUPPORT_TREE_EXPONENTIAL_THRESHOLD * SUPPORT_TREE_EXPONENTIAL_FACTOR;
-    const coord_t stepsize = (exponential_result - radius_0_) / (SUPPORT_TREE_PRE_EXPONENTIAL_STEPS + 1);
+    coord_t exponential_result = support_tree_exponential_threshold * support_tree_exponential_factor;
+    const coord_t stepsize = (exponential_result - radius_0_) / (support_tree_pre_exponential_steps + 1);
     coord_t result = radius_0_;
-    for (size_t i = 0; i < SUPPORT_TREE_PRE_EXPONENTIAL_STEPS; ++i)
+    for (size_t i = 0; i < support_tree_pre_exponential_steps; ++i)
     {
         result += stepsize;
         if (result >= radius && ! ignorable_radii_.count(result))
@@ -1271,7 +1271,7 @@ coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
 
     while (exponential_result < radius || ignorable_radii_.count(exponential_result))
     {
-        exponential_result = std::max(coord_t(exponential_result * SUPPORT_TREE_EXPONENTIAL_FACTOR), exponential_result + SUPPORT_TREE_COLLISION_RESOLUTION);
+        exponential_result = std::max(coord_t(exponential_result * support_tree_exponential_factor), exponential_result + support_tree_collision_resolution);
     }
     return exponential_result;
 }
@@ -1292,7 +1292,7 @@ const std::optional<std::reference_wrapper<const Shape>> TreeModelVolumes::getAr
 
 Shape TreeModelVolumes::calculateMachineBorderCollision(const Shape&& machine_border)
 {
-    Shape machine_volume_border = machine_border.offset(MM2INT(1000.0)); // Put a border of 1 meter around the print volume so that we don't collide.
+    Shape machine_volume_border = machine_border.offset(mmToInt(1000.0)); // Put a border of 1 meter around the print volume so that we don't collide.
     machine_volume_border = machine_volume_border.difference(machine_border); // Subtract the actual volume from the collision area.
     return machine_volume_border;
 }

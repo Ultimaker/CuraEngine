@@ -54,7 +54,7 @@ WallToolPaths::WallToolPaths(
     , min_bead_width_(std::min(min_even_wall_line_width_, min_odd_wall_line_width_))
     , wall_line_width_x_(nominal_bead_width)
     , wall_distribution_count_(1)
-    , wall_transition_filter_distance_(MM2INT(100))
+    , wall_transition_filter_distance_(mmToInt(100))
     , wall_transition_filter_deviation_(nominal_bead_width / 4)
     , stitch_distance_(nominal_bead_width - 1)
     , toolpaths_generated_(false)
@@ -207,7 +207,7 @@ void WallToolPaths::generateArachne()
         return;
     }
 
-    constexpr coord_t discretization_step_size = MM2INT(0.8);
+    constexpr coord_t discretization_step_size = mmToInt(0.8);
 
     // When to split the middle wall into two:
     const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width_ - wall_line_width_0_) / wall_line_width_0_)) / 100.0;

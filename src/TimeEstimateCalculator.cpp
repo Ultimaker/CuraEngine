@@ -19,14 +19,14 @@ using namespace utils;
 
 void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
 {
-    max_feedrate[X_AXIS] = settings.get<Velocity>("machine_max_feedrate_x");
-    max_feedrate[Y_AXIS] = settings.get<Velocity>("machine_max_feedrate_y");
-    max_feedrate[Z_AXIS] = settings.get<Velocity>("machine_max_feedrate_z");
-    max_feedrate[E_AXIS] = settings.get<Velocity>("machine_max_feedrate_e");
-    max_acceleration[X_AXIS] = settings.get<Acceleration>("machine_max_acceleration_x");
-    max_acceleration[Y_AXIS] = settings.get<Acceleration>("machine_max_acceleration_y");
-    max_acceleration[Z_AXIS] = settings.get<Acceleration>("machine_max_acceleration_z");
-    max_acceleration[E_AXIS] = settings.get<Acceleration>("machine_max_acceleration_e");
+    max_feedrate[x_axis] = settings.get<Velocity>("machine_max_feedrate_x");
+    max_feedrate[y_axis] = settings.get<Velocity>("machine_max_feedrate_y");
+    max_feedrate[z_axis] = settings.get<Velocity>("machine_max_feedrate_z");
+    max_feedrate[e_axis] = settings.get<Velocity>("machine_max_feedrate_e");
+    max_acceleration[x_axis] = settings.get<Acceleration>("machine_max_acceleration_x");
+    max_acceleration[y_axis] = settings.get<Acceleration>("machine_max_acceleration_y");
+    max_acceleration[z_axis] = settings.get<Acceleration>("machine_max_acceleration_z");
+    max_acceleration[e_axis] = settings.get<Acceleration>("machine_max_acceleration_e");
     max_xy_jerk = settings.get<Velocity>("machine_max_jerk_xy");
     max_z_jerk = settings.get<Velocity>("machine_max_jerk_z");
     max_e_jerk = settings.get<Velocity>("machine_max_jerk_e");
@@ -166,7 +166,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     block.feature = feature;
 
     // block.maxTravel = 0; //Done by memset.
-    for (size_t n = 0; n < NUM_AXIS; n++)
+    for (size_t n = 0; n < num_axis; n++)
     {
         block.delta[n] = newPos[n] - currentPosition[n];
         block.absDelta[n] = std::abs(block.delta[n]);
@@ -190,7 +190,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     Position current_feedrate;
     Position current_abs_feedrate;
     Ratio feedrate_factor = 1.0;
-    for (size_t n = 0; n < NUM_AXIS; n++)
+    for (size_t n = 0; n < num_axis; n++)
     {
         current_feedrate[n] = (block.delta[n] * feedrate) / block.distance;
         current_abs_feedrate[n] = std::abs(current_feedrate[n]);
@@ -203,7 +203,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     if (feedrate_factor < 1.0)
     {
-        for (size_t n = 0; n < NUM_AXIS; n++)
+        for (size_t n = 0; n < num_axis; n++)
         {
             current_feedrate[n] *= feedrate_factor;
             current_abs_feedrate[n] *= feedrate_factor;
@@ -212,7 +212,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     }
 
     block.acceleration = acceleration;
-    for (size_t n = 0; n < NUM_AXIS; n++)
+    for (size_t n = 0; n < num_axis; n++)
     {
         if (block.acceleration * (block.absDelta[n] / block.distance) > max_acceleration[n])
         {
@@ -222,11 +222,11 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     Velocity vmax_junction{ max_xy_jerk / 2.0 };
     Ratio vmax_junction_factor{ 1.0 };
-    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2.0)
+    if (current_abs_feedrate[z_axis] > max_z_jerk / 2.0)
     {
         vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk / 2.0 });
     }
-    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2.0)
+    if (current_abs_feedrate[e_axis] > max_e_jerk / 2.0)
     {
         vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk / 2.0 });
     }
@@ -235,18 +235,18 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
     {
-        const Velocity xy_jerk = sqrt(square(current_feedrate[X_AXIS] - previous_feedrate[X_AXIS]) + square(current_feedrate[Y_AXIS] - previous_feedrate[Y_AXIS]));
+        const Velocity xy_jerk = sqrt(square(current_feedrate[x_axis] - previous_feedrate[x_axis]) + square(current_feedrate[y_axis] - previous_feedrate[y_axis]));
         vmax_junction = block.nominal_feedrate;
         if (xy_jerk > max_xy_jerk)
         {
             vmax_junction_factor = Ratio(max_xy_jerk / xy_jerk);
         }
-        const double z_jerk = std::abs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]);
+        const double z_jerk = std::abs(current_feedrate[z_axis] - previous_feedrate[z_axis]);
         if (z_jerk > max_z_jerk)
         {
             vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / z_jerk));
         }
-        const double e_jerk = std::abs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]);
+        const double e_jerk = std::abs(current_feedrate[e_axis] - previous_feedrate[e_axis]);
         if (e_jerk > max_e_jerk)
         {
             vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / e_jerk));
@@ -256,7 +256,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
 
     block.max_entry_speed = vmax_junction;
 
-    const Velocity v_allowable = maxAllowableSpeed(-block.acceleration, MINIMUM_PLANNER_SPEED, block.distance);
+    const Velocity v_allowable = maxAllowableSpeed(-block.acceleration, minimum_planner_speed, block.distance);
     block.entry_speed = std::min(vmax_junction, v_allowable);
     block.nominal_length_flag = block.nominal_feedrate <= v_allowable;
     block.recalculate_flag = true; // Always calculate trapezoid for new block
@@ -391,10 +391,10 @@ void TimeEstimateCalculator::recalculateTrapezoids()
             }
         }
     }
-    // Last/newest block in buffer. Exit speed is set with MINIMUM_PLANNER_SPEED. Always recalculated.
+    // Last/newest block in buffer. Exit speed is set with minimum_planner_speed. Always recalculated.
     if (next != nullptr)
     {
-        calculateTrapezoidForBlock(next, Ratio(next->entry_speed / next->nominal_feedrate), Ratio(MINIMUM_PLANNER_SPEED / next->nominal_feedrate));
+        calculateTrapezoidForBlock(next, Ratio(next->entry_speed / next->nominal_feedrate), Ratio(minimum_planner_speed / next->nominal_feedrate));
         next->recalculate_flag = false;
     }
 }

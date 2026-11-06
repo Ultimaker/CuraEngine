@@ -122,7 +122,7 @@ void Infill::generate(
     // infill pattern is concentric or if the small_area_width is zero.
     if (pattern_ != EFillMethod::Concentric && small_area_width_ > 0)
     {
-        const auto too_small_length = INT2MM(infill_line_width_) / 2.0;
+        const auto too_small_length = intToMm(infill_line_width_) / 2.0;
 
         // Split the infill region in a narrow region and the normal region.
         Shape small_infill = inner_contour_;

@@ -107,16 +107,16 @@ bool Comb::calc(
     }
     const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
-    size_t start_inside_poly = NO_INDEX;
+    size_t start_inside_poly = no_index;
     const bool start_inside = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly);
 
-    size_t end_inside_poly = NO_INDEX;
+    size_t end_inside_poly = no_index;
     const bool end_inside = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly);
 
-    size_t start_part_boundary_poly_idx = NO_INDEX; // Added initial value to stop MSVC throwing an exception in debug mode
-    size_t end_part_boundary_poly_idx = NO_INDEX;
-    size_t start_part_idx = (start_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
-    size_t end_part_idx = (end_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
+    size_t start_part_boundary_poly_idx = no_index; // Added initial value to stop MSVC throwing an exception in debug mode
+    size_t end_part_boundary_poly_idx = no_index;
+    size_t start_part_idx = (start_inside_poly == no_index) ? no_index : parts_view_inside_optimal_.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
+    size_t end_part_idx = (end_inside_poly == no_index) ? no_index : parts_view_inside_optimal_.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
 
     const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
 
@@ -142,20 +142,20 @@ bool Comb::calc(
 
     // Move start and end point inside the optimal comb boundary
     // Give more tolerancy when calculating move inside positions, because the target points in this case will be on the borders
-    size_t start_inside_poly_optimal = NO_INDEX;
+    size_t start_inside_poly_optimal = no_index;
     const bool start_inside_optimal
         = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly_optimal, max_move_inside_distance_enlarged2_);
 
-    size_t end_inside_poly_optimal = NO_INDEX;
+    size_t end_inside_poly_optimal = no_index;
     const bool end_inside_optimal
         = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly_optimal, max_move_inside_distance_enlarged2_);
 
     size_t start_part_boundary_poly_idx_optimal{};
     size_t end_part_boundary_poly_idx_optimal{};
     size_t start_part_idx_optimal
-        = (start_inside_poly_optimal == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(start_inside_poly_optimal, &start_part_boundary_poly_idx_optimal);
+        = (start_inside_poly_optimal == no_index) ? no_index : parts_view_inside_optimal_.getPartContaining(start_inside_poly_optimal, &start_part_boundary_poly_idx_optimal);
     size_t end_part_idx_optimal
-        = (end_inside_poly_optimal == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(end_inside_poly_optimal, &end_part_boundary_poly_idx_optimal);
+        = (end_inside_poly_optimal == no_index) ? no_index : parts_view_inside_optimal_.getPartContaining(end_inside_poly_optimal, &end_part_boundary_poly_idx_optimal);
 
     CombPath result_path;
     bool comb_result;
@@ -182,17 +182,17 @@ bool Comb::calc(
     }
 
     // Move start and end point inside the minimum comb boundary
-    size_t start_inside_poly_min = NO_INDEX;
+    size_t start_inside_poly_min = no_index;
     const bool start_inside_min = moveInside(boundary_inside_minimum_, _start_inside, inside_loc_to_line_minimum_.get(), start_point, start_inside_poly_min);
 
-    size_t end_inside_poly_min = NO_INDEX;
+    size_t end_inside_poly_min = no_index;
     const bool end_inside_min = moveInside(boundary_inside_minimum_, _end_inside, inside_loc_to_line_minimum_.get(), end_point, end_inside_poly_min);
 
     size_t start_part_boundary_poly_idx_min{};
     size_t end_part_boundary_poly_idx_min{};
     size_t start_part_idx_min
-        = (start_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
-    size_t end_part_idx_min = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
+        = (start_inside_poly_min == no_index) ? no_index : parts_view_inside_minimum_.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
+    size_t end_part_idx_min = (end_inside_poly_min == no_index) ? no_index : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
 
     // normal combing within part using minimum comb boundary
     if (start_inside_min && end_inside_min && start_part_idx_min == end_part_idx_min)

@@ -62,9 +62,9 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(20), 0);
-        square_shape.back().emplace_back(MM2INT(20), MM2INT(20));
-        square_shape.back().emplace_back(0, MM2INT(20));
+        square_shape.back().emplace_back(mmToInt(20), 0);
+        square_shape.back().emplace_back(mmToInt(20), mmToInt(20));
+        square_shape.back().emplace_back(0, mmToInt(20));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);

@@ -27,10 +27,10 @@ class Point3LL;
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 using Point2LL = ClipperLib::IntPoint;
 
-inline constexpr coord_t POINT_MIN = std::numeric_limits<coord_t>::min();
-inline constexpr coord_t POINT_MAX = std::numeric_limits<coord_t>::max();
+inline constexpr coord_t point_min = std::numeric_limits<coord_t>::min();
+inline constexpr coord_t point_max = std::numeric_limits<coord_t>::max();
 
-static Point2LL no_point(POINT_MIN, POINT_MIN);
+static Point2LL no_point(point_min, point_min);
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
 static inline Point2LL operator-(const Point2LL& p0)
@@ -141,8 +141,8 @@ static inline types::coord_t vSizef(const Point2LL& p0)
 
 static inline double vSizeMM(const Point2LL& p0)
 {
-    double fx = INT2MM(p0.X);
-    double fy = INT2MM(p0.Y);
+    double fx = intToMm(p0.X);
+    double fy = intToMm(p0.Y);
     return std::sqrt(fx * fx + fy * fy);
 }
 

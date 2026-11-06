@@ -36,7 +36,7 @@ std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithLayer(
     const auto join_segments = [&new_segments](const Segment3LL& next_segment)
     {
         const coord_t join_distance = (new_segments.back().end() - next_segment.start()).vSize2();
-        if (join_distance > EPSILON * EPSILON)
+        if (join_distance > epsilon * epsilon)
         {
             // Segments are not joined, add a transition segment
             new_segments.push_back(Segment3LL(new_segments.back().end(), next_segment.start()));

@@ -22,9 +22,9 @@ class SimplifyTest : public testing::Test
 {
 public:
     // Settings to use for most of these tests.
-    static constexpr coord_t MAX_RESOLUTION = 1000;
-    static constexpr coord_t MAX_DEVIATION = 100;
-    static constexpr coord_t MAX_AREA_DEVIATION = 20000;
+    static constexpr coord_t max_resolution = 1000;
+    static constexpr coord_t max_deviation = 100;
+    static constexpr coord_t max_area_deviation = 20000;
 
     /*!
      * Use this basic simplify instance to easily run tests.
@@ -40,17 +40,17 @@ public:
     Polygon zigzag; // Sawtooth zig-zag pattern.
 
     SimplifyTest()
-        : simplifier(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION)
+        : simplifier(max_resolution, max_deviation, max_area_deviation)
     {
     }
 
     void SetUp() override
     {
-        simplifier = Simplify(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION); // Reset in case the test wants to change a parameter.
+        simplifier = Simplify(max_resolution, max_deviation, max_area_deviation); // Reset in case the test wants to change a parameter.
 
         circle.clear();
         coord_t radius = 100000;
-        constexpr double segment_length = MAX_RESOLUTION - 10;
+        constexpr double segment_length = max_resolution - 10;
         constexpr double tau = 6.283185307179586476925286766559; // 2 * pi.
         const double increment = segment_length / radius; // Segments of 990 units.
         for (double angle = 0; angle < tau; angle += increment)
@@ -133,7 +133,7 @@ TEST_F(SimplifyTest, CircleMaxResolution)
     for (size_t point_index = 1; point_index + 1 < circle.size(); point_index++) // Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
         coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
-        EXPECT_GE(segment_length, MAX_RESOLUTION) << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
+        EXPECT_GE(segment_length, max_resolution) << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
     }
 }
 

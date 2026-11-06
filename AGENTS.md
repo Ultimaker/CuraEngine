@@ -59,4 +59,4 @@ There are also a few specific types that are defined in the engine and that are 
 * `Temperature` type to store heating temperature
 * `Velocity` and `Acceleration` types to store speeds and acceleration, typically of the print head
 
-To ensure the handling of edge-cases in geometrical calculations, we consider geometric points to be coincident if they are 5 microns or less apart. For this purpose, there are global EPSILON and EPSILON_SQUARED values defined and some convenience methods that are defined to help the developers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the code is robust and repeatable.
+To ensure the handling of edge-cases in geometrical calculations, we consider geometric points to be coincident if they are 5 microns or less apart. For this purpose, there are global epsilon and epsilon_squared values defined and some convenience methods that are defined to help the developers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the code is robust and repeatable.

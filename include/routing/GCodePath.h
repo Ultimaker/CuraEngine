@@ -53,7 +53,7 @@ struct GCodePath
     std::vector<types::geometry::Point3LL>
         points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
-    double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double fan_speed{ GCodePathConfig::fan_speed_default }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
     bool travel_to_z{ true }; //! Indicates whether we should add a travel move to the Z height of the first point before processing the path
     PrintSegmentAttributes print_attributes; //! Indicates if the line is processed with specific settings, e.g. overhanging or bridging

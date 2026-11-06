@@ -19,33 +19,33 @@ using namespace utils;
 
 TEST(CoordTTest, TestConstexprConversions)
 {
-    static_assert(std::is_same_v<decltype(&INT2MM), double (*)(coord_t)>);
-    static_assert(std::is_same_v<decltype(&INT2MM2), double (*)(coord_t)>);
-    static_assert(std::is_same_v<decltype(&MM2INT), coord_t (*)(double)>);
-    static_assert(std::is_same_v<decltype(&MM2_2INT), coord_t (*)(double)>);
-    static_assert(std::is_same_v<decltype(&MM3_2INT), coord_t (*)(double)>);
-    static_assert(INT2MM(1500) == 1.5);
-    static_assert(INT2MM2(-1500000) == -1.5);
-    static_assert(MM2INT(0.0005) == 1);
-    static_assert(MM2INT(-0.0005) == -1);
-    static_assert(MM2_2INT(0.0000005) == 1);
-    static_assert(MM2_2INT(-0.0000005) == -1);
-    static_assert(MM3_2INT(0.0000000005) == 1);
-    static_assert(MM3_2INT(-0.0000000005) == -1);
-    static_assert(INT2MM(0) == 0.0);
-    static_assert(INT2MM2(0) == 0.0);
-    static_assert(MM2INT(0.0) == 0);
-    static_assert(MM2_2INT(0.0) == 0);
-    static_assert(MM3_2INT(0.0) == 0);
+    static_assert(std::is_same_v<decltype(&intToMm), double (*)(coord_t)>);
+    static_assert(std::is_same_v<decltype(&intToMm2), double (*)(coord_t)>);
+    static_assert(std::is_same_v<decltype(&mmToInt), coord_t (*)(double)>);
+    static_assert(std::is_same_v<decltype(&mm2ToInt), coord_t (*)(double)>);
+    static_assert(std::is_same_v<decltype(&mm3ToInt), coord_t (*)(double)>);
+    static_assert(intToMm(1500) == 1.5);
+    static_assert(intToMm2(-1500000) == -1.5);
+    static_assert(mmToInt(0.0005) == 1);
+    static_assert(mmToInt(-0.0005) == -1);
+    static_assert(mm2ToInt(0.0000005) == 1);
+    static_assert(mm2ToInt(-0.0000005) == -1);
+    static_assert(mm3ToInt(0.0000000005) == 1);
+    static_assert(mm3ToInt(-0.0000000005) == -1);
+    static_assert(intToMm(0) == 0.0);
+    static_assert(intToMm2(0) == 0.0);
+    static_assert(mmToInt(0.0) == 0);
+    static_assert(mm2ToInt(0.0) == 0);
+    static_assert(mm3ToInt(0.0) == 0);
 }
 
 TEST(CoordTTest, TestConversionRoundingAndPrecision)
 {
     const auto check_conversions = [](double n)
     {
-        EXPECT_EQ(MM2INT(n), static_cast<coord_t>(n * 1000 + 0.5 * ((n > 0) - (n < 0))));
-        EXPECT_EQ(MM2_2INT(n), static_cast<coord_t>(n * 1000000 + 0.5 * ((n > 0) - (n < 0))));
-        EXPECT_EQ(MM3_2INT(n), static_cast<coord_t>(n * 1000000000 + 0.5 * ((n > 0) - (n < 0))));
+        EXPECT_EQ(mmToInt(n), static_cast<coord_t>(n * 1000 + 0.5 * ((n > 0) - (n < 0))));
+        EXPECT_EQ(mm2ToInt(n), static_cast<coord_t>(n * 1000000 + 0.5 * ((n > 0) - (n < 0))));
+        EXPECT_EQ(mm3ToInt(n), static_cast<coord_t>(n * 1000000000 + 0.5 * ((n > 0) - (n < 0))));
     };
     for (double n : { 0.0, 0.0004999, -0.0004999, 0.0005, -0.0005, 0.0005001, -0.0005001, 1.2345, -1.2345 })
     {
@@ -65,22 +65,22 @@ TEST(CoordTTest, TestConversionRoundingAndPrecision)
         EXPECT_EQ(convert(half_threshold * 1.0002), 1);
         EXPECT_EQ(convert(-half_threshold * 1.0002), -1);
     };
-    check_half_thresholds(&MM2INT, 0.0005);
-    check_half_thresholds(&MM2_2INT, 0.0000005);
-    check_half_thresholds(&MM3_2INT, 0.0000000005);
+    check_half_thresholds(&mmToInt, 0.0005);
+    check_half_thresholds(&mm2ToInt, 0.0000005);
+    check_half_thresholds(&mm3ToInt, 0.0000000005);
     check_conversions(static_cast<double>(1.2345L));
     // The float literal is below the half threshold when promoted before multiplication.
-    EXPECT_EQ(MM2INT(static_cast<double>(0.0015F)), 1);
-    EXPECT_EQ(MM2INT(static_cast<double>(-0.0015F)), -1);
-    EXPECT_EQ(MM2INT(0.0015), 2);
-    EXPECT_EQ(MM2INT(-0.0015), -2);
+    EXPECT_EQ(mmToInt(static_cast<double>(0.0015F)), 1);
+    EXPECT_EQ(mmToInt(static_cast<double>(-0.0015F)), -1);
+    EXPECT_EQ(mmToInt(0.0015), 2);
+    EXPECT_EQ(mmToInt(-0.0015), -2);
     check_conversions(static_cast<double>(Velocity{ 1.2345 }));
     check_conversions(static_cast<double>(Ratio{ 1.2345 }));
     check_conversions(static_cast<double>(Duration{ 1.2345 }));
     const Velocity top_speed{ 50.0 };
     const Velocity start_speed{ 25.0 };
     const auto distance = (square(top_speed) - square(start_speed)) / 100.0;
-    EXPECT_EQ(MM2INT(static_cast<double>(distance)), 18750);
+    EXPECT_EQ(mmToInt(static_cast<double>(distance)), 18750);
 }
 
 TEST(CoordTTest, TestConversionsEvaluateArgumentOnce)
@@ -91,11 +91,11 @@ TEST(CoordTTest, TestConversionsEvaluateArgumentOnce)
         ++calls;
         return 1.5;
     };
-    EXPECT_EQ(INT2MM(static_cast<coord_t>(value())), 0.001);
-    EXPECT_EQ(INT2MM2(static_cast<coord_t>(value())), 0.000001);
-    EXPECT_EQ(MM2INT(value()), 1500);
-    EXPECT_EQ(MM2_2INT(value()), 1500000);
-    EXPECT_EQ(MM3_2INT(value()), 1500000000);
+    EXPECT_EQ(intToMm(static_cast<coord_t>(value())), 0.001);
+    EXPECT_EQ(intToMm2(static_cast<coord_t>(value())), 0.000001);
+    EXPECT_EQ(mmToInt(value()), 1500);
+    EXPECT_EQ(mm2ToInt(value()), 1500000);
+    EXPECT_EQ(mm3ToInt(value()), 1500000000);
     EXPECT_EQ(calls, 5);
 }
 

@@ -85,7 +85,7 @@ FffGcodeWriter::FffGcodeWriter()
     , layer_plan_buffer(gcode)
     , slice_uuid(Application::getInstance().instance_uuid_)
 {
-    for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+    for (unsigned int extruder_nr = 0; extruder_nr < max_extruders; extruder_nr++)
     { // initialize all as max layer_nr, so that they get updated to the lowest layer on which they are used.
         extruder_prime_layer_nr[extruder_nr] = std::numeric_limits<int>::max();
     }
@@ -611,7 +611,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeFanCommand(0);
 
     // Since we are doing a long Z travel move, it matters that acceleration is properly set here
-    const coord_t travel_z = max_object_height + MM2INT(5);
+    const coord_t travel_z = max_object_height + mmToInt(5);
     apply_acceleration(acceleration_travel_z);
     gcode.writeTravel(Point3LL(gcode.getPositionXY(), travel_z), speed_travel_z);
 
@@ -1515,7 +1515,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
     constexpr coord_t wipe_dist = 0u;
     constexpr Ratio flow_ratio = 1.0;
-    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr double fan_speed = GCodePathConfig::fan_speed_default;
     constexpr bool reverse_print_direction = false;
 
     if (! all_brim_lines.empty())
@@ -1548,7 +1548,7 @@ void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPl
     constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
     constexpr coord_t wipe_dist = 0u;
     constexpr Ratio flow_ratio = 1.0;
-    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr double fan_speed = GCodePathConfig::fan_speed_default;
     constexpr bool reverse_print_direction = false;
     const Point2LL start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
 
@@ -1649,7 +1649,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
     LayerIndex first_print_layer = -LayerIndex(raft::getTotalExtraLayers());
-    for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
+    for (size_t extruder_nr = 0; extruder_nr < max_extruders; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
         {
@@ -2139,7 +2139,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 constexpr coord_t wipe_dist = 0;
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
                 constexpr Ratio flow_ratio = 1.0_r;
-                constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+                constexpr double fan_speed = GCodePathConfig::fan_speed_default;
                 constexpr OverrideAreas override_areas;
                 const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
@@ -2582,7 +2582,7 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
 
     constexpr bool remove_small_holes_from_infill_below_skin = true;
     constexpr double min_area_multiplier = 25;
-    const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+    const double min_area = intToMm(infill_line_width) * intToMm(infill_line_width) * min_area_multiplier;
     infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
     // there is infill below skin, is there also infill that isn't below skin?
@@ -3278,7 +3278,7 @@ void FffGcodeWriter::processTopBottom(
         }
     }
 
-    double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    double fan_speed = GCodePathConfig::fan_speed_default;
 
     if (layer_nr > 0 && skin_config == &default_config && support_layer_nr >= 0 && mesh.settings.get<bool>("support_fan_enable") && mesh.settings.get<bool>("cool_fan_enabled"))
     {
@@ -3922,7 +3922,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr coord_t wipe_dist = 0;
                 constexpr Ratio flow_ratio = 1.0;
                 const std::optional<Point2LL> near_start_location = std::optional<Point2LL>();
-                constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+                constexpr double fan_speed = GCodePathConfig::fan_speed_default;
 
                 gcode_layer.addLinesByOptimizer(
                     support_lines,
@@ -4285,7 +4285,7 @@ void FffGcodeWriter::finalize()
     // In one-at-a-time mode, raise the nozzle to avoid collision with already printed objects during final travel
     if (mesh_group_settings.get<std::string>("print_sequence") == "one_at_a_time")
     {
-        gcode.setZ(max_object_height + MM2INT(5));
+        gcode.setZ(max_object_height + mmToInt(5));
         Application::getInstance().communication_->sendCurrentPosition(gcode.getPosition());
         gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
     }

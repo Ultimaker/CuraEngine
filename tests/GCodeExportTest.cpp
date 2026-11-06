@@ -48,7 +48,7 @@ public:
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.current_position_ = Point3LL(0, 0, mmToInt(20));
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_e_offset_ = 0;
@@ -211,7 +211,7 @@ public:
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.current_position_ = Point3LL(0, 0, mmToInt(20));
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_extruder_ = 0;
