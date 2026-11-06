@@ -53,7 +53,7 @@ double LineAnchoringScoringCriterion::computeScore(const TransformedShape& trans
         return 0.0;
     }
 
-    return std::max(static_cast<double>(total_line_score) / total_line_length, 0.0);
+    return static_cast<double>(total_line_score) / total_line_length;
 }
 
 std::tuple<coord_t, coord_t>
@@ -149,13 +149,8 @@ std::tuple<coord_t, coord_t>
 
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
-        double add_segment_score_weight = 0;
+        std::optional<bool> score_anchored_segment;
         const coord_t segment_length = next_intersection - last_position;
-
-        if (bridge_status != BridgeStatus::Outside)
-        {
-            total_bridge_length += segment_length;
-        }
 
         switch (bridge_status)
         {
@@ -165,38 +160,41 @@ std::tuple<coord_t, coord_t>
 
         case BridgeStatus::Supported:
             bridge_status = leaving_skin ? BridgeStatus::Outside : BridgeStatus::Anchored;
-            // Negatively account for fully supported lines to avoid lonely line parts over the supported areas
-            add_segment_score_weight -= 0.1;
             break;
 
         case BridgeStatus::Hanging:
-            add_segment_score_weight -= 1.0;
+            score_anchored_segment = false;
             bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Outside;
             break;
 
         case BridgeStatus::Anchored:
             if (reaching_supported)
             {
-                add_segment_score_weight += 1.0;
+                score_anchored_segment = true;
                 bridge_status = BridgeStatus::Supported;
             }
             else if (leaving_skin)
             {
-                add_segment_score_weight -= 1.0;
+                score_anchored_segment = false;
                 bridge_status = BridgeStatus::Outside;
             }
             break;
         }
 
-        if (add_segment_score_weight != 0.0)
+        if (score_anchored_segment.has_value())
         {
-            segment_score += std::llrint(segment_length * add_segment_score_weight);
+            total_bridge_length += segment_length;
+            if (score_anchored_segment.value())
+            {
+                segment_score += std::llrint(segment_length);
+            }
         }
+
 
         last_position = next_intersection;
         inside_skin_area = next_inside_skin_area;
         inside_supported_area = next_inside_supported_area;
-    }
+    } // namespace cura
 
     return { total_bridge_length, segment_score };
 }

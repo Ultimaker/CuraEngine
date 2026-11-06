@@ -313,8 +313,8 @@ private:
      */
     void finalizeInterfaceAndSupportAreas(
         std::vector<Shape>& support_layer_storage,
-        std::vector<Shape>& support_roof_storage,
-        std::vector<Shape>& support_layer_storage_fractional,
+        const std::vector<Shape>& support_roof_storage,
+        const std::vector<Shape>& support_layer_storage_fractional,
         const CenterGrid& center_locator_per_layer,
         SliceDataStorage& storage);
 

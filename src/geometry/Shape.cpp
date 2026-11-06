@@ -231,13 +231,19 @@ Shape Shape::offset(coord_t distance, ClipperLib::JoinType join_type, double mit
 
 bool Shape::inside(const Point2LL& p, bool border_result) const
 {
+    return insideWithoutBorder(p).value_or(border_result);
+}
+
+[[nodiscard]] std::optional<bool> Shape::insideWithoutBorder(const Point2LL& p) const
+{
     int poly_count_inside = 0;
     for (const Polygon& poly : *this)
     {
         const int is_inside_this_poly = ClipperLib::PointInPolygon(p, poly.getPoints());
         if (is_inside_this_poly == -1)
         {
-            return border_result;
+            // Point is on the border of the polygon, so we cannot conclude if it is inside or outside.
+            return std::nullopt;
         }
         poly_count_inside += is_inside_this_poly;
     }
