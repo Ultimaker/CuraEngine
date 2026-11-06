@@ -24,46 +24,39 @@ static constexpr coord_t operator""_mu(unsigned long long i)
     return static_cast<coord_t>(i);
 }
 
-template<typename T>
-[[nodiscard]] constexpr double INT2MM(T n)
+[[nodiscard]] constexpr double INT2MM(coord_t n)
 {
     return static_cast<double>(n) / 1000.0;
 }
 
-template<typename T>
-[[nodiscard]] constexpr double INT2MM2(T n)
+[[nodiscard]] constexpr double INT2MM2(coord_t n)
 {
     return static_cast<double>(n) / 1000000.0;
 }
 
-template<typename T>
-[[nodiscard]] constexpr coord_t MM2INT(T n)
+[[nodiscard]] constexpr coord_t MM2INT(double n)
 {
     return static_cast<coord_t>(n * 1000 + 0.5 * ((n > 0) - (n < 0)));
 }
 
-template<typename T>
-[[nodiscard]] constexpr coord_t MM2_2INT(T n)
+[[nodiscard]] constexpr coord_t MM2_2INT(double n)
 {
     return static_cast<coord_t>(n * 1000000 + 0.5 * ((n > 0) - (n < 0)));
 }
 
-template<typename T>
-[[nodiscard]] constexpr coord_t MM3_2INT(T n)
+[[nodiscard]] constexpr coord_t MM3_2INT(double n)
 {
     return static_cast<coord_t>(n * 1000000000 + 0.5 * ((n > 0) - (n < 0)));
 }
 
-template<typename T>
-[[nodiscard]] constexpr auto INT2MICRON(T n)
+[[nodiscard]] constexpr coord_t INT2MICRON(coord_t n)
 {
-    return n / 1;
+    return n;
 }
 
-template<typename T>
-[[nodiscard]] constexpr auto MICRON2INT(T n)
+[[nodiscard]] constexpr coord_t MICRON2INT(coord_t n)
 {
-    return n * 1;
+    return n;
 }
 
 template<types::floating_point FactorType>

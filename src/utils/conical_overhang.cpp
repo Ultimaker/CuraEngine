@@ -59,7 +59,7 @@ void apply(Slicer* slicer, const Mesh& mesh)
                     {
                         Shape hole_poly;
                         hole_poly.push_back(layer_parts[part][hole_nr]);
-                        if (max_hole_area > 0.0 && INT2MM2(std::abs(hole_poly.area())) < max_hole_area)
+                        if (max_hole_area > 0.0 && std::abs(hole_poly.area()) / 1000000.0 < max_hole_area)
                         {
                             Shape hole_with_above = hole_poly.intersection(above);
                             if (! hole_with_above.empty())

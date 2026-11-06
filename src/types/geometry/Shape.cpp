@@ -500,7 +500,7 @@ void Shape::removeSmallAreas(const double min_area_size, const bool remove_holes
         for (auto it = begin(); it < new_end;)
         {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
-            if (std::abs(INT2MM2(it->area())) < min_area_size)
+            if (std::abs(it->area()) / 1000000.0 < min_area_size)
             {
                 *it = std::move(*--new_end);
                 continue;
@@ -514,7 +514,7 @@ void Shape::removeSmallAreas(const double min_area_size, const bool remove_holes
         std::vector<Polygon*> small_holes;
         for (auto it = begin(); it < new_end;)
         {
-            double area = INT2MM2(it->area());
+            double area = it->area() / 1000000.0;
             if (std::abs(area) < min_area_size)
             {
                 if (area >= 0)

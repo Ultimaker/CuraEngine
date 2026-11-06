@@ -2113,12 +2113,14 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const Ratio start_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_start_speed_ratio") : 1.0_r;
     const int acceleration = settings.get<int>("wall_0_acceleration"); // mm/s²
     const Velocity start_speed = top_speed * start_speed_ratio; // mm/s
-    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((utils::square(top_speed) - utils::square(start_speed)) / (2.0 * acceleration)) : 0; // µm
+    const coord_t accelerate_length
+        = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT(static_cast<double>((utils::square(top_speed) - utils::square(start_speed)) / (2.0 * acceleration))) : 0; // µm
 
     const Ratio end_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_end_speed_ratio") : 1.0_r;
     const int deceleration = settings.get<int>("wall_0_deceleration"); // mm/s²
     const Velocity end_speed = top_speed * end_speed_ratio; // mm/s
-    const coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((utils::square(top_speed) - utils::square(end_speed)) / (2.0 * deceleration)) : 0; // µm
+    const coord_t decelerate_length
+        = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT(static_cast<double>((utils::square(top_speed) - utils::square(end_speed)) / (2.0 * deceleration))) : 0; // µm
 
     auto addSplitWallPass = [&](bool is_scarf_closure) -> std::tuple<size_t, Point2LL>
     {

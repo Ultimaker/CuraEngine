@@ -189,7 +189,7 @@ void Polygon::smoothOutward(const AngleDegrees min_angle, int shortcut_length, P
 
         const Point2LL v10 = p0 - p1;
         const Point2LL v12 = p2 - p1;
-        double cos_angle = INT2MM(INT2MM(dot(v10, v12))) / vSizeMM(v10) / vSizeMM(v12);
+        double cos_angle = INT2MM2(dot(v10, v12)) / vSizeMM(v10) / vSizeMM(v12);
         bool is_left_angle = linear_alg_2d::pointIsLeftOfLine(p1, p0, p2) > 0;
         if (cos_angle > cos_min_angle && is_left_angle)
         {

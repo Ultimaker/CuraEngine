@@ -2006,7 +2006,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     const coord_t closing_dist = config.support_wall_thickness;
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
-    const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
+    const double small_area_length = INT2MM(config.support_line_width) / 2.0;
 
     std::function<void(Shape&)> reversePolygon = [&](Shape& poly)
     {

@@ -7,6 +7,8 @@
 #include <gtest/gtest.h>
 
 #include "types/Coord_t.h"
+#include "types/Duration.h"
+#include "types/Ratio.h"
 #include "types/Velocity.h"
 
 namespace curaengine
@@ -17,6 +19,13 @@ using namespace utils;
 
 TEST(CoordTTest, TestConstexprConversions)
 {
+    static_assert(std::is_same_v<decltype(&INT2MM), double (*)(coord_t)>);
+    static_assert(std::is_same_v<decltype(&INT2MM2), double (*)(coord_t)>);
+    static_assert(std::is_same_v<decltype(&MM2INT), coord_t (*)(double)>);
+    static_assert(std::is_same_v<decltype(&MM2_2INT), coord_t (*)(double)>);
+    static_assert(std::is_same_v<decltype(&MM3_2INT), coord_t (*)(double)>);
+    static_assert(std::is_same_v<decltype(&INT2MICRON), coord_t (*)(coord_t)>);
+    static_assert(std::is_same_v<decltype(&MICRON2INT), coord_t (*)(coord_t)>);
     static_assert(INT2MM(1500) == 1.5);
     static_assert(INT2MM2(-1500000) == -1.5);
     static_assert(MM2INT(0.0005) == 1);
@@ -25,20 +34,22 @@ TEST(CoordTTest, TestConstexprConversions)
     static_assert(MM2_2INT(-0.0000005) == -1);
     static_assert(MM3_2INT(0.0000000005) == 1);
     static_assert(MM3_2INT(-0.0000000005) == -1);
-    static_assert(MM2INT(0) == 0);
-    static_assert(MM2_2INT(0) == 0);
-    static_assert(MM3_2INT(0) == 0);
-    static_assert(std::is_same_v<decltype(INT2MICRON(short{})), int>);
-    static_assert(std::is_same_v<decltype(MICRON2INT(bool{})), int>);
-    static_assert(std::is_same_v<decltype(INT2MICRON(1.0F)), float>);
-    static_assert(std::is_same_v<decltype(MICRON2INT(1.0L)), long double>);
+    static_assert(INT2MM(0) == 0.0);
+    static_assert(INT2MM2(0) == 0.0);
+    static_assert(MM2INT(0.0) == 0);
+    static_assert(MM2_2INT(0.0) == 0);
+    static_assert(MM3_2INT(0.0) == 0);
+    static_assert(INT2MICRON(0) == 0);
+    static_assert(MICRON2INT(0) == 0);
+    static_assert(INT2MICRON(-42) == -42);
+    static_assert(MICRON2INT(42) == 42);
     EXPECT_EQ(INT2MICRON(-42), -42);
-    EXPECT_EQ(MICRON2INT(1.5), 1.5);
+    EXPECT_EQ(MICRON2INT(static_cast<coord_t>(1.5)), 1);
 }
 
 TEST(CoordTTest, TestConversionRoundingAndPrecision)
 {
-    const auto check_conversions = []<typename T>(T n)
+    const auto check_conversions = [](double n)
     {
         EXPECT_EQ(MM2INT(n), static_cast<coord_t>(n * 1000 + 0.5 * ((n > 0) - (n < 0))));
         EXPECT_EQ(MM2_2INT(n), static_cast<coord_t>(n * 1000000 + 0.5 * ((n > 0) - (n < 0))));
@@ -47,20 +58,37 @@ TEST(CoordTTest, TestConversionRoundingAndPrecision)
     for (double n : { 0.0, 0.0004999, -0.0004999, 0.0005, -0.0005, 0.0005001, -0.0005001, 1.2345, -1.2345 })
     {
         check_conversions(n);
-        check_conversions(static_cast<float>(n));
-        check_conversions(static_cast<long double>(n));
+        check_conversions(static_cast<double>(static_cast<float>(n)));
     }
     check_conversions(1);
     check_conversions(-1);
     check_conversions(1U);
     check_conversions(true);
-    EXPECT_EQ(MM2INT(0.0015F), 2); // Multiplication must happen in float before the rounding bias is added.
-    EXPECT_EQ(MM2INT(-0.0015F), -2);
-    check_conversions(Velocity{ 1.2345 });
+    const auto check_half_thresholds = [](coord_t (*convert)(double), double half_threshold)
+    {
+        EXPECT_EQ(convert(half_threshold * 0.9998), 0);
+        EXPECT_EQ(convert(-half_threshold * 0.9998), 0);
+        EXPECT_EQ(convert(half_threshold), 1);
+        EXPECT_EQ(convert(-half_threshold), -1);
+        EXPECT_EQ(convert(half_threshold * 1.0002), 1);
+        EXPECT_EQ(convert(-half_threshold * 1.0002), -1);
+    };
+    check_half_thresholds(&MM2INT, 0.0005);
+    check_half_thresholds(&MM2_2INT, 0.0000005);
+    check_half_thresholds(&MM3_2INT, 0.0000000005);
+    check_conversions(static_cast<double>(1.2345L));
+    // The float literal is below the half threshold when promoted before multiplication.
+    EXPECT_EQ(MM2INT(static_cast<double>(0.0015F)), 1);
+    EXPECT_EQ(MM2INT(static_cast<double>(-0.0015F)), -1);
+    EXPECT_EQ(MM2INT(0.0015), 2);
+    EXPECT_EQ(MM2INT(-0.0015), -2);
+    check_conversions(static_cast<double>(Velocity{ 1.2345 }));
+    check_conversions(static_cast<double>(Ratio{ 1.2345 }));
+    check_conversions(static_cast<double>(Duration{ 1.2345 }));
     const Velocity top_speed{ 50.0 };
     const Velocity start_speed{ 25.0 };
     const auto distance = (square(top_speed) - square(start_speed)) / 100.0;
-    EXPECT_EQ(MM2INT(distance), 18750);
+    EXPECT_EQ(MM2INT(static_cast<double>(distance)), 18750);
 }
 
 TEST(CoordTTest, TestConversionsEvaluateArgumentOnce)
@@ -71,13 +99,13 @@ TEST(CoordTTest, TestConversionsEvaluateArgumentOnce)
         ++calls;
         return 1.5;
     };
-    EXPECT_EQ(INT2MM(value()), 0.0015);
-    EXPECT_EQ(INT2MM2(value()), 0.0000015);
+    EXPECT_EQ(INT2MM(static_cast<coord_t>(value())), 0.001);
+    EXPECT_EQ(INT2MM2(static_cast<coord_t>(value())), 0.000001);
     EXPECT_EQ(MM2INT(value()), 1500);
     EXPECT_EQ(MM2_2INT(value()), 1500000);
     EXPECT_EQ(MM3_2INT(value()), 1500000000);
-    EXPECT_EQ(INT2MICRON(value()), 1.5);
-    EXPECT_EQ(MICRON2INT(value()), 1.5);
+    EXPECT_EQ(INT2MICRON(static_cast<coord_t>(value())), 1);
+    EXPECT_EQ(MICRON2INT(static_cast<coord_t>(value())), 1);
     EXPECT_EQ(calls, 7);
 }
 
