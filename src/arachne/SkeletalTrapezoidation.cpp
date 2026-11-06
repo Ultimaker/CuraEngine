@@ -862,7 +862,7 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
     edge_t* next_edge = to_edge->next_;
     for (; next_edge && next_edge != to_edge->twin_; next_edge = next_edge->twin_->next_)
     {
-        if (next_edge->to_->data_.distance_to_boundary_ >= r || types::geometry::shorterThen(next_edge->to_->p_ - next_edge->from_->p_, 10))
+        if (next_edge->to_->data_.distance_to_boundary_ >= r || types::geometry::shorterThan(next_edge->to_->p_ - next_edge->from_->p_, 10))
         {
             break; // Only walk upward
         }
@@ -1519,7 +1519,7 @@ void SkeletalTrapezoidation::generateExtraRibs()
     //       The code was equivalent to a full loop over all the edges though, unless there was one edge or less, in which case it would produce undefined behaviour.
     for (auto& edge : graph_.edges_)
     {
-        if (! edge.data_.isCentral() || types::geometry::shorterThen(edge.to_->p_ - edge.from_->p_, discretization_step_size_)
+        if (! edge.data_.isCentral() || types::geometry::shorterThan(edge.to_->p_ - edge.from_->p_, discretization_step_size_)
             || edge.from_->data_.distance_to_boundary_ >= edge.to_->data_.distance_to_boundary_)
         {
             continue;
@@ -1715,7 +1715,7 @@ void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         }
         assert(
             (upward_edge->from_->data_.distance_to_boundary_ != upward_edge->to_->data_.distance_to_boundary_
-             || types::geometry::shorterThen(upward_edge->to_->p_ - upward_edge->from_->p_, central_filter_dist_))
+             || types::geometry::shorterThan(upward_edge->to_->p_ - upward_edge->from_->p_, central_filter_dist_))
             && "zero difference R edges should always be central");
         coord_t length = types::geometry::vSize(upward_edge->to_->p_ - upward_edge->from_->p_);
         BeadingPropagation upper_beading = lower_beading;
@@ -2043,14 +2043,14 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     {
         force_new_path = true;
     }
-    if (! force_new_path && types::geometry::shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - from.p_, 10)
+    if (! force_new_path && types::geometry::shorterThan(generated_toolpaths[inset_idx].back().junctions_.back().p_ - from.p_, 10)
         && std::abs(generated_toolpaths[inset_idx].back().junctions_.back().w_ - from.w_) < 10 && ! from_is_3way // force new path at 3way intersection
     )
     {
         generated_toolpaths[inset_idx].back().junctions_.push_back(to);
     }
     else if (
-        ! force_new_path && types::geometry::shorterThen(generated_toolpaths[inset_idx].back().junctions_.back().p_ - to.p_, 10)
+        ! force_new_path && types::geometry::shorterThan(generated_toolpaths[inset_idx].back().junctions_.back().p_ - to.p_, 10)
         && std::abs(generated_toolpaths[inset_idx].back().junctions_.back().w_ - to.w_) < 10 && ! to_is_3way // force new path at 3way intersection
     )
     {
@@ -2167,11 +2167,11 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 const bool from_is_odd = quad_start->to_->data_.bead_count_ > 0 && quad_start->to_->data_.bead_count_ % 2 == 1 // quad contains single bead segment
                                       && quad_start->to_->data_.transition_ratio_ == 0 // We're not in a transition
                                       && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                      && types::geometry::shorterThen(from.p_ - quad_start->to_->p_, 5);
+                                      && types::geometry::shorterThan(from.p_ - quad_start->to_->p_, 5);
                 const bool to_is_odd = quad_end->from_->data_.bead_count_ > 0 && quad_end->from_->data_.bead_count_ % 2 == 1 // quad contains single bead segment
                                     && quad_end->from_->data_.transition_ratio_ == 0 // We're not in a transition
                                     && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                    && types::geometry::shorterThen(to.p_ - quad_end->from_->p_, 5);
+                                    && types::geometry::shorterThan(to.p_ - quad_end->from_->p_, 5);
                 const bool is_odd_segment = from_is_odd && to_is_odd;
 
                 if (is_odd_segment && passed_odd_edges.count(quad_start->next_->twin_) > 0) // Only generate toolpath for odd segments once

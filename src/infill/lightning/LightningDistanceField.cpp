@@ -61,7 +61,7 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
         {
             std::list<UnsupCell>::iterator& list_it = it->second;
             UnsupCell& cell = *list_it;
-            if (types::geometry::shorterThen(cell.loc_ - added_leaf, supporting_radius_))
+            if (types::geometry::shorterThan(cell.loc_ - added_leaf, supporting_radius_))
             {
                 unsupported_points_.erase(list_it);
                 unsupported_points_grid_.erase(it);

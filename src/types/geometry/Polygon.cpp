@@ -44,7 +44,7 @@ void Polygon::smooth2(int remove_length, Polygon& result) const
         const Point2LL& last = getPoints()[poly_idx - 1];
         const Point2LL& now = getPoints()[poly_idx];
         const Point2LL& next = getPoints()[(poly_idx + 1) % size()];
-        if (shorterThen(last - now, remove_length) && shorterThen(now - next, remove_length))
+        if (shorterThan(last - now, remove_length) && shorterThan(now - next, remove_length))
         {
             poly_idx++; // skip the next line piece (dont escalate the removal of edges)
             if (poly_idx < size())

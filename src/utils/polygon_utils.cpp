@@ -970,7 +970,7 @@ bool getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& p
     {
         int next_idx = (prev_idx + 1 + poly_start_idx) % poly.size(); // last checked segment is between last point in poly and poly[0]...
         const Point2LL& next_poly_point = poly[next_idx];
-        if (! types::geometry::shorterThen(next_poly_point - from, dist))
+        if (! types::geometry::shorterThan(next_poly_point - from, dist))
         {
             /*
              *                 x    r
@@ -989,7 +989,7 @@ bool getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& p
 
             Point2LL pn = next_poly_point - prev_poly_point;
 
-            if (types::geometry::shorterThen(pn, 100)) // when precision is limited
+            if (types::geometry::shorterThan(pn, 100)) // when precision is limited
             {
                 Point2LL middle = (next_poly_point + prev_poly_point) / 2;
                 coord_t dist_to_middle = types::geometry::vSize(from - middle);
@@ -1010,7 +1010,7 @@ bool getNextPointWithDistance(Point2LL from, int64_t dist, const OpenPolyline& p
             Point2LL px = types::geometry::dot(pf, pn) / types::geometry::vSize(pn) * pn / types::geometry::vSize(pn);
             Point2LL xf = pf - px;
 
-            if (! types::geometry::shorterThen(xf, dist)) // line lies wholly further than pn
+            if (! types::geometry::shorterThan(xf, dist)) // line lies wholly further than pn
             {
                 prev_poly_point = next_poly_point;
                 continue;

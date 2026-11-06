@@ -101,7 +101,7 @@ bool Comb::calc(
     bool& unretract_before_last_travel_move,
     bool& do_retracted_move)
 {
-    if (types::geometry::shorterThen(end_point - start_point, max_comb_distance_ignored))
+    if (types::geometry::shorterThan(end_point - start_point, max_comb_distance_ignored))
     {
         return true;
     }

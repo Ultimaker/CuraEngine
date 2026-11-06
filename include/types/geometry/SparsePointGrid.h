@@ -83,7 +83,7 @@ const ElemT* SGI_THIS::getAnyNearby(const types::geometry::Point2LL& query_pt, c
     const ElemT* ret = nullptr;
     const std::function<bool(const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)
     {
-        if (types::geometry::shorterThen(m_locator(maybe_nearby) - query_pt, radius))
+        if (types::geometry::shorterThan(m_locator(maybe_nearby) - query_pt, radius))
         {
             ret = &maybe_nearby;
             return false;

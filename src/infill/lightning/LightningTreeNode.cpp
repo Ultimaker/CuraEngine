@@ -251,7 +251,7 @@ LightningTreeNode::RectilinearJunction
         {
             Point2LL ab = b - a;
             Point2LL destination = a + ab * accumulated_dist / std::max(coord_t(1), total_dist_to_junction_below);
-            if (types::geometry::shorterThen(destination - p_, magnitude))
+            if (types::geometry::shorterThan(destination - p_, magnitude))
             {
                 p_ = destination;
             }

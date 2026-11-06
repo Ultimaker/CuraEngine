@@ -29,12 +29,12 @@ bool isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell, const std::ve
 {
     if (cell.contains_point())
     {
-        return types::geometry::shorterThen(p - getSourcePoint(cell, points, segments), snap_dist);
+        return types::geometry::shorterThan(p - getSourcePoint(cell, points, segments), snap_dist);
     }
     else
     {
         const Segment& segment = getSourceSegment(cell, points, segments);
-        return types::geometry::shorterThen(p - segment.from(), snap_dist) || types::geometry::shorterThen(p - segment.to(), snap_dist);
+        return types::geometry::shorterThan(p - segment.from(), snap_dist) || types::geometry::shorterThan(p - segment.to(), snap_dist);
     }
 }
 

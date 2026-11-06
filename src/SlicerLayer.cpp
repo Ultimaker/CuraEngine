@@ -64,7 +64,7 @@ int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, const int f
         const int segment_idx = (*it).second;
         Point2LL p1 = segments_[segment_idx].start;
         Point2LL diff = segment.end - p1;
-        if (types::geometry::shorterThen(diff, largest_neglected_gap_first_phase))
+        if (types::geometry::shorterThan(diff, largest_neglected_gap_first_phase))
         {
             if (segment_idx == static_cast<int>(start_segment_idx))
             {
@@ -707,7 +707,7 @@ std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(Point2L
                 if (distOnLine >= 0 && distOnLine <= lineLength)
                 {
                     Point2LL q = p0 + pDiff * distOnLine / lineLength;
-                    if (types::geometry::shorterThen(q - input, MM2INT(0.1)))
+                    if (types::geometry::shorterThan(q - input, MM2INT(0.1)))
                     {
                         ClosePolygonResult ret;
                         ret.polygonIdx = n;

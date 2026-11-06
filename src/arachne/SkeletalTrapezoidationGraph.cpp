@@ -48,7 +48,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 
     auto should_collapse = [snap_dist](node_t* a, node_t* b)
     {
-        return types::geometry::shorterThen(a->p_ - b->p_, snap_dist);
+        return types::geometry::shorterThan(a->p_ - b->p_, snap_dist);
     };
 
     for (auto edge_it = edges_.begin(); edge_it != edges_.end();)

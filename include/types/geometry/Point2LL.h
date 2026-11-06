@@ -128,7 +128,7 @@ INLINE double vSize2f(const Point2LL& p0)
     return static_cast<double>(p0.X) * static_cast<double>(p0.X) + static_cast<double>(p0.Y) * static_cast<double>(p0.Y);
 }
 
-INLINE bool shorterThen(const Point2LL& p0, const types::coord_t len)
+INLINE bool shorterThan(const Point2LL& p0, const types::coord_t len)
 {
     if (p0.X > len || p0.X < -len)
     {
@@ -139,11 +139,6 @@ INLINE bool shorterThen(const Point2LL& p0, const types::coord_t len)
         return false;
     }
     return vSize2(p0) <= len * len;
-}
-
-INLINE bool shorterThan(const Point2LL& p0, const types::coord_t len)
-{
-    return shorterThen(p0, len);
 }
 
 INLINE types::coord_t vSize(const Point2LL& p0)

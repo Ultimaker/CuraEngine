@@ -429,7 +429,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
     }
     else if (
         force_retract == ForceRetract::Retracted && last_planned_position_
-        && ! types::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+        && ! types::geometry::shorterThan(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
@@ -525,7 +525,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
     // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
     if (! is_first_travel_of_layer && last_planned_position_
-        && types::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+        && types::geometry::shorterThan(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
         path->perform_z_hop = false;
@@ -533,7 +533,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
 
     // no combing? retract only when path is not shorter than minimum travel distance
     if (! combed && ! is_first_travel_of_layer && last_planned_position_
-        && ! types::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+        && ! types::geometry::shorterThan(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         if (was_inside_) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         { // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
