@@ -17,7 +17,7 @@
 #include "Application.h"
 #include "LayerPlan.h"
 #include "Slice.h"
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
+#include "MockCommunication.h" // No-op Communication used by tests.
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.

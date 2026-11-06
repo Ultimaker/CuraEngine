@@ -1,60 +1,78 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef ARCUSCOMMUNICATION_H
-#define ARCUSCOMMUNICATION_H
-#ifdef ARCUS
+#ifndef GRPCCOMMUNICATION_H
+#define GRPCCOMMUNICATION_H
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h>
 #endif
 #include <memory> //For unique_ptr and shared_ptr.
 
-#include "Communication.h" //The class we're implementing.
-#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
+#include "SliceDataStruct.h"
+#include "communication/Communication.h" //The class we're implementing.
+
+namespace google::protobuf
+{
+
+class Message;
+template<class Field>
+class RepeatedPtrField;
+
+} // namespace google::protobuf
 
 // Forward declarations to speed up compilation.
-namespace Arcus
-{
-class Socket;
-}
-
 namespace cura
 {
 
+class Scene;
+class MeshGroup;
+class Mesh;
+class Slice;
 class Polygon;
+class GrpcTransport;
+class PathCompiler;
+
+namespace proto
+{
+
+class SettingList;
+class Extruder;
+class MeshGroup;
+class Object;
+class Layer;
+class Slice;
+
+} // namespace proto
 
 /*
- * \brief Communication class that connects via libArcus to Cura's front-end.
+ * \brief Communication class that connects via gRPC to Cura's front-end.
  */
-class ArcusCommunication : public Communication
+class GrpcCommunication : public Communication
 {
 #ifdef BUILD_TESTS
-    friend class ArcusCommunicationTest;
-    FRIEND_TEST(ArcusCommunicationTest, FlushGCodeTest);
-    FRIEND_TEST(ArcusCommunicationTest, HasSlice);
-    FRIEND_TEST(ArcusCommunicationTest, SendLayerComplete);
-    FRIEND_TEST(ArcusCommunicationTest, SendProgress);
-    friend class ArcusCommunicationPrivateTest;
+    friend class GrpcCommunicationTest;
+    FRIEND_TEST(GrpcCommunicationTest, FlushGCodeTest);
+    FRIEND_TEST(GrpcCommunicationTest, HasSlice);
+    FRIEND_TEST(GrpcCommunicationTest, SendLayerComplete);
+    FRIEND_TEST(GrpcCommunicationTest, SendProgress);
 #endif
+
 public:
     /*
-     * \brief Construct a new communicator that listens to libArcus messages via
-     * a network socket.
-     * \param ip The IP address to connect the socket to.
-     * \param port The port number to connect the socket to.
+     * \brief Construct a new gRPC client communicator.
      */
-    ArcusCommunication();
+    GrpcCommunication();
 
     /*
      * \brief Closes the connection.
      */
-    ~ArcusCommunication();
+    ~GrpcCommunication();
 
     /*
-     * \brief Initialize and connect the socket
+     * \brief Connect to Cura's streaming gRPC endpoint.
      */
-    void connect(const std::string& ip, const uint16_t port);
+    bool connect(const std::string& endpoint);
 
     /* \brief Sends a piece of GCode that is ready to be exported */
     void sendGCodePart(const std::string& gcode_part) override;
@@ -62,7 +80,7 @@ public:
     /*
      * \brief Test if there are any more slices in the queue.
      */
-    bool hasSlice() const override;
+    bool hasSlice() override;
 
     /*
      * \brief Send the current position to the front-end.
@@ -132,10 +150,10 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
-     * \brief Communicate to Arcus what our progress is.
+     * \brief Send progress to Cura.
      */
     void sendProgress(double progress) const override;
 
@@ -158,34 +176,34 @@ public:
     void sliceNext() override;
 
 private:
-    /*
-     * \brief Put any mock-socket there to assist with Unit-Testing.
-     */
-    void setSocketMock(Arcus::Socket* socket);
+    static std::shared_ptr<Slice> makeSlice(const proto::Slice& slice_message);
 
     /*
-     * \brief PIMPL pattern subclass that contains the private implementation.
+     * Reads the global settings from a Protobuf message.
+     *
+     * The global settings are stored in the current scene.
+     * \param global_settings_message The global settings message.
      */
-    class Private;
+    static void readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice);
+
+    static void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice);
 
     /*
-     * \brief Pointer that contains the private implementation.
+     * \brief Reads a Protobuf message describing a mesh group.
+     *
+     * This gets the vertex data from the message as well as the settings.
      */
-    const std::unique_ptr<Private> private_data;
+    static void readMeshGroupMessage(const proto::MeshGroup& mesh_group_message, Scene& scene);
 
-    /*
-     * \brief Another PIMPL pattern subclass for private implementation regarding the
-     * compilation of paths to Protobuf messages.
-     */
-    class PathCompiler;
+    static void readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group);
 
-    /*
-     * \brief Pointer that contains the private implementation of the path compiler.
-     */
-    const std::unique_ptr<PathCompiler> path_compiler;
+    std::unique_ptr<GrpcTransport> grpc_transport_;
+    std::unique_ptr<PathCompiler> path_compiler;
+    std::shared_ptr<Slice> current_slice_;
+    int last_sent_progress{ -1 }; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
+    SliceDataStruct<proto::Layer> sliced_layers;
 };
 
 } // namespace cura
 
-#endif // ARCUS
-#endif // ARCUSCOMMUNICATION_H
+#endif // GRPCCOMMUNICATION_H

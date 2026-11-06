@@ -51,30 +51,31 @@ broadcast_settings_request::value_type broadcast_settings_request::operator()(co
     }
 
     auto* object_settings = message.mutable_object_settings();
-    for (const auto& mesh_group : slice_message.object_lists())
-    {
-        std::unordered_map<std::string, std::string> mesh_group_settings;
-        for (const auto& setting : mesh_group.settings())
-        {
-            mesh_group_settings[setting.name()] = setting.value();
-        }
-        for (const auto& object : mesh_group.objects())
-        {
-            std::unordered_map<std::string, std::string> per_object_settings = mesh_group_settings;
-            for (const auto& setting : object.settings())
-            {
-                per_object_settings[setting.name()] = setting.value();
-            }
-
-            per_object_settings["mesh_name"] = object.name();
-
-            auto* settings = object_settings->Add()->mutable_settings();
-            for (const auto& key_value_pair : per_object_settings)
-            {
-                settings->emplace(key_value_pair.first, key_value_pair.second);
-            }
-        }
-    }
+#warning restore this
+    // for (const auto& mesh_group : slice_message.mesh_groups())
+    // {
+    //     std::unordered_map<std::string, std::string> mesh_group_settings;
+    //     for (const auto& setting : mesh_group.settings())
+    //     {
+    //         mesh_group_settings[setting.name()] = setting.value();
+    //     }
+    //     for (const auto& object : mesh_group.objects())
+    //     {
+    //         std::unordered_map<std::string, std::string> per_object_settings = mesh_group_settings;
+    //         for (const auto& setting : object.settings())
+    //         {
+    //             per_object_settings[setting.name()] = setting.value();
+    //         }
+    //
+    //         per_object_settings["mesh_name"] = object.name();
+    //
+    //         auto* settings = object_settings->Add()->mutable_settings();
+    //         for (const auto& key_value_pair : per_object_settings)
+    //         {
+    //             settings->emplace(key_value_pair.first, key_value_pair.second);
+    //         }
+    //     }
+    // }
 
     auto* limit_to_extruder = message.mutable_limit_to_extruder();
     for (const auto& setting_extruder : slice_message.limit_to_extruder())

@@ -34,7 +34,7 @@ public:
     /*
      * \brief Test if there are more slices to be queued.
      */
-    virtual bool hasSlice() const = 0;
+    virtual bool hasSlice() = 0;
 
     /*
      * \brief Indicate to the communication channel what the current progress of
