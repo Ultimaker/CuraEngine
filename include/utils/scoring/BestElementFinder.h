@@ -81,7 +81,7 @@ public:
      */
     void appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold = 0.0);
 
-    std::optional<size_t> findBestElement(const size_t candidates_count);
+    [[nodiscard]] std::optional<size_t> findBestElement(const size_t candidates_count);
 };
 
 } // namespace cura

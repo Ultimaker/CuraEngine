@@ -31,6 +31,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 #include "settings/types/Ratio.h"
+#include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"
 
@@ -230,13 +231,19 @@ Shape Shape::offset(coord_t distance, ClipperLib::JoinType join_type, double mit
 
 bool Shape::inside(const Point2LL& p, bool border_result) const
 {
+    return insideWithoutBorder(p).value_or(border_result);
+}
+
+[[nodiscard]] std::optional<bool> Shape::insideWithoutBorder(const Point2LL& p) const
+{
     int poly_count_inside = 0;
     for (const Polygon& poly : *this)
     {
         const int is_inside_this_poly = ClipperLib::PointInPolygon(p, poly.getPoints());
         if (is_inside_this_poly == -1)
         {
-            return border_result;
+            // Point is on the border of the polygon, so we cannot conclude if it is inside or outside.
+            return std::nullopt;
         }
         poly_count_inside += is_inside_this_poly;
     }
@@ -885,10 +892,17 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
 {
     std::vector<float> result;
 
+    const AABB lineseg_aabb({ start, end });
+
     for (const Polygon& polygon : getLines())
     {
         for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
         {
+            if (! AABB({ (*iterator).start, (*iterator).end }).hit(lineseg_aabb))
+            {
+                continue;
+            }
+
             float t, u;
             if (LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
             {

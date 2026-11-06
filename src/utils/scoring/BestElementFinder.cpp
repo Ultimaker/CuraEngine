@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <range/v3/view/enumerate.hpp>
+#include <spdlog/spdlog.h>
 
 #include "utils/scoring/ScoringCriterion.h"
 
@@ -23,7 +24,7 @@ void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriteri
     appendCriteriaPass(criteria_pass);
 }
 
-std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t candidates_count)
+std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates_count)
 {
     // Start by initializing the candidates list in natural order
     std::vector<Candidate> best_candidates(candidates_count);
@@ -46,7 +47,9 @@ std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t cand
 
             for (const auto& weighed_criterion : criteria_pass.criteria)
             {
-                iterator->score += weighed_criterion.criterion->computeScore(iterator->candidate_index) * weighed_criterion.weight;
+                const double criterion_score = weighed_criterion.criterion->computeScore(iterator->candidate_index);
+                assert(criterion_score >= 0.0 && criterion_score <= 1.0 && "Criterion score is out-of-bounds");
+                iterator->score += criterion_score * weighed_criterion.weight;
             }
 
             if (best_candidate_iterator == end || iterator->score > best_candidate_iterator->score)
@@ -68,13 +71,14 @@ std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t cand
         }
 
         // Skip candidates that have a score too far from the actual best one
+        const double best_score = best_candidate_iterator->score;
         const double delta_threshold = criteria_pass.outsider_delta_threshold + std::numeric_limits<double>::epsilon();
         end = std::remove_if(
             begin,
             end,
-            [&best_candidate_iterator, &delta_threshold](const Candidate& candidate)
+            [&best_score, &delta_threshold](const Candidate& candidate)
             {
-                return best_candidate_iterator->score - candidate.score > delta_threshold;
+                return best_score - candidate.score > delta_threshold;
             });
 
         if (std::distance(begin, end) == 1)

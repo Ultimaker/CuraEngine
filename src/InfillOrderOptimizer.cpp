@@ -494,6 +494,10 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
         const coord_t max_adjacent_distance = skin_support_line_distance * 1.1;
         constexpr coord_t exclude_distance = 0;
         constexpr bool skin_support_interlaced = true;
+
+        // You really want to avoid combing because it adds a backwards travel move that prevents the bridging lines to stick to their anchors
+        const coord_t max_distance_ignore_combing = max_adjacent_distance * 4;
+
         layer_plan.addLinesMonotonic(
             infill_below_skin,
             lines,
@@ -505,7 +509,9 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
             skin_support_wipe_dist,
             flow_ratio,
             skin_support_fan_speed,
-            skin_support_interlaced);
+            skin_support_interlaced,
+            override_areas,
+            max_distance_ignore_combing);
     }
     else
     {

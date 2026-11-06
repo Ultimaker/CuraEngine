@@ -397,8 +397,13 @@ public:
      * afterwards.
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur or not occur.
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
-    GCodePath& addTravel(const Point2LL& p, const ForceRetract force_retract = ForceRetract::AUTOMATIC, const coord_t z_offset = 0);
+    GCodePath& addTravel(
+        const Point2LL& p,
+        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
+        const coord_t z_offset = 0,
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -759,6 +764,7 @@ public:
      * \param extra_inwards_start_move_length The length of the extra inwards moves to be added at the start of each infill line
      * \param extra_inwards_end_move_length The length of the extra inwards moves to be added at the end of each infill line
      * \param extra_inwards_move_contour The contour to be considered in order to add the inwards moves
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
     template<class LineType>
     void addLinesByOptimizer(
@@ -775,7 +781,8 @@ public:
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
-        const MendedShape& extra_inwards_move_contour = MendedShape());
+        const MendedShape& extra_inwards_move_contour = MendedShape(),
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -823,6 +830,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
      * \param fan_speed Fan speed override for this path.
      * \param print_attributes Print attributes to be set for this segment, e.g. overhanging or bridging
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
     void addLinesMonotonic(
         const Shape& area,
@@ -836,7 +844,8 @@ public:
         const Ratio flow_ratio = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool interlaced = false,
-        const OverrideAreas& override_areas = {});
+        const OverrideAreas& override_areas = {},
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -971,6 +980,7 @@ private:
      * \param extra_inwards_start_move_length The length of the extra inwards moves to be added at the start of each infill line
      * \param extra_inwards_end_move_length The length of the extra inwards moves to be added at the end of each infill line
      * \param extra_inwards_move_contour The contour to be considered in order to add the inwards moves
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
     void addLinesInGivenOrder(
         const std::vector<PathOrdering<const Polyline*>>& lines,
@@ -982,7 +992,8 @@ private:
         const OverrideAreas& override_areas = {},
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
-        const MendedShape& extra_inwards_move_contour = MendedShape());
+        const MendedShape& extra_inwards_move_contour = MendedShape(),
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add order optimized polygons to the gcode.
@@ -1357,7 +1368,38 @@ private:
      */
     static OpenPolyline makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point, const coord_t move_inwards_length);
 
+    /*!
+     * Split a single extrusion segment if it goes through different areas when some of the extrusion settings should be overridden
+     * @param start The segment start position
+     * @param end The segment end position
+     * @param override_areas The list of areas that override the extrusion settings, ordered by precedence, i.e. when multiple areas overlap, only the last one should be applied
+     * @return The extrusion segment split in multiple parts where some extrusion settings should be overridden
+     */
     static std::vector<PartialExtrusionSegment> splitExtrusionSegment(const Point3LL& start, const Point3LL& end, const OverrideAreas& override_areas);
+
+    /*!
+     * Filters out the micro-segments that could be generated by splitting an extrusion segment to do override areas
+     * @param partial_extrusion_segments The original list of partial extrusion segment
+     * @param start The extrusion segment start position
+     * @return The filtered list of partial extrusion segments
+     */
+    static std::vector<PartialExtrusionSegment> filterOutMicroSegments(const std::vector<PartialExtrusionSegment>& partial_extrusion_segments, const Point3LL& start);
+
+    /*!
+     * Returns the closest intersections given a list containing a list of intersections
+     * @param multi_intersections The list of intersections. Each sub-list is assumed to be sorted, i.e. the intersection closest to the start should be at the beginning.
+     * @return The intersection closest to the start, i.e. that has the smaller value, or nullopt in case the list is empty.
+     */
+    static std::optional<float> findClosestIntersection(std::vector<std::vector<float>>& multi_intersections);
+
+    /*!
+     * Make a partial extrusion segment that goes through an override area
+     * @param override_areas The areas where the extrusion settings should be overridden
+     * @param p1 The partial extrusion destination position
+     * @param area_index The index of the override area this partial segment is crossing, or nullopt if it is not inside an override area
+     * @return The proper partial extrusion segment given the input values
+     */
+    static PartialExtrusionSegment makePartialExtrusionSegment(const std::vector<OverrideArea>& override_areas, const Point3LL& p1, const std::optional<size_t> area_index);
 };
 
 } // namespace cura
