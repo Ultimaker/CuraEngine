@@ -1,12 +1,13 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "types/geometry/DilationKernel.h"
+#include "interlocking/DilationKernel.h"
 
-namespace curaengine::types::geometry
+namespace curaengine::interlocking
 {
 
 using namespace types;
+using namespace types::geometry;
 using namespace utils;
 
 DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type)
@@ -47,4 +48,4 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
     }
 }
 
-} // namespace curaengine::types::geometry
+} // namespace curaengine::interlocking

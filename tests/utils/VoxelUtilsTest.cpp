@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "types/geometry/VoxelUtils.h"
+#include "interlocking/DilationKernel.h"
 
 #include <unordered_set>
 
@@ -201,7 +202,7 @@ TEST_F(VoxelUtilsTest, TestWalkDilated)
         }
         coord_t kernel_s = 1 + (poly_idx % 5);
         GridPoint3 kernel_size(kernel_s, kernel_s, 1);
-        DilationKernel kernel(kernel_size, DilationKernel::Type::Cube);
+        interlocking::DilationKernel kernel(kernel_size, interlocking::DilationKernel::Type::Cube);
 
         Point3 applied_offset = cell_size * kernel_size / 2 - cell_size / 2;
         coord_t max_dist_from_poly = vSize(Point(cell_size.x, cell_size.y) + Point(applied_offset.x, applied_offset.y)) + e;

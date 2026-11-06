@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "types/geometry/DilationKernel.h"
+#include "interlocking/DilationKernel.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/VoxelUtils.h"
@@ -15,6 +15,11 @@ namespace curaengine
 {
 
 class Slicer;
+
+} // namespace curaengine
+
+namespace curaengine::interlocking
+{
 
 /*!
  * Class for generating an interlocking structure between two adjacent models of a different extruder.
@@ -82,8 +87,8 @@ protected:
         const types::geometry::PointMatrix& rotation,
         types::geometry::Point3LL cell_size,
         types::coord_t beam_layer_count,
-        types::geometry::DilationKernel interface_dilation,
-        types::geometry::DilationKernel air_dilation,
+        DilationKernel interface_dilation,
+        DilationKernel air_dilation,
         bool air_filtering)
         : mesh_a_(mesh_a)
         , mesh_b_(mesh_b)
@@ -123,7 +128,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \return The shell voxels for mesh a and those for mesh b
      */
-    std::vector<std::unordered_set<types::geometry::GridPoint3>> getShellVoxels(const types::geometry::DilationKernel& kernel) const;
+    std::vector<std::unordered_set<types::geometry::GridPoint3>> getShellVoxels(const DilationKernel& kernel) const;
 
     /*!
      * Compute the voxels overlapping with the shell of some layers.
@@ -133,7 +138,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \param[out] cells The output cells which elong to the shell
      */
-    void addBoundaryCells(const std::vector<types::geometry::Shape>& layers, const types::geometry::DilationKernel& kernel, std::unordered_set<types::geometry::GridPoint3>& cells)
+    void addBoundaryCells(const std::vector<types::geometry::Shape>& layers, const DilationKernel& kernel, std::unordered_set<types::geometry::GridPoint3>& cells)
         const;
 
     /*!
@@ -170,10 +175,10 @@ protected:
     const types::geometry::PointMatrix rotation_;
     const types::geometry::Point3LL cell_size_;
     const types::coord_t beam_layer_count_;
-    const types::geometry::DilationKernel interface_dilation_;
-    const types::geometry::DilationKernel air_dilation_;
+    const DilationKernel interface_dilation_;
+    const DilationKernel air_dilation_;
     const bool air_filtering_; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut
                                //!< off midway in a beam.
 };
 
-} // namespace curaengine
+} // namespace curaengine::interlocking

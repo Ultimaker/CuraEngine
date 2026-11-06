@@ -3,6 +3,7 @@
 
 #include "types/geometry/VoxelUtils.h"
 
+#include "interlocking/DilationKernel.h"
 #include "types/geometry/PolygonUtils.h"
 
 namespace curaengine::types::geometry
@@ -10,6 +11,7 @@ namespace curaengine::types::geometry
 
 using namespace types;
 using namespace utils;
+using interlocking::DilationKernel;
 
 bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const
 {

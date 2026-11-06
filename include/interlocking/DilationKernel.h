@@ -7,10 +7,8 @@
 
 #include "types/geometry/Point3LL.h"
 
-namespace curaengine::types::geometry
+namespace curaengine::interlocking
 {
-
-using GridPoint3 = types::geometry::Point3LL;
 
 /*!
  * Class for holding the relative positiongs wrt a reference cell on which to perform a dilation.
@@ -45,11 +43,11 @@ struct DilationKernel
         Diamond,
         Prism
     };
-    GridPoint3 kernel_size_; //!< Size of the kernel in number of voxel cells
+    types::geometry::GridPoint3 kernel_size_; //!< Size of the kernel in number of voxel cells
     Type type_;
-    std::vector<GridPoint3> relative_cells_; //!< All offset positions relative to some reference cell which is to be dilated
+    std::vector<types::geometry::GridPoint3> relative_cells_; //!< All offset positions relative to some reference cell which is to be dilated
 
-    DilationKernel(GridPoint3 kernel_size, Type type);
+    DilationKernel(types::geometry::GridPoint3 kernel_size, Type type);
 };
 
-} // namespace curaengine::types::geometry
+} // namespace curaengine::interlocking

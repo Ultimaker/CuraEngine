@@ -179,6 +179,8 @@ public:
     }
 };
 
+using GridPoint3 = Point3LL;
+
 /*!
  * \brief Placeholder coordinate point (3D).
  *

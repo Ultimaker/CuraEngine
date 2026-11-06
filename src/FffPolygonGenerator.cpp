@@ -28,7 +28,7 @@
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
 #include "infill/Infill.h"
-#include "InterlockingGenerator.h"
+#include "interlocking/InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
 #include "mesh_material_splitter/MeshMaterialSplitter.h"
@@ -273,7 +273,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
     {
-        InterlockingGenerator::generateInterlockingStructure(slicerList);
+        interlocking::InterlockingGenerator::generateInterlockingStructure(slicerList);
     }
 
     storage.print_layer_count = 0;

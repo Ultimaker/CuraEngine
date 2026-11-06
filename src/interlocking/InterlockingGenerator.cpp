@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "InterlockingGenerator.h"
+#include "interlocking/InterlockingGenerator.h"
 
 #include <algorithm>
 
@@ -15,12 +15,12 @@
 #include "Slicer.h"
 #include "SlicerLayer.h"
 #include "types/LayerIndex.h"
-#include "types/geometry/DilationKernel.h"
+#include "interlocking/DilationKernel.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/PolygonUtils.h"
 #include "types/geometry/VoxelUtils.h"
 
-namespace curaengine
+namespace curaengine::interlocking
 {
 using namespace types::geometry;
 using namespace types;
@@ -346,4 +346,4 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     }
 }
 
-} // namespace curaengine
+} // namespace curaengine::interlocking

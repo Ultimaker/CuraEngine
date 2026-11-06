@@ -5,9 +5,13 @@
 
 #include <functional>
 
-#include "types/geometry/DilationKernel.h"
 #include "types/geometry/Point3LL.h"
 #include "types/geometry/Polygon.h"
+
+namespace curaengine::interlocking
+{
+struct DilationKernel;
+}
 
 namespace curaengine::types::geometry
 {
@@ -62,7 +66,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedPolygons(const types::geometry::Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedPolygons(const types::geometry::Shape& polys, coord_t z, const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
 private:
     /*!
@@ -94,7 +98,7 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedAreas(const types::geometry::Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedAreas(const types::geometry::Shape& polys, coord_t z, const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
      * Dilate with a kernel.
@@ -106,7 +110,7 @@ public:
      * \param kernel The offset positions relative to the input of \p process_cell_func
      * \param process_cell_func Function to perform on each voxel cell
      */
-    std::function<bool(GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    std::function<bool(GridPoint3)> dilate(const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     GridPoint3 toGridPoint(const types::geometry::Point3LL& point) const
     {

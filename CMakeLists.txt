@@ -59,7 +59,7 @@ set(engine_SRCS # Except main.cpp.
         src/infill/Infill.cpp
         src/InfillOrderOptimizer.cpp
         src/InsetOrderOptimizer.cpp
-        src/InterlockingGenerator.cpp
+        src/interlocking/InterlockingGenerator.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
         src/LayerPlanBuffer.cpp
@@ -187,7 +187,7 @@ set(engine_SRCS # Except main.cpp.
         src/types/geometry/Segment3LL.cpp
         src/types/CuraViz.cpp
         src/types/Date.cpp
-        src/types/geometry/DilationKernel.cpp
+        src/interlocking/DilationKernel.cpp
         src/types/geometry/ExtrusionJunction.cpp
         src/types/geometry/ExtrusionLine.cpp
         src/types/geometry/ExtrusionSegment.cpp
