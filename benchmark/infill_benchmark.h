@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_INFILL_BENCHMARK_H
@@ -6,60 +6,60 @@
 
 #include <benchmark/benchmark.h>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/LinesSet.h"
-#include "infill.h"
+#include "infill/Infill.h"
+#include "types/geometry/LinesSet.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/OpenPolyline.h"
 
-namespace cura
+namespace curaengine
 {
 class InfillTest : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    Shape square_shape;
-    Shape ff_holes;
+    types::geometry::Shape square_shape;
+    types::geometry::Shape ff_holes;
 
 
-    std::vector<ExtrusionLine> all_paths;
+    std::vector<types::geometry::ExtrusionLine> all_paths;
 
 
-    Shape outline_polygons;
-    EFillMethod pattern{ EFillMethod::LINES };
+    types::geometry::Shape outline_polygons;
+    types::EFillMethod pattern{ types::EFillMethod::Lines };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
-    coord_t line_distance{ 800 };
+    types::coord_t line_distance{ 800 };
 
-    coord_t INFILL_LINE_WIDTH = 350;
-    coord_t INFILL_OVERLAP = 0;
-    size_t INFILL_MULTIPLIER = 1;
-    AngleDegrees FILL_ANGLE = 0.;
-    coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
-    coord_t SHIFT = 0;
-    coord_t MAX_RESOLUTION = 10;
-    coord_t MAX_DEVIATION = 5;
+    types::coord_t infill_line_width = 350;
+    types::coord_t infill_overlap = 0;
+    size_t infill_multiplier = 1;
+    types::AngleDegrees fill_angle = 0.;
+    types::coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
+    types::coord_t shift = 0;
+    types::coord_t max_resolution = 10;
+    types::coord_t max_deviation = 5;
 
     void SetUp(const ::benchmark::State& state)
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(100), 0);
-        square_shape.back().emplace_back(MM2INT(100), MM2INT(100));
-        square_shape.back().emplace_back(0, MM2INT(100));
+        square_shape.back().emplace_back(types::mmToInt(100), 0);
+        square_shape.back().emplace_back(types::mmToInt(100), types::mmToInt(100));
+        square_shape.back().emplace_back(0, types::mmToInt(100));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(MM2INT(90), 0);
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(50));
-        ff_holes.back().emplace_back(0, MM2INT(50));
+        ff_holes.back().emplace_back(types::mmToInt(90), 0);
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(50));
+        ff_holes.back().emplace_back(0, types::mmToInt(50));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(90));
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(40));
-        ff_holes.back().emplace_back(MM2INT(40), MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(40), types::mmToInt(25));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(MM2INT(60), MM2INT(90));
-        ff_holes.back().emplace_back(MM2INT(60), MM2INT(40));
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(25));
 
         outline_polygons.push_back(square_shape);
         outline_polygons.push_back(ff_holes);
@@ -97,30 +97,30 @@ public:
 
 BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 {
-    Infill infill(
+    infill::Infill infill(
         pattern,
         zig_zagify,
         connect_polygons,
         outline_polygons,
-        INFILL_LINE_WIDTH,
+        infill_line_width,
         line_distance,
-        INFILL_OVERLAP,
-        INFILL_MULTIPLIER,
-        FILL_ANGLE,
-        Z,
-        SHIFT,
-        MAX_RESOLUTION,
-        MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
+        infill_overlap,
+        infill_multiplier,
+        fill_angle,
+        z,
+        shift,
+        max_resolution,
+        max_deviation); // There are some optional parameters, but these will do for now (future improvement?).
 
     for (auto _ : st)
     {
-        std::vector<VariableWidthLines> result_paths;
-        Shape result_polygons;
-        OpenLinesSet result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, 0, SectionType::INFILL, nullptr, nullptr);
+        std::vector<types::geometry::VariableWidthLines> result_paths;
+        types::geometry::Shape result_polygons;
+        types::geometry::OpenLinesSet result_lines;
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, types::SectionType::Infill, nullptr, nullptr);
     }
 }
 
 BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({ { true, false }, { 400, 800, 1200 } })->Unit(benchmark::kMillisecond);
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_INFILL_BENCHMARK_H

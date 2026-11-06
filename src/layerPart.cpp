@@ -1,17 +1,20 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
 
-#include "geometry/OpenPolyline.h"
+#include "Settings.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceMeshStorage.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "progress/Progress.h"
-#include "settings/EnumSettings.h" //For ESurfaceMode.
-#include "settings/Settings.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
-#include "utils/OpenPolylineStitcher.h"
-#include "utils/Simplify.h" //Simplifying the layers after creating them.
-#include "utils/ThreadPool.h"
+#include "types/ESurfaceMode.h"
+#include "types/ThreadPool.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/Simplify.h"
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -25,8 +28,11 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
@@ -47,7 +53,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     std::vector<SingleShape> result;
     const bool union_layers = settings.get<bool>("meshfix_union_all");
     const ESurfaceMode surface_only = settings.get<ESurfaceMode>("magic_mesh_surface_mode");
-    if (surface_only == ESurfaceMode::SURFACE && ! union_layers)
+    if (surface_only == ESurfaceMode::Surface && ! union_layers)
     { // Don't do anything with overlapping areas; no union nor xor
         result.reserve(layer->polygons_.size());
         for (const Polygon& poly : layer->polygons_)
@@ -86,7 +92,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         total_layers,
         [slicer, &mesh](size_t layer_nr)
@@ -99,7 +105,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
-        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.open_polylines.size() > 0))
+        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal && layer_storage.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             break;
@@ -107,4 +113,4 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

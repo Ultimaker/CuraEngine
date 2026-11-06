@@ -1,22 +1,19 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PROGRESS_PROGRESS_ESTIMATOR_H
-#define PROGRESS_PROGRESS_ESTIMATOR_H
+#pragma once
 
-#include <vector>
-
-namespace cura
+namespace curaengine::progress
 {
 /*
  * ProgressEstimator is a finger-tree with ProgressEstimatorLinear as leaves.
- * 
+ *
  * Each (non-leaf) node consists of a ProgressStageEstimator which consists of several stages.
- * 
+ *
  * The structure of this tree is an oversimplification of the call graph of CuraEngine.
- * 
+ *
  */
-    
+
 class ProgressEstimator
 {
 public:
@@ -26,6 +23,4 @@ public:
     }
 };
 
-} // namespace cura
-
-#endif // PROGRESS_PROGRESS_ESTIMATOR_H
+} // namespace curaengine::progress

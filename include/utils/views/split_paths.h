@@ -1,8 +1,7 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_SPLIT_PATHS_H
-#define CURAENGINE_SPLIT_PATHS_H
+#pragma once
 
 #include <string_view>
 
@@ -10,7 +9,7 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/view.hpp>
 
-namespace cura::views
+namespace curaengine::utils::views
 {
 namespace details
 {
@@ -28,6 +27,4 @@ inline static constexpr auto split_paths = ranges::views::split(details::path_se
                                                    return std::string_view(&*rng.begin(), ranges::distance(rng));
                                                });
 
-} // namespace cura::views
-
-#endif // CURAENGINE_SPLIT_PATHS_H
+} // namespace curaengine::utils::views

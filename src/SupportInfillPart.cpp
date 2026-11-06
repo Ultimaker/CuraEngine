@@ -1,11 +1,15 @@
-// Copyright (c) 2017 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SupportInfillPart.h"
 
-#include "support.h"
+#include "utils/area_support.h"
 
-using namespace cura;
+namespace curaengine
+{
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 
 SupportInfillPart::SupportInfillPart(
@@ -22,3 +26,5 @@ SupportInfillPart::SupportInfillPart(
     , use_fractional_config_(use_fractional_config)
 {
 }
+
+} // namespace curaengine

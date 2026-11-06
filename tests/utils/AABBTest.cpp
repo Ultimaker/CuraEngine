@@ -1,17 +1,20 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/AABB.h"
+#include "types/geometry/AABB.h"
 
 #include <polyclipping/clipper.hpp>
 
 #include <gtest/gtest.h>
 
-#include "geometry/Polygon.h"
-#include "geometry/Shape.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 // NOLINTBEGIN(*-magic-numbers)
 TEST(AABBTest, TestConstructEmpty)
 {
@@ -168,4 +171,4 @@ TEST(AABBTest, TestToPolygon)
 }
 // NOLINTEND(*-magic-numbers)
 
-} // namespace cura
+} // namespace curaengine

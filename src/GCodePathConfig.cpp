@@ -1,12 +1,16 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "GCodePathConfig.h"
 
-#include "geometry/Point2LL.h" // INT2MM
+#include "types/Acceleration.h"
+#include "types/geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
 
 [[nodiscard]] double GCodePathConfig::getExtrusionMM3perMM() const noexcept
 {
@@ -70,8 +74,8 @@ const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
 
 [[nodiscard]] double GCodePathConfig::calculateExtrusion() const noexcept
 {
-    return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
+    return intToMm(line_width) * intToMm(layer_thickness) * double(flow);
 }
 
 
-} // namespace cura
+} // namespace curaengine

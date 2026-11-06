@@ -1,22 +1,24 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PROGRESS_H
-#define PROGRESS_H
+#pragma once
 
 #include <array>
 #include <optional>
-#include <string>
 #include <string_view>
 
-#include "utils/gettime.h"
+#include "types/TimeKeeper.h"
 
-namespace cura
+namespace curaengine::types
+{
+struct LayerIndex;
+}
+
+namespace curaengine::progress
 {
 
-struct LayerIndex;
 
-static constexpr size_t N_PROGRESS_STAGES = 8;
+static constexpr size_t n_progress_stages = 8;
 
 /*!
  * Class for handling the progress bar and the progress logging.
@@ -32,32 +34,32 @@ public:
      */
     enum class Stage : unsigned int
     {
-        START = 0,
-        SPLIT_MULTIMATERIAL = 1,
-        SLICING = 2,
-        PARTS = 3,
-        INSET_SKIN = 4,
-        SUPPORT = 5,
-        EXPORT = 6,
-        FINISH = 7
+        Start = 0,
+        SplitMultiMaterial = 1,
+        Slicing = 2,
+        Parts = 3,
+        InsetSkin = 4,
+        Support = 5,
+        Export = 6,
+        Finish = 7
     };
 
 private:
-    static constexpr std::array<double, N_PROGRESS_STAGES> times{
-        0.0, // START   = 0,
-        50.0, // SPLIT_MULTIMATERIAL = 1
-        5.269, // SLICING = 1,
-        1.533, // PARTS   = 2,
-        71.811, // INSET_SKIN = 3
-        51.009, // SUPPORT = 4,
-        154.62, // EXPORT  = 5,
-        0.1 // FINISH  = 6
+    static constexpr std::array<double, n_progress_stages> times{
+        0.0, // Start   = 0,
+        50.0, // SplitMultiMaterial = 1
+        5.269, // Slicing = 1,
+        1.533, // Parts   = 2,
+        71.811, // InsetSkin = 3
+        51.009, // Support = 4,
+        154.62, // Export  = 5,
+        0.1 // Finish  = 6
     };
 
-    static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };
-    static std::array<double, N_PROGRESS_STAGES> accumulated_times; //!< Time past before each stage
+    static constexpr std::array<std::string_view, n_progress_stages> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };
+    static std::array<double, n_progress_stages> accumulated_times; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
-    static std::optional<LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
+    static std::optional<types::LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
     /*!
      * Give an estimate between 0 and 1 of how far the process is.
      *
@@ -84,7 +86,7 @@ public:
      * \param stage The current stage
      * \param timeKeeper The stapwatch keeping track of the timings for each stage (optional)
      */
-    static void messageProgressStage(Stage stage, TimeKeeper* timeKeeper);
+    static void messageProgressStage(Stage stage, types::TimeKeeper* timeKeeper);
 
     /*!
      * Message the layer progress over the command socket and into logging output.
@@ -95,9 +97,12 @@ public:
      * \param skip_threshold The time threshold under which we consider that the full layer time reporting should be skipped
      *                       because it is not relevant
      */
-    static void messageProgressLayer(const LayerIndex layer_nr, const size_t total_layers, const TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold = 100ms);
+    static void messageProgressLayer(
+        const types::LayerIndex layer_nr,
+        const size_t total_layers,
+        const types::TimeKeeper& time_keeper,
+        const std::chrono::milliseconds skip_threshold = std::chrono::milliseconds{ 100 });
 };
 
 
-} // namespace cura
-#endif // PROGRESS_H
+} // namespace curaengine::progress

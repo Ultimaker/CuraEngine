@@ -1,18 +1,21 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/linearAlg2D.h"
+#include "utils/linear_alg_2d.h"
 
 #include <cstdint>
 #include <numbers>
 
 #include <gtest/gtest.h>
 
-#include "geometry/Point3Matrix.h"
+#include "types/geometry/Point3Matrix.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * Parameters provided to getDist2FromLineSegment.
@@ -57,13 +60,13 @@ TEST_P(GetDist2FromLineSegmentTest, GetDist2FromLineSegment)
     const coord_t actual_distance2 = parameters.actual_distance2;
     const int16_t actual_is_beyond = parameters.actual_is_beyond;
 
-    // FIXME: or at least review this. The optional output parameter supposed_is_beyond in LinearAlg2D::getDist2FromLineSegment()
+    // FIXME: or at least review this. The optional output parameter supposed_is_beyond in linear_alg_2d::getDist2FromLineSegment()
     // may not always be set. In many cases, the value will not be set so the original value remains. In many test cases
     // supposed_is_beyond is expected to be 0 while it's not true: supposed_is_beyond is expected to remain the same.
     // I initialize supposed_is_beyond to 0 here to fix this for now, but I think this probably should be fixed in
-    // LinearAlg2D::getDist2FromLineSegment() so it doesn't have those undefined behaviour.
+    // linear_alg_2d::getDist2FromLineSegment() so it doesn't have those undefined behaviour.
     int16_t supposed_is_beyond = 0;
-    const coord_t supposed_distance = LinearAlg2D::getDist2FromLineSegment(line_start, point, line_end, &supposed_is_beyond);
+    const coord_t supposed_distance = linear_alg_2d::getDist2FromLineSegment(line_start, point, line_end, &supposed_is_beyond);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_LE(std::fabs(sqrt(double(supposed_distance)) - sqrt(double(actual_distance2))), maximum_error)
@@ -147,7 +150,7 @@ TEST_P(GetAngleTest, GetAngle)
     const double angle_degrees = parameters.angle;
     const double angle = angle_degrees * std::numbers::pi / 180.0;
 
-    const double supposed_angle = LinearAlg2D::getAngleLeft(a, b, c);
+    const double supposed_angle = linear_alg_2d::getAngleLeft(a, b, c);
     ASSERT_LE(std::fabs(angle - supposed_angle), maximum_error)
         << "Corner in " << a << " - " << b << " - " << c << " was computed to have an angle of " << supposed_angle << " instead of " << angle << ".";
 }
@@ -168,17 +171,17 @@ INSTANTIATE_TEST_CASE_P(
 
 TEST(GetAngleTest, GetAngleLeftAABTest)
 {
-    LinearAlg2D::getAngleLeft(Point2LL(0, 0), Point2LL(0, 0), Point2LL(100, 0)); // Any output is allowed. Just don't crash!
+    linear_alg_2d::getAngleLeft(Point2LL(0, 0), Point2LL(0, 0), Point2LL(100, 0)); // Any output is allowed. Just don't crash!
 }
 
 TEST(GetAngleTest, GetAngleLeftABBTest)
 {
-    LinearAlg2D::getAngleLeft(Point2LL(0, 0), Point2LL(100, 0), Point2LL(100, 100)); // Any output is allowed. Just don't crash!
+    linear_alg_2d::getAngleLeft(Point2LL(0, 0), Point2LL(100, 0), Point2LL(100, 100)); // Any output is allowed. Just don't crash!
 }
 
 TEST(GetAngleTest, GetAngleLeftAAATest)
 {
-    LinearAlg2D::getAngleLeft(Point2LL(0, 0), Point2LL(0, 0), Point2LL(0, 0)); // Any output is allowed. Just don't crash!
+    linear_alg_2d::getAngleLeft(Point2LL(0, 0), Point2LL(0, 0), Point2LL(0, 0)); // Any output is allowed. Just don't crash!
 }
 
 TEST(PointIsLeftOfLineTest, LeftOfLine)
@@ -188,7 +191,7 @@ TEST(PointIsLeftOfLineTest, LeftOfLine)
     const Point2LL a(10, 0); //  . |
     const Point2LL b(10, 20); //   |
 
-    const coord_t supposed = LinearAlg2D::pointIsLeftOfLine(p, a, b);
+    const coord_t supposed = linear_alg_2d::pointIsLeftOfLine(p, a, b);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_TRUE(actual * supposed > 0 || (actual == 0 && supposed == 0))
@@ -203,7 +206,7 @@ TEST(PointIsLeftOfLineTest, Sharp)
     const Point2LL a(1599, 3975); //  \    .
     const Point2LL b(200, 3996); //    \                                      .
 
-    const coord_t supposed = LinearAlg2D::pointIsLeftOfLine(p, a, b);
+    const coord_t supposed = linear_alg_2d::pointIsLeftOfLine(p, a, b);
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_TRUE(actual * supposed > 0 || (actual == 0 && supposed == 0))
         << "Point " << p << " was computed as lying " << ((supposed == 0) ? "on" : ((supposed < 0) ? "left" : "right")) << " the line from " << a << " to " << b << ", instead of "
@@ -251,7 +254,7 @@ TEST_P(GetPointOnLineWithDistTest, GetPointOnLineWithDist)
     const bool actual_returned = parameters.actual_returned;
 
     Point2LL supposed_result;
-    const bool supposed_returned = LinearAlg2D::getPointOnLineWithDist(p, a, b, dist, supposed_result);
+    const bool supposed_returned = linear_alg_2d::getPointOnLineWithDist(p, a, b, dist, supposed_result);
     const coord_t supposed_dist = vSize(supposed_result - p);
 
     if (actual_returned)
@@ -314,7 +317,7 @@ TEST_P(RotateAroundTest, RotateAround)
     const double angle = parameters.angle;
     const Point2LL actual_result = parameters.actual_result;
 
-    const Point3Matrix mat = LinearAlg2D::rotateAround(origin, angle);
+    const Point3Matrix mat = linear_alg_2d::rotateAround(origin, angle);
     const Point2LL supposed_result = mat.apply(point);
     ASSERT_LT(vSize(supposed_result - actual_result), 2) << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle
                                                          << " degrees resulted in " << supposed_result << " instead of expected " << actual_result << ".";
@@ -352,15 +355,15 @@ TEST(Temp, LineDistTests)
         const Point2LL b{ x.X - static_cast<coord_t>(len * std::sin(rang)), x.Y - static_cast<coord_t>(len * std::cos(rang)) };
 
         const coord_t abs_d = std::abs(d);
-        ASSERT_NEAR(LinearAlg2D::getDistFromLine(p, a, b), abs_d, 5);
-        ASSERT_NEAR(vSize(LinearAlg2D::getClosestOnLine(p, a, b) - x), 0, 5);
-        ASSERT_NEAR(vSize(LinearAlg2D::getClosestOnLineSegment(p, a, b) - x), 0, 5);
-        ASSERT_NEAR(std::sqrt(LinearAlg2D::getDist2FromLine(p, a, b)), abs_d, 5);
-        ASSERT_NEAR(std::sqrt(LinearAlg2D::getDist2FromLineSegment(a, p, b)), abs_d, 5);
+        ASSERT_NEAR(linear_alg_2d::getDistFromLine(p, a, b), abs_d, 5);
+        ASSERT_NEAR(vSize(linear_alg_2d::getClosestOnLine(p, a, b) - x), 0, 5);
+        ASSERT_NEAR(vSize(linear_alg_2d::getClosestOnLineSegment(p, a, b) - x), 0, 5);
+        ASSERT_NEAR(std::sqrt(linear_alg_2d::getDist2FromLine(p, a, b)), abs_d, 5);
+        ASSERT_NEAR(std::sqrt(linear_alg_2d::getDist2FromLineSegment(a, p, b)), abs_d, 5);
 
-        ASSERT_NEAR(std::round(std::sqrt(LinearAlg2D::getDist2FromLine(p, a, b))), LinearAlg2D::getDistFromLine(p, a, b), 5);
+        ASSERT_NEAR(std::round(std::sqrt(linear_alg_2d::getDist2FromLine(p, a, b))), linear_alg_2d::getDistFromLine(p, a, b), 5);
     }
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

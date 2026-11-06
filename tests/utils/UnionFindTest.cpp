@@ -1,11 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/UnionFind.h"
+#include "types/UnionFind.h"
+
 #include <gtest/gtest.h>
 
-namespace cura
+namespace curaengine
 {
+using namespace types;
 
 /*
  * Fixture that contains an empty, pre-constructed union-find data structure of
@@ -110,4 +112,4 @@ TEST_F(UnionFindTest, UniteSets)
     ASSERT_EQ(b, c) << "A+B and C+D must now be in the same set.";
 }
 
-} // namespace cura
+} // namespace curaengine

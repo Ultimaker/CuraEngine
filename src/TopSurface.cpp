@@ -1,16 +1,24 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TopSurface.h"
 
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "geometry/OpenPolyline.h"
-#include "infill.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
+#include "SliceMeshStorage.h"
+#include "infill/Infill.h"
+#include "types/EFillMethod.h"
+#include "types/EZSeamCornerPrefType.h"
+#include "types/EZSeamType.h"
+#include "types/geometry/OpenPolyline.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace infill;
+using namespace types;
+using namespace utils;
 
 TopSurface::TopSurface()
 {
@@ -50,7 +58,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     // Generate the lines to cover the surface.
     const int extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("ironing_pattern");
-    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZigZag;
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
     const coord_t line_spacing = mesh.settings.get<coord_t>("ironing_line_spacing");
     const coord_t line_width = line_config.getLineWidth();
@@ -71,7 +79,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     const bool skip_line_stitching = enforce_monotonic_order;
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
-    if (pattern == EFillMethod::ZIG_ZAG)
+    if (pattern == EFillMethod::ZigZag)
     {
         // Compensate for the outline_offset decrease that takes place when using the infill generator to generate ironing with the zigzag pattern
         const Ratio width_scale = (double)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
@@ -79,7 +87,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
     }
-    else if (pattern == EFillMethod::CONCENTRIC)
+    else if (pattern == EFillMethod::Concentric)
     {
         // Counteract the outline_offset increase that takes place when using the infill generator to generate ironing with the concentric pattern
         ironing_inset += line_spacing - line_width / 2;
@@ -109,7 +117,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     std::vector<VariableWidthLines> ironing_paths;
     Shape ironing_polygons;
     OpenLinesSet ironing_lines;
-    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), SectionType::IRONING);
+    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), SectionType::Ironing);
 
     if (ironing_polygons.empty() && ironing_lines.empty() && ironing_paths.empty())
     {
@@ -125,18 +133,21 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     if (! ironing_lines.empty())
     {
-        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+        if (pattern == EFillMethod::Lines || pattern == EFillMethod::ZigZag)
         {
             // Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
             const AABB bounding_box(ironed_areas);
             PointMatrix rotate(-direction + 90);
             const Point2LL center = bounding_box.getMiddle();
-            const Point2LL far_away = rotate.apply(
-                Point2LL(0, vSize(bounding_box.max_ - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
+            const Point2LL far_away = rotate.apply(Point2LL(
+                0,
+                types::geometry::vSize(bounding_box.max_ - center)
+                    * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
             // Two options to start, both perpendicular to the ironing lines. Which is closer?
-            const Point2LL front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
-            const Point2LL back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
-            if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
+            const Point2LL front_side = polygon_utils::findNearestVert(center + far_away, ironed_areas).p();
+            const Point2LL back_side = polygon_utils::findNearestVert(center - far_away, ironed_areas).p();
+            if (types::geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side)
+                < types::geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
             {
                 layer.addTravel(front_side);
             }
@@ -161,7 +172,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     if (! ironing_paths.empty())
     {
         constexpr coord_t wipe_dist = 0u;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
+        const ZSeamConfig z_seam_config(EZSeamType::Shortest, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::ZSeamCornerPrefInner, false);
         InsetOrderOptimizer wall_orderer(
             storage,
             layer,
@@ -188,4 +199,4 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     return added;
 }
 
-} // namespace cura
+} // namespace curaengine

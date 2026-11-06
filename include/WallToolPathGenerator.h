@@ -1,10 +1,9 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_WALLTOOLPATHGENERATOR_H
-#define CURAENGINE_WALLTOOLPATHGENERATOR_H
+#pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class WallToolPathGenerator
@@ -14,5 +13,3 @@ enum class WallToolPathGenerator
 };
 
 }
-
-#endif

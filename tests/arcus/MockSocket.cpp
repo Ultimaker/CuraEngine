@@ -1,9 +1,9 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "MockSocket.h"
 
-namespace cura
+namespace curaengine
 {
 
 MockSocket::MockSocket() = default;
@@ -46,4 +46,4 @@ Arcus::MessagePtr MockSocket::popMessageFromSendQueue()
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

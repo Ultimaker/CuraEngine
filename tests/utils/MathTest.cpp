@@ -1,15 +1,132 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/math.h"
 
+#include <atomic>
 #include <stdexcept>
+#include <thread>
+#include <vector>
 
 #include <gtest/gtest.h>
 
-namespace cura
+#include "utils/macros.h"
+
+namespace curaengine
 {
+using namespace types;
+using namespace utils;
 // NOLINTBEGIN(*-magic-numbers)
+
+TEST(MathTest, TestMathematicalConstants)
+{
+    static_assert(tau == 2.0 * std::numbers::pi);
+    EXPECT_EQ(one_over_sqrt_2, std::sqrt(1.0 / 2.0));
+    EXPECT_EQ(one_over_sqrt_3, std::sqrt(1.0 / 3.0));
+    EXPECT_EQ(one_over_sqrt_6, std::sqrt(1.0 / 6.0));
+    EXPECT_EQ(sqrt_two_third, std::sqrt(2.0 / 3.0));
+    EXPECT_EQ(sqrt_three_fourths, std::sqrt(3.0 / 4.0));
+}
+
+TEST(MathTest, TestUnusedParameterDoesNotCopy)
+{
+    struct NonCopyable
+    {
+        NonCopyable() = default;
+        NonCopyable(const NonCopyable&) = delete;
+    };
+    NonCopyable value;
+    unused_param(value);
+    unused_param(NonCopyable{});
+}
+
+TEST(MathTest, TestRunOncePerCallSite)
+{
+    int first = 0;
+    int second = 0;
+    for (int i = 0; i < 10; ++i)
+    {
+        run_once(
+            [&]
+            {
+                ++first;
+            });
+        run_once(
+            [&]
+            {
+                ++second;
+            });
+    }
+    EXPECT_EQ(first, 1);
+    EXPECT_EQ(second, 1);
+}
+
+TEST(MathTest, TestRunOnceConcurrentCalls)
+{
+    std::atomic<int> calls = 0;
+    std::atomic<bool> start = false;
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 8; ++i)
+    {
+        threads.emplace_back(
+            [&]
+            {
+                while (! start.load())
+                {
+                    std::this_thread::yield();
+                }
+                for (int j = 0; j < 100; ++j)
+                {
+                    run_once(
+                        [&]
+                        {
+                            ++calls;
+                        });
+                }
+            });
+    }
+    start = true;
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+    EXPECT_EQ(calls.load(), 1);
+}
+
+TEST(MathTest, TestRunOnceInTemplateContext)
+{
+    int calls = 0;
+    const auto invoke = [&]<typename T>()
+    {
+        run_once(
+            [&]
+            {
+                ++calls;
+            });
+    };
+    invoke.operator()<int>();
+    invoke.operator()<int>();
+    invoke.operator()<double>();
+    invoke.operator()<double>();
+    EXPECT_EQ(calls, 2);
+}
+
+TEST(MathTest, TestRunOnceDoesNotRetryExceptions)
+{
+    int calls = 0;
+    const auto invoke = [&]
+    {
+        run_once(
+            [&]
+            {
+                ++calls;
+                throw std::runtime_error("once");
+            });
+    };
+    EXPECT_THROW(invoke(), std::runtime_error);
+    EXPECT_NO_THROW(invoke());
+    EXPECT_EQ(calls, 1);
+}
 
 // Test cases for the square function
 TEST(MathTest, TestSquare)
@@ -66,4 +183,4 @@ TEST(MathTest, TestRoundUpDivide)
 
 // NOLINTEND(*-magic-numbers)
 
-} // namespace cura
+} // namespace curaengine

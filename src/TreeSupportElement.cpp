@@ -3,11 +3,15 @@
 
 #include "TreeSupportElement.h"
 
-#include "utils/OBJ.h"
+#include "TreeSupportBaseCircle.h"
+#include "types/OBJ.h"
 
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 TreeSupportElement::TreeSupportElement(
     coord_t distance_to_top,
@@ -39,7 +43,7 @@ TreeSupportElement::TreeSupportElement(
     , supports_roof_(supports_roof)
     , dont_move_until_(dont_move_until)
     , can_use_safe_radius_(can_use_safe_radius)
-    , last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false))
+    , last_area_increase_(AreaIncreaseSettings(AvoidanceType::Fast, 0, false, false, false, false))
     , missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0)
     , skip_ovalisation_(skip_ovalisation)
     , all_tips_({ target_position })
@@ -231,7 +235,7 @@ void TreeSupportElement::saveToObj(OBJ& obj, const coord_t z, const coord_t laye
 {
     if (area_)
     {
-        obj.write(*area_, z, layer_height, to_model_gracious_ ? SVG::Color::BLUE : SVG::Color::RED);
+        obj.write(*area_, z, layer_height, to_model_gracious_ ? SVG::Color::Blue : SVG::Color::Red);
     }
 }
 
@@ -275,4 +279,4 @@ TreeSupportElement::Ptr TreeSupportElement::makeMerged(
     return element;
 }
 
-} // namespace cura
+} // namespace curaengine

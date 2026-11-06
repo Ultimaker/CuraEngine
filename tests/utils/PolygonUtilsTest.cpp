@@ -1,17 +1,20 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/polygonUtils.h" // The class under test.
+#include "utils/polygon_utils.h"
 
 #include <gtest/gtest.h>
 
-#include "geometry/Point2LL.h" // Creating and testing with points.
-#include "geometry/Polygon.h" // Creating polygons to test with.
-#include "utils/Coord_t.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Polygon.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 struct MoveInsideParameters
 {
@@ -56,8 +59,8 @@ public:
 TEST_P(MoveInsideTest, MoveInside)
 {
     const MoveInsideParameters parameters = GetParam();
-    const ClosestPointPolygon cpp = PolygonUtils::findClosest(parameters.close_to, test_square);
-    Point2LL result = PolygonUtils::moveInside(cpp, parameters.distance);
+    const ClosestPointPolygon cpp = polygon_utils::findClosest(parameters.close_to, test_square);
+    Point2LL result = polygon_utils::moveInside(cpp, parameters.distance);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_LE(vSize(result - parameters.supposed), 10) << parameters.close_to << " moved with " << parameters.distance << " micron inside to " << result << " rather than "
@@ -73,7 +76,7 @@ TEST_P(MoveInsideTest, MoveInside2)
     Shape polys;
     polys.push_back(test_square);
     Point2LL result = parameters.close_to;
-    PolygonUtils::moveInside2(polys, result, parameters.distance);
+    polygon_utils::moveInside2(polys, result, parameters.distance);
     ASSERT_LE(vSize(result - parameters.supposed), 10) << parameters.close_to << " moved with " << parameters.distance << " micron inside to " << result << "rather than "
                                                        << parameters.supposed << ".";
 }
@@ -99,8 +102,8 @@ TEST_F(MoveInsideTest, cornerEdgeTest)
     const Point2LL supposed1(80, 80); // Allow two possible values here, since the behaviour for this edge case is not specified.
     const Point2LL supposed2(72, 100);
     constexpr coord_t distance = 28;
-    const ClosestPointPolygon cpp = PolygonUtils::findClosest(close_to, test_square);
-    const Point2LL result = PolygonUtils::moveInside(cpp, distance);
+    const ClosestPointPolygon cpp = polygon_utils::findClosest(close_to, test_square);
+    const Point2LL result = polygon_utils::moveInside(cpp, distance);
 
     constexpr coord_t maximum_error = 10;
 
@@ -120,8 +123,8 @@ TEST_F(MoveInsideTest, middleTest)
     const Point2LL supposed3(20, 50);
     const Point2LL supposed4(50, 20);
     constexpr coord_t distance = 20;
-    const ClosestPointPolygon cpp = PolygonUtils::findClosest(close_to, test_square);
-    const Point2LL result = PolygonUtils::moveInside(cpp, distance);
+    const ClosestPointPolygon cpp = polygon_utils::findClosest(close_to, test_square);
+    const Point2LL result = polygon_utils::moveInside(cpp, distance);
 
     constexpr coord_t maximum_error = 10;
 
@@ -142,14 +145,14 @@ TEST_F(MoveInsideTest, middleTestPenalty)
     const Point2LL supposed(80, 50);
     const Point2LL preferred_dir(120, 60);
     constexpr coord_t distance = 20;
-    const ClosestPointPolygon cpp = PolygonUtils::findClosest(
+    const ClosestPointPolygon cpp = polygon_utils::findClosest(
         close_to,
         test_square,
         [preferred_dir](Point2LL candidate)
         {
             return vSize2(candidate - preferred_dir);
         });
-    const Point2LL result = PolygonUtils::moveInside(cpp, distance);
+    const Point2LL result = polygon_utils::moveInside(cpp, distance);
 
     // FIXME: Clean-up message with ftm when CURA-8258 is implemented or when we use C++20
     ASSERT_LE(vSize(result - supposed), 10) << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n"
@@ -167,7 +170,7 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
     Shape polys;
     polys.push_back(test_square);
     Point2LL result = close_to;
-    PolygonUtils::moveInside2(polys, result, distance);
+    polygon_utils::moveInside2(polys, result, distance);
 
     constexpr coord_t maximum_error = 10;
     ASSERT_TRUE(vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error)
@@ -180,10 +183,10 @@ TEST_F(MoveInsideTest, pointyCorner)
     Point2LL result(from);
     Shape inside;
     inside.push_back(pointy_square);
-    ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
+    ClosestPointPolygon cpp = polygon_utils::ensureInsideOrOutside(inside, result, 10);
 
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_TRUE(inside.inside(result)) << from << " couldn't be moved inside.";
 }
 
@@ -195,9 +198,9 @@ TEST_F(MoveInsideTest, pointyCornerFail)
     Shape inside;
     inside.push_back(pointy_square);
 
-    ClosestPointPolygon cpp = PolygonUtils::moveInside2(inside, result, 10);
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    ClosestPointPolygon cpp = polygon_utils::moveInside2(inside, result, 10);
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_FALSE(inside.inside(result)) << from << " could be moved inside, while it was designed to fail.";
 }
 
@@ -209,9 +212,9 @@ TEST_F(MoveInsideTest, outsidePointyCorner)
     Shape inside;
     inside.push_back(pointy_square);
 
-    const ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    const ClosestPointPolygon cpp = polygon_utils::ensureInsideOrOutside(inside, result, -10);
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_TRUE(! inside.inside(result)) << from << " couldn't be moved outside.";
 }
 
@@ -224,9 +227,9 @@ TEST_F(MoveInsideTest, outsidePointyCornerFail)
     Shape inside;
     inside.push_back(pointy_square);
 
-    const ClosestPointPolygon cpp = PolygonUtils::moveInside2(inside, result, -10);
-    ASSERT_NE(cpp.point_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
-    ASSERT_NE(cpp.poly_idx_, NO_INDEX) << "Couldn't ensure point inside close to " << from << ".";
+    const ClosestPointPolygon cpp = polygon_utils::moveInside2(inside, result, -10);
+    ASSERT_NE(cpp.point_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
+    ASSERT_NE(cpp.poly_idx_, no_index) << "Couldn't ensure point inside close to " << from << ".";
     ASSERT_FALSE(! inside.inside(result)) << from << " could be moved outside to " << result << ", while it was designed to fail.";
 }
 
@@ -267,16 +270,16 @@ TEST_P(FindCloseTest, FindClose)
     const FindCloseParameters parameters = GetParam();
     Shape polygons;
     polygons.push_back(test_square);
-    auto loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
+    auto loc_to_line = polygon_utils::createLocToLineGrid(polygons, parameters.cell_size);
 
     std::optional<ClosestPointPolygon> cpp;
     if (parameters.penalty_function)
     {
-        cpp = PolygonUtils::findClose(parameters.close_to, polygons, *loc_to_line, *parameters.penalty_function);
+        cpp = polygon_utils::findClose(parameters.close_to, polygons, *loc_to_line, *parameters.penalty_function);
     }
     else
     {
-        cpp = PolygonUtils::findClose(parameters.close_to, polygons, *loc_to_line);
+        cpp = polygon_utils::findClose(parameters.close_to, polygons, *loc_to_line);
     }
 
     if (cpp)
@@ -377,8 +380,8 @@ public:
 TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
 {
     const GetNextParallelIntersectionParameters parameters = GetParam();
-    const ClosestPointPolygon start = PolygonUtils::findClosest(parameters.start_point, test_squares);
-    std::optional<ClosestPointPolygon> computed = PolygonUtils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
+    const ClosestPointPolygon start = polygon_utils::findClosest(parameters.start_point, test_squares);
+    std::optional<ClosestPointPolygon> computed = polygon_utils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
 
     ASSERT_EQ(bool(parameters.predicted), bool(computed)) << "An answer was predicted but not computed, or computed but not predicted.";
     if (parameters.predicted)
@@ -404,7 +407,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
 {
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_squares), 0);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_squares, test_squares), 0);
 }
 
 TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
@@ -412,7 +415,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingDisjunct)
     Shape shifted_polys = test_squares; // Make a copy.
     shifted_polys[0].translate(Point2LL(200, 0));
 
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_squares, shifted_polys), 1.0);
 }
 
 TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
@@ -420,7 +423,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingHalfOverlap)
     Shape shifted_polys = test_squares; // Make a copy.
     shifted_polys[0].translate(Point2LL(50, 0));
 
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.5);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_squares, shifted_polys), 0.5);
 }
 
 /*
@@ -433,7 +436,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
     Shape shifted_polys = test_squares; // Make a copy.
     shifted_polys[0].translate(Point2LL(50, 50));
 
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, shifted_polys), 0.75);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_squares, shifted_polys), 0.75);
 }
 
 /*
@@ -442,7 +445,7 @@ TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
  */
 TEST_F(PolygonUtilsTest, RelativeHammingLineSquare)
 {
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_line), 1.0)
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_squares, test_line), 1.0)
         << "The difference between the polygons is 100% because the area of the difference encompasses the area of the one polygon that "
            "has "
            "area.";
@@ -456,13 +459,13 @@ TEST_F(PolygonUtilsTest, RelativeHammingLineSquareDisjunct)
 {
     test_line[0].translate(Point2LL(0, 200));
 
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_line), 1.0);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_squares, test_line), 1.0);
 }
 
 TEST_F(PolygonUtilsTest,
        DISABLED_RelativeHammingLineLine) // Disabled because this fails due to a bug in Clipper of testing points inside a line-polygon.
 {
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line), 0.0);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_line, test_line), 0.0);
 }
 
 TEST_F(PolygonUtilsTest, RelativeHammingLineLineDisjunct)
@@ -470,14 +473,14 @@ TEST_F(PolygonUtilsTest, RelativeHammingLineLineDisjunct)
     Shape shifted_line = test_line; // Make a copy.
     shifted_line[0].translate(Point2LL(0, 1));
 
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line), 1.0);
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_line, test_line), 1.0);
 }
 
 TEST_F(PolygonUtilsTest, DISABLED_RelativeHammingLineLineDifferentVerts) // Disabled because this fails due to a bug in Clipper of testing
                                                                          // points inside a line-polygon.
 {
-    ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line_extra_vertices), 0.0) << "Even though the exact vertices are different, the actual outline is the same.";
+    ASSERT_EQ(polygon_utils::relativeHammingDistance(test_line, test_line_extra_vertices), 0.0) << "Even though the exact vertices are different, the actual outline is the same.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

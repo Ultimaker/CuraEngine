@@ -1,23 +1,29 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "LayerPlan.h" //The code under test.
+#include "LayerPlan.h"
 
 #include <algorithm>
 
 #include <gtest/gtest.h>
 
-#include "Application.h" //To provide settings for the layer plan.
-#include "RetractionConfig.h" //To provide retraction settings.
-#include "Slice.h" //To provide settings for the layer plan.
-#include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
-#include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
-#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
-#include "utils/Coord_t.h"
+#include "Application.h"
+#include "RetractionConfig.h"
+#include "Slice.h"
+#include "SliceDataStorage.h"
+#include "routing/Comb.h"
+#include "routing/NozzleTempInsert.h"
+#include "types/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace routing;
+using namespace types;
+using namespace utils;
+
+
 /*!
  * A fixture to test layer plans with.
  *
@@ -241,13 +247,13 @@ std::vector<bool> is_long = { false, true }; // Is the travel move longer than r
 std::vector<bool> is_long_combing = { false, true }; // Is the total travel distance longer than retraction_combing_max_distance.
 enum AddTravelTestScene
 {
-    OPEN, // The travel move goes through open air. There's nothing in the entire layer.
-    INSIDE, // The travel move goes through a part on the inside.
-    OBSTRUCTION, // The travel move goes through open air, but there's something in the way that needs to be avoided.
-    INSIDE_OBSTRUCTION, // The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
-    OTHER_PART // The travel move goes from one part to another.
+    Open, // The travel move goes through open air. There's nothing in the entire layer.
+    Inside, // The travel move goes through a part on the inside.
+    Obstruction, // The travel move goes through open air, but there's something in the way that needs to be avoided.
+    InsideObstruction, // The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
+    OtherPart // The travel move goes from one part to another.
 };
-std::vector<AddTravelTestScene> scene = { OPEN, INSIDE, OBSTRUCTION, INSIDE_OBSTRUCTION, OTHER_PART };
+std::vector<AddTravelTestScene> scene = { Open, Inside, Obstruction, InsideObstruction, OtherPart };
 
 /*!
  * Parameters for the AddTravelTest class.
@@ -285,7 +291,7 @@ struct AddTravelParameters
      */
     bool throughOutside() const
     {
-        return scene == AddTravelTestScene::OPEN || scene == AddTravelTestScene::OBSTRUCTION || scene == AddTravelTestScene::OTHER_PART;
+        return scene == AddTravelTestScene::Open || scene == AddTravelTestScene::Obstruction || scene == AddTravelTestScene::OtherPart;
     }
 
     /*!
@@ -294,7 +300,7 @@ struct AddTravelParameters
      */
     bool throughWalls() const
     {
-        return scene == AddTravelTestScene::OTHER_PART;
+        return scene == AddTravelTestScene::OtherPart;
     }
 };
 
@@ -322,7 +328,7 @@ public:
     Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
     AddTravelTest()
-        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
+        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::Open))
     {
         around_start_end.push_back(Point2LL(-100, -100));
         around_start_end.push_back(Point2LL(500100, -100));
@@ -370,27 +376,27 @@ public:
         Shape slice_data;
         switch (parameters.scene)
         {
-        case OPEN:
+        case Open:
             layer_plan.setIsInside(false);
             layer_plan.was_inside_ = false;
             break;
-        case INSIDE:
+        case Inside:
             slice_data.push_back(around_start_end);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;
-        case OBSTRUCTION:
+        case Obstruction:
             slice_data.push_back(between);
             layer_plan.setIsInside(false);
             layer_plan.was_inside_ = false;
             break;
-        case INSIDE_OBSTRUCTION:
+        case InsideObstruction:
             slice_data.push_back(around_start_end);
             slice_data.push_back(between_hole);
             layer_plan.setIsInside(true);
             layer_plan.was_inside_ = true;
             break;
-        case OTHER_PART:
+        case OtherPart:
             slice_data.push_back(around_start);
             slice_data.push_back(around_end);
             layer_plan.setIsInside(true);
@@ -592,23 +598,23 @@ TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
     constexpr Ratio overhang_speed_ratio = 0.5_r;
     Shape overhang_region;
     overhang_region.emplace_back();
-    overhang_region.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
-    overhang_region.back().emplace_back(MM2INT(1000), -MM2INT(1000));
-    overhang_region.back().emplace_back(MM2INT(1000), MM2INT(1000));
-    overhang_region.back().emplace_back(-MM2INT(1000), MM2INT(1000));
+    overhang_region.back().emplace_back(-mmToInt(1000), -mmToInt(1000));
+    overhang_region.back().emplace_back(mmToInt(1000), -mmToInt(1000));
+    overhang_region.back().emplace_back(mmToInt(1000), mmToInt(1000));
+    overhang_region.back().emplace_back(-mmToInt(1000), mmToInt(1000));
 
     const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, overhang_speed_ratio } };
 
     const GCodePathConfig config{
         .type = PrintFeatureType::OuterWall,
-        .line_width = MM2INT(0.4),
-        .layer_thickness = MM2INT(0.1),
+        .line_width = mmToInt(0.4),
+        .layer_thickness = mmToInt(0.1),
         .flow = 1.0_r,
         .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
     };
 
     // SetUp() placed last_planned_position at (0,0). Move somewhere entirely in the overhang zone.
-    layer_plan.addExtrusionMove(Point3LL(MM2INT(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(mmToInt(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     const bool any_reduced = std::any_of(
@@ -632,31 +638,31 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     // overhang_region: the rest of a huge area outside the square — gets speed_ratio = 0.5 (overhang)
     Shape supported_region;
     supported_region.emplace_back();
-    supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
-    supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
+    supported_region.back().emplace_back(-mmToInt(10), -mmToInt(10));
+    supported_region.back().emplace_back( mmToInt(10), -mmToInt(10));
+    supported_region.back().emplace_back( mmToInt(10),  mmToInt(10));
+    supported_region.back().emplace_back(-mmToInt(10),  mmToInt(10));
 
     Shape full_area;
     full_area.emplace_back();
-    full_area.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
-    full_area.back().emplace_back(MM2INT(1000), -MM2INT(1000));
-    full_area.back().emplace_back(MM2INT(1000), MM2INT(1000));
-    full_area.back().emplace_back(-MM2INT(1000), MM2INT(1000));
+    full_area.back().emplace_back(-mmToInt(1000), -mmToInt(1000));
+    full_area.back().emplace_back(mmToInt(1000), -mmToInt(1000));
+    full_area.back().emplace_back(mmToInt(1000), mmToInt(1000));
+    full_area.back().emplace_back(-mmToInt(1000), mmToInt(1000));
 
     const Shape overhang_region = full_area.difference(supported_region);
     const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, 0.5_r } };
 
     const GCodePathConfig config{
         .type = PrintFeatureType::OuterWall,
-        .line_width = MM2INT(0.4),
-        .layer_thickness = MM2INT(0.1),
+        .line_width = mmToInt(0.4),
+        .layer_thickness = mmToInt(0.1),
         .flow = 1.0_r,
         .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
     };
 
     // Start at (0,0) inside the square. Move to (50mm,0,0), crossing the boundary at x=10mm.
-    layer_plan.addExtrusionMove(Point3LL(MM2INT(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(mmToInt(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     bool found_full_speed = false;
@@ -688,5 +694,5 @@ TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
     EXPECT_EQ(nozzle_temp_inserts[5].temperature, 130.);
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

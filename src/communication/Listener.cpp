@@ -1,14 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
 
-#include <Arcus/Error.h> //To process error codes.
-#include <spdlog/spdlog.h>
-
 #include "communication/Listener.h"
 
-namespace cura
+#include <Arcus/Error.h>
+#include <spdlog/spdlog.h>
+
+namespace curaengine::communication
 {
 
 void Listener::stateChanged(Arcus::SocketState)
@@ -33,6 +33,6 @@ void Listener::error(const Arcus::Error& error)
     }
 }
 
-} // namespace cura
+} // namespace curaengine::communication
 
 #endif // ARCUS

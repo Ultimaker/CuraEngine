@@ -1,22 +1,26 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcode_export/gcodeExport.h" // The unit under test.
+#include "gcode/GCodeExport.h"
 
 #include <gtest/gtest.h>
 
-#include "Application.h" // To set up a slice with settings.
-#include "RetractionConfig.h" // For extruder switch tests.
-#include "Slice.h" // To set up a slice with settings.
-#include "WipeScriptConfig.h" // For wipe script tests.
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
-#include "gcode_export/GCodePart.h"
-#include "utils/Coord_t.h"
-#include "utils/Date.h" // To check the Griffin header.
+#include "Application.h"
+#include "RetractionConfig.h"
+#include "Slice.h"
+#include "WipeScriptConfig.h"
+#include "arcus/MockCommunication.h"
+#include "gcode/GCodePart.h"
+#include "types/Coord_t.h"
+#include "types/Date.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace gcode;
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * Fixture that provides a GCodeExport instance in a certain base state.
@@ -44,7 +48,7 @@ public:
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.current_position_ = Point3LL(0, 0, mmToInt(20));
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_e_offset_ = 0;
@@ -55,7 +59,7 @@ public:
         gcode.current_travel_acceleration_ = -1.0;
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
-        gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.setFlavor(EGCodeFlavor::Marlin);
         gcode.bed_temperature_ = 0;
         gcode.initial_bed_temp_ = 0;
         gcode.total_bounding_box_ = AABB3D();
@@ -207,7 +211,7 @@ public:
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.current_position_ = Point3LL(0, 0, MM2INT(20));
+        gcode.current_position_ = Point3LL(0, 0, mmToInt(20));
         gcode.layer_nr_ = 0;
         gcode.current_e_value_ = 0;
         gcode.current_extruder_ = 0;
@@ -217,7 +221,7 @@ public:
         gcode.current_travel_acceleration_ = -1.0;
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
-        gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.setFlavor(EGCodeFlavor::Marlin);
         gcode.initial_bed_temp_ = 0;
         gcode.bed_temperature_ = 0;
         gcode.total_bounding_box_ = AABB3D();
@@ -234,7 +238,7 @@ public:
 TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
     const size_t num_extruders = GetParam();
-    gcode.flavor_ = EGCodeFlavor::GRIFFIN;
+    gcode.flavor_ = EGCodeFlavor::Griffin;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
         Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
@@ -312,7 +316,7 @@ INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, test
  */
 TEST_F(GCodeExportTest, HeaderUltiGCode)
 {
-    gcode.flavor_ = EGCodeFlavor::ULTIGCODE;
+    gcode.flavor_ = EGCodeFlavor::UltiGCode;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
@@ -335,7 +339,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 TEST_F(GCodeExportTest, HeaderRepRap)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::REPRAP;
+    gcode.flavor_ = EGCodeFlavor::RepRap;
     gcode.extruder_attr_[0].filament_area_ = 5.0;
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
@@ -354,7 +358,7 @@ TEST_F(GCodeExportTest, HeaderRepRap)
 TEST_F(GCodeExportTest, HeaderMarlin)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::MARLIN;
+    gcode.flavor_ = EGCodeFlavor::Marlin;
     gcode.extruder_attr_[0].filament_area_ = 5.0;
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
@@ -373,7 +377,7 @@ TEST_F(GCodeExportTest, HeaderMarlin)
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
 {
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.123");
-    gcode.flavor_ = EGCodeFlavor::MARLIN_VOLUMATRIC;
+    gcode.flavor_ = EGCodeFlavor::MarlinVolumatric;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     const std::vector<double> filament_used = { 100, 200 };
@@ -724,5 +728,5 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output(), token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

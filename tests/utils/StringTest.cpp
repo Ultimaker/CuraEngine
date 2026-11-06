@@ -1,13 +1,18 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/string.h" // The file under test.
-#include "geometry/Point2LL.h"
+#include "utils/string.h"
+
 #include <gtest/gtest.h>
 
+#include "types/geometry/Point2LL.h"
+
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
 
 /*
  * Fixture to allow parameterized tests for writeInt2mm.
@@ -31,14 +36,14 @@ TEST_P(WriteInt2mmTest, WriteInt2mm)
     const std::string str = ss.str();
     ASSERT_TRUE(ss.good()) << "The integer " << in << " was printed as '" << str << "' which was a bad string!";
 
-    const int out = MM2INT(strtod(str.c_str(), nullptr));
+    const int out = mmToInt(strtod(str.c_str(), nullptr));
     ASSERT_EQ(in, out) << "The integer " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than " << in << "!";
 }
 
 INSTANTIATE_TEST_SUITE_P(
     WriteInt2mmTestInstantiation,
     WriteInt2mmTest,
-    testing::Values(-10000, -1000, -100, -10, -1, 0, 1, 10, 100, 1000, 10000, 123456789, std::numeric_limits<int32_t>::max() / 1001)); // For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
+    testing::Values(-10000, -1000, -100, -10, -1, 0, 1, 10, 100, 1000, 10000, 123456789, std::numeric_limits<int32_t>::max() / 1001)); // For max integer test, divide by 1000 since mmToInt multiplies by 1000 which would cause an overflow.
 
 /*
  * Fixture to allow parameterized tests for writeDoubleToStream.
@@ -86,5 +91,5 @@ INSTANTIATE_TEST_SUITE_P(WriteDoubleToStreamTestInstantiation,
                                          std::numeric_limits<double>::lowest(),
                                          -std::numeric_limits<double>::lowest()));
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

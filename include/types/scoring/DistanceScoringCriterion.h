@@ -1,0 +1,51 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#pragma once
+
+#include "types/scoring/PositionBasedScoringCriterion.h"
+
+namespace curaengine::types::geometry
+{
+class PointsSet;
+}
+
+namespace curaengine::types::scoring
+{
+
+
+/*!
+ * Criterion that will give a score according to the distance from the point to a target point. Closer points will get
+ * a higher score.
+ */
+class DistanceScoringCriterion : public PositionBasedScoringCriterion
+{
+public:
+    enum class DistanceType
+    {
+        Euclidian, // Classic euclidian distance between the points
+        XOnly, // Only difference on X coordinate
+        YOnly, // Only difference on Y coordinate
+    };
+
+private:
+    const types::geometry::Point2LL& target_pos_;
+    const DistanceType distance_type_;
+
+    /*!
+     * Fixed divider for shortest distances computation. The divider should be set so that the minimum encountered
+     * distance gives a score very close to 1.0, and a medium-far distance gives a score close to 0.5
+     */
+    const double distance_divider_;
+
+public:
+    explicit DistanceScoringCriterion(
+        const types::geometry::PointsSet& points,
+        const types::geometry::Point2LL& target_pos,
+        DistanceType distance_type = DistanceType::Euclidian,
+        const double distance_divider = 20.0);
+
+    virtual double computeScore(const types::geometry::Point2LL& candidate_position) const override;
+};
+
+} // namespace curaengine::types::scoring
