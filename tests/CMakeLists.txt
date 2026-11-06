@@ -15,6 +15,7 @@ set(TESTS_SRC_BASE
         LayerPlanTest
         PathOrderOptimizerTest
         PathOrderMonotonicTest
+        TextureDataProviderTest
         TimeEstimateCalculatorTest
         WallsComputationTest
 )

@@ -28,6 +28,14 @@ std::optional<uint32_t> TextureDataProvider::getValue(const size_t pixel_x, cons
     }
 
     const TextureBitField& bit_field = data_mapping_iterator->second;
+
+    // The bit-field range originates from untrusted texture metadata. Reject anything that violates the
+    // TextureBitField invariant, so the shift counts below cannot underflow and shift the uint32_t by 32 or more bits (undefined behaviour).
+    if (! bit_field.isValid())
+    {
+        return std::nullopt;
+    }
+
     const uint32_t pixel_data = texture_->getPixel(pixel_x, pixel_y);
 
     // Extract relevant bits by rotating the pixel data left then right, which will insert 0s where appropriate
