@@ -63,6 +63,7 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
         bridge_angle = 45;
         break;
     case EFillMethod::CUBICSUBDIV:
+    case EFillMethod::CROSSHATCH:
         bridge_angle = infill_angle_below + 45;
         break;
     case EFillMethod::TRIANGLES:
