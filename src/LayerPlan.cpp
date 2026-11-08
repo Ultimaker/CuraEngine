@@ -1996,7 +1996,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || is_candidate_small_feature) && wall_length < small_feature_max_length;
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
-    small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
+    small_feature_speed_factor = std::min(1.0_r, Ratio(std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()))));
     const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
     const auto max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
     const int direction = is_reversed ? -1 : 1;
@@ -3467,7 +3467,8 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point2LL starting_
             {
                 if (length > 0)
                 {
-                    path.estimates.extrude_time_at_minimum_speed += length / min_path_speed;
+                    const double effective_min_speed = std::min(min_path_speed, static_cast<double>(path.config.getSpeed() * path.speed_factor));
+                    path.estimates.extrude_time_at_minimum_speed += length / effective_min_speed;
                     path.estimates.extrude_time_at_slowest_path_speed += length / slowest_path_speed_;
                 }
                 material_estimate += length * INT2MM(layer_thickness_) * INT2MM(path.config.getLineWidth());

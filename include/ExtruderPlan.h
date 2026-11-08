@@ -45,6 +45,7 @@ class ExtruderPlan
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
     FRIEND_TEST(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet);
     FRIEND_TEST(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary);
+    FRIEND_TEST(OverhangSpeedTest, CoolMinSpeedExceedingBaseSpeedNeverAcceleratesPathOrShrinksMinSpeedTime);
 #endif
 public:
     size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.

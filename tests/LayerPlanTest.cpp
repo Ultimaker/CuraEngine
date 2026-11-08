@@ -688,5 +688,33 @@ TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
     EXPECT_EQ(nozzle_temp_inserts[5].temperature, 130.);
 }
 
+TEST_F(OverhangSpeedTest, CoolMinSpeedExceedingBaseSpeedNeverAcceleratesPathOrShrinksMinSpeedTime)
+{
+    FanSpeedLayerTimeSettings fan_settings = fan_speed_layer_time_settings.front();
+    fan_settings.cool_min_speed = Velocity{ 70.0 };
+    fan_settings.cool_min_layer_time = Duration{ 10.0 };
+    const RetractionConfig retraction_config{};
+
+    ExtruderPlan extruder_plan(0, LayerIndex(1), false, false, MM2INT(0.1), fan_settings, retraction_config);
+    GCodePath slow_wall_path{};
+    slow_wall_path.config = GCodePathConfig{
+        .type = PrintFeatureType::OuterWall,
+        .line_width = MM2INT(0.4),
+        .layer_thickness = MM2INT(0.1),
+        .flow = 1.0_r,
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 20.0 }, Acceleration{ 1500.0 }, Velocity{ 10.0 } },
+    };
+    slow_wall_path.speed_factor = 1.0_r;
+    slow_wall_path.points.emplace_back(MM2INT(10), 0, MM2INT(0.1));
+    extruder_plan.paths_.push_back(slow_wall_path);
+
+    const TimeMaterialEstimates estimates = extruder_plan.computeNaiveTimeEstimates(Point2LL(0, 0));
+    EXPECT_GE(estimates.extrude_time_at_minimum_speed, estimates.extrude_time);
+    EXPECT_DOUBLE_EQ(estimates.extrude_time_at_minimum_speed, estimates.extrude_time);
+
+    extruder_plan.forceMinimalLayerTime(10.0, 0.0);
+    EXPECT_LE(extruder_plan.paths_.front().speed_factor, 1.0_r);
+}
+
 } // namespace cura
 // NOLINTEND(*-magic-numbers)
