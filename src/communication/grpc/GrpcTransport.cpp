@@ -94,32 +94,7 @@ bool GrpcTransport::sendMessage(google::protobuf::Message&& message)
 
 std::optional<proto::CuraClientMessage> GrpcTransport::takeNextMessage()
 {
-    std::optional<proto::CuraClientMessage> message = receive_channel_.async_receive(boost::asio::use_future).get();
-
-#if 1
-    if (message->has_start_slice())
-    {
-        spdlog::info("<<<<<<<<<< Received start slice");
-    }
-    else if (message->has_exit_engine())
-    {
-        spdlog::info("<<<<<<<<<< Received engine exit");
-    }
-    else if (message->has_mesh_group())
-    {
-        spdlog::info("<<<<<<<<<< Received mesh group");
-    }
-    else if (message->has_object())
-    {
-        spdlog::info("<<<<<<<<<< Received object");
-    }
-    else if (message->has_slice())
-    {
-        spdlog::info("<<<<<<<<<< Received slice");
-    }
-#endif
-
-    return message;
+    return receive_channel_.async_receive(boost::asio::use_future).get();
 }
 
 boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
@@ -150,41 +125,6 @@ boost::asio::awaitable<void> GrpcTransport::handleSendingMessages(RPC& rpc)
             // Empty message means we should stop
             co_return;
         }
-
-#if 1
-        if (message->has_progress())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending progress");
-        }
-        else if (message->has_layer())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending layer");
-        }
-        else if (message->has_layer_optimized())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending layer_optimized");
-        }
-        else if (message->has_gcode_layer())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending gcode");
-        }
-        else if (message->has_slice_uuid())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending slice UUID");
-        }
-        else if (message->has_print_time_material_estimates())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending estimates");
-        }
-        else if (message->has_initial_extruder())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending initial extruder");
-        }
-        else if (message->has_slicing_finished())
-        {
-            spdlog::info(">>>>>>>>>> Actually Sending finished");
-        }
-#endif
 
         if (! co_await rpc.write(*message, boost::asio::use_awaitable))
         {
