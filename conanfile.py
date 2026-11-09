@@ -131,7 +131,7 @@ class CuraEngineConan(ConanFile):
                 continue
             self.requires(req)
         if self.options.enable_grpc_communication:
-            self.requires("asio-grpc/2.6.0")
+            self.requires("asio-grpc/3.7.0")
         if self.options.enable_plugins:
             self.requires("neargye-semver/0.3.0")
             for req in self.conan_data["requirements_plugins"]:
