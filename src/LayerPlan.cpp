@@ -235,6 +235,15 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                     if (combing_mode == CombingMode::INFILL)
                     {
                         part_combing_boundary = part.infill_area;
+                        if (boundary_type == CombBoundary::PREFERRED)
+                        {
+                            Shape skin_area;
+                            for (const SkinPart& skin_part : part.skin_parts)
+                            {
+                                skin_area.push_back(skin_part.outline);
+                            }
+                            part_combing_boundary = part_combing_boundary.difference(skin_area.offset(mesh.settings.get<coord_t>("retraction_combing_avoid_distance")));
+                        }
                     }
                     else
                     {
