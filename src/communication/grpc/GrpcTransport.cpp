@@ -27,8 +27,8 @@ namespace cura
 GrpcTransport::GrpcTransport(const std::string& endpoint, const grpc::ChannelArguments& arguments)
     : channel_(grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments))
     , stub_(proto::CuraEngineCommunication::NewStub(channel_))
-    , send_channel_(grpc_context_.get_executor(), 4096)
-    , receive_channel_(grpc_context_.get_executor(), 128)
+    , send_channel_(grpc_context_.get_executor(), send_channel_buffer_size)
+    , receive_channel_(grpc_context_.get_executor(), receive_channel_buffer_size)
 {
 }
 

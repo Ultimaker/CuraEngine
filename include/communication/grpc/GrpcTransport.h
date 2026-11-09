@@ -36,6 +36,11 @@ public:
 private:
     using RPC = agrpc::ClientRPC<&proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
 
+    // Channels are used as asynchronous producer/consumer queue. If their buffer happen to be full, they will block until the message can be finally added,
+    // so there is no data loss anyway, but the buffer size should be fine-tuned to be large enough to allow a smooth messages stream without overwhelming the memory.
+    static constexpr size_t send_channel_buffer_size = 8; // Sent messages can take a large amount of memory, and sending them is very fast, so we keep the buffer size very low.
+    static constexpr size_t receive_channel_buffer_size = 2; // Received messages can be huge (contain a whole 3D model), so keep the buffer even smaller.
+
     boost::asio::awaitable<void> runStream();
     boost::asio::awaitable<void> handleIncomingMessages(RPC& rpc);
     boost::asio::awaitable<void> handleSendingMessages(RPC& rpc);
