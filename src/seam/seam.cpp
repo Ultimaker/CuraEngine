@@ -8,12 +8,15 @@
 #include <range/v3/algorithm/rotate.hpp>
 #include <spdlog/spdlog.h>
 
+#include "ExtruderTrain.h"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
+#include "utils/CuraViz.h"
 #include "utils/linearAlg2D.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"
+#include "utils/scoring/ExclusionAreaScoringCriterion.h"
 #include "utils/scoring/RandomScoringCriterion.h"
 #include "utils/scoring/TextureScoringCriterion.h"
 #include "utils/scoring/VerticalAlignmentScoringCriterion.h"
@@ -85,7 +88,8 @@ BestElementFinder makeBestCandidateFinderOuterWall(
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
     const Point2LL& target_pos,
-    const coord_t wall_line_width_0)
+    const coord_t wall_line_width_0,
+    const Shape& seam_overhang_exclusion_areas)
 {
     // ## Step 1: define the main criteria to be applied and their weights
     // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
@@ -144,13 +148,13 @@ BestElementFinder makeBestCandidateFinderOuterWall(
     }
 
     // Second criterion with higher weight to avoid overhanging areas
-    // if (! overhang_areas_.empty())
-    // {
-    //     BestElementFinder::WeighedCriterion overhang_criterion;
-    //     overhang_criterion.weight = 2.0;
-    //     overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, overhang_areas_);
-    //     main_criteria_pass.criteria.push_back(overhang_criterion);
-    // }
+    if (! seam_overhang_exclusion_areas.empty())
+    {
+        BestElementFinder::WeighedCriterion overhang_criterion;
+        overhang_criterion.weight = 2.0;
+        overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, seam_overhang_exclusion_areas);
+        main_criteria_pass.criteria.push_back(overhang_criterion);
+    }
 
     best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
@@ -183,11 +187,13 @@ BestElementFinder makeBestCandidateFinderOuterWall(
 
 void makeBestCandidateFinderInnerWall(BestElementFinder& best_candidate_finder, const PointsSet& points, const std::vector<Point2LL>& layer_seams)
 {
-#warning we should use a max distance, and in case there is no seam close enough, just don't calculate and let shortest be applied in just-in-time
+#warning we should use a max distance, and in case there is no seam close enough, just dont calculate and let shortest be applied in just-in-time
     best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion>(points, layer_seams));
 }
 
 std::vector<Point2LL> calculateWallsSeamPosition(
+    const SliceDataStorage& storage,
+    const SliceMeshStorage::Ptr& mesh,
     SliceLayer& layer,
     const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
@@ -197,6 +203,11 @@ std::vector<Point2LL> calculateWallsSeamPosition(
     const bool outer_walls)
 {
     std::vector<Point2LL> new_layer_seams;
+
+    const AngleDegrees seam_overhang_angle{ mesh->settings.get<AngleDegrees>("seam_overhang_angle") };
+    const coord_t layer_height{ mesh->settings.get<coord_t>("layer_height") };
+    const size_t wall_0_extruder_nr{ mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
+    const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(wall_0_extruder_nr) : Shape{} };
 
     for (SliceLayerPart& part : layer.parts)
     {
@@ -211,8 +222,14 @@ std::vector<Point2LL> calculateWallsSeamPosition(
 
                 const PointsSet points{ makePositionCandidates(extrusion_line, extrusion_line.is_outer_wall() ? layer_seams : std::vector<Point2LL>{}) };
                 BestElementFinder best_candidate_finder;
+                Shape seam_overhang_exclusion_areas; // Don't move to inner scope, it is used as a reference in the criterion and has to remain alive long enough
                 if (outer_walls)
                 {
+                    if (! machine_borders.empty())
+                    {
+                        seam_overhang_exclusion_areas = machine_borders.difference(part.getSupportedRegion(layer_height, seam_overhang_angle));
+                    }
+
                     makeBestCandidateFinderOuterWall(
                         best_candidate_finder,
                         layer.texture_data_provider_,
@@ -221,7 +238,8 @@ std::vector<Point2LL> calculateWallsSeamPosition(
                         seam_type,
                         corner_pref,
                         target_pos,
-                        wall_line_width_0);
+                        wall_line_width_0,
+                        seam_overhang_exclusion_areas);
                 }
                 else
                 {
@@ -259,16 +277,17 @@ void calculateSeamPositions(SliceDataStorage& storage)
 
         for (SliceLayer& layer : mesh->layers)
         {
+#warning restore this (with a proper criterion)
             // if (! disallowed_area_for_seams.empty())
             // {
             //     best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
             // }
 
             constexpr bool outer_walls = true;
-            layer_seams = calculateWallsSeamPosition(layer, layer_seams, seam_type, corner_pref, target_pos, wall_line_width_0, outer_walls);
+            layer_seams = calculateWallsSeamPosition(storage, mesh, layer, layer_seams, seam_type, corner_pref, target_pos, wall_line_width_0, outer_walls);
 
             constexpr bool not_outer_walls = false;
-            calculateWallsSeamPosition(layer, layer_seams, seam_type, corner_pref, target_pos, wall_line_width_0, not_outer_walls);
+            calculateWallsSeamPosition(storage, mesh, layer, layer_seams, seam_type, corner_pref, target_pos, wall_line_width_0, not_outer_walls);
         }
     }
 }

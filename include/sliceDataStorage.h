@@ -63,6 +63,8 @@ public:
                          //!< a cross-section of the 3D model.
     Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
                          //!< Too small parts will be omitted compared to the outline.
+    Shape outlines_below; //!< The areas that are supported by something below and that are close enough to the part outlines.
+    Shape supported_extrusion_areas_below; //!< The areas where we can extrude a line that will be supported by something below.
     Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
@@ -156,6 +158,8 @@ public:
      * \return true if there is at least one ExtrusionLine at the specified wall index, false otherwise
      */
     bool hasWallAtInsetIndex(size_t inset_idx) const;
+
+    Shape getSupportedRegion(const coord_t layer_height, const AngleDegrees& overhang_angle) const;
 };
 
 /*!
@@ -306,6 +310,8 @@ class SubDivCube; // forward declaration to prevent dependency loop
 class SliceMeshStorage
 {
 public:
+    using Ptr = std::shared_ptr<SliceMeshStorage>;
+
     Settings& settings;
     std::vector<SliceLayer> layers;
     std::string mesh_name;
@@ -317,6 +323,7 @@ public:
     std::vector<AngleDegrees> flooring_angles; //!< a list of angle values which is cycled through to determine the flooring angle of each layer
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
+    // std::vector<Shape> seam_overhang_areas; //!< For each layer the areas that are classified as overhanging for the seam on this mesh.
     std::vector<Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
                                             //!< areas of the next layers.
     std::vector<std::vector<Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area,

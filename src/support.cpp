@@ -103,6 +103,89 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
     return true;
 }
 
+void AreaSupport::generateLayersBelow(SliceDataStorage& storage)
+{
+    cura::parallel_for<size_t>(
+        1,
+        storage.print_layer_count,
+        [&](const size_t layer_idx)
+        {
+            std::vector<std::pair<const Shape*, AABB>> all_outlines_below;
+
+            for (const SliceMeshStorage::Ptr& mesh_below : storage.meshes)
+            {
+                if (! mesh_below->isPrinted())
+                {
+                    continue;
+                }
+
+                for (const SliceLayerPart& prevLayerPart : mesh_below->layers[layer_idx - 1].parts)
+                {
+                    all_outlines_below.emplace_back(&prevLayerPart.outline, prevLayerPart.outline);
+                }
+            }
+
+            const MeshGroup& mesh_group = *Application::getInstance().current_slice_->scene.current_mesh_group;
+            const Settings& mesh_group_settings = mesh_group.settings;
+            const bool support_enable = mesh_group_settings.get<bool>("support_enable");
+            const bool has_support = support_enable && mesh_group.has_painted_support;
+
+            for (const SliceMeshStorage::Ptr& mesh : storage.meshes)
+            {
+                std::vector<std::pair<const Shape*, AABB>> all_support_outlines_below;
+
+                const coord_t wall_line_width_0 = mesh->settings.get<coord_t>("wall_line_width_0");
+                const coord_t half_outer_wall_width = wall_line_width_0 / 2;
+
+            // If support is enabled, also add the support outlines
+#warning supports are not generated at this point
+                if (has_support)
+                {
+                    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+                    const coord_t z_distance_top = mesh->settings.get<coord_t>("support_top_distance");
+                    const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
+                    const int support_layer_nr = layer_idx - z_distance_top_layers;
+
+                    if (support_layer_nr > 0)
+                    {
+                        const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+
+                        if (! support_layer.support_roof.empty())
+                        {
+                            all_support_outlines_below.emplace_back(&support_layer.support_roof, support_layer.support_roof);
+                        }
+                        else
+                        {
+                            for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
+                            {
+                                all_support_outlines_below.emplace_back(&support_part.outline_, support_part.outline_);
+                            }
+                        }
+                    }
+                }
+
+                for (SliceLayerPart& mesh_part : mesh->layers[layer_idx].parts)
+                {
+                    const AABB boundaryBox(mesh_part.outline);
+                    for (const auto& [outline_below, outline_bounding_box] : ranges::views::concat(all_outlines_below, all_support_outlines_below))
+                    {
+                        if (boundaryBox.hit(outline_bounding_box))
+                        {
+                            mesh_part.outlines_below.push_back(*outline_below);
+                        }
+                    }
+
+                    mesh_part.outlines_below = mesh_part.outlines_below.unionPolygons();
+
+                    // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+                    mesh_part.outlines_below = mesh_part.outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
+
+                    // supported extrusion areas are the same, insetted by half the line width
+                    mesh_part.supported_extrusion_areas_below = mesh_part.outlines_below.offset(-half_outer_wall_width);
+                }
+            }
+        });
+}
 
 void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
@@ -775,6 +858,8 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
 
 void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
+    generateLayersBelow(storage);
+
     for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
@@ -954,11 +1039,9 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     // Fill the overhang areas with emptiness first, even if it's a support mesh, so that we can request the areas.
+    mesh.overhang_areas.resize(storage.print_layer_count);
     mesh.full_overhang_areas.resize(storage.print_layer_count);
-    for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
-    {
-        mesh.overhang_areas.emplace_back();
-    }
+    // mesh.seam_overhang_areas.resize(storage.print_layer_count);
 
     // Don't generate overhang areas for support meshes. They are dropped down automatically if desired.
     const bool is_support_modifier = mesh.settings.get<bool>("support_mesh");
@@ -990,11 +1073,8 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
         storage.print_layer_count,
         [&](const size_t layer_idx)
         {
-            std::pair<Shape, Shape> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
-            mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; // Store the results.
-            mesh.full_overhang_areas[layer_idx] = basic_and_full_overhang.second;
-            scripta::log("support_basic_overhang_area", basic_and_full_overhang.first, SectionType::SUPPORT, layer_idx);
-            scripta::log("support_full_overhang_area", basic_and_full_overhang.second, SectionType::SUPPORT, layer_idx);
+            const Shape outlines = mesh.layers[layer_idx].getOutlines();
+            std::tie(mesh.overhang_areas[layer_idx], mesh.full_overhang_areas[layer_idx]) = computeBasicAndFullOverhang(storage, mesh, layer_idx, outlines);
         });
 }
 
@@ -1641,9 +1721,8 @@ void AreaSupport::moveUpFromModel(
  *         ^^^^^^^^^      overhang extensions
  *         ^^^^^^^^^^^^^^ overhang
  */
-std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx)
+std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx, const Shape& outlines)
 {
-    const Shape outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
 
@@ -1692,6 +1771,19 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
     return std::make_pair(basic_overhang, full_overhang);
 }
 
+// Shape AreaSupport::computeSeamOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const Shape& outlines)
+// {
+//     // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
+//     // which will then be empty if everything is considered supported i.r.t. the angle
+//     const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
+//     if (seam_overhang_angle < 90.0)
+//     {
+//         const Shape build_plate = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_);
+//         return build_plate.difference(get_supported_region(seam_overhang_angle));
+//     }
+//
+//     return Shape{};
+// }
 
 void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {

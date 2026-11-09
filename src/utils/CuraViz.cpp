@@ -210,6 +210,15 @@ void CuraViz::send(const std::vector<Shape>& shapes, const std::string& name, co
     }
 }
 
+void CuraViz::send(const PointsSet& points, const std::string& name, const std::string& step_name)
+{
+    MessageToSend message(step_name);
+    for (const auto& [point_index, point] : points | ranges::views::enumerate)
+    {
+        setup(point, message.addGeometricElement(fmt::format("{}_{}", name, point_index)));
+    }
+}
+
 void CuraViz::send(const OpenLinesSet& lines, const std::string& name, const std::string& step_name)
 {
     MessageToSend message(step_name);

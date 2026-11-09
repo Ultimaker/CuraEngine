@@ -841,7 +841,6 @@ void LayerPlan::addPolygonsByOptimizer(
     constexpr bool group_outer_walls = false;
     const Shape disallowed_areas_for_seams = {}; // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     constexpr bool use_shortest_for_inner_walls = false;
-    const Shape overhang_areas = Shape(); // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     PathOrderOptimizer<const Polygon*> orderOptimizer(
         start_near_location.value_or(getLastPlannedPositionOrStartingPosition()),
         z_seam_config,
@@ -852,7 +851,6 @@ void LayerPlan::addPolygonsByOptimizer(
         group_outer_walls,
         disallowed_areas_for_seams,
         use_shortest_for_inner_walls,
-        overhang_areas,
         texture_data_provider);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -4446,16 +4444,6 @@ void LayerPlan::setBridgeWallMask(const Shape& polys)
 {
     bridge_wall_mask_ = polys;
     bridge_wall_mask_bb_ = AABB(polys);
-}
-
-void LayerPlan::setSeamOverhangMask(const Shape& polys)
-{
-    seam_overhang_mask_ = polys;
-}
-
-const Shape& LayerPlan::getSeamOverhangMask() const
-{
-    return seam_overhang_mask_;
 }
 
 void LayerPlan::setRoofingMask(const Shape& polys)

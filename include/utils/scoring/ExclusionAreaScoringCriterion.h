@@ -4,8 +4,6 @@
 #ifndef EXCLUSIONAREASCORINGCRITERION_H
 #define EXCLUSIONAREASCORINGCRITERION_H
 
-#include <stddef.h>
-
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
 namespace cura
@@ -23,6 +21,11 @@ private:
     const Shape& exclusion_area_;
 
 public:
+    /*!
+     * Create a scoring criterion based on an axclusion area
+     * @param points The candidates points to be evaluated
+     * @param exclusion_area The exclusion areas where we prefer the candidates not to be
+     */
     explicit ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area);
 
     virtual double computeScore(const Point2LL& candidate_position) const override;

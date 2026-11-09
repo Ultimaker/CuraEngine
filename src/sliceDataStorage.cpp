@@ -68,6 +68,17 @@ bool SliceLayerPart::hasWallAtInsetIndex(size_t inset_idx) const
     return false;
 }
 
+Shape SliceLayerPart::getSupportedRegion(const coord_t layer_height, const AngleDegrees& overhang_angle) const
+{
+    if (overhang_angle < 90.0)
+    {
+        const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
+        return supported_extrusion_areas_below.offset(overhang_width + 2 * EPSILON);
+    }
+
+    return Shape();
+}
+
 SliceLayer::~SliceLayer()
 {
 }

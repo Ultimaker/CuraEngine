@@ -56,7 +56,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const Shape& disallowed_areas_for_seams,
     const bool scarf_seam,
     const bool smooth_speed,
-    const Shape& overhang_areas,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider,
     const bool start_width_longest_wall)
     : storage_(storage)
@@ -82,7 +81,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
     , scarf_seam_(scarf_seam)
     , smooth_speed_(smooth_speed)
-    , overhang_areas_(overhang_areas)
     , texture_data_provider_(texture_data_provider)
     , start_width_longest_wall_(start_width_longest_wall)
 {
@@ -120,7 +118,6 @@ void InsetOrderOptimizer::optimize()
         group_outer_walls,
         disallowed_areas_for_seams_,
         use_shortest_for_inner_walls,
-        overhang_areas_,
         texture_data_provider_,
         start_width_longest_wall_);
 

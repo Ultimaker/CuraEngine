@@ -36,6 +36,8 @@ public:
      */
     static bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer);
 
+    static void generateLayersBelow(SliceDataStorage& storage);
+
     /*!
      * \brief Generate the overhang areas for all models.
      * \param storage Data storage containing the input layer data and
@@ -277,9 +279,12 @@ private:
      * \param storage The slice data storage.
      * \param mesh The mesh for which to compute the basic overhangs.
      * \param layer_idx The layer for which to compute the overhang.
+     * \param outlines The outlines of the model at the given layer
      * \return A pair of basic overhang and full overhang.
      */
-    static std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx);
+    static std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx, const Shape& outlines);
+
+    // static Shape computeSeamOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const Shape& outlines);
 
     /*!
      * \brief Adds tower pieces to the current support layer.

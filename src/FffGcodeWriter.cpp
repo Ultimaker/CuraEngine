@@ -2691,7 +2691,6 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
             disallowed_areas_for_seams,
             scarf_seam,
             smooth_speed,
-            gcode_layer.getSeamOverhangMask(),
             mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_,
             end_infill_close_to_seam);
         result.walls_optimizer->optimize();
@@ -2706,7 +2705,6 @@ OverrideAreas
 {
     // Start by clearing all the masks since this is done per-mesh
     gcode_layer.setBridgeWallMask(Shape());
-    gcode_layer.setSeamOverhangMask(Shape());
     gcode_layer.setRoofingMask(Shape());
     gcode_layer.setFlooringMask(Shape());
 
@@ -2715,69 +2713,12 @@ OverrideAreas
         return {};
     }
 
-    // accumulate the outlines of all the parts that are on the layer below
-
-    Shape outlines_below;
-    AABB boundaryBox(part.outline);
-    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
-    {
-        const auto& mesh_below = *mesh_ptr;
-        if (mesh_below.isPrinted())
-        {
-            for (const SliceLayerPart& prevLayerPart : mesh_below.layers[gcode_layer.getLayerNr() - 1].parts)
-            {
-                if (boundaryBox.hit(prevLayerPart.boundaryBox))
-                {
-                    outlines_below.push_back(prevLayerPart.outline);
-                }
-            }
-        }
-    }
-
-    const Shape mesh_outlines_below = outlines_below;
-    const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
-
-    // If support is enabled, add the support outlines also so we don't generate bridges over support.
-    const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
-    const Settings& mesh_group_settings = mesh_group->settings;
-    if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support)
-    {
-        const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
-        const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
-
-        if (support_layer_nr > 0)
-        {
-            const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
-
-            if (! support_layer.support_roof.empty())
-            {
-                AABB support_roof_bb(support_layer.support_roof);
-                if (boundaryBox.hit(support_roof_bb))
-                {
-                    outlines_below.push_back(support_layer.support_roof);
-                }
-            }
-            else
-            {
-                for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
-                {
-                    AABB support_part_bb(support_part.outline_);
-                    if (boundaryBox.hit(support_part_bb))
-                    {
-                        outlines_below.push_back(support_part.outline_);
-                    }
-                }
-            }
-        }
-    }
-
+    // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
     const coord_t outer_wall_width = mesh_config.inset0_config.getLineWidth();
     const coord_t half_outer_wall_width = outer_wall_width / 2;
-
-    // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
-
-    outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
+    const Shape& outlines_below = part.outlines_below;
+    const AABB boundary_box(part.outline);
+    const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
 
     { // Bridge mask
         if (mesh.settings.get<bool>("bridge_settings_enabled"))
@@ -2803,26 +2744,6 @@ OverrideAreas
             gcode_layer.setBridgeWallMask(bridge_mask);
         }
     }
-
-    Shape model_supported_region = mesh_outlines_below.offset(-half_outer_wall_width);
-    // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
-    model_supported_region = model_supported_region.offset(-half_outer_wall_width).offset(half_outer_wall_width);
-
-
-    const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
-    {
-        // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
-        // the supported region is made up of those areas that are supported by the model on the layer below
-        // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
-        // considered to be
-        if (overhang_angle < 90.0)
-        {
-            const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
-            return model_supported_region.offset(overhang_width + 10);
-        }
-
-        return Shape();
-    };
 
     // Build supported regions for all the overhang speeds. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     OverrideAreas overhang_areas;
@@ -2867,22 +2788,10 @@ OverrideAreas
                 for (const auto& regions : merged_regions)
                 {
                     const SpeedRegion& last_region = *ranges::prev(regions.end());
-                    const Shape overhang_region = full_buildplate.difference(get_supported_region(last_region.overhang_angle));
+                    const Shape overhang_region = full_buildplate.difference(part.getSupportedRegion(layer_height, last_region.overhang_angle));
                     overhang_areas.emplace_back(overhang_region, PrintSegmentAttribute::Overhanging, nullptr, last_region.speed_factor);
                 }
             }
-        }
-    }
-
-    { // Seam overhang mask
-        // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
-        // which will then be empty if everything is considered supported i.r.t. the angle
-        const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
-        if (seam_overhang_angle < 90.0)
-        {
-            const auto seam_overhang_mask
-                = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_).difference(get_supported_region(seam_overhang_angle));
-            gcode_layer.setSeamOverhangMask(seam_overhang_mask);
         }
     }
 
@@ -2902,7 +2811,7 @@ OverrideAreas
 
             for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() + roofing_layer_count].parts)
             {
-                if (boundaryBox.hit(layer_part.boundaryBox))
+                if (boundary_box.hit(layer_part.boundaryBox))
                 {
                     roofing_mask = roofing_mask.difference(layer_part.outline.offset(-wall_line_width_0 / 4));
                 }
@@ -2927,7 +2836,7 @@ OverrideAreas
 
             for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() - flooring_layer_count].parts)
             {
-                if (boundaryBox.hit(layer_part.boundaryBox))
+                if (boundary_box.hit(layer_part.boundaryBox))
                 {
                     flooring_mask = flooring_mask.difference(layer_part.outline.offset(-wall_line_width_0 / 4));
                 }

@@ -69,6 +69,8 @@ public:
 
     static void send(const std::vector<Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
 
+    static void send(const PointsSet& points, const std::string& name = "", const std::string& step_name = "");
+
     static void send(const OpenLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const MixedLinesSet& lines_set, const std::string& name = "", const std::string& step_name = "");

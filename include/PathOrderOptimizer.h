@@ -129,7 +129,6 @@ public:
         const bool group_outer_walls = false,
         const Shape& disallowed_areas_for_seams = {},
         const bool use_shortest_for_inner_walls = false,
-        const Shape& overhang_areas = Shape(),
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
         const bool prefer_longest_path_first = false)
         : start_point_(start_point)
@@ -141,7 +140,6 @@ public:
         , order_requirements_(&order_requirements)
         , disallowed_area_for_seams{ disallowed_areas_for_seams }
         , use_shortest_for_inner_walls_(use_shortest_for_inner_walls)
-        , overhang_areas_(overhang_areas)
         , texture_data_provider_(texture_data_provider)
         , prefer_longest_path_(prefer_longest_path_first)
     {
@@ -342,11 +340,6 @@ protected:
      * are directly following an outer wall.
      */
     const bool use_shortest_for_inner_walls_;
-
-    /*!
-     * Contains the overhang areas, where we would prefer not to place the start locations of walls
-     */
-    const Shape overhang_areas_;
 
     /*!
      * The texture may contain user-provided data for semi-manual seam placement
@@ -766,6 +759,7 @@ protected:
 
         return 0;
 
+#if 0
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
         const PointsSet& points = *path.converted_;
 
@@ -851,6 +845,7 @@ protected:
             best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
         }
         return best_i.value_or(0);
+#endif
     }
 
     /*!

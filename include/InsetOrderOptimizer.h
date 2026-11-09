@@ -60,7 +60,6 @@ public:
         const Shape& disallowed_areas_for_seams = {},
         const bool scarf_seam = false,
         const bool smooth_speed = false,
-        const Shape& overhang_areas = Shape(),
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
         const bool start_width_longest_wall = false);
 
@@ -124,7 +123,6 @@ private:
     Shape disallowed_areas_for_seams_;
     const bool scarf_seam_;
     const bool smooth_speed_;
-    Shape overhang_areas_;
     const std::shared_ptr<TextureDataProvider> texture_data_provider_;
     const bool start_width_longest_wall_;
     std::vector<ExtrusionLine> walls_to_be_added_;

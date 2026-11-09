@@ -159,7 +159,6 @@ private:
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     AABB bridge_wall_mask_bb_; //!< Cached bounding box for the above value.
-    Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
 
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air above
     Shape flooring_mask_; //!< The regions of a layer part where the walls are exposed to the air below
@@ -344,18 +343,6 @@ public:
      * \param polys The unsupported areas of the part currently being processed that will require bridges.
      */
     void setBridgeWallMask(const Shape& polys);
-
-    /*!
-     * Set seam_overhang_mask.
-     *
-     * \param polys The overhung areas of the part currently being processed that will require modified print settings w.r.t. seams
-     */
-    void setSeamOverhangMask(const Shape& polys);
-
-    /*!
-     * Get the seam overhang mask, which contains the areas where we don't want to place the seam because they are overhanding
-     */
-    const Shape& getSeamOverhangMask() const;
 
     /*!
      * Set roofing_mask.
