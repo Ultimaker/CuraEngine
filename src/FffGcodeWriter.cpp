@@ -554,13 +554,44 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
-    gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + MM2INT(5));
+    const Application& application = Application::getInstance();
+    const Settings& settings = application.current_slice_->scene.extruders[gcode.getExtruderNr()].settings_;
+    application.communication_->sendCurrentPosition(gcode.getPositionXY());
 
-    Application::getInstance().communication_->sendCurrentPosition(gcode.getPositionXY());
-    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
-    Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
-    gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+    const auto acceleration_enabled = settings.get<bool>("acceleration_enabled");
+    const auto acceleration_travel_enabled = settings.get<bool>("acceleration_travel_enabled");
+    const auto machine_max_acceleration_x = settings.get<Acceleration>("machine_max_acceleration_x");
+    const auto machine_max_acceleration_y = settings.get<Acceleration>("machine_max_acceleration_y");
+    const auto machine_max_acceleration_xy = std::min(machine_max_acceleration_x, machine_max_acceleration_y);
+    const auto machine_max_acceleration_z = settings.get<Acceleration>("machine_max_acceleration_z");
+    const auto acceleration_travel = acceleration_travel_enabled ? settings.get<Acceleration>("acceleration_travel") : settings.get<Acceleration>("acceleration_print");
+    const auto acceleration_travel_xy = std::min(machine_max_acceleration_xy, acceleration_travel);
+    const auto acceleration_travel_z = std::min(machine_max_acceleration_z, acceleration_travel);
+
+    const auto speed_travel_z = settings.get<Velocity>("speed_z_hop");
+    const auto speed_travel_xy = settings.get<Velocity>("speed_travel");
+
+    const auto apply_acceleration = [this, &acceleration_enabled](const Acceleration& acceleration)
+    {
+        if (acceleration_enabled)
+        {
+            gcode.writeTravelAcceleration(acceleration);
+        }
+    };
+
+    gcode.writeFanCommand(0);
+
+    // Since we are doing a long Z travel move, it matters that acceleration is properly set here
+    const coord_t travel_z = max_object_height + MM2INT(5);
+    apply_acceleration(acceleration_travel_z);
+    gcode.writeTravel(Point3LL(gcode.getPositionXY(), travel_z), speed_travel_z);
+
+    apply_acceleration(acceleration_travel_xy);
+    gcode.writeTravel(Point3LL(storage.model_min.x_, storage.model_min.y_, travel_z), speed_travel_xy);
+
+    apply_acceleration(acceleration_travel_z);
+    const coord_t target_z = settings.get<coord_t>("layer_height_0") + (settings.get<bool>("retraction_hop_enabled") ? settings.get<coord_t>("retraction_hop") : 0);
+    gcode.writeTravel(Point3LL(gcode.getPositionXY(), target_z), speed_travel_z);
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
