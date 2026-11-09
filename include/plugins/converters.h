@@ -37,7 +37,12 @@
 #include "settings/types/LayerIndex.h"
 
 
-namespace cura::plugins
+namespace cura
+{
+
+class Scene;
+
+namespace plugins
 {
 
 namespace details
@@ -67,7 +72,7 @@ struct empty
     constexpr native_value_type operator()(const value_type&) const;
 };
 
-struct broadcast_settings_request : public details::converter<broadcast_settings_request, slots::broadcast::v0::BroadcastServiceSettingsRequest, cura::proto::Slice>
+struct broadcast_settings_request : public details::converter<broadcast_settings_request, slots::broadcast::v0::BroadcastServiceSettingsRequest, Scene>
 {
     value_type operator()(const native_value_type& slice_message) const;
 };
@@ -128,7 +133,9 @@ struct gcode_paths_modify_response : public details::converter<gcode_paths_modif
     native_value_type operator()(native_value_type& original_value, const value_type& message) const;
 };
 
-} // namespace cura::plugins
+} // namespace plugins
+
+} // namespace cura
 
 #endif // ENABLE_PLUGINS
 #endif

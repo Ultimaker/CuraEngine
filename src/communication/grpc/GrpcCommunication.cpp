@@ -120,7 +120,6 @@ std::shared_ptr<Slice> GrpcCommunication::makeSlice(const proto::Slice& slice_me
     readExtruderSettingsMessage(slice_message.extruders(), slice);
 
     // Broadcast the settings to the plugins
-    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(slice_message);
     const size_t extruder_count = slice->scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
@@ -342,6 +341,7 @@ void GrpcCommunication::sliceNext()
         return;
     }
 
+    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(current_slice_->scene);
     Application::getInstance().current_slice_ = current_slice_;
 
     spdlog::info("Start actual slicing.");

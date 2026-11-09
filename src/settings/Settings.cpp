@@ -934,4 +934,9 @@ std::vector<std::string> Settings::getKeys() const
     return ranges::views::keys(settings) | ranges::to_vector;
 }
 
+const std::unordered_map<std::string, std::string>& Settings::getRawSettings() const
+{
+    return settings;
+}
+
 } // namespace cura
