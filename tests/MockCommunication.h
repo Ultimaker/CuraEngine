@@ -21,7 +21,7 @@ namespace cura
 class MockCommunication : public Communication
 {
 public:
-    MOCK_CONST_METHOD0(hasSlice, bool());
+    MOCK_METHOD0(hasSlice, bool());
     MOCK_CONST_METHOD1(sendProgress, void(double progress));
     MOCK_METHOD3(sendLayerComplete, void(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness));
     MOCK_METHOD6(

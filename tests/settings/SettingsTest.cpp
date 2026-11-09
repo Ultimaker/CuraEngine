@@ -87,7 +87,7 @@ class Slice; // Forward declaration to save some time compiling.
 TEST_F(SettingsTest, AddSettingExtruderTrain)
 {
     // Add a slice with some extruder trains.
-    auto current_slice = std::make_shared<Slice>(0);
+    auto current_slice = std::make_shared<Slice>();
     Application::getInstance().current_slice_ = current_slice;
     current_slice->scene.extruders.emplace_back(0, nullptr);
     current_slice->scene.extruders.emplace_back(1, nullptr);
@@ -222,7 +222,7 @@ TEST_F(SettingsTest, OverwriteSetting)
 
 TEST_F(SettingsTest, Inheritance)
 {
-    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
+    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>();
     Application::getInstance().current_slice_ = current_slice;
 
     const std::string value = "To be frank, I'd have to change my name.";
@@ -239,7 +239,7 @@ TEST_F(SettingsTest, Inheritance)
 
 TEST_F(SettingsTest, LimitToExtruder)
 {
-    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
+    std::shared_ptr<Slice> current_slice = std::make_shared<Slice>();
     Application::getInstance().current_slice_ = current_slice;
     current_slice->scene.extruders.emplace_back(0, nullptr);
     current_slice->scene.extruders.emplace_back(1, nullptr);

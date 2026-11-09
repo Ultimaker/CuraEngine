@@ -23,7 +23,7 @@ class GCodeTemplateResolverTest : public ::testing::TestWithParam<GCodeTemplateT
 protected:
     void SetUp() override
     {
-        std::shared_ptr<cura::Slice> slice = std::make_shared<cura::Slice>(0);
+        std::shared_ptr<cura::Slice> slice = std::make_shared<cura::Slice>();
         cura::Application::getInstance().current_slice_ = slice;
 
         slice->scene.settings.add("bed_temperature", "50.0");
