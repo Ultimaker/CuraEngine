@@ -25,7 +25,7 @@ option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
 option(ENABLE_CURAVIZ "Build with CuraViz toolbox" OFF)
 
-if (${ENABLE_GRPC_COMMUNICATION} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ} OR NOT EMSCRIPTEN)
+if (${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ} OR NOT EMSCRIPTEN)
     find_package(protobuf REQUIRED)
 endif ()
 
@@ -43,6 +43,7 @@ if (${ENABLE_GRPC_COMMUNICATION})
     find_package(asio-grpc REQUIRED)
     find_package(gRPC REQUIRED)
     find_package(protobuf REQUIRED)
+    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
     set(engine_GRPC_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/grpc)
     set(engine_GRPC_SRCS ${engine_GRPC_GENERATED_DIR}/Cura.grpc.pb.cc)
     set(engine_GRPC_HEADERS ${engine_GRPC_GENERATED_DIR}/Cura.grpc.pb.h)
@@ -51,14 +52,11 @@ if (${ENABLE_GRPC_COMMUNICATION})
     set(engine_PROTO_HEADER ${engine_PROTO_GENERATED_DIR}/Cura.pb.h)
     set(engine_PB_SRCS ${engine_PROTO_OUTPUT})
     set(engine_PB_HEADERS ${engine_PROTO_HEADER})
-    set_source_files_properties(${engine_PB_SRCS} ${engine_PB_HEADERS} PROPERTIES GENERATED TRUE)
     add_custom_command(
             OUTPUT ${engine_PROTO_OUTPUT} ${engine_PROTO_HEADER}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_PROTO_GENERATED_DIR}
             COMMAND protobuf::protoc
-            ARGS --cpp_out=${engine_PROTO_GENERATED_DIR}
-            --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
+            ARGS --cpp_out=${engine_PROTO_GENERATED_DIR} --proto_path=${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
             DEPENDS Cura.proto protobuf::protoc
             VERBATIM
     )
@@ -66,16 +64,12 @@ if (${ENABLE_GRPC_COMMUNICATION})
             OUTPUT ${engine_GRPC_SRCS} ${engine_GRPC_HEADERS}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_GRPC_GENERATED_DIR}
             COMMAND protobuf::protoc
-            ARGS --grpc_out=${engine_GRPC_GENERATED_DIR}
-            --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-            --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
+            ARGS --grpc_out=${engine_GRPC_GENERATED_DIR} --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin> --proto_path=${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
             DEPENDS Cura.proto protobuf::protoc gRPC::grpc_cpp_plugin
             VERBATIM
     )
+    set_source_files_properties(${engine_PB_SRCS} ${engine_PB_HEADERS} PROPERTIES GENERATED TRUE)
     set_source_files_properties(${engine_GRPC_SRCS} ${engine_GRPC_HEADERS} PROPERTIES GENERATED TRUE)
-else ()
-    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
@@ -269,9 +263,11 @@ if (ENABLE_GRPC_COMMUNICATION)
 endif ()
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
+
 if (NOT ENABLE_GRPC_COMMUNICATION)
     set_source_files_properties(${engine_PB_SRCS} ${engine_PB_HEADERS} PROPERTIES GENERATED TRUE)
 endif ()
+
 if (ENABLE_THREADING)
     use_threads(_CuraEngine)
 endif ()

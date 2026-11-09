@@ -116,10 +116,9 @@ std::shared_ptr<Slice> GrpcCommunication::makeSlice(const proto::Slice& slice_me
     }
 #endif // ENABLE_PLUGINS
 
-    readGlobalSettingsMessage(slice_message.global_settings(), slice);
-    readExtruderSettingsMessage(slice_message.extruders(), slice);
+    readGlobalSettingsMessage(slice_message.global_settings(), slice->scene.settings);
+    readExtruderSettingsMessage(slice_message.extruders(), slice->scene);
 
-    // Broadcast the settings to the plugins
     const size_t extruder_count = slice->scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
@@ -174,7 +173,7 @@ bool GrpcCommunication::hasSlice()
                 return false;
             }
 
-            readObjectMessage(message->object(), *current_slice_, *current_slice_->scene.mesh_groups.back());
+            readObjectMessage(message->object(), current_slice_->scene.extruders, *current_slice_->scene.mesh_groups.back());
         }
     }
 
@@ -352,21 +351,21 @@ void GrpcCommunication::sliceNext()
 }
 
 
-void GrpcCommunication::readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice)
+void GrpcCommunication::readGlobalSettingsMessage(const proto::SettingList& global_settings_message, Settings& settings)
 {
     for (const proto::Setting& setting_message : global_settings_message.settings())
     {
-        slice->scene.settings.add(setting_message.name(), setting_message.value());
+        settings.add(setting_message.name(), setting_message.value());
     }
 }
 
-void GrpcCommunication::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice)
+void GrpcCommunication::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, Scene& scene)
 {
     // Make sure we have enough extruders added currently.
-    const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
+    const size_t extruder_count = scene.settings.get<size_t>("machine_extruder_count");
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
+        scene.extruders.emplace_back(extruder_nr, &scene.settings);
     }
 
     // Parse the extruder number and the settings from the messages.
@@ -379,8 +378,7 @@ void GrpcCommunication::readExtruderSettingsMessage(const google::protobuf::Repe
             continue;
         }
         ExtruderTrain& extruder
-            = slice->scene
-                  .extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
+            = scene.extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
         for (const proto::Setting& setting_message : extruder_message.settings().settings())
         {
             extruder.settings_.add(setting_message.name(), setting_message.value());
@@ -401,7 +399,7 @@ void GrpcCommunication::readMeshGroupMessage(const proto::MeshGroup& mesh_group_
     scene.appendMeshGroup(mesh_group);
 }
 
-void GrpcCommunication::readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group)
+void GrpcCommunication::readObjectMessage(const proto::Object& object_message, const std::vector<ExtruderTrain>& extruders, MeshGroup& mesh_group)
 {
     Matrix4x3D matrix;
     constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
@@ -414,8 +412,7 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, S
         return;
     }
 
-    mesh_group.meshes.emplace_back();
-    Mesh& mesh = mesh_group.meshes.back();
+    Mesh& mesh = mesh_group.meshes.emplace_back();
 
     // Load the settings for the mesh.
     for (const proto::Setting& setting : object_message.settings())
@@ -425,7 +422,7 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, S
 
     // Set the parent setting to the correct extruder.
     const auto extruder_nr = mesh.settings_.get<size_t>("extruder_nr");
-    ExtruderTrain& extruder = slice.scene.extruders[extruder_nr];
+    const ExtruderTrain& extruder = extruders[extruder_nr];
     mesh.settings_.setParent(&extruder.settings_);
 
     for (size_t face = 0; face < face_count; face++)

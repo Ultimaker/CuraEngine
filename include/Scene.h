@@ -70,6 +70,10 @@ public:
      */
     void processMeshGroup(MeshGroup& mesh_group);
 
+    /*!
+     * Append a mesh group to this scene and registers its settings parent
+     * @param mesh_group The fresh mesh group to be added to the scene
+     */
     void appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group);
 
 private:

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef GRPCCOMMUNICATION_H
@@ -25,6 +25,7 @@ class RepeatedPtrField;
 namespace cura
 {
 
+class Settings;
 class Scene;
 class MeshGroup;
 class Mesh;
@@ -50,14 +51,6 @@ class Slice;
  */
 class GrpcCommunication : public Communication
 {
-#ifdef BUILD_TESTS
-    friend class GrpcCommunicationTest;
-    FRIEND_TEST(GrpcCommunicationTest, FlushGCodeTest);
-    FRIEND_TEST(GrpcCommunicationTest, HasSlice);
-    FRIEND_TEST(GrpcCommunicationTest, SendLayerComplete);
-    FRIEND_TEST(GrpcCommunicationTest, SendProgress);
-#endif
-
 public:
     /*
      * \brief Construct a new gRPC client communicator.
@@ -71,6 +64,7 @@ public:
 
     /*
      * \brief Connect to Cura's streaming gRPC endpoint.
+     * \param endpoint The endpoint to connect to, which should be something like "127.0.0.1:49674"
      */
     bool connect(const std::string& endpoint);
 
@@ -176,30 +170,45 @@ public:
     void sliceNext() override;
 
 private:
+    /*!
+     * Make an empty Slice object, given a received slice message
+     * @param slice_message The received messages
+     * @return A Slice object, properly setup with the slice_message data
+     */
     static std::shared_ptr<Slice> makeSlice(const proto::Slice& slice_message);
 
-    /*
+    /*!
      * Reads the global settings from a Protobuf message.
-     *
-     * The global settings are stored in the current scene.
-     * \param global_settings_message The global settings message.
+     * \param global_settings_message The received global settings message
+     * \param settings The settings object to store the parsed values to
      */
-    static void readGlobalSettingsMessage(const proto::SettingList& global_settings_message, const std::shared_ptr<Slice>& slice);
+    static void readGlobalSettingsMessage(const proto::SettingList& global_settings_message, Settings& settings);
 
-    static void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, const std::shared_ptr<Slice>& slice);
+    /*!
+     * Reads the extruder settings from a Protobuf message
+     * @param extruder_messages The received message containing the extruders settings
+     * @param scene The scene object to store the parsed values to
+     */
+    static void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages, Scene& scene);
 
-    /*
+    /*!
      * \brief Reads a Protobuf message describing a mesh group.
-     *
-     * This gets the vertex data from the message as well as the settings.
+     * \param mesh_group_message The received message containing the mesh group basic data
+     * \param scene The scene object to store the parsed values to
      */
     static void readMeshGroupMessage(const proto::MeshGroup& mesh_group_message, Scene& scene);
 
-    static void readObjectMessage(const proto::Object& object_message, Slice& slice, MeshGroup& mesh_group);
+    /*!
+     * \brief Reads a Protobuf message describing an object on the build plate.
+     * \param object_message The received message containing the object data
+     * \param extruders The list of extruders already in the scene
+     * \param mesh_group The mesh group to add the new object to
+     */
+    static void readObjectMessage(const proto::Object& object_message, const std::vector<ExtruderTrain>& extruders, MeshGroup& mesh_group);
 
-    std::unique_ptr<GrpcTransport> grpc_transport_;
-    std::unique_ptr<PathCompiler> path_compiler;
-    std::shared_ptr<Slice> current_slice_;
+    std::unique_ptr<GrpcTransport> grpc_transport_; //!< The transport object sending the actual messages sending/receiving
+    std::unique_ptr<PathCompiler> path_compiler; //!< The compiler that generates optimized layer plans to be sent for display
+    std::shared_ptr<Slice> current_slice_; //!< The Slice object created during a call to hasSlice()
     int last_sent_progress{ -1 }; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
     SliceDataStruct<proto::Layer> sliced_layers;
 };

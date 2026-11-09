@@ -97,7 +97,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
 void Scene::appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group)
 {
     mesh_group->settings.setParent(&settings);
-    mesh_groups.emplace_back(mesh_group);
+    mesh_groups.push_back(mesh_group);
 }
 
 } // namespace cura

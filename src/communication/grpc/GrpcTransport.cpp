@@ -27,21 +27,25 @@ namespace cura
 GrpcTransport::GrpcTransport(const std::string& endpoint, const grpc::ChannelArguments& arguments)
     : channel_(grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments))
     , stub_(proto::CuraEngineCommunication::NewStub(channel_))
-    , send_channel_(grpc_context_.get_executor(), send_channel_buffer_size)
-    , receive_channel_(grpc_context_.get_executor(), receive_channel_buffer_size)
+    , send_queue_(grpc_context_.get_executor(), send_channel_buffer_size)
+    , receive_queue_(grpc_context_.get_executor(), receive_channel_buffer_size)
 {
 }
 
 bool GrpcTransport::connect()
 {
-    grpc_thread_ = std::thread(
-        [this]
-        {
-            boost::asio::co_spawn(grpc_context_, runStream(), boost::asio::detached);
-            grpc_context_.run();
-        });
+    bool connected = channel_->WaitForConnected(std::chrono::system_clock::now() + 10s);
+    if (connected)
+    {
+        grpc_thread_ = std::thread(
+            [this]
+            {
+                boost::asio::co_spawn(grpc_context_, runStream(), boost::asio::detached);
+                grpc_context_.run();
+            });
+    }
 
-    return channel_->WaitForConnected(std::chrono::system_clock::now() + 10s);
+    return connected;
 }
 
 bool GrpcTransport::sendMessage(google::protobuf::Message&& message)
@@ -87,14 +91,14 @@ bool GrpcTransport::sendMessage(google::protobuf::Message&& message)
     }
 
     // Push the envelope to the queue and wait until it has been actually added (but not yet written)
-    send_channel_.async_send(boost::system::error_code{}, std::move(envelope), boost::asio::use_future).get();
+    send_queue_.async_send(boost::system::error_code{}, std::move(envelope), boost::asio::use_future).get();
 
     return true;
 }
 
 std::optional<proto::CuraClientMessage> GrpcTransport::takeNextMessage()
 {
-    return receive_channel_.async_receive(boost::asio::use_future).get();
+    return receive_queue_.async_receive(boost::asio::use_future).get();
 }
 
 boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
@@ -111,7 +115,7 @@ boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
             co_return;
         }
 
-        co_await receive_channel_.async_send(boost::system::error_code{}, message, boost::asio::use_awaitable);
+        co_await receive_queue_.async_send(boost::system::error_code{}, message, boost::asio::use_awaitable);
     }
 }
 
@@ -119,7 +123,7 @@ boost::asio::awaitable<void> GrpcTransport::handleSendingMessages(RPC& rpc)
 {
     while (running_)
     {
-        std::optional<proto::CuraEngineMessage> message = co_await send_channel_.async_receive(boost::asio::use_awaitable);
+        std::optional<proto::CuraEngineMessage> message = co_await send_queue_.async_receive(boost::asio::use_awaitable);
         if (! message.has_value())
         {
             // Empty message means we should stop
@@ -164,7 +168,7 @@ boost::asio::awaitable<void> GrpcTransport::runStream()
 void GrpcTransport::stop()
 {
     // Notify the send loop to gently stop by adding an empty message
-    send_channel_.async_send(boost::system::error_code{}, std::nullopt, boost::asio::detached);
+    send_queue_.async_send(boost::system::error_code{}, std::nullopt, boost::asio::detached);
 
     // Notify the read loop to gently stop by setting running to false and cancelling the client context
     running_ = false;
