@@ -18,6 +18,14 @@ struct TextureBitField
 {
     size_t bit_range_start_index{ 0 }; // The index of the first bit of the field
     size_t bit_range_end_index{ 0 }; // The index of the last bit of the field
+
+    //! A pixel value is decoded as a 32-bit field, so a well-formed range is ordered and within [0, 31]. The ranges come from untrusted texture
+    //! metadata, so this invariant must hold before use; an inverted or out-of-range range makes the bit-extraction shifts underflow and shift by 32
+    //! or more bits, which is undefined behaviour.
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return bit_range_start_index <= bit_range_end_index && bit_range_end_index < 32;
+    }
 };
 
 /*!
