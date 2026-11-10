@@ -20,14 +20,17 @@ option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
 option(ENABLE_CURAVIZ "Build with CuraViz toolbox" OFF)
 
-if (${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ} OR NOT EMSCRIPTEN)
+if (${ENABLE_GRPC_COMMUNICATION} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
     find_package(protobuf REQUIRED)
+endif ()
+
+if (${ENABLE_GRPC_COMMUNICATION} OR ${ENABLE_PLUGINS})
+    find_package(asio-grpc REQUIRED)
+    find_package(gRPC REQUIRED)
 endif ()
 
 MESSAGE(STATUS "Building with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
-    find_package(asio-grpc REQUIRED)
-    find_package(gRPC REQUIRED)
     find_package(curaengine_grpc_definitions REQUIRED)
     find_package(semver REQUIRED)
     MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
@@ -35,36 +38,11 @@ endif ()
 
 message(STATUS "Building with Cura gRPC communication: ${ENABLE_GRPC_COMMUNICATION}")
 if (${ENABLE_GRPC_COMMUNICATION})
-    find_package(asio-grpc REQUIRED)
-    find_package(gRPC REQUIRED)
-    find_package(protobuf REQUIRED)
-    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
-    set(engine_GRPC_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/grpc)
-    set(engine_GRPC_SRCS ${engine_GRPC_GENERATED_DIR}/Cura.grpc.pb.cc)
-    set(engine_GRPC_HEADERS ${engine_GRPC_GENERATED_DIR}/Cura.grpc.pb.h)
-    set(engine_PROTO_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR})
-    set(engine_PROTO_OUTPUT ${engine_PROTO_GENERATED_DIR}/Cura.pb.cc)
-    set(engine_PROTO_HEADER ${engine_PROTO_GENERATED_DIR}/Cura.pb.h)
-    set(engine_PB_SRCS ${engine_PROTO_OUTPUT})
-    set(engine_PB_HEADERS ${engine_PROTO_HEADER})
-    add_custom_command(
-            OUTPUT ${engine_PROTO_OUTPUT} ${engine_PROTO_HEADER}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_PROTO_GENERATED_DIR}
-            COMMAND protobuf::protoc
-            ARGS --cpp_out=${engine_PROTO_GENERATED_DIR} --proto_path=${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
-            DEPENDS Cura.proto protobuf::protoc
-            VERBATIM
-    )
-    add_custom_command(
-            OUTPUT ${engine_GRPC_SRCS} ${engine_GRPC_HEADERS}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${engine_GRPC_GENERATED_DIR}
-            COMMAND protobuf::protoc
-            ARGS --grpc_out=${engine_GRPC_GENERATED_DIR} --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin> --proto_path=${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Cura.proto
-            DEPENDS Cura.proto protobuf::protoc gRPC::grpc_cpp_plugin
-            VERBATIM
-    )
-    set_source_files_properties(${engine_PB_SRCS} ${engine_PB_HEADERS} PROPERTIES GENERATED TRUE)
-    set_source_files_properties(${engine_GRPC_SRCS} ${engine_GRPC_HEADERS} PROPERTIES GENERATED TRUE)
+    asio_grpc_protobuf_generate(PROTOS Cura.proto
+            IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/"
+            OUT_VAR "ASIO_GRPC_CURA_PROTO_SOURCES"
+            OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}"
+            GENERATE_GRPC GENERATE_MOCK_CODE)
 endif ()
 
 message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
@@ -249,7 +227,7 @@ set(engine_SRCS # Except main.cpp.
 )
 
 if (ENABLE_GRPC_COMMUNICATION)
-    list(APPEND engine_SRCS ${engine_GRPC_SRCS} ${engine_GRPC_HEADERS} ${engine_PB_HEADERS})
+    list(APPEND engine_SRCS ${engine_GRPC_SRCS} ${ASIO_GRPC_CURA_PROTO_SOURCES})
     list(APPEND engine_SRCS
             src/communication/grpc/GrpcCommunication.cpp
             src/communication/grpc/GrpcTransport.cpp
