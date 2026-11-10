@@ -302,6 +302,27 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";PPR_BUILD_VOLUME_TEMPERATURE_LIMIT:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("bv_temp_anomaly_limit")
                    << new_line_;
         }
+
+        for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
+        {
+            if (! mesh_group.getSkipMeshEnabled())
+            {
+                continue;
+            }
+            for (const auto& mesh : mesh_group.meshes)
+            {
+                using ranges::to;
+                const auto sanitized_mesh_name = mesh.mesh_name_
+                                               | ranges::views::filter(
+                                                     [](unsigned char c)
+                                                     {
+                                                         return ! std::iscntrl(c);
+                                                     })
+                                               | ranges::to<std::string>();
+                prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
+            }
+        }
+
         prefix << ";END_OF_HEADER" << new_line_;
         break;
     }
@@ -350,26 +371,6 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";MAXY:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
         prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
-    }
-
-    for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
-    {
-        if (! mesh_group.getSkipMeshEnabled())
-        {
-            continue;
-        }
-        for (const auto& mesh : mesh_group.meshes)
-        {
-            using ranges::to;
-            const auto sanitized_mesh_name = mesh.mesh_name_
-                                           | ranges::views::filter(
-                                                 [](unsigned char c)
-                                                 {
-                                                     return ! std::iscntrl(c);
-                                                 })
-                                           | ranges::to<std::string>();
-            prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
-        }
     }
 
 #ifdef ENABLE_PLUGINS
