@@ -38,11 +38,12 @@ endif ()
 
 message(STATUS "Building with Cura gRPC communication: ${ENABLE_GRPC_COMMUNICATION}")
 if (${ENABLE_GRPC_COMMUNICATION})
-    asio_grpc_protobuf_generate(PROTOS Cura.proto
-            IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/"
-            OUT_VAR "ASIO_GRPC_CURA_PROTO_SOURCES"
-            OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}"
-            GENERATE_GRPC GENERATE_MOCK_CODE)
+    asio_grpc_protobuf_generate(PROTOS Cura.proto OUT_VAR "engine_GRPC_COMMUNICATION_SRCS" GENERATE_GRPC)
+
+    list(APPEND engine_GRPC_COMMUNICATION_SRCS
+            src/communication/grpc/GrpcCommunication.cpp
+            src/communication/grpc/GrpcTransport.cpp
+            src/communication/grpc/PathCompiler.cpp)
 endif ()
 
 message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
@@ -226,20 +227,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/conversions/Point2D_Point2LL.cpp
 )
 
-if (ENABLE_GRPC_COMMUNICATION)
-    list(APPEND engine_SRCS ${engine_GRPC_SRCS} ${ASIO_GRPC_CURA_PROTO_SOURCES})
-    list(APPEND engine_SRCS
-            src/communication/grpc/GrpcCommunication.cpp
-            src/communication/grpc/GrpcTransport.cpp
-            src/communication/grpc/PathCompiler.cpp
-    )
-endif ()
-
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
-
-if (NOT ENABLE_GRPC_COMMUNICATION)
-    set_source_files_properties(${engine_PB_SRCS} ${engine_PB_HEADERS} PROPERTIES GENERATED TRUE)
-endif ()
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_GRPC_COMMUNICATION_SRCS})
 
 if (ENABLE_THREADING)
     use_threads(_CuraEngine)
@@ -251,7 +239,6 @@ target_include_directories(_CuraEngine
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
-        $<$<BOOL:${ENABLE_GRPC_COMMUNICATION}>:$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/grpc>>
 )
 
 target_compile_definitions(_CuraEngine
@@ -275,11 +262,6 @@ enable_sanitizers(_CuraEngine)
 
 if (${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
-endif ()
-
-if (ENABLE_GRPC_COMMUNICATION)
-    target_link_libraries(_CuraEngine PUBLIC asio-grpc::asio-grpc grpc::grpc)
-    target_link_libraries(_CuraEngine PUBLIC protobuf::libprotobuf)
 endif ()
 
 find_package(mapbox-wagyu REQUIRED)
@@ -325,6 +307,7 @@ target_link_libraries(_CuraEngine
         $<$<TARGET_EXISTS:curaviz_grpc_definitions::curaviz_grpc_definitions>:curaviz_grpc_definitions::curaviz_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
         $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
+        $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>
         $<$<TARGET_EXISTS:sentry::sentry>:sentry::sentry>
         $<$<TARGET_EXISTS:GTest::gtest>:GTest::gtest>)
 
