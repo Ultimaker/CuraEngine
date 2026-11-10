@@ -1303,6 +1303,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             for (size_t mesh_idx : mesh_order)
             {
                 const std::shared_ptr<SliceMeshStorage>& mesh = storage.meshes[mesh_idx];
+                gcode_layer.setMesh(mesh);
                 const MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
@@ -1313,7 +1314,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
                 }
                 else
                 {
-                    addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
+                    addMeshLayerToGCode(storage, *mesh, extruder_nr, mesh_config, gcode_layer);
                 }
                 time_keeper.registerTime(fmt::format("Mesh {}", mesh->mesh_name));
             }
@@ -1767,7 +1768,6 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
 
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
-
     Shape polygons;
     for (const SliceLayerPart& part : layer->parts)
     {
@@ -1821,12 +1821,11 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
 
 void FffGcodeWriter::addMeshLayerToGCode(
     const SliceDataStorage& storage,
-    const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+    const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
-    auto& mesh = *mesh_ptr;
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
         return;
@@ -1837,14 +1836,12 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
+    const SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
 
     if (layer.parts.empty())
     {
         return;
     }
-
-    gcode_layer.setMesh(mesh_ptr);
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -1855,8 +1852,8 @@ void FffGcodeWriter::addMeshLayerToGCode(
             mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     }
-    PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (SliceLayerPart& part : layer.parts)
+    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for (const SliceLayerPart& part : layer.parts)
     {
         if (part.outline.empty())
         {
@@ -1867,7 +1864,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
 
     part_order_optimizer.optimize(false);
 
-    for (const PathOrdering<SliceLayerPart*>& path : part_order_optimizer.paths_)
+    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
     }
@@ -1889,7 +1886,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    SliceLayerPart& part,
+    const SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -2622,7 +2619,7 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    SliceLayerPart& part,
+    const SliceLayerPart& part,
     const bool end_infill_close_to_seam) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_)
@@ -2696,9 +2693,12 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     return result;
 }
 
-OverrideAreas
-    FffGcodeWriter::makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, SliceLayerPart& part)
-        const
+OverrideAreas FffGcodeWriter::makeLayerMasks(
+    const SliceDataStorage& storage,
+    LayerPlan& gcode_layer,
+    const SliceMeshStorage& mesh,
+    const MeshPathConfigs& mesh_config,
+    const SliceLayerPart& part) const
 {
     // Start by clearing all the masks since this is done per-mesh
     gcode_layer.setBridgeWallMask(Shape());
@@ -2945,7 +2945,7 @@ bool FffGcodeWriter::endProcessInsets(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    SliceLayerPart& part,
+    const SliceLayerPart& part,
     const bool infill_added) const
 {
     if (preprocess_result.spiralize)
