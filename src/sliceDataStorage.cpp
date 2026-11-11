@@ -5,6 +5,7 @@
 
 #include <numbers>
 
+#include <range/v3/algorithm/count.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -97,6 +98,7 @@ void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
     , mesh_name(mesh->mesh_name_)
+    , mesh_id(mesh->mesh_id())
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
@@ -497,6 +499,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
             ret[extruder_nr] = ret[extruder_nr] || mesh->getExtruderIsUsed(extruder_nr);
         }
     }
+
+    mesh_group->num_extruders_used = ranges::count(ret, true);
     return ret;
 }
 

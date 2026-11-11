@@ -41,6 +41,8 @@ public:
     Settings settings;
     bool has_painted_support = false;
 
+    std::optional<int> num_extruders_used = std::nullopt;
+
     Point3LL min() const; //! minimal corner of bounding box
     Point3LL max() const; //! maximal corner of bounding box
 
@@ -56,6 +58,14 @@ public:
      * shrinkage while sticking to the build plate.
      */
     void scaleFromBottom(const Ratio factor_xy, const Ratio factor_z);
+
+    /*!
+     * Wether or not the mesh-skipping feature is enabled.
+     *
+     * Currently, we don't support > 1 extruders when skipping meshes.
+     * Also, it's a bit of a waste to add the gcode-comments when there's only one mesh, so we don't.
+     */
+    bool getSkipMeshEnabled() const;
 };
 
 /*!
