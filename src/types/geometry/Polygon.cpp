@@ -7,10 +7,10 @@
 #include <numbers>
 
 #include "types/AngleDegrees.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/ListPolyIt.h"
 #include "types/geometry/Point3Matrix.h"
 #include "types/geometry/Shape.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::types::geometry
 {
@@ -44,7 +44,7 @@ void Polygon::smooth2(int remove_length, Polygon& result) const
         const Point2LL& last = getPoints()[poly_idx - 1];
         const Point2LL& now = getPoints()[poly_idx];
         const Point2LL& next = getPoints()[(poly_idx + 1) % size()];
-        if (shorterThan(last - now, remove_length) && shorterThan(now - next, remove_length))
+        if (geometry::shorterThan(last - now, remove_length) && geometry::shorterThan(now - next, remove_length))
         {
             poly_idx++; // skip the next line piece (dont escalate the removal of edges)
             if (poly_idx < size())

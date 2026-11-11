@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
 #ifndef DEBUG
     // Register the exception handling for arithmetic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
-    signal(SIGFPE, signal_FPE);
+    signal(SIGFPE, curaengine::signal_FPE);
 #endif
     std::cerr << std::boolalpha;
 
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     }
 #endif
 
-    Application::getInstance().run(argc, argv);
+    curaengine::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
     if (const auto use_sentry = spdlog::details::os::getenv("USE_SENTRY"); ! use_sentry.empty() && use_sentry == "1")
