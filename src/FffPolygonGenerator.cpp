@@ -15,6 +15,9 @@
 #include "ConicalOverhang.h"
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
+
+#include <range/v3/view/concat.hpp>
+
 #include "infill.h"
 #include "InterlockingGenerator.h"
 #include "layerPart.h"
@@ -424,6 +427,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     storage.initializePrimeTower();
 
     AreaSupport::generateSupportBase(storage);
+
+    generateLayersBelow(storage);
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -1209,5 +1214,87 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     }
 }
 
+void FffPolygonGenerator::generateLayersBelow(SliceDataStorage& storage)
+{
+    cura::parallel_for<size_t>(
+        1,
+        storage.print_layer_count,
+        [&](const size_t layer_idx)
+        {
+            std::vector<std::pair<const Shape*, AABB>> all_outlines_below;
+
+            for (const SliceMeshStorage::Ptr& mesh_below : storage.meshes)
+            {
+                if (! mesh_below->isPrinted())
+                {
+                    continue;
+                }
+
+                for (const SliceLayerPart& prevLayerPart : mesh_below->layers[layer_idx - 1].parts)
+                {
+                    all_outlines_below.emplace_back(&prevLayerPart.outline, prevLayerPart.outline);
+                }
+            }
+
+            const MeshGroup& mesh_group = *Application::getInstance().current_slice_->scene.current_mesh_group;
+            const Settings& mesh_group_settings = mesh_group.settings;
+            const bool support_enable = mesh_group_settings.get<bool>("support_enable");
+            const bool has_support = support_enable || mesh_group.has_painted_support;
+
+            for (const SliceMeshStorage::Ptr& mesh : storage.meshes)
+            {
+                std::vector<std::pair<const Shape*, AABB>> all_support_outlines_below;
+
+                const coord_t wall_line_width_0 = mesh->settings.get<coord_t>("wall_line_width_0");
+                const coord_t half_outer_wall_width = wall_line_width_0 / 2;
+
+                // If support is enabled, also add the support outlines
+                if (has_support)
+                {
+                    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+                    const coord_t z_distance_top = mesh->settings.get<coord_t>("support_top_distance");
+                    const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
+                    const int support_layer_nr = layer_idx - z_distance_top_layers;
+
+                    if (support_layer_nr > 0)
+                    {
+                        const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+
+                        if (! support_layer.support_roof.empty())
+                        {
+                            all_support_outlines_below.emplace_back(&support_layer.support_roof, support_layer.support_roof);
+                        }
+                        else
+                        {
+                            for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
+                            {
+                                all_support_outlines_below.emplace_back(&support_part.outline_, support_part.outline_);
+                            }
+                        }
+                    }
+                }
+
+                for (SliceLayerPart& mesh_part : mesh->layers[layer_idx].parts)
+                {
+                    const AABB boundaryBox(mesh_part.outline);
+                    for (const auto& [outline_below, outline_bounding_box] : ranges::views::concat(all_outlines_below, all_support_outlines_below))
+                    {
+                        if (boundaryBox.hit(outline_bounding_box))
+                        {
+                            mesh_part.outlines_below.push_back(*outline_below);
+                        }
+                    }
+
+                    mesh_part.outlines_below = mesh_part.outlines_below.unionPolygons();
+
+                    // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+                    mesh_part.outlines_below = mesh_part.outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
+
+                    // supported extrusion areas are the same, insetted by half the line width
+                    mesh_part.supported_extrusion_areas_below = mesh_part.outlines_below.offset(-half_outer_wall_width);
+                }
+            }
+        });
+}
 
 } // namespace cura
