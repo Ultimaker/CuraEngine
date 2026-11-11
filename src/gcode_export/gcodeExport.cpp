@@ -307,11 +307,11 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
         for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
         {
-            if (! mesh_group.getSkipMeshEnabled())
+            if (! mesh_group->getSkipMeshEnabled())
             {
                 continue;
             }
-            for (const auto& mesh : mesh_group.meshes)
+            for (const auto& mesh : mesh_group->meshes)
             {
                 using ranges::to;
                 const auto sanitized_mesh_name = mesh.mesh_name_
