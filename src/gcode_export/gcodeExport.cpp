@@ -329,8 +329,8 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 const double min_y = INT2MM(aabb.min_.y_);
                 const double max_x = INT2MM(aabb.max_.x_);
                 const double max_y = INT2MM(aabb.max_.y_);
-                prefix << ";SKIP_ENABLE.BoundingBox." << mesh.mesh_id() << ":[[" << min_x << "," << max_y << "],[" << max_x << "," << max_y << "],[" << max_x << "," << min_y << "],["
-                       << min_x << "," << min_y << "]]" << new_line_;
+                prefix << ";SKIP_ENABLE.BoundingBox." << mesh.mesh_id() << ":[[" << min_x << "," << max_y << "],[" << max_x << "," << max_y << "],[" << max_x << "," << min_y
+                       << "],[" << min_x << "," << min_y << "]]" << new_line_;
             }
         }
 
