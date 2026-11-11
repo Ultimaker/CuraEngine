@@ -6,8 +6,9 @@
 #include <gtest/gtest.h>
 
 #include "ExtruderTrain.h"
-#include "RetractionAndWipeConfig.h"
 #include "LayerPlan.h"
+#include "RetractionAndWipeConfig.h"
+#include "TravelAntiOozing.h"
 
 namespace curaengine
 {
@@ -16,7 +17,6 @@ using namespace types::geometry;
 using namespace routing;
 using namespace types;
 using namespace utils;
-
 
 
 struct RetractionBaseConfig

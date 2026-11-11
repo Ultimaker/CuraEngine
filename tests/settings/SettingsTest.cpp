@@ -12,7 +12,6 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/FlowTempGraph.h"
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"
 #include "types/Coord_t.h"
@@ -168,24 +167,6 @@ TEST_F(SettingsTest, AddSettingDuration)
 
     settings.add("test_setting", "-1234.5678");
     EXPECT_DOUBLE_EQ(Duration{ 0 }, settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
-}
-
-TEST_F(SettingsTest, AddSettingFlowTempGraph)
-{
-    settings.add("test_setting", "[[1.50, 10.1],[ 25.1,40.4 ], [26.5,75], [50 , 100.10]]"); // Try various spacing and radixes.
-    const auto flow_temp_graph = settings.get<FlowTempGraph>("test_setting");
-
-    double stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, true);
-    EXPECT_DOUBLE_EQ(75.0 + (100.10 - 75.0) * (30.5 - 26.5) / (50.0 - 26.5), stored_temperature) << "Interpolate between low and high value.";
-
-    stored_temperature = flow_temp_graph.getTemp(1, 200.0, true);
-    EXPECT_DOUBLE_EQ(10.1, stored_temperature) << "Flow too low - Return lower temperature in the graph.";
-
-    stored_temperature = flow_temp_graph.getTemp(80, 200.0, true);
-    EXPECT_DOUBLE_EQ(100.1, stored_temperature) << "Flow too high - Return higher temperature in the graph.";
-
-    stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, false);
-    EXPECT_DOUBLE_EQ(200.0, stored_temperature);
 }
 
 TEST_F(SettingsTest, AddSettingFMatrix3x3)

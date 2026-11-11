@@ -20,7 +20,6 @@
 namespace curaengine
 {
 using namespace types;
-using namespace types::geometry;
 using namespace utils;
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test

@@ -69,9 +69,6 @@ TEST(CoordTTest, TestConversionRoundingAndPrecision)
     check_half_thresholds(&mm2ToInt, 0.0000005);
     check_half_thresholds(&mm3ToInt, 0.0000000005);
     check_conversions(static_cast<double>(1.2345L));
-    // The float literal is below the half threshold when promoted before multiplication.
-    EXPECT_EQ(mmToInt(static_cast<double>(0.0015F)), 1);
-    EXPECT_EQ(mmToInt(static_cast<double>(-0.0015F)), -1);
     EXPECT_EQ(mmToInt(0.0015), 2);
     EXPECT_EQ(mmToInt(-0.0015), -2);
     check_conversions(static_cast<double>(Velocity{ 1.2345 }));

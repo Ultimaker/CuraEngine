@@ -8,7 +8,6 @@
 #include <iostream>
 #include <unordered_set>
 
-#include <range/v3/view/join.hpp>
 #include <scripta/logger.h>
 
 #include <gmock/gmock.h>
@@ -25,6 +24,7 @@
 #include "arcus/MockCommunication.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Polygon.h"
+#include "utils/linear_alg_2d.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace curaengine
