@@ -115,7 +115,7 @@ boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
             co_return;
         }
 
-        co_await receive_queue_.async_send(boost::system::error_code{}, message, boost::asio::use_awaitable);
+        co_await receive_queue_.async_send(boost::system::error_code{}, std::move(message), boost::asio::use_awaitable);
     }
 }
 
