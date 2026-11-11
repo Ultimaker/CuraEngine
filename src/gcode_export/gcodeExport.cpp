@@ -321,6 +321,17 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                                                | ranges::to<std::string>();
                 prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
             }
+
+            for (const auto& mesh : mesh_group.meshes)
+            {
+                const AABB3D aabb = mesh.getAABB();
+                const double min_x = INT2MM(aabb.min_.x_);
+                const double min_y = INT2MM(aabb.min_.y_);
+                const double max_x = INT2MM(aabb.max_.x_);
+                const double max_y = INT2MM(aabb.max_.y_);
+                prefix << ";SKIP_ENABLE.BoundingBox." << mesh.mesh_id() << ":[[" << min_x << "," << max_y << "],[" << max_x << "," << max_y << "],[" << max_x << "," << min_y << "],["
+                       << min_x << "," << min_y << "]]" << new_line_;
+            }
         }
 
         prefix << ";END_OF_HEADER" << new_line_;
