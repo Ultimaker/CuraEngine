@@ -512,7 +512,7 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D&
     return loadMeshSTL_binary(mesh, filename, matrix, &uv_coordinates);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup& meshgroup, const fs::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 
@@ -587,7 +587,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
         spdlog::info("loading '{}' took {}", filename.string(), std::chrono::duration<double>(load_timer.restart()));
 
         mesh.mesh_name_ = base_filename;
-        meshgroup->meshes.push_back(mesh);
+        meshgroup.meshes.push_back(mesh);
     }
 
     return load_success;

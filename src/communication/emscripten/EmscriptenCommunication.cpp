@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef __EMSCRIPTEN__
-#include "communication/EmscriptenCommunication.h"
+#include "communication/emscripten/EmscriptenCommunication.h"
 
 #include <emscripten.h>
 #include <rapidjson/document.h>

@@ -81,8 +81,9 @@ public:
      */
     SliceDataStorage* setUpStorage()
     {
-        constexpr size_t num_mesh_groups = 1;
-        Application::getInstance().current_slice_ = std::make_shared<Slice>(num_mesh_groups);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>();
+        Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
+        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.mesh_groups.front();
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -633,9 +634,9 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     Shape supported_region;
     supported_region.emplace_back();
     supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
-    supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
+    supported_region.back().emplace_back(MM2INT(10), -MM2INT(10));
+    supported_region.back().emplace_back(MM2INT(10), MM2INT(10));
+    supported_region.back().emplace_back(-MM2INT(10), MM2INT(10));
 
     Shape full_area;
     full_area.emplace_back();
@@ -663,12 +664,15 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     bool found_reduced_speed = false;
     for (const GCodePath& path : paths)
     {
-        if (path.isTravelPath()) continue;
-        if (path.speed_factor >= 1.0_r) found_full_speed = true;
-        if (path.speed_factor < 1.0_r)  found_reduced_speed = true;
+        if (path.isTravelPath())
+            continue;
+        if (path.speed_factor >= 1.0_r)
+            found_full_speed = true;
+        if (path.speed_factor < 1.0_r)
+            found_reduced_speed = true;
     }
 
-    EXPECT_TRUE(found_full_speed)    << "Segment inside supported region should have full speed";
+    EXPECT_TRUE(found_full_speed) << "Segment inside supported region should have full speed";
     EXPECT_TRUE(found_reduced_speed) << "Segment crossing into overhang should have reduced speed";
 }
 

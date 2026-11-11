@@ -16,8 +16,8 @@
 
 #include "Application.h"
 #include "LayerPlan.h"
+#include "MockCommunication.h" // No-op Communication used by tests.
 #include "Slice.h"
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.
@@ -59,7 +59,8 @@ public:
 
     SliceDataStorage* setUpStorage()
     {
-        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>();
+        Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice_->scene.settings;

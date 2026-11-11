@@ -32,7 +32,9 @@ class SlicePhaseTest : public testing::Test
         Application::getInstance().startThreadPool();
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>();
+        Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
+        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.mesh_groups.front();
 
         // And a few settings that we want to default.
         Scene& scene = Application::getInstance().current_slice_->scene;
@@ -72,13 +74,13 @@ class SlicePhaseTest : public testing::Test
 TEST_F(SlicePhaseTest, Cube)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    MeshGroup& mesh_group = scene.mesh_groups.back();
+    MeshGroup::Ptr& mesh_group = scene.mesh_groups.back();
 
     const Matrix4x3D transformation;
     // Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").string().c_str(), transformation, scene.settings));
-    EXPECT_EQ(mesh_group.meshes.size(), 1);
-    Mesh& cube_mesh = mesh_group.meshes[0];
+    ASSERT_TRUE(loadMeshIntoMeshGroup(*mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").string().c_str(), transformation, scene.settings));
+    EXPECT_EQ(mesh_group->meshes.size(), 1);
+    Mesh& cube_mesh = mesh_group->meshes[0];
 
     const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
     const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
@@ -132,14 +134,14 @@ TEST_F(SlicePhaseTest, Cube)
 TEST_F(SlicePhaseTest, Cylinder1000)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    MeshGroup& mesh_group = scene.mesh_groups.back();
+    MeshGroup::Ptr& mesh_group = scene.mesh_groups.back();
 
     const Matrix4x3D transformation;
     // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
     ASSERT_TRUE(
-        loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
-    EXPECT_EQ(mesh_group.meshes.size(), 1);
-    Mesh& cylinder_mesh = mesh_group.meshes[0];
+        loadMeshIntoMeshGroup(*mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").string().c_str(), transformation, scene.settings));
+    EXPECT_EQ(mesh_group->meshes.size(), 1);
+    Mesh& cylinder_mesh = mesh_group->meshes[0];
 
     const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
     const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");

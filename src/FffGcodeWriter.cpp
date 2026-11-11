@@ -69,7 +69,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     gcode.setSliceUUID(slice_uuid);
 
     Scene& scene = Application::getInstance().current_slice_->scene;
-    if (scene.current_mesh_group == scene.mesh_groups.begin()) // First mesh group.
+    if (scene.current_mesh_group == scene.mesh_groups.front()) // First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
         gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
@@ -79,7 +79,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetractionAndWipe(storage);
 
-    if (scene.current_mesh_group == scene.mesh_groups.begin())
+    if (scene.current_mesh_group == scene.mesh_groups.front())
     {
         auto should_prime_extruder = gcode.initializeExtruderTrains(storage, start_extruder_nr);
 
@@ -1588,7 +1588,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     // set the initial extruder of this meshgroup
     Scene& scene = Application::getInstance().current_slice_->scene;
     size_t start_extruder;
-    if (scene.current_mesh_group == scene.mesh_groups.begin())
+    if (scene.current_mesh_group == scene.mesh_groups.front())
     { // first meshgroup
         start_extruder = getStartExtruder(storage);
     }
@@ -1728,7 +1728,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
 {
     OrderOptimizer<size_t> mesh_idx_order_optimizer;
 
-    std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
+    std::shared_ptr<MeshGroup>& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];

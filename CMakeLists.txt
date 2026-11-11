@@ -7,12 +7,12 @@ project(CuraEngine)
 find_package(standardprojectsettings REQUIRED)  # imports the cmake module https://github.com/Ultimaker/conan-ultimaker-index/recipes/standardprojectsettings
 AssureOutOfSourceBuilds()
 
-option(ENABLE_ARCUS "Enable support for ARCUS" ON)
+option(ENABLE_GRPC_COMMUNICATION "Enable Cura gRPC communication" OFF)
 option(ENABLE_TESTING "Build with unit tests" OFF)
 option(ENABLE_BENCHMARKS "Build with Benchmarks" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_PLUGINS "Build with plugins" ON)
-option(ENABLE_REMOTE_PLUGINS "Build with all warnings" OFF)
+option(ENABLE_REMOTE_PLUGINS "Build with remote plugins" OFF)
 option(ENABLE_SENTRY "Send crash data via Sentry" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
@@ -20,23 +20,30 @@ option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
 option(ENABLE_CURAVIZ "Build with CuraViz toolbox" OFF)
 
-if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
+if (${ENABLE_GRPC_COMMUNICATION} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
     find_package(protobuf REQUIRED)
+endif ()
+
+if (${ENABLE_GRPC_COMMUNICATION} OR ${ENABLE_PLUGINS})
+    find_package(asio-grpc REQUIRED)
+    find_package(gRPC REQUIRED)
 endif ()
 
 MESSAGE(STATUS "Building with plugins support: ${ENABLE_PLUGINS}")
 if (${ENABLE_PLUGINS})
-    find_package(asio-grpc REQUIRED)
-    find_package(gRPC REQUIRED)
     find_package(curaengine_grpc_definitions REQUIRED)
     find_package(semver REQUIRED)
     MESSAGE(STATUS "Plugin secure remotes allowed: ${ENABLE_REMOTE_PLUGINS}")
 endif ()
 
-message(STATUS "Building with Arcus: ${ENABLE_ARCUS}")
-if (${ENABLE_ARCUS})
-    find_package(arcus REQUIRED)
-    protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+message(STATUS "Building with Cura gRPC communication: ${ENABLE_GRPC_COMMUNICATION}")
+if (${ENABLE_GRPC_COMMUNICATION})
+    asio_grpc_protobuf_generate(PROTOS Cura.proto OUT_VAR "engine_GRPC_COMMUNICATION_SRCS" GENERATE_GRPC)
+
+    list(APPEND engine_GRPC_COMMUNICATION_SRCS
+            src/communication/grpc/GrpcCommunication.cpp
+            src/communication/grpc/GrpcTransport.cpp
+            src/communication/grpc/PathCompiler.cpp)
 endif ()
 
 message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
@@ -119,11 +126,8 @@ set(engine_SRCS # Except main.cpp.
         src/bridge/BridgeAngleScoringCriterion.cpp
         src/bridge/AlignShapeScoringCriterion.cpp
 
-        src/communication/ArcusCommunication.cpp
-        src/communication/ArcusCommunicationPrivate.cpp
-        src/communication/CommandLine.cpp
-        src/communication/EmscriptenCommunication.cpp
-        src/communication/Listener.cpp
+        src/communication/command_line/CommandLine.cpp
+        src/communication/emscripten/EmscriptenCommunication.cpp
 
         src/gcode_export/gcodeExport.cpp
         src/gcode_export/FixedGCodePart.cpp
@@ -223,7 +227,8 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/conversions/Point2D_Point2LL.cpp
 )
 
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_GRPC_COMMUNICATION_SRCS})
+
 if (ENABLE_THREADING)
     use_threads(_CuraEngine)
 endif ()
@@ -238,7 +243,7 @@ target_include_directories(_CuraEngine
 
 target_compile_definitions(_CuraEngine
         PUBLIC
-        $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        $<$<BOOL:${ENABLE_GRPC_COMMUNICATION}>:ENABLE_GRPC_COMMUNICATION>
         $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
         $<$<BOOL:${ENABLE_CURAVIZ}>:ENABLE_CURAVIZ>
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
@@ -257,10 +262,6 @@ enable_sanitizers(_CuraEngine)
 
 if (${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
-endif ()
-
-if (ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PUBLIC arcus::arcus)
 endif ()
 
 find_package(mapbox-wagyu REQUIRED)
@@ -376,17 +377,8 @@ target_compile_definitions(CuraEngine PRIVATE
 # Compiling the test environment.
 if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
     set(TESTS_HELPERS_SRC tests/ReadTestPolygons.cpp)
-
-    set(TESTS_SRC_ARCUS)
-    if (ENABLE_ARCUS)
-        list(APPEND TESTS_SRC_ARCUS
-                ArcusCommunicationTest
-                ArcusCommunicationPrivateTest)
-        list(APPEND TESTS_HELPERS_SRC tests/arcus/MockSocket.cpp)
-    endif ()
-
     add_library(test_helpers ${TESTS_HELPERS_SRC})
-    target_compile_definitions(test_helpers PUBLIC $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS> $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>)
+    target_compile_definitions(test_helpers PUBLIC $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS> $<$<BOOL:${ENABLE_GRPC_COMMUNICATION}>:ENABLE_GRPC_COMMUNICATION>)
     target_include_directories(test_helpers PUBLIC "include" ${CMAKE_BINARY_DIR}/generated)
     target_link_libraries(test_helpers PRIVATE
             _CuraEngine
@@ -398,9 +390,6 @@ if (ENABLE_TESTING OR ENABLE_BENCHMARKS)
             $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
             $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
             $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>)
-    if (ENABLE_ARCUS)
-        target_link_libraries(test_helpers PUBLIC arcus::arcus)
-    endif ()
 endif ()
 
 if (ENABLE_BENCHMARKS)

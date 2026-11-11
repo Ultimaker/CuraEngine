@@ -23,6 +23,8 @@ class Matrix4x3D;
 class MeshGroup
 {
 public:
+    using Ptr = std::shared_ptr<MeshGroup>;
+
     MeshGroup() = default;
 
     ~MeshGroup() = default;
@@ -75,7 +77,7 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
+bool loadMeshIntoMeshGroup(MeshGroup& meshgroup, const std::filesystem::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
 
 bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix);
 

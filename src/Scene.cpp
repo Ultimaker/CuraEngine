@@ -15,14 +15,8 @@
 namespace cura
 {
 
-Scene::Scene(const size_t num_mesh_groups)
-    : mesh_groups(num_mesh_groups)
-    , current_mesh_group(mesh_groups.begin())
+Scene::Scene()
 {
-    for (MeshGroup& mesh_group : mesh_groups)
-    {
-        mesh_group.settings.setParent(&settings);
-    }
 }
 
 const std::string Scene::getAllSettingsString() const
@@ -48,13 +42,13 @@ const std::string Scene::getAllSettingsString() const
         }
 
         // Per-mesh-group settings.
-        const MeshGroup& mesh_group = mesh_groups[mesh_group_index];
-        output << mesh_group.settings.getAllSettingsString();
+        const MeshGroup::Ptr& mesh_group = mesh_groups[mesh_group_index];
+        output << mesh_group->settings.getAllSettingsString();
 
         // Per-object settings.
-        for (size_t mesh_index = 0; mesh_index < mesh_group.meshes.size(); mesh_index++)
+        for (size_t mesh_index = 0; mesh_index < mesh_group->meshes.size(); mesh_index++)
         {
-            const Mesh& mesh = mesh_group.meshes[mesh_index];
+            const Mesh& mesh = mesh_group->meshes[mesh_index];
             output << " -e" << mesh.settings_.get<size_t>("extruder_nr") << " -l \"" << mesh_index << "\"" << mesh.settings_.getAllSettingsString();
         }
     }
@@ -98,6 +92,12 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
     Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {}\n", std::chrono::duration<double>(time_keeper_total.restart()));
+}
+
+void Scene::appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group)
+{
+    mesh_group->settings.setParent(&settings);
+    mesh_groups.push_back(mesh_group);
 }
 
 } // namespace cura

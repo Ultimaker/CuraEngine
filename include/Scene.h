@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SCENE_H
 #define SCENE_H
@@ -31,7 +31,7 @@ public:
     /*
      * \brief The mesh groups in the scene.
      */
-    std::vector<MeshGroup> mesh_groups;
+    std::vector<std::shared_ptr<MeshGroup>> mesh_groups;
 
     /*
      * \brief The extruders in the scene.
@@ -45,16 +45,15 @@ public:
      * slicing process, you can be assured that this will not be null so you can
      * safely dereference it.
      */
-    std::vector<MeshGroup>::iterator current_mesh_group;
+    std::shared_ptr<MeshGroup> current_mesh_group;
 
     /*
      * \brief Create an empty scene.
      *
      * This scene will have no models in it, no extruders, no settings, no
      * nothing.
-     * \param num_mesh_groups The number of mesh groups to allocate for.
      */
-    Scene(const size_t num_mesh_groups);
+    Scene();
 
     /*
      * \brief Gets a string that contains all settings.
@@ -71,6 +70,12 @@ public:
      */
     void processMeshGroup(MeshGroup& mesh_group);
 
+    /*!
+     * Append a mesh group to this scene and registers its settings parent
+     * @param mesh_group The fresh mesh group to be added to the scene
+     */
+    void appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group);
+
 private:
     /*
      * \brief You are not allowed to copy the scene.
@@ -80,9 +85,9 @@ private:
     /*
      * \brief You are not allowed to copy by assignment either.
      */
-    Scene& operator =(const Scene&) = delete;
+    Scene& operator=(const Scene&) = delete;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //SCENE_H
+#endif // SCENE_H

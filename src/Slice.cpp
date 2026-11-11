@@ -14,8 +14,8 @@
 namespace cura
 {
 
-Slice::Slice(const size_t num_mesh_groups)
-    : scene(num_mesh_groups)
+Slice::Slice()
+    : scene()
 {
 }
 
@@ -28,8 +28,9 @@ void Slice::compute()
     }
 #endif
 
-    for (std::vector<MeshGroup>::iterator mesh_group = scene.mesh_groups.begin(); mesh_group != scene.mesh_groups.end(); mesh_group++)
+    for (std::shared_ptr<MeshGroup>& mesh_group : scene.mesh_groups)
     {
+        mesh_group->finalize();
         scene.current_mesh_group = mesh_group;
         for (ExtruderTrain& extruder : scene.extruders)
         {

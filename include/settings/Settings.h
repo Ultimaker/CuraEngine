@@ -107,6 +107,8 @@ public:
 
     std::vector<std::string> getKeys() const;
 
+    const std::unordered_map<std::string, std::string>& getRawSettings() const;
+
 private:
     /*!
      * Optionally, a parent setting container to ask for the value of a setting

@@ -10,6 +10,7 @@
 #include <range/v3/view/transform.hpp>
 
 #include "GCodePathConfig.h"
+#include "Scene.h"
 #include "WallToolPaths.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
@@ -31,42 +32,42 @@ constexpr empty::native_value_type empty::operator()(const value_type&) const
     return nullptr;
 }
 
-broadcast_settings_request::value_type broadcast_settings_request::operator()(const broadcast_settings_request::native_value_type& slice_message) const
+broadcast_settings_request::value_type broadcast_settings_request::operator()(const broadcast_settings_request::native_value_type& scene) const
 {
     value_type message{};
     auto* global_settings = message.mutable_global_settings()->mutable_settings();
-    for (const auto& setting : slice_message.global_settings().settings())
+    for (const auto& [setting_name, setting_value] : scene.settings.getRawSettings())
     {
-        global_settings->emplace(setting.name(), setting.value());
+        global_settings->emplace(setting_name, setting_value);
     }
 
     auto* extruders_settings = message.mutable_extruder_settings();
-    for (const auto& extruder : slice_message.extruders())
+    for (const auto& extruder : scene.extruders)
     {
         auto* settings = extruders_settings->Add()->mutable_settings();
-        for (const auto& setting : extruder.settings().settings())
+        for (const auto& [setting_name, setting_value] : extruder.settings_.getRawSettings())
         {
-            settings->emplace(setting.name(), setting.value());
+            settings->emplace(setting_name, setting_value);
         }
     }
 
     auto* object_settings = message.mutable_object_settings();
-    for (const auto& mesh_group : slice_message.object_lists())
+    for (const auto& mesh_group : scene.mesh_groups)
     {
         std::unordered_map<std::string, std::string> mesh_group_settings;
-        for (const auto& setting : mesh_group.settings())
+        for (const auto& [setting_name, setting_value] : mesh_group->settings.getRawSettings())
         {
-            mesh_group_settings[setting.name()] = setting.value();
+            mesh_group_settings[setting_name] = setting_value;
         }
-        for (const auto& object : mesh_group.objects())
+        for (const auto& object : mesh_group->meshes)
         {
             std::unordered_map<std::string, std::string> per_object_settings = mesh_group_settings;
-            for (const auto& setting : object.settings())
+            for (const auto& [setting_name, setting_value] : object.settings_.getRawSettings())
             {
-                per_object_settings[setting.name()] = setting.value();
+                per_object_settings[setting_name] = setting_value;
             }
 
-            per_object_settings["mesh_name"] = object.name();
+            per_object_settings["mesh_name"] = object.mesh_name_;
 
             auto* settings = object_settings->Add()->mutable_settings();
             for (const auto& key_value_pair : per_object_settings)
@@ -77,9 +78,9 @@ broadcast_settings_request::value_type broadcast_settings_request::operator()(co
     }
 
     auto* limit_to_extruder = message.mutable_limit_to_extruder();
-    for (const auto& setting_extruder : slice_message.limit_to_extruder())
+    for (const auto& [setting_name, extruder_train] : scene.limit_to_extruder)
     {
-        limit_to_extruder->emplace(setting_extruder.name(), setting_extruder.extruder());
+        limit_to_extruder->emplace(setting_name, extruder_train->extruder_nr_);
     }
     return message;
 }

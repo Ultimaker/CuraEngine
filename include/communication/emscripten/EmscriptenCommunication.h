@@ -5,7 +5,7 @@
 #define EMSCRIPTENCOMMUNICATION_H
 #ifdef __EMSCRIPTEN__
 
-#include "communication/CommandLine.h"
+#include "communication/command_line/CommandLine.h"
 
 namespace cura
 {
