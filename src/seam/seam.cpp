@@ -247,15 +247,18 @@ std::vector<Point2LL> calculateWallsSeamPosition(
                 }
 
                 const std::optional<size_t> best_seam_candidate = best_candidate_finder.findBestElement(points.size());
-                if (best_seam_candidate.has_value() && best_seam_candidate.value() != 0)
+                if (best_seam_candidate.has_value())
                 {
                     if (outer_walls)
                     {
                         new_layer_seams.push_back(points[*best_seam_candidate]);
                     }
 
-                    // Re-order the toolpath so that it starts with the most appropriate seam position
-                    ranges::rotate(extrusion_line, std::next(extrusion_line.begin(), *best_seam_candidate));
+                    if (best_seam_candidate.value() != 0)
+                    {
+                        // Re-order the toolpath so that it starts with the most appropriate seam position
+                        ranges::rotate(extrusion_line, std::next(extrusion_line.begin(), *best_seam_candidate));
+                    }
                 }
             }
         }
@@ -275,6 +278,7 @@ void calculateSeamPositions(SliceDataStorage& storage)
         const auto wall_line_width_0 = settings.get<coord_t>("wall_line_width_0");
         std::vector<Point2LL> layer_seams;
 
+#warning multithread it
         for (SliceLayer& layer : mesh->layers)
         {
 #warning restore this (with a proper criterion)
