@@ -1,29 +1,33 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_MESH_UTILS_H
-#define UTILS_MESH_UTILS_H
+#pragma once
 
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "geometry/Triangle2F.h"
-#include "geometry/Triangle3LL.h"
+#include "types/geometry/Triangle2F.h"
+#include "types/geometry/Triangle3LL.h"
 
-namespace cura
+namespace curaengine::types::geometry
+{
+class Point3D;
+}
+
+namespace curaengine
 {
 
-class Point3D;
+
 class Mesh;
 
-namespace MeshUtils
+namespace utils
 {
 
-std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle);
+std::optional<types::geometry::Point3D> getBarycentricCoordinates(const types::geometry::Point3LL& point, const types::geometry::Triangle3LL& triangle);
 
-Point2F getUVCoordinates(const Point3D& barycentric_coordinates, const Triangle2F& uv_coordinates);
+types::geometry::Point2F getUVCoordinates(const types::geometry::Point3D& barycentric_coordinates, const types::geometry::Triangle2F& uv_coordinates);
 
 /*!
  * Load texture data from PNG binary data and attach it to a mesh.
@@ -56,8 +60,6 @@ bool loadTextureFromFile(Mesh& mesh, const std::filesystem::path& texture_filena
  */
 void loadTextureFromString(const std::string& texture_str, Mesh& mesh);
 
-} // namespace MeshUtils
+} // namespace utils
 
-} // namespace cura
-
-#endif
+} // namespace curaengine

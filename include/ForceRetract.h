@@ -1,10 +1,9 @@
-// Copyright (c) 2026 UltiMaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FORCERETRACT_H
-#define FORCERETRACT_H
+#pragma once
 
-namespace cura
+namespace curaengine
 {
 
 /*!
@@ -12,11 +11,9 @@ namespace cura
  */
 enum class ForceRetract
 {
-    AUTOMATIC, // Let retraction be calculated automatically for the travel move
-    RETRACTED, // Force travel move to be retracted
-    NOT_RETRACTED, // Force travel move not to be retracted
+    Automatic, // Let retraction be calculated automatically for the travel move
+    Retracted, // Force travel move to be retracted
+    NotRetracted, // Force travel move not to be retracted
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine

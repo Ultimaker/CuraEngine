@@ -1,8 +1,7 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_ALGORITHM_H
-#define UTILS_ALGORITHM_H
+#pragma once
 
 #include <algorithm>
 #include <numeric>
@@ -10,7 +9,7 @@
 
 // extensions to algorithm.h from the standard library
 
-namespace cura
+namespace curaengine::utils
 {
 
 /*!
@@ -44,6 +43,4 @@ std::vector<size_t> order(const std::vector<T>& in)
 }
 
 
-} // namespace cura
-
-#endif // UTILS_ALGORITHM_H
+} // namespace curaengine::utils

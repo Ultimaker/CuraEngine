@@ -1,29 +1,29 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H
 #define CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H
 
-#include "../tests/ReadTestPolygons.h"
-#include "utils/Simplify.h"
-#include "utils/channel.h"
-
-#include <fmt/format.h>
-
 #include <benchmark/benchmark.h>
 #include <filesystem>
 
+#include <fmt/format.h>
+
+#include "../tests/ReadTestPolygons.h"
+#include "types/geometry/Simplify.h"
+#include "utils/channel.h"
+
 #ifdef ENABLE_PLUGINS
-#include "plugins/slots.h"
+#include "plugins/Slots.h"
 #include <grpcpp/create_channel.h>
 #endif
 
-namespace cura
+namespace curaengine
 {
 class SimplifyTestFixture : public benchmark::Fixture
 {
 public:
-    const std::vector<std::string> POLYGON_FILENAMES = { std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave.txt").string(),
+    const std::vector<std::string> polygon_filenames = { std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_concave_hole.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_square.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/polygon_square_hole.txt").string(),
@@ -34,11 +34,11 @@ public:
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_3.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_4.txt").string() };
 
-    std::vector<Shape> shapes;
+    std::vector<types::geometry::Shape> shapes;
 
     void SetUp(const ::benchmark::State& state)
     {
-        readTestPolygons(POLYGON_FILENAMES, shapes);
+        readTestPolygons(polygon_filenames, shapes);
     }
 
     void TearDown(const ::benchmark::State& state)
@@ -48,10 +48,10 @@ public:
 
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
 {
-    Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
+    types::geometry::Simplify simplify(types::mmToInt(0.25), types::mmToInt(0.025), 50000);
     for (auto _ : st)
     {
-        Shape simplified;
+        types::geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
             benchmark::DoNotOptimize(simplified = simplify.polygon(polys));
@@ -66,10 +66,10 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 {
     for (auto _ : st)
     {
-        Shape simplified;
+        types::geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, types::mmToInt(0.25), types::mmToInt(0.025), 50000));
         }
     }
 }
@@ -77,5 +77,5 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 BENCHMARK_REGISTER_F(SimplifyTestFixture, simplify_slot_noplugin);
 #endif
 
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_BENCHMARK_SIMPLIFY_BENCHMARK_H

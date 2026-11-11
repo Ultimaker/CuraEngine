@@ -1,18 +1,21 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SierpinskiFillProvider.h"
 
 #include <spdlog/spdlog.h>
 
-#include "geometry/Polygon.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
-#include "utils/AABB3D.h"
+#include "types/geometry/AABB3D.h"
+#include "types/geometry/Polygon.h"
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine::infill
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 
 constexpr bool SierpinskiFillProvider::get_constructor;
@@ -36,7 +39,7 @@ Polygon SierpinskiFillProvider::generate(EFillMethod pattern, coord_t z, coord_t
 {
     if (fill_pattern_for_all_layers)
     {
-        if (pattern == EFillMethod::CROSS_3D)
+        if (pattern == EFillMethod::Cross3D)
         {
             return fill_pattern_for_all_layers->generateCross(z, line_width / 2, pocket_size);
         }
@@ -90,4 +93,4 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
 }
 
 
-} // namespace cura
+} // namespace curaengine::infill

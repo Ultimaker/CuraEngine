@@ -1,13 +1,17 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TextureDataProvider.h"
 
+#include "Image.h"
+#include "Mesh.h"
 #include "SlicedUVCoordinates.h"
-#include "mesh.h"
+#include "TextureArea.h"
+#include "TextureBitField.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
 
 TextureDataProvider::TextureDataProvider(
     const std::shared_ptr<SlicedUVCoordinates>& uv_coordinates,
@@ -62,4 +66,4 @@ std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL
     return std::nullopt;
 }
 
-} // namespace cura
+} // namespace curaengine

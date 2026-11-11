@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 
-#include <boost/uuid/random_generator.hpp> //For generating a UUID.
-#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/cfg/helpers.h>
@@ -19,15 +19,20 @@
 #include <spdlog/spdlog.h>
 
 #include "Slice.h"
-#include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
-#include "communication/CommandLine.h" //To use the command line to slice stuff.
-#include "communication/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
+#include "communication/ArcusCommunication.h"
+#include "communication/CommandLine.h"
+#include "communication/EmscriptenCommunication.h"
 #include "progress/Progress.h"
-#include "utils/ThreadPool.h"
-#include "utils/string.h" //For stringcasecompare.
+#include "types/ThreadPool.h"
+#include "utils/string.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace communication;
+using namespace progress;
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
 
 Application::Application()
     : instance_uuid_(boost::uuids::to_string(boost::uuids::random_generator()()))
@@ -144,11 +149,13 @@ void Application::printHelp() const
     fmt::print("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     fmt::print("\n");
     fmt::print("The settings are appended to the last supplied object:\n");
-    fmt::print("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
-               "settings] \n\t--next [next group settings]\n\t... etc.\n");
+    fmt::print(
+        "CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
+        "settings] \n\t--next [next group settings]\n\t... etc.\n");
     fmt::print("\n");
-    fmt::print("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
-               "paths delimited by a (semi-)colon.\n");
+    fmt::print(
+        "In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
+        "paths delimited by a (semi-)colon.\n");
     fmt::print("\n");
 }
 
@@ -195,7 +202,7 @@ void Application::printHeader() const
 void Application::printLicense() const
 {
     fmt::print("\n");
-    fmt::print("Copyright (C) 2024 Ultimaker\n");
+    fmt::print("Copyright (C) 2026 UltiMaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");
@@ -241,17 +248,17 @@ void Application::run(const size_t argc, char** argv)
     }
 
 #ifdef ARCUS
-    if (stringcasecompare(argv[1], "connect") == 0)
+    if (utils::stringcasecompare(argv[1], "connect") == 0)
     {
         connect();
     }
     else
 #endif // ARCUS
-        if (stringcasecompare(argv[1], "slice") == 0)
+        if (utils::stringcasecompare(argv[1], "slice") == 0)
         {
             slice();
         }
-        else if (stringcasecompare(argv[1], "help") == 0)
+        else if (utils::stringcasecompare(argv[1], "help") == 0)
         {
             printHelp();
         }
@@ -309,4 +316,4 @@ void Application::startThreadPool(int nworkers)
     thread_pool_ = new ThreadPool(nthreads);
 }
 
-} // namespace cura
+} // namespace curaengine

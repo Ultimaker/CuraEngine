@@ -1,4 +1,4 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/AbstractLinesInfill.h"
@@ -6,15 +6,19 @@
 #include <fmt/format.h>
 #include <range/v3/view/enumerate.hpp>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/PointMatrix.h"
-#include "geometry/Shape.h"
-#include "utils/AABB.h"
-#include "utils/OpenPolylineStitcher.h"
-#include "utils/linearAlg2D.h"
+#include "types/AngleDegrees.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/OpenPolylineStitcher.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/Shape.h"
+#include "utils/linear_alg_2d.h"
 
-namespace cura
+namespace curaengine::infill
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 void AbstractLinesInfill::generateInfill(
     OpenLinesSet& result_polylines,
@@ -90,7 +94,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 {
                     // don't include chain ends that are close to the segment but are beyond the segment ends
                     short beyond = 0;
-                    if (LinearAlg2D::getDist2FromLineSegment(op0, point, op1, &beyond) < 10 && ! beyond)
+                    if (linear_alg_2d::getDist2FromLineSegment(op0, point, op1, &beyond) < 10 && ! beyond)
                     {
                         points_on_outline_point_index.push_back(point_index);
                         points_on_outline_chain_index.push_back(chain_index);
@@ -98,7 +102,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 }
             }
 
-            if (outline_point_index == 0 || vSize2(op0 - cur_point) > MM2INT(0.1))
+            if (outline_point_index == 0 || types::geometry::vSize2(op0 - cur_point) > mmToInt(0.1))
             {
                 // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -124,7 +128,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 double nearest_point_dist2 = std::numeric_limits<float>::infinity();
                 for (size_t pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
                 {
-                    double dist2 = vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
+                    double dist2 = types::geometry::vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
                     if (dist2 < nearest_point_dist2)
                     {
                         nearest_point_dist2 = dist2;
@@ -137,7 +141,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 // make the chain end the current point and add it to the connector line
                 cur_point = split_lines[chain_index].chain[point_index];
 
-                if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
+                if (drawing && connector_points.size() > 0 && types::geometry::vSize2(cur_point - connector_points.back()) < mmToInt(0.1))
                 {
                     // this chain end will be too close to the last connector point so throw away the last connector point
                     connector_points.pop_back();
@@ -256,4 +260,4 @@ OpenLinesSet AbstractLinesInfill::fitLines(const OpenLinesSet& raw_lines, const 
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine::infill

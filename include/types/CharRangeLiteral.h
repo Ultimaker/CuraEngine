@@ -1,0 +1,22 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#pragma once
+
+#include <algorithm>
+
+
+namespace curaengine::types
+{
+template<size_t N>
+struct CharRangeLiteral
+{
+    constexpr CharRangeLiteral(const char (&str)[N]) noexcept
+    {
+        std::copy_n(str, N, value);
+    }
+
+    char value[N];
+};
+
+} // namespace curaengine::types

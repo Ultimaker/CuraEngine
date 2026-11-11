@@ -1,7 +1,7 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "WallsComputation.h" //Unit under test.
+#include "WallsComputation.h"
 
 #include <unordered_set>
 
@@ -10,22 +10,27 @@
 
 #include <gtest/gtest.h>
 
-#include "InsetOrderOptimizer.h" //Unit also under test.
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h" //To create example polygons.
-#include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
-#include "slicer.h"
+#include "InsetOrderOptimizer.h"
+#include "Settings.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "Slicer.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include <cstdlib>
 
-#include "utils/SVG.h"
+#include "types/SVG.h"
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 /*!
  * Fixture that provides a basis for testing wall computation.
  */
@@ -57,9 +62,9 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(20), 0);
-        square_shape.back().emplace_back(MM2INT(20), MM2INT(20));
-        square_shape.back().emplace_back(0, MM2INT(20));
+        square_shape.back().emplace_back(mmToInt(20), 0);
+        square_shape.back().emplace_back(mmToInt(20), mmToInt(20));
+        square_shape.back().emplace_back(0, mmToInt(20));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
@@ -113,7 +118,7 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     part.outline.push_back(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
@@ -136,7 +141,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     part.outline.push_back(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
 
     // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
@@ -157,7 +162,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     part.outline.push_back(ff_holes);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
 
     const bool outer_to_inner = false;
     std::vector<ExtrusionLine> all_paths;
@@ -183,26 +188,26 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
             {
                 if (line.is_odd)
                 {
-                    svg.writePolyline(line.toPolygon(), SVG::Color::YELLOW);
+                    svg.writePolyline(line.toPolygon(), SVG::Color::Yellow);
                     svg.writePoints(line.toPolygon(), true);
                 }
                 else
-                    svg.writePolygon(line.toPolygon(), SVG::Color::GREEN);
+                    svg.writePolygon(line.toPolygon(), SVG::Color::Green);
             }
         }
-        svg.writePolygons(part.outline, SVG::Color::RED);
-        svg.writePolygons(part.inner_area, SVG::Color::YELLOW);
+        svg.writePolygons(part.outline, SVG::Color::Red);
+        svg.writePolygons(part.inner_area, SVG::Color::Yellow);
         svg.nextLayer();
         for (auto [first, second] : order)
         {
             if (! second->is_odd)
-                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::BLUE);
+                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::Blue);
         }
         svg.nextLayer();
         for (auto [first, second] : order)
         {
             if (second->is_odd)
-                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::MAGENTA);
+                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::Magenta);
         }
     }
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
@@ -228,5 +233,5 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     EXPECT_EQ(has_order_info.size(), n_paths) << "Every path should have order information.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

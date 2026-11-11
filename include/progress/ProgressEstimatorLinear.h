@@ -1,14 +1,11 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PROGRESS_PROGRESS_ESTIMATOR_LINEAR_H
-#define PROGRESS_PROGRESS_ESTIMATOR_LINEAR_H
-
-#include <vector>
+#pragma once
 
 #include "ProgressEstimator.h"
 
-namespace cura
+namespace curaengine::progress
 {
 
 
@@ -27,6 +24,4 @@ public:
     }
 };
 
-} // namespace cura
-
-#endif // PROGRESS_PROGRESS_ESTIMATOR_LINEAR_H
+} // namespace curaengine::progress

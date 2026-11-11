@@ -5,22 +5,22 @@
 
 #include <benchmark/benchmark.h>
 
-#include "geometry/Shape.h"
-#include "utils/polygonUtils.h"
+#include "utils/polygon_utils.h"
+#include "types/geometry/Shape.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 class IntersectionsTestFixture : public benchmark::Fixture
 {
 public:
-    static constexpr coord_t square_side = 1000000;
-    Shape shape;
+    static constexpr types::coord_t square_side = 1000000;
+    types::geometry::Shape shape;
 
     void SetUp(const ::benchmark::State& state) override
     {
-        shape = Shape(PolygonUtils::makeDisc(Point2LL(square_side / 2, square_side / 2), square_side, state.range(0)));
+        shape = types::geometry::Shape(utils::polygon_utils::makeDisc(types::geometry::Point2LL(square_side / 2, square_side / 2), square_side, state.range(0)));
     }
 
     void TearDown(const ::benchmark::State& state) override
@@ -32,7 +32,7 @@ BENCHMARK_DEFINE_F(IntersectionsTestFixture, IntersectionsTestFixture_WorstCase)
 {
     for (auto _ : st)
     {
-        benchmark::DoNotOptimize(shape.intersectionsWithSegment(Point2LL(0, 0), Point2LL(square_side, square_side)));
+        benchmark::DoNotOptimize(shape.intersectionsWithSegment(types::geometry::Point2LL(0, 0), types::geometry::Point2LL(square_side, square_side)));
     }
 }
 
@@ -46,4 +46,4 @@ BENCHMARK_REGISTER_F(IntersectionsTestFixture, IntersectionsTestFixture_WorstCas
 
 BENCHMARK_REGISTER_F(IntersectionsTestFixture, IntersectionsTestFixture_WorstCase)->Arg(10)->Unit(benchmark::kMillisecond);
 
-} // namespace cura
+} // namespace curaengine

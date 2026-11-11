@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/NoZigZagConnectorProcessor.h"
@@ -6,8 +6,11 @@
 #include "utils/macros.h"
 
 
-namespace cura
+namespace curaengine::infill
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 void NoZigZagConnectorProcessor::registerVertex(const Point2LL&)
 {
@@ -24,4 +27,4 @@ void NoZigZagConnectorProcessor::registerPolyFinished()
     // No need to add anything.
 }
 
-} // namespace cura
+} // namespace curaengine::infill

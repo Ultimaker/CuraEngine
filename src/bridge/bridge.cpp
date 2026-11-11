@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge/bridge.h"
@@ -7,25 +7,33 @@
 
 #include "LayerPlan.h"
 #include "PathAdapter.h"
+#include "SkinPart.h"
+#include "SliceDataStorage.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SupportLayer.h"
 #include "bridge/AlignShapeScoringCriterion.h"
-#include "bridge/ExpansionRange.h"
 #include "bridge/LineAnchoringScoringCriterion.h"
-#include "bridge/SegmentOverlapping.h"
-#include "bridge/TransformedShape.h"
-#include "geometry/PointMatrix.h"
-#include "geometry/Polygon.h"
-#include "settings/EnumSettings.h"
-#include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
-#include "utils/AABB.h"
-#include "utils/linearAlg2D.h"
+#include "types/EFillMethod.h"
+#include "types/Ratio.h"
+#include "types/geometry.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/ExpansionRange.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/SegmentOverlapping.h"
+#include "types/geometry/TransformedShape.h"
+#include "types/scoring/BestElementFinder.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
-#include "utils/scoring/BestElementFinder.h"
-#include "utils/types/geometry.h"
 
 
-namespace cura
+namespace curaengine::bridge
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+using namespace types::scoring;
 
 /*!
  * Gets the proper angle when bridging over infill
@@ -51,32 +59,32 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
 
     switch (infill_pattern)
     {
-    case EFillMethod::CROSS:
-    case EFillMethod::CROSS_3D:
+    case EFillMethod::Cross:
+    case EFillMethod::Cross3D:
         bridge_angle = 22.5;
         break;
-    case EFillMethod::GYROID:
-    case EFillMethod::CONCENTRIC:
-    case EFillMethod::LIGHTNING:
-    case EFillMethod::PLUGIN:
-    case EFillMethod::NONE:
+    case EFillMethod::Gyroid:
+    case EFillMethod::Concentric:
+    case EFillMethod::Lightning:
+    case EFillMethod::Plugin:
+    case EFillMethod::None:
         bridge_angle = 45;
         break;
-    case EFillMethod::CUBICSUBDIV:
+    case EFillMethod::CubicSubdiv:
         bridge_angle = infill_angle_below + 45;
         break;
-    case EFillMethod::TRIANGLES:
-    case EFillMethod::LINES:
-    case EFillMethod::TRIHEXAGON:
-    case EFillMethod::CUBIC:
-    case EFillMethod::ZIG_ZAG:
-    case EFillMethod::HONEYCOMB:
-    case EFillMethod::OCTAGON:
+    case EFillMethod::Triangles:
+    case EFillMethod::Lines:
+    case EFillMethod::TriHexagon:
+    case EFillMethod::Cubic:
+    case EFillMethod::ZigZag:
+    case EFillMethod::Honeycomb:
+    case EFillMethod::Octagon:
         bridge_angle = infill_angle_below + 90;
         break;
-    case EFillMethod::QUARTER_CUBIC:
-    case EFillMethod::TETRAHEDRAL:
-    case EFillMethod::GRID:
+    case EFillMethod::QuarterCubic:
+    case EFillMethod::Tetrahedral:
+    case EFillMethod::Grid:
         bridge_angle = infill_angle_below;
         break;
     }
@@ -182,7 +190,7 @@ std::optional<AngleDegrees> bridgeAngle(
         return std::nullopt;
     }
 
-    bridging_area = skin_outline.difference(supported_regions.offset(EPSILON));
+    bridging_area = skin_outline.difference(supported_regions.offset(epsilon));
 
     prev_layer_infill = skin_outline.intersection(prev_layer_infill);
     const Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);
@@ -421,7 +429,8 @@ void updateExpandedPolygon(
             {
                 // This is an unprojected range, use the raw segment
                 const coord_t position_switch_y = expand_direction > 0 ? expanded_range.minY() : expanded_range.maxY();
-                next_start_position = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
+                next_start_position
+                    = Point2LL(linear_alg_2d::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
             }
             else
             {
@@ -430,7 +439,7 @@ void updateExpandedPolygon(
 
             // Add point to close anchoring to previous infill line
             expanded_polygon.pushBackIfFormingSegment(Point2LL(
-                LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
+                linear_alg_2d::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
                     .value_or(0),
                 next_start_position.Y));
 
@@ -462,7 +471,7 @@ void expandSegment(
     const TransformedSegment*& current_supporting_infill_line)
 {
     // 1 means expand to the right, -1 expand to the left
-    const int8_t expand_direction = sign(segment.getEnd().Y - segment.getStart().Y);
+    const int8_t expand_direction = utils::sign(segment.getEnd().Y - segment.getStart().Y);
 
     // Make the list of expanded ranges for this segment
     std::vector<ExpansionRange> expanded_ranges = makeExpandedRanges(segment, infill_lines_below, expand_direction);
@@ -545,9 +554,9 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
 
     // Perform a morphological closing to remove overlapping lines
-    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
+    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(epsilon).offset(-epsilon).intersection(infill_contour);
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

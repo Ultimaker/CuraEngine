@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SkirtBrim.h"
@@ -9,18 +9,25 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Shape.h"
-#include "settings/EnumSettings.h"
-#include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
-#include "support.h"
-#include "utils/MixedPolylineStitcher.h"
-#include "utils/Simplify.h"
-#include "utils/polygonUtils.h"
+#include "SliceDataStorage.h"
+#include "SupportLayer.h"
+#include "types/BrimLocation.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/Ratio.h"
+#include "types/geometry/ClosedLinesSet.h"
+#include "types/geometry/MixedPolylineStitcher.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Shape.h"
+#include "types/geometry/Simplify.h"
+#include "utils/area_support.h"
+#include "utils/polygon_utils.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     : storage_(storage)
@@ -47,7 +54,7 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
 
 
     skirt_brim_extruder_nr_ = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
-    if (skirt_brim_extruder_nr_ == -1 && adhesion_type_ == EPlatformAdhesion::SKIRT)
+    if (skirt_brim_extruder_nr_ == -1 && adhesion_type_ == EPlatformAdhesion::Skirt)
     { // Skirt is always printed with all extruders in order to satisfy minimum legnth constraint
         // NOTE: the line count will only be satisfied for the first extruder used.
         skirt_brim_extruder_nr_ = first_used_extruder_nr_;
@@ -66,10 +73,10 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
 
         extruder_config.line_width_ = extruder.settings_.get<coord_t>("skirt_brim_line_width") * extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
         extruder_config.skirt_brim_minimal_length_ = extruder.settings_.get<coord_t>("skirt_brim_minimal_length");
-        extruder_config.outside_polys_ = adhesion_type_ == EPlatformAdhesion::SKIRT || (location & BrimLocation::OUTSIDE);
-        extruder_config.inside_polys_ = adhesion_type_ == EPlatformAdhesion::BRIM && (location & BrimLocation::INSIDE);
-        extruder_config.line_count_ = extruder.settings_.get<int>(adhesion_type_ == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
-        extruder_config.gap_ = extruder.settings_.get<coord_t>(adhesion_type_ == EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
+        extruder_config.outside_polys_ = adhesion_type_ == EPlatformAdhesion::Skirt || (location & BrimLocation::Outside);
+        extruder_config.inside_polys_ = adhesion_type_ == EPlatformAdhesion::Brim && (location & BrimLocation::Inside);
+        extruder_config.line_count_ = extruder.settings_.get<int>(adhesion_type_ == EPlatformAdhesion::Brim ? "brim_line_count" : "skirt_line_count");
+        extruder_config.gap_ = extruder.settings_.get<coord_t>(adhesion_type_ == EPlatformAdhesion::Brim ? "brim_gap" : "skirt_gap");
     }
 }
 
@@ -153,13 +160,13 @@ void SkirtBrim::generate()
     // with the other area calculation above, since they are either itself a simple/convex shape or relevant for brim.
     constexpr LayerIndex layer_nr = 0;
     constexpr bool include_support = true;
-    const bool include_prime_tower = adhesion_type_ == EPlatformAdhesion::SKIRT;
+    const bool include_prime_tower = adhesion_type_ == EPlatformAdhesion::Skirt;
     constexpr bool external_polys_only = false;
     constexpr coord_t extruder_nr = -1;
     constexpr bool include_models = true;
     constexpr bool include_support_base = false;
     Shape covered_area = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models, include_support_base);
-    if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+    if (adhesion_type_ == EPlatformAdhesion::Skirt)
     {
         covered_area.makeConvex();
     }
@@ -325,7 +332,7 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
     const ExtruderConfig& reference_extruder_config = extruders_configs_[reference_extruder_nr];
     const int primary_line_count = reference_extruder_config.line_count_;
     const LayerIndex layer_nr = 0;
-    if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+    if (adhesion_type_ == EPlatformAdhesion::Skirt)
     {
         int skirt_height = 0;
         for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders)
@@ -453,7 +460,7 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
     const ExtruderConfig& extruder_config = extruders_configs_[extruder_nr];
 
     // generate brim for ooze shield and draft shield
-    if (adhesion_type_ == EPlatformAdhesion::BRIM && (has_ooze_shield_ || has_draft_shield_))
+    if (adhesion_type_ == EPlatformAdhesion::Brim && (has_ooze_shield_ || has_draft_shield_))
     {
         const coord_t primary_extruder_skirt_brim_line_width = extruder_config.line_width_;
         int primary_line_count = extruder_config.line_count_;
@@ -498,7 +505,7 @@ void SkirtBrim::generateShieldBrim(Shape& brim_covered_area, std::vector<Shape>&
         }
     }
 
-    if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+    if (adhesion_type_ == EPlatformAdhesion::Skirt)
     {
         if (has_ooze_shield_)
         {
@@ -580,7 +587,7 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
     };
 
     std::vector<ExtruderOutlines> covered_area_by_extruder;
-    if (adhesion_type_ == EPlatformAdhesion::BRIM)
+    if (adhesion_type_ == EPlatformAdhesion::Brim)
     {
         covered_area_by_extruder.resize(extruder_count_);
         for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
@@ -622,7 +629,7 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
         Shape& allowed_areas = allowed_areas_per_extruder[extruder_nr];
         allowed_areas = storage_.getMachineBorder(extruder_nr);
 
-        if (adhesion_type_ == EPlatformAdhesion::BRIM)
+        if (adhesion_type_ == EPlatformAdhesion::Brim)
         {
             const Settings& settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
             const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
@@ -676,9 +683,9 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
 
 void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const coord_t width, const coord_t line_width)
 {
-    const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<double>("support_brim_minimum_hole_area"));
+    const coord_t support_brim_minimum_hole_area = mm2ToInt(settings.get<double>("support_brim_minimum_hole_area"));
 
-    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInsetOutset(support_outline, -width, line_width);
+    InsetOutset base_insets = polygon_utils::generateInsetOutset(support_outline, -width, line_width);
     for (Shape& base_inset : base_insets.walls)
     {
         // Remove small inner brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
@@ -701,7 +708,7 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
 
 void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const coord_t width, const coord_t line_width, const Shape& exclusion_area)
 {
-    PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateInsetOutset(support_outline, width, line_width);
+    InsetOutset base_outsets = polygon_utils::generateInsetOutset(support_outline, width, line_width);
 
     ClosedLinesSet closed_base_outset;
     for (Shape& base_outset : base_outsets.walls)
@@ -733,7 +740,7 @@ void SkirtBrim::generateSupportBrim()
     const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
     const auto support_outer_brim_enable = settings.get<bool>("support_outer_brim_enable");
     const bool has_base_outside = support_outer_brim_enable && base_outside_width > 0 && base_outside_height >= layer_height;
-    const size_t outside_brim_line_count = (adhesion_type_ != EPlatformAdhesion::BRIM && has_base_outside) ? base_outside_width / brim_line_width : 0;
+    const size_t outside_brim_line_count = (adhesion_type_ != EPlatformAdhesion::Brim && has_base_outside) ? base_outside_width / brim_line_width : 0;
 
     if (! storage_.support.generated || (inside_brim_line_count == 0 && outside_brim_line_count == 0) || storage_.support.supportLayers.empty())
     {
@@ -773,4 +780,4 @@ void SkirtBrim::generateSupportBrim()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

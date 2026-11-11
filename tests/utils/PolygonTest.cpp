@@ -1,7 +1,7 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/Polygon.h" // The class under test.
+#include "types/geometry/Polygon.h"
 
 #include <numbers>
 
@@ -10,16 +10,19 @@
 
 #include <gtest/gtest.h>
 
-#include "geometry/OpenPolyline.h"
-#include "geometry/SingleShape.h"
-#include "utils/Coord_t.h"
-#include "utils/SVG.h" // helper functions
-#include "utils/linearAlg2D.h"
-#include "utils/polygonUtils.h" // helper functions
+#include "types/Coord_t.h"
+#include "types/SVG.h"
+#include "utils/linear_alg_2d.h"
+#include "types/geometry/OpenPolyline.h"
+#include "utils/polygon_utils.h"
+#include "types/geometry/SingleShape.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PolygonTest : public testing::Test
@@ -323,8 +326,8 @@ TEST_F(PolygonTest, makeConvexPolygon)
     const auto convex_hull = shape[0];
 
     // test that all corners are convex
-    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
-    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
+    EXPECT_TRUE(linear_alg_2d::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
+    EXPECT_TRUE(linear_alg_2d::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
 
     for (const auto window : convex_hull | ranges::views::sliding(3))
     {
@@ -332,7 +335,7 @@ TEST_F(PolygonTest, makeConvexPolygon)
         const auto& b = window[1];
         const auto& c = window[2];
 
-        EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0);
+        EXPECT_TRUE(linear_alg_2d::pointIsLeftOfLine(b, a, c) < 0);
     }
 }
 
@@ -626,5 +629,5 @@ TEST_F(PolygonTest, openCloseLines)
     EXPECT_FALSE(closed_polyline.shorterThan(3500));
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

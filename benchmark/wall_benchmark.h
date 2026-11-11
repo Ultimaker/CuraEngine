@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_WALL_BENCHMARK_H
@@ -14,20 +14,22 @@
 #include <spdlog/spdlog.h>
 
 #include "InsetOrderOptimizer.h"
+#include "Settings.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
 #include "WallsComputation.h"
-#include "geometry/Polygon.h"
-#include "settings/Settings.h"
-#include "sliceDataStorage.h"
+#include "types/geometry/Polygon.h"
 
-namespace cura
+namespace curaengine
 {
 class WallTestFixture : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Shape square_shape;
-    Shape ff_holes;
+    WallsComputation walls_computation{ settings, types::LayerIndex(100) };
+    types::geometry::Shape square_shape;
+    types::geometry::Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -36,23 +38,23 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(100), 0);
-        square_shape.back().emplace_back(MM2INT(100), MM2INT(100));
-        square_shape.back().emplace_back(0, MM2INT(100));
+        square_shape.back().emplace_back(types::mmToInt(100), 0);
+        square_shape.back().emplace_back(types::mmToInt(100), types::mmToInt(100));
+        square_shape.back().emplace_back(0, types::mmToInt(100));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(MM2INT(90), 0);
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(50));
-        ff_holes.back().emplace_back(0, MM2INT(50));
+        ff_holes.back().emplace_back(types::mmToInt(90), 0);
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(50));
+        ff_holes.back().emplace_back(0, types::mmToInt(50));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(90));
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(40));
-        ff_holes.back().emplace_back(MM2INT(40), MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(40), types::mmToInt(25));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(MM2INT(60), MM2INT(90));
-        ff_holes.back().emplace_back(MM2INT(60), MM2INT(40));
-        ff_holes.back().emplace_back(MM2INT(90), MM2INT(25));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(90));
+        ff_holes.back().emplace_back(types::mmToInt(60), types::mmToInt(40));
+        ff_holes.back().emplace_back(types::mmToInt(90), types::mmToInt(25));
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -97,9 +99,9 @@ class HolesWallTestFixture : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    WallsComputation walls_computation{ settings, LayerIndex(100) };
-    Shape shape;
-    Shape ff_holes;
+    WallsComputation walls_computation{ settings, types::LayerIndex(100) };
+    types::geometry::Shape shape;
+    types::geometry::Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -113,7 +115,7 @@ public:
         buffer << file.rdbuf();
         const auto wkt = buffer.str();
 
-        const auto shape = Shape::fromWkt(buffer.str());
+        const auto shape = types::geometry::Shape::fromWkt(buffer.str());
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -159,7 +161,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, generateWalls)(benchmark::State& st)
 {
     for (auto _ : st)
     {
-        walls_computation.generateWalls(&layer, SectionType::WALL);
+        walls_computation.generateWalls(&layer, types::SectionType::Wall);
     }
 }
 
@@ -167,8 +169,8 @@ BENCHMARK_REGISTER_F(WallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(9999)
 
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, SectionType::WALL);
-    std::vector<ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, types::SectionType::Wall);
+    std::vector<types::geometry::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -183,8 +185,8 @@ BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)->Arg(3
 
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, SectionType::WALL);
-    std::vector<ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, types::SectionType::Wall);
+    std::vector<types::geometry::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -201,7 +203,7 @@ BENCHMARK_DEFINE_F(HolesWallTestFixture, generateWalls)(benchmark::State& st)
 {
     for (auto _ : st)
     {
-        walls_computation.generateWalls(&layer, SectionType::WALL);
+        walls_computation.generateWalls(&layer, types::SectionType::Wall);
     }
 }
 
@@ -209,8 +211,8 @@ BENCHMARK_REGISTER_F(HolesWallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(
 
 BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, SectionType::WALL);
-    std::vector<ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, types::SectionType::Wall);
+    std::vector<types::geometry::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -225,8 +227,8 @@ BENCHMARK_REGISTER_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)->
 
 BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, SectionType::WALL);
-    std::vector<ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, types::SectionType::Wall);
+    std::vector<types::geometry::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -239,5 +241,5 @@ BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)(benc
 
 BENCHMARK_REGISTER_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
 
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_WALL_BENCHMARK_H

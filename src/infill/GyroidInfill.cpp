@@ -1,16 +1,19 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/GyroidInfill.h"
 
 #include <numbers>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/Shape.h"
-#include "utils/AABB.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/Shape.h"
 
-namespace cura
+namespace curaengine::infill
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const
 {
@@ -102,4 +105,4 @@ OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, co
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine::infill

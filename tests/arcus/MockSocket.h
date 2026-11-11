@@ -1,14 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MOCKSOCKET_H
 #define MOCKSOCKET_H
 
-#include <deque> //History of sent and received messages.
+#include <deque>
 
-#include <Arcus/Socket.h> //Inheriting from this to be able to swap this socket in the tested class.
+#include <Arcus/Socket.h>
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -38,6 +38,6 @@ public:
     std::deque<Arcus::MessagePtr> received_messages;
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
-} // namespace cura
+} // namespace curaengine
 
 #endif // MOCKSOCKET_H
