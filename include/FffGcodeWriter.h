@@ -342,14 +342,14 @@ private:
      * This adds all features (e.g. walls, skin etc.) of this \p mesh to the gcode which are printed using \p extruder_nr
      *
      * \param[in] storage where the slice data is stored.
-     * \param mesh_ptr The mesh to add to the layer plan \p gcode_layer.
+     * \param mesh The mesh to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
     void addMeshLayerToGCode(
         const SliceDataStorage& storage,
-        const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
         LayerPlan& gcode_layer) const;
@@ -371,7 +371,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
-        SliceLayerPart& part,
+        const SliceLayerPart& part,
         LayerPlan& gcode_layer) const;
 
     /*!
@@ -465,12 +465,11 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
-        SliceLayerPart& part,
+        const SliceLayerPart& part,
         const bool end_infill_close_to_seam) const;
 
     OverrideAreas
-        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, SliceLayerPart& part)
-            const;
+        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Inserts the previously processed insets
@@ -492,7 +491,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const types::MeshPathConfigs& mesh_config,
-        SliceLayerPart& part,
+        const SliceLayerPart& part,
         const bool infill_added) const;
 
     /*!

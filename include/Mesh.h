@@ -44,6 +44,23 @@ public:
     std::shared_ptr<Image> texture_;
     std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
+    struct MeshCounter
+    {
+    private:
+        inline static int count{ -1 };
+        int id;
+
+    public:
+        MeshCounter() noexcept
+            : id(++count)
+        {
+        }
+        int operator()() const noexcept
+        {
+            return id;
+        }
+    } mesh_id; //!< useful for mesh-identity (in gcode for example) when meshes have the same name
+
     Mesh(const Settings& parent);
     Mesh(Settings&& parent);
     Mesh() = default;

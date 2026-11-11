@@ -4,6 +4,8 @@
 #include "SliceDataStorage.h"
 
 #include <numbers>
+#include <range/v3/algorithm/count.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Application.h"
 #include "ExtruderTrain.h"
@@ -251,6 +253,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
             ret[extruder_nr] = ret[extruder_nr] || mesh->getExtruderIsUsed(extruder_nr);
         }
     }
+
+    mesh_group->num_extruders_used = ranges::count(ret, true);
     return ret;
 }
 

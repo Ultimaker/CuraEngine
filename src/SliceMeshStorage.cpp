@@ -18,6 +18,7 @@ using namespace utils;
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
     , mesh_name(mesh->mesh_name_)
+    , mesh_id(mesh->mesh_id())
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)

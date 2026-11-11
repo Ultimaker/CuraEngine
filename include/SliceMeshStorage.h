@@ -39,6 +39,7 @@ public:
     Settings& settings;
     std::vector<SliceLayer> layers;
     std::string mesh_name;
+    int mesh_id;
 
     types::LayerIndex layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
