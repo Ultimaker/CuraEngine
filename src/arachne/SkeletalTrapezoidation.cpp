@@ -17,11 +17,11 @@
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
 #include "types/Ratio.h"
-#include "utils/linear_alg_2d.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
-#include "utils/voronoi_utils.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/macros.h"
+#include "utils/polygon_utils.h"
+#include "utils/voronoi_utils.h"
 
 namespace curaengine::arachne
 {

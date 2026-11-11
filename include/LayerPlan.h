@@ -8,7 +8,6 @@
 #include "InsetOrderOptimizer.h"
 #include "OverrideArea.h"
 #include "PathOrderOptimizer.h"
-#include "types/RaftLayerType.h"
 #include "SliceLayerPart.h"
 #include "SpaceFillType.h"
 #include "gcode/GCodeExport.h"
@@ -17,6 +16,7 @@
 #include "types/Acceleration.h"
 #include "types/LayerIndex.h"
 #include "types/PathConfigStorage.h"
+#include "types/RaftLayerType.h"
 #include "types/geometry/MendedShape.h"
 #include "types/geometry/Polygon.h"
 

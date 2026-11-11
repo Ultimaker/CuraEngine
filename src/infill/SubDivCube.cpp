@@ -12,9 +12,9 @@
 #include "types/AngleDegrees.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Polygon.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Shape.h"
 #include "utils/math.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::infill
 {

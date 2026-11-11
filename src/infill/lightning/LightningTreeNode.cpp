@@ -3,8 +3,8 @@
 
 #include "infill/lightning/LightningTreeNode.h"
 
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::infill::lightning
 {

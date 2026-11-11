@@ -7,10 +7,10 @@
 #include <limits>
 
 #include "types/AngleRadians.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::types::geometry
 {

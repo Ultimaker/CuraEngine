@@ -5,11 +5,11 @@
 
 #include <algorithm>
 
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/SegmentOverlapping.h"
 #include "types/geometry/SegmentOverlappingData.h"
 #include "types/geometry/SegmentOverlappingType.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 
 

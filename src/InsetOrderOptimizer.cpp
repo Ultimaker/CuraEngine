@@ -26,8 +26,8 @@
 #include "types/EZSeamType.h"
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"
-#include "utils/linear_alg_2d.h"
 #include "utils/actions/dfs.h"
+#include "utils/linear_alg_2d.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;

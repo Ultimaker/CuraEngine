@@ -30,13 +30,13 @@
 
 #include "types/Ratio.h"
 #include "types/geometry/AABB.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/MixedLinesSet.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolylineStitcher.h"
 #include "types/geometry/PartsView.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/SingleShape.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::types::geometry
 {

@@ -23,7 +23,6 @@
 
 #include "Application.h"
 #include "ExtruderTrain.h"
-#include "utils/raft.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
@@ -47,10 +46,11 @@
 #include "types/SupportDistPriority.h"
 #include "types/ThreadPool.h"
 #include "types/geometry/ClosedLinesSet.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/Simplify.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 #include "utils/polygon_utils.h"
+#include "utils/raft.h"
 
 namespace curaengine
 {

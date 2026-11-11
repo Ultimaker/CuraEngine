@@ -13,8 +13,8 @@
 #include "SliceDataStorage.h"
 #include "routing/CombPaths.h"
 #include "routing/LinePolygonsCrossings.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/PathsPointIndex.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::routing
 {

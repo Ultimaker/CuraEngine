@@ -5,8 +5,8 @@
 
 #include "types/AngleRadians.h"
 #include "types/actions/smooth_fn.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::types::geometry
 {

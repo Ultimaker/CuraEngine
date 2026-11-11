@@ -8,8 +8,8 @@
 
 #include "GCodePathConfig.h"
 #include "cura/plugins/slots/gcode_paths/v0/modify.pb.h"
-#include "routing/GCodePath.h"
 #include "plugins/details/converter.h"
+#include "routing/GCodePath.h"
 
 namespace curaengine::plugins
 {

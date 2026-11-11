@@ -18,22 +18,22 @@
 #include "arachne/SkeletalTrapezoidation.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/lightning/LightningGenerator.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/RegularNGonalInfill.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
+#include "infill/lightning/LightningGenerator.h"
 #include "plugins/Slots.h"
 #include "types/EFillMethod.h"
 #include "types/UnionFind.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/OpenPolylineStitcher.h"
 #include "types/geometry/Point2D.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/PolygonConnector.h"
 #include "types/geometry/Simplify.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 
 namespace curaengine::infill
@@ -909,12 +909,16 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
     bool is_resolved = true;
 
     // Use both of the resulting lines to place the 'bends' by intersecting with the original line-segments.
-    is_resolved &= linear_alg_2d::lineLineIntersection(q, r, a->start_, a->end_, bend_a.value()) && linear_alg_2d::pointIsProjectedBeyondLine(bend_a.value(), a->start_, a->end_) == 0;
-    is_resolved &= linear_alg_2d::lineLineIntersection(s, t, b->start_, b->end_, bend_b.value()) && linear_alg_2d::pointIsProjectedBeyondLine(bend_b.value(), b->start_, b->end_) == 0;
+    is_resolved
+        &= linear_alg_2d::lineLineIntersection(q, r, a->start_, a->end_, bend_a.value()) && linear_alg_2d::pointIsProjectedBeyondLine(bend_a.value(), a->start_, a->end_) == 0;
+    is_resolved
+        &= linear_alg_2d::lineLineIntersection(s, t, b->start_, b->end_, bend_b.value()) && linear_alg_2d::pointIsProjectedBeyondLine(bend_b.value(), b->start_, b->end_) == 0;
 
     // Also set the new end-points
-    is_resolved &= linear_alg_2d::lineLineIntersection(connect_start, connect_end, q, r, end_a) && linear_alg_2d::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
-    is_resolved &= linear_alg_2d::lineLineIntersection(connect_start, connect_end, s, t, end_b) && linear_alg_2d::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
+    is_resolved
+        &= linear_alg_2d::lineLineIntersection(connect_start, connect_end, q, r, end_a) && linear_alg_2d::pointIsProjectedBeyondLine(end_a, connect_start, connect_end) == 0;
+    is_resolved
+        &= linear_alg_2d::lineLineIntersection(connect_start, connect_end, s, t, end_b) && linear_alg_2d::pointIsProjectedBeyondLine(end_b, connect_start, connect_end) == 0;
 
     if (is_resolved)
     {

@@ -13,7 +13,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Mesh.h"
-#include "utils/raft.h"
 #include "types/AdaptiveLayer.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/LayerIndex.h"
@@ -22,6 +21,7 @@
 #include "types/TimeKeeper.h"
 #include "types/geometry/Point3D.h"
 #include "types/geometry/SingleShape.h"
+#include "utils/raft.h"
 
 namespace curaengine
 {

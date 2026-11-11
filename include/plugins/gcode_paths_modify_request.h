@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "cura/plugins/slots/gcode_paths/v0/modify.pb.h"
-#include "routing/GCodePath.h"
 #include "plugins/details/converter.h"
+#include "routing/GCodePath.h"
 #include "types/LayerIndex.h"
 
 namespace curaengine::plugins

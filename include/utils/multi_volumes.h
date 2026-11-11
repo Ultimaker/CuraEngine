@@ -22,20 +22,20 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*>& meshes);
 
 namespace utils::multi_volumes
 {
-    /*!
-     * Carve all cutting meshes.
-     *
-     * Make a cutting mesh limited to within the volume of all other meshes
-     * and carve this volume from those meshes.
-     *
-     * Don't carve other cutting meshes.
-     *
-     * \warning Overlapping cutting meshes result in overlapping volumes. \ref carveMultipleVolumes still needs to be called
-     *
-     * \param[in,out] volumes The outline data of each mesh
-     * \param meshes The meshes which contain the settings for each volume
-     */
-    void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes);
+/*!
+ * Carve all cutting meshes.
+ *
+ * Make a cutting mesh limited to within the volume of all other meshes
+ * and carve this volume from those meshes.
+ *
+ * Don't carve other cutting meshes.
+ *
+ * \warning Overlapping cutting meshes result in overlapping volumes. \ref carveMultipleVolumes still needs to be called
+ *
+ * \param[in,out] volumes The outline data of each mesh
+ * \param meshes The meshes which contain the settings for each volume
+ */
+void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes);
 } // namespace utils::multi_volumes
 
 } // namespace curaengine

@@ -14,11 +14,11 @@
 
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
-#include "utils/beading_strategy_factory.h"
 #include "types/actions/smooth_fn.h"
 #include "types/geometry/ExtrusionLineStitcher.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
+#include "utils/beading_strategy_factory.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

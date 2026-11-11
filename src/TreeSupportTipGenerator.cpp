@@ -18,7 +18,6 @@
 #include "FakeRoofArea.h"
 #include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
-#include "utils/tree_support_utils.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "types/EFillMethod.h"
 #include "types/SupportDistPriority.h"
@@ -26,9 +25,10 @@
 #include "types/geometry/ClosestPoint.h"
 #include "types/geometry/GivenDistPoint.h"
 #include "types/geometry/OpenPolyline.h"
-#include "utils/polygon_utils.h"
 #include "utils/algorithm.h"
 #include "utils/math.h"
+#include "utils/polygon_utils.h"
+#include "utils/tree_support_utils.h"
 
 
 namespace curaengine
@@ -715,7 +715,14 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                     roof_circle.push_back(p.first + corner * std::max(config_.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                 }
                 Shape area = roof_circle.offset(0);
-                return ! tree_support_utils::generateSupportInfillLines(area, config_, true, insert_layer_idx - dtt_roof_tip, support_roof_line_distance_, cross_fill_provider_, true)
+                return ! tree_support_utils::generateSupportInfillLines(
+                             area,
+                             config_,
+                             true,
+                             insert_layer_idx - dtt_roof_tip,
+                             support_roof_line_distance_,
+                             cross_fill_provider_,
+                             true)
                              .empty();
             };
 

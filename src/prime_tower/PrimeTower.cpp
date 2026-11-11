@@ -12,7 +12,6 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "utils/raft.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
@@ -23,6 +22,7 @@
 #include "prime_tower/PrimeTowerNormal.h"
 #include "types/PrimeTowerMode.h"
 #include "utils/linear_alg_2d.h"
+#include "utils/raft.h"
 
 
 namespace curaengine::prime_tower

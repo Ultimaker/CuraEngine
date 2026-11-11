@@ -469,7 +469,8 @@ private:
         const bool end_infill_close_to_seam) const;
 
     OverrideAreas
-        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, const SliceLayerPart& part)
+            const;
 
     /*!
      * Inserts the previously processed insets

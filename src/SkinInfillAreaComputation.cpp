@@ -22,9 +22,9 @@
 #include "types/AngleRadians.h"
 #include "types/EFillMethod.h"
 #include "types/Ratio.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "utils/math.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

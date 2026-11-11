@@ -21,13 +21,11 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "utils/area_support.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportTipGenerator.h"
-#include "utils/tree_support_utils.h"
 #include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
@@ -35,10 +33,12 @@
 #include "types/OBJ.h"
 #include "types/SectionType.h"
 #include "types/ThreadPool.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "utils/algorithm.h"
+#include "utils/area_support.h"
 #include "utils/math.h"
+#include "utils/polygon_utils.h"
+#include "utils/tree_support_utils.h"
 
 namespace curaengine
 {

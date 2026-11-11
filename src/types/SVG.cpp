@@ -22,8 +22,8 @@
 #include "types/geometry/Point2D.h"
 #include "types/geometry/Polygon.h"
 #include "types/geometry/SingleShape.h"
-#include "utils/voronoi_utils.h"
 #include "types/geometry/conversions/Point2D_Point2LL.h"
+#include "utils/voronoi_utils.h"
 
 namespace curaengine::types
 {

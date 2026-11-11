@@ -20,7 +20,6 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "utils/beading_strategy_factory.h"
 #include "types/Acceleration.h"
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"
@@ -54,6 +53,7 @@
 #include "types/geometry/Polygon.h"
 #include "types/geometry/Shape.h"
 #include "types/string_switch.h"
+#include "utils/beading_strategy_factory.h"
 
 namespace curaengine
 {

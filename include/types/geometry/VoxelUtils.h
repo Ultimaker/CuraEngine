@@ -66,7 +66,8 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedPolygons(const types::geometry::Shape& polys, coord_t z, const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedPolygons(const types::geometry::Shape& polys, coord_t z, const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func)
+        const;
 
 private:
     /*!
@@ -98,7 +99,8 @@ public:
      * \param process_cell_func Function to perform on each voxel cell
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkDilatedAreas(const types::geometry::Shape& polys, coord_t z, const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
+    bool walkDilatedAreas(const types::geometry::Shape& polys, coord_t z, const interlocking::DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func)
+        const;
 
     /*!
      * Dilate with a kernel.

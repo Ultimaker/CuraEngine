@@ -5,8 +5,8 @@
 
 #include <vector>
 
-#include "utils/raft.h"
 #include "types/LayerIndex.h"
+#include "utils/raft.h"
 
 namespace curaengine::types
 {

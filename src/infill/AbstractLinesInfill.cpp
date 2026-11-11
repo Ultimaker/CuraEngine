@@ -8,11 +8,11 @@
 
 #include "types/AngleDegrees.h"
 #include "types/geometry/AABB.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolylineStitcher.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/Shape.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::infill
 {

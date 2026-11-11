@@ -14,11 +14,11 @@
 #include "Slice.h"
 #include "Slicer.h"
 #include "SlicerLayer.h"
-#include "types/LayerIndex.h"
 #include "interlocking/DilationKernel.h"
+#include "types/LayerIndex.h"
 #include "types/geometry/PointMatrix.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/VoxelUtils.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::interlocking
 {

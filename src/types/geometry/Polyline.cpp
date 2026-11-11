@@ -8,10 +8,10 @@
 #include <numeric>
 
 #include "types/AngleRadians.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::types::geometry
 {

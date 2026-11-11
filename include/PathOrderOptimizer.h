@@ -21,7 +21,6 @@
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
 #include "types/ZSeamConfig.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/SparsePointGridInclusive.h"
 #include "types/scoring/BestElementFinder.h"
 #include "types/scoring/CornerScoringCriterion.h"
@@ -30,6 +29,7 @@
 #include "types/scoring/RandomScoringCriterion.h"
 #include "types/scoring/TextureScoringCriterion.h"
 #include "utils/actions/dfs.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

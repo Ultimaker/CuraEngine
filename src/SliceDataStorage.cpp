@@ -4,12 +4,12 @@
 #include "SliceDataStorage.h"
 
 #include <numbers>
+
 #include <range/v3/algorithm/count.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
 #include "ExtruderTrain.h"
-#include "utils/raft.h"
 #include "Slice.h"
 #include "SliceMeshStorage.h"
 #include "prime_tower/PrimeTower.h"
@@ -18,6 +18,7 @@
 #include "types/ESurfaceMode.h"
 #include "types/geometry/OpenPolyline.h"
 #include "utils/polygon_utils.h"
+#include "utils/raft.h"
 
 namespace curaengine
 {

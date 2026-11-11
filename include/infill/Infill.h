@@ -5,8 +5,8 @@
 
 #include "Settings.h"
 #include "WallToolPathGenerator.h"
-#include "infill/lightning/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
+#include "infill/lightning/LightningGenerator.h"
 #include "types/AngleDegrees.h"
 #include "types/EFillMethod.h"
 #include "types/SectionType.h"
@@ -456,7 +456,10 @@ private:
      * see https://hal.archives-ouvertes.fr/hal-02155929/document
      * \param result (output) The resulting polygons
      */
-    void generateLightningInfill(const types::geometry::Shape& outline, const std::shared_ptr<lightning::LightningLayer>& lightning_layer, types::geometry::OpenLinesSet& result_lines);
+    void generateLightningInfill(
+        const types::geometry::Shape& outline,
+        const std::shared_ptr<lightning::LightningLayer>& lightning_layer,
+        types::geometry::OpenLinesSet& result_lines);
 
     /*!
      * Generate sparse concentric infill

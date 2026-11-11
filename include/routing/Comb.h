@@ -9,8 +9,8 @@
 #include "types/LayerIndex.h"
 #include "types/geometry/PartsView.h"
 #include "types/geometry/Polygon.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/SingleShape.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

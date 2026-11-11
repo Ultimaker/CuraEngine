@@ -9,11 +9,11 @@
 #include <vector>
 
 #include "types/Ratio.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/Point2LL.h"
 #include "types/geometry/Polygon.h"
-#include "utils/polygon_utils.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
+#include "utils/polygon_utils.h"
 
 #ifdef BUILD_TESTS
 namespace curaengine

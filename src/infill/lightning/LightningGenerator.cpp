@@ -17,8 +17,8 @@
 #include "SupportStorage.h"
 #include "infill/lightning/LightningLayer.h"
 #include "infill/lightning/LightningTreeNode.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/SparsePointGridInclusive.h"
+#include "utils/linear_alg_2d.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees

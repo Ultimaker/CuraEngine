@@ -10,7 +10,6 @@
 #include "ExtruderTrain.h"
 #include "MeshGroup.h"
 #include "PrintFeatureType.h"
-#include "utils/raft.h"
 #include "Settings.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
@@ -18,6 +17,7 @@
 #include "types/Acceleration.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/Velocity.h"
+#include "utils/raft.h"
 
 namespace curaengine::types
 {

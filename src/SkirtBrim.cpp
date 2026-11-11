@@ -7,7 +7,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "utils/area_support.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "SliceDataStorage.h"
@@ -19,9 +18,10 @@
 #include "types/geometry/MixedPolylineStitcher.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Shape.h"
 #include "types/geometry/Simplify.h"
+#include "utils/area_support.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

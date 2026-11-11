@@ -3,8 +3,8 @@
 
 #include "types/scoring/CornerScoringCriterion.h"
 
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointsSet.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 
 

@@ -16,13 +16,13 @@ class Slicer;
  */
 namespace utils::conical_overhang
 {
-    /*!
-     * Change the slice data such that the model becomes more printable
-     *
-     * \param[in,out] slicer The slice data.
-     * \param mesh The mesh to get the settings from.
-     */
-    void apply(Slicer* slicer, const Mesh& mesh);
+/*!
+ * Change the slice data such that the model becomes more printable
+ *
+ * \param[in,out] slicer The slice data.
+ * \param mesh The mesh to get the settings from.
+ */
+void apply(Slicer* slicer, const Mesh& mesh);
 } // namespace utils::conical_overhang
 
 } // namespace curaengine

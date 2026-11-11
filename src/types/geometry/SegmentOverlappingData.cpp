@@ -3,8 +3,8 @@
 
 #include "types/geometry/SegmentOverlappingData.h"
 
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/TransformedSegment.h"
+#include "utils/linear_alg_2d.h"
 
 
 namespace curaengine::types::geometry

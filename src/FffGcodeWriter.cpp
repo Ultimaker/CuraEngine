@@ -25,7 +25,6 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "Mesh.h"
-#include "utils/raft.h"
 #include "RetractionAndWipeConfig.h"
 #include "SkinPart.h"
 #include "Slice.h"
@@ -51,15 +50,16 @@
 #include "types/InfillStartEndPreference.h"
 #include "types/RetractBeforeOuterWall.h"
 #include "types/ThreadPool.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/OrderOptimizer.h"
 #include "types/geometry/PointMatrix.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Simplify.h"
 #include "types/geometry/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/math.h"
+#include "utils/polygon_utils.h"
+#include "utils/raft.h"
 
 namespace curaengine
 {
@@ -749,11 +749,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             if (! raft_paths.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage_.raft_base_config;
-                const ZSeamConfig z_seam_config(
-                    EZSeamType::Shortest,
-                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    EZSeamCornerPrefType::ZSeamCornerPrefInner,
-                    false);
+                const ZSeamConfig z_seam_config(EZSeamType::Shortest, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::ZSeamCornerPrefInner, false);
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     gcode_layer,
@@ -1087,11 +1083,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
             if (! raft_paths.empty())
             {
-                const ZSeamConfig z_seam_config(
-                    EZSeamType::Shortest,
-                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    EZSeamCornerPrefType::ZSeamCornerPrefInner,
-                    false);
+                const ZSeamConfig z_seam_config(EZSeamType::Shortest, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::ZSeamCornerPrefInner, false);
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     gcode_layer,

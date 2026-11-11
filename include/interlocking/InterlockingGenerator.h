@@ -138,8 +138,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \param[out] cells The output cells which elong to the shell
      */
-    void addBoundaryCells(const std::vector<types::geometry::Shape>& layers, const DilationKernel& kernel, std::unordered_set<types::geometry::GridPoint3>& cells)
-        const;
+    void addBoundaryCells(const std::vector<types::geometry::Shape>& layers, const DilationKernel& kernel, std::unordered_set<types::geometry::GridPoint3>& cells) const;
 
     /*!
      * Compute the regions occupied by both models.

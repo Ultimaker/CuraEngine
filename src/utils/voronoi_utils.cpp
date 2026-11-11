@@ -8,9 +8,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/conversions/Point2D_Point2LL.h"
+#include "utils/linear_alg_2d.h"
 #include "utils/macros.h"
 
 namespace curaengine::utils::voronoi_utils

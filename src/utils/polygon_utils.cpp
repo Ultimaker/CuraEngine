@@ -14,11 +14,11 @@
 #include "infill/Infill.h"
 #include "types/AngleRadians.h"
 #include "types/geometry/ClosedLinesSet.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/PointMatrix.h"
 #include "types/geometry/SingleShape.h"
 #include "types/geometry/SparsePointGridInclusive.h"
+#include "utils/linear_alg_2d.h"
 
 #ifdef DEBUG
 #include <spdlog/spdlog.h>
@@ -311,7 +311,8 @@ size_t moveInside(const Shape& polygons, Point2LL& from, int distance, int64_t m
                         else
                         {
                             Point2LL inward_dir = types::geometry::turn90CCW(
-                                types::geometry::normal(ab, mmToInt(10.0)) + types::geometry::normal(p1 - p0, mmToInt(10.0))); // inward direction irrespective of sign of [distance]
+                                types::geometry::normal(ab, mmToInt(10.0))
+                                + types::geometry::normal(p1 - p0, mmToInt(10.0))); // inward direction irrespective of sign of [distance]
                             // mmToInt(10.0) to retain precision for the eventual normalization
                             ret = x + types::geometry::normal(inward_dir, distance);
                             is_already_on_correct_side_of_boundary = types::geometry::dot(inward_dir, p - x) * distance >= 0;
@@ -894,8 +895,7 @@ std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Shape& polygons, int sq
  *
  * We could skip the duplication by keeping a vector of vectors of bools.
  */
-std::optional<ClosestPointPolygon>
-    findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function)
+std::optional<ClosestPointPolygon> findClose(Point2LL from, const Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(Point2LL)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines = loc_to_line.getNearby(from, loc_to_line.getCellSize());
 
@@ -1157,11 +1157,7 @@ bool polygonCollidesWithLineSegment(const Point2LL& from, const Point2LL& to, co
     return ret;
 }
 
-bool polygonCollidesWithLineSegment(
-    const Polygon& poly,
-    const Point2LL& transformed_startPoint,
-    const Point2LL& transformed_endPoint,
-    const PointMatrix& transformation_matrix)
+bool polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, const PointMatrix& transformation_matrix)
 {
     Point2LL p0 = transformation_matrix.apply(poly.back());
     for (Point2LL p1_ : poly)
@@ -1176,11 +1172,7 @@ bool polygonCollidesWithLineSegment(
     return false;
 }
 
-bool polygonCollidesWithLineSegment(
-    const Shape& polys,
-    const Point2LL& transformed_startPoint,
-    const Point2LL& transformed_endPoint,
-    const PointMatrix& transformation_matrix)
+bool polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, const PointMatrix& transformation_matrix)
 {
     for (const Polygon& poly : polys)
     {
@@ -1250,11 +1242,7 @@ bool polygonOutlinesAdjacent(const Polygon& inner_poly, const Polygon& outer_pol
     return false;
 }
 
-void findAdjacentPolygons(
-    std::vector<unsigned>& adjacent_poly_indices,
-    const Polygon& poly,
-    const std::vector<const Polygon*>& possible_adjacent_polys,
-    const coord_t max_gap)
+void findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const Polygon& poly, const std::vector<const Polygon*>& possible_adjacent_polys, const coord_t max_gap)
 {
     // given a polygon, and a vector of polygons, return a vector containing the indices of the polygons that are adjacent to the given polygon
     for (unsigned poly_idx = 0; poly_idx < possible_adjacent_polys.size(); ++poly_idx)

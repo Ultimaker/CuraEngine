@@ -7,9 +7,9 @@
 #include "infill/lightning/GroundingLocation.h"
 #include "infill/lightning/LightningDistanceField.h"
 #include "infill/lightning/LightningTreeNode.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/OpenLinesSet.h"
 #include "types/geometry/SparsePointGridInclusive.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::infill::lightning
 {

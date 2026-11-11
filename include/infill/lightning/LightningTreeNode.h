@@ -10,8 +10,8 @@
 
 #include "types/geometry/LinesSet.h"
 #include "types/geometry/Polygon.h"
-#include "utils/polygon_utils.h"
 #include "types/geometry/Shape.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine::infill::lightning
 {

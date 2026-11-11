@@ -9,9 +9,9 @@
 #include "Settings.h"
 #include "types/geometry/ClosedPolyline.h"
 #include "types/geometry/ExtrusionLine.h"
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/MixedLinesSet.h"
 #include "types/geometry/OpenPolyline.h"
+#include "utils/linear_alg_2d.h"
 
 namespace curaengine::types::geometry
 {

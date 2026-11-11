@@ -5,8 +5,8 @@
 
 #include <range/v3/algorithm/stable_sort.hpp>
 
-#include "utils/linear_alg_2d.h"
 #include "types/geometry/TransformedShape.h"
+#include "utils/linear_alg_2d.h"
 
 
 namespace curaengine::bridge
