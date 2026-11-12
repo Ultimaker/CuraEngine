@@ -1,27 +1,30 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/Simplify.h" // The unit under test.
+#include "types/geometry/Simplify.h"
 
 #include <numbers>
 
 #include <gtest/gtest.h>
 
-#include "utils/Coord_t.h"
-#include "utils/polygonUtils.h" // Helper functions for testing deviation.
+#include "types/Coord_t.h"
+#include "utils/polygon_utils.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class SimplifyTest : public testing::Test
 {
 public:
     // Settings to use for most of these tests.
-    static constexpr coord_t MAX_RESOLUTION = 1000;
-    static constexpr coord_t MAX_DEVIATION = 100;
-    static constexpr coord_t MAX_AREA_DEVIATION = 20000;
+    static constexpr coord_t max_resolution = 1000;
+    static constexpr coord_t max_deviation = 100;
+    static constexpr coord_t max_area_deviation = 20000;
 
     /*!
      * Use this basic simplify instance to easily run tests.
@@ -37,17 +40,17 @@ public:
     Polygon zigzag; // Sawtooth zig-zag pattern.
 
     SimplifyTest()
-        : simplifier(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION)
+        : simplifier(max_resolution, max_deviation, max_area_deviation)
     {
     }
 
     void SetUp() override
     {
-        simplifier = Simplify(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION); // Reset in case the test wants to change a parameter.
+        simplifier = Simplify(max_resolution, max_deviation, max_area_deviation); // Reset in case the test wants to change a parameter.
 
         circle.clear();
         coord_t radius = 100000;
-        constexpr double segment_length = MAX_RESOLUTION - 10;
+        constexpr double segment_length = max_resolution - 10;
         constexpr double tau = 6.283185307179586476925286766559; // 2 * pi.
         const double increment = segment_length / radius; // Segments of 990 units.
         for (double angle = 0; angle < tau; angle += increment)
@@ -130,7 +133,7 @@ TEST_F(SimplifyTest, CircleMaxResolution)
     for (size_t point_index = 1; point_index + 1 < circle.size(); point_index++) // Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
         coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
-        EXPECT_GE(segment_length, MAX_RESOLUTION) << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
+        EXPECT_GE(segment_length, max_resolution) << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
     }
 }
 
@@ -150,7 +153,7 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
     for (Point2LL v : circle)
     {
         Point2LL moved_point = v;
-        PolygonUtils::moveInside(simplified, moved_point);
+        polygon_utils::moveInside(simplified, moved_point);
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation_);
     }
@@ -158,7 +161,7 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
     for (Point2LL v : simplified)
     {
         Point2LL moved_point = v;
-        PolygonUtils::moveInside(circle, moved_point);
+        polygon_utils::moveInside(circle, moved_point);
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation_);
     }
@@ -283,7 +286,7 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
             // Both endpoints of this line segment must have a distance to the simplified polygon of 0, theoretically.
             // Due to rounding errors we'll allow up to 1 unit.
             Point2LL moved_point = polyline[i];
-            PolygonUtils::moveInside(simplified, moved_point);
+            polygon_utils::moveInside(simplified, moved_point);
             const coord_t deviation = vSize(moved_point - polyline[i]);
             EXPECT_LE(deviation, 1) << "The endpoints of long segments must still be in the simplified result.";
         }
@@ -405,5 +408,5 @@ TEST_F(SimplifyTest, ToDegenerate)
     EXPECT_EQ(segment.size(), 0) << "The segment got removed entirely, because simplification would reduce its vertices to less than 2, making it degenerate.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

@@ -1,0 +1,26 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#include "gcode/FixedGCodePart.h"
+
+
+namespace curaengine::gcode
+{
+
+FixedGCodePart::FixedGCodePart(const GCodePartType type)
+    : GCodePart(type)
+{
+    stream_ << std::fixed;
+}
+
+std::string FixedGCodePart::str() const
+{
+    return stream_.str();
+}
+
+std::ostringstream& FixedGCodePart::stream()
+{
+    return stream_;
+}
+
+} // namespace curaengine::gcode

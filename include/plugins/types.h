@@ -1,12 +1,9 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PLUGINS_TYPES_H
-#define PLUGINS_TYPES_H
+#pragma once
 
 #include <grpcpp/support/string_ref.h>
-#include <memory>
-#include <tuple>
 
 #include <fmt/format.h>
 
@@ -52,7 +49,7 @@ struct formatter<cura::plugins::v0::SlotID>
     }
 
     template<typename ParseContext>
-    auto parse(ParseContext& ctx)
+    constexpr auto parse(ParseContext& ctx)
     {
         return ctx.begin();
     }
@@ -74,4 +71,3 @@ struct formatter<grpc::string_ref>
 };
 
 } // namespace fmt
-#endif // PLUGINS_TYPES_H

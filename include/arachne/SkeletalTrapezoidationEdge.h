@@ -1,17 +1,16 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
-#define SKELETAL_TRAPEZOIDATION_EDGE_H
+#pragma once
 
 #include <cassert>
 #include <list>
-#include <memory> // smart pointers
+#include <memory>
 #include <vector>
 
-#include "utils/ExtrusionJunction.h"
+#include "types/geometry/ExtrusionJunction.h"
 
-namespace cura
+namespace curaengine::arachne
 {
 
 class SkeletalTrapezoidationEdge
@@ -19,9 +18,9 @@ class SkeletalTrapezoidationEdge
 private:
     enum class Central : int
     {
-        UNKNOWN = -1,
-        NO = 0,
-        YES = 1
+        Unknown = -1,
+        No = 0,
+        Yes = 1
     };
 
 public:
@@ -30,10 +29,10 @@ public:
      */
     struct TransitionMiddle
     {
-        coord_t pos_; // Position along edge as measure from edge.from.p
+        types::coord_t pos_; // Position along edge as measure from edge.from.p
         int lower_bead_count_;
-        coord_t feature_radius_; // The feature radius at which this transition is placed
-        TransitionMiddle(coord_t pos, int lower_bead_count, coord_t feature_radius)
+        types::coord_t feature_radius_; // The feature radius at which this transition is placed
+        TransitionMiddle(types::coord_t pos, int lower_bead_count, types::coord_t feature_radius)
             : pos_(pos)
             , lower_bead_count_(lower_bead_count)
             , feature_radius_(feature_radius)
@@ -46,10 +45,10 @@ public:
      */
     struct TransitionEnd
     {
-        coord_t pos_; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
+        types::coord_t pos_; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
         int lower_bead_count_;
         bool is_lower_end_; // Whether this is the ed of the transition with lower bead count
-        TransitionEnd(coord_t pos, int lower_bead_count, bool is_lower_end)
+        TransitionEnd(types::coord_t pos, int lower_bead_count, bool is_lower_end)
             : pos_(pos)
             , lower_bead_count_(lower_bead_count)
             , is_lower_end_(is_lower_end)
@@ -59,34 +58,34 @@ public:
 
     enum class EdgeType : int
     {
-        NORMAL = 0, // from voronoi diagram
-        EXTRA_VD = 1, // introduced to voronoi diagram in order to make the gMAT
-        TRANSITION_END = 2 // introduced to voronoi diagram in order to make the gMAT
+        Normal = 0, // from voronoi diagram
+        ExtraVd = 1, // introduced to voronoi diagram in order to make the gMAT
+        TransitionEnd = 2 // introduced to voronoi diagram in order to make the gMAT
     };
     EdgeType type_;
 
     SkeletalTrapezoidationEdge()
-        : SkeletalTrapezoidationEdge(EdgeType::NORMAL)
+        : SkeletalTrapezoidationEdge(EdgeType::Normal)
     {
     }
     SkeletalTrapezoidationEdge(const EdgeType& type)
         : type_(type)
-        , is_central(Central::UNKNOWN)
+        , is_central(Central::Unknown)
     {
     }
 
     bool isCentral() const
     {
-        assert(is_central != Central::UNKNOWN);
-        return is_central == Central::YES;
+        assert(is_central != Central::Unknown);
+        return is_central == Central::Yes;
     }
     void setIsCentral(bool b)
     {
-        is_central = b ? Central::YES : Central::NO;
+        is_central = b ? Central::Yes : Central::No;
     }
     bool centralIsSet() const
     {
-        return is_central != Central::UNKNOWN;
+        return is_central != Central::Unknown;
     }
 
     bool hasTransitions(bool ignore_empty = false) const
@@ -119,11 +118,11 @@ public:
     {
         return extrusion_junctions_.use_count() > 0 && (ignore_empty || ! extrusion_junctions_.lock()->empty());
     }
-    void setExtrusionJunctions(std::shared_ptr<LineJunctions>& storage)
+    void setExtrusionJunctions(std::shared_ptr<types::geometry::LineJunctions>& storage)
     {
         extrusion_junctions_ = storage;
     }
-    std::shared_ptr<LineJunctions> getExtrusionJunctions() const
+    std::shared_ptr<types::geometry::LineJunctions> getExtrusionJunctions() const
     {
         return const_cast<SkeletalTrapezoidationEdge*>(this)->extrusion_junctions_.lock();
     }
@@ -133,9 +132,8 @@ public:
 private:
     std::weak_ptr<std::list<TransitionMiddle>> transitions_;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends_;
-    std::weak_ptr<LineJunctions> extrusion_junctions_;
+    std::weak_ptr<types::geometry::LineJunctions> extrusion_junctions_;
 };
 
 
-} // namespace cura
-#endif // SKELETAL_TRAPEZOIDATION_EDGE_H
+} // namespace curaengine::arachne

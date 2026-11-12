@@ -1,14 +1,13 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "FffGcodeWriter.h" //Unit under test.
+#include "FffGcodeWriter.h"
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
 
-#include <range/v3/view/join.hpp>
 #include <scripta/logger.h>
 
 #include <gmock/gmock.h>
@@ -16,16 +15,23 @@
 
 #include "Application.h"
 #include "LayerPlan.h"
+#include "Mesh.h"
+#include "Settings.h"
 #include "Slice.h"
-#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h" //To create example polygons.
-#include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
+#include "SliceDataStorage.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "arcus/MockCommunication.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
+#include "utils/linear_alg_2d.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 /*!
  * Fixture that provides a basis for testing wall computation.
  */
@@ -44,15 +50,15 @@ public:
     {
         outer_square.emplace_back();
         outer_square.back().emplace_back(0, 0);
-        outer_square.back().emplace_back(MM2INT(100), 0);
-        outer_square.back().emplace_back(MM2INT(100), MM2INT(100));
-        outer_square.back().emplace_back(0, MM2INT(100));
+        outer_square.back().emplace_back(mmToInt(100), 0);
+        outer_square.back().emplace_back(mmToInt(100), mmToInt(100));
+        outer_square.back().emplace_back(0, mmToInt(100));
 
         inner_square.emplace_back();
-        inner_square.back().emplace_back(MM2INT(10), MM2INT(20));
-        inner_square.back().emplace_back(MM2INT(60), MM2INT(20));
-        inner_square.back().emplace_back(MM2INT(60), MM2INT(60));
-        inner_square.back().emplace_back(MM2INT(10), MM2INT(60));
+        inner_square.back().emplace_back(mmToInt(10), mmToInt(20));
+        inner_square.back().emplace_back(mmToInt(60), mmToInt(20));
+        inner_square.back().emplace_back(mmToInt(60), mmToInt(60));
+        inner_square.back().emplace_back(mmToInt(10), mmToInt(60));
 
         Application::getInstance().communication_ = std::make_shared<MockCommunication>();
     }
@@ -153,7 +159,7 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
         {
             for (const auto& point : path.points)
             {
-                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, point.toPoint2LL(), last);
+                Point2LL closest_here = linear_alg_2d::getClosestOnLineSegment(p, point.toPoint2LL(), last);
                 int64_t dist = vSize2(p - closest_here);
 
                 if (dist < margin * margin)
@@ -168,38 +174,38 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     // Check the results
     for (auto poly : inner_square)
         for (auto point : poly)
-            EXPECT_TRUE(checkPointIsPassed(point, MM2INT(0.3))) << "The corners of this square need an infill line under them so they dont droop down!";
+            EXPECT_TRUE(checkPointIsPassed(point, mmToInt(0.3))) << "The corners of this square need an infill line under them so they dont droop down!";
 
     int ctr = 0;
-    if (checkPointIsPassed({ MM2INT(90), MM2INT(30) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(90), mmToInt(30) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(8), MM2INT(64) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(8), mmToInt(64) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(5), MM2INT(72) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(5), mmToInt(72) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(77), MM2INT(33) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(77), mmToInt(33) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(12), MM2INT(1) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(12), mmToInt(1) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(88), MM2INT(70) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(88), mmToInt(70) }, mmToInt(0.3)))
         ctr++;
     EXPECT_LE(ctr, 3) << "Selected points outside the square should not be supported by sparse infill";
 
     ctr = 0;
-    if (checkPointIsPassed({ MM2INT(30), MM2INT(32) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(30), mmToInt(32) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(40), MM2INT(35) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(40), mmToInt(35) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(35), MM2INT(49) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(35), mmToInt(49) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(21), MM2INT(42) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(21), mmToInt(42) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(48), MM2INT(32) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(48), mmToInt(32) }, mmToInt(0.3)))
         ctr++;
-    if (checkPointIsPassed({ MM2INT(29), MM2INT(45) }, MM2INT(0.3)))
+    if (checkPointIsPassed({ mmToInt(29), mmToInt(45) }, mmToInt(0.3)))
         ctr++;
     EXPECT_LE(ctr, 3) << "Selected points in the middle of the square should not be supported by sparse infill";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

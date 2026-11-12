@@ -1,16 +1,21 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <numeric> //For calculating averages.
+#include <numeric>
 
 #include <gtest/gtest.h>
 
-#include "LayerPlan.h" //Code under test.
-#include "pathPlanning/SpeedDerivatives.h"
+#include "LayerPlan.h"
+#include "routing/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace routing;
+using namespace types;
+
+
 /*!
  * A fixture containing some sets of GCodePaths to test with.
  */
@@ -482,5 +487,5 @@ TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
 
     EXPECT_TRUE(extruder_plan.paths_.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

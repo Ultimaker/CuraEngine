@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InsetOrderOptimizer.h"
@@ -11,7 +11,6 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
-#include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
@@ -24,14 +23,22 @@
 #include "FffGcodeWriter.h"
 #include "ForceRetract.h"
 #include "LayerPlan.h"
-#include "utils/views/convert.h"
-#include "utils/views/dfs.h"
+#include "types/EZSeamType.h"
+#include "types/InsetDirection.h"
+#include "types/RetractBeforeOuterWall.h"
+#include "utils/actions/dfs.h"
+#include "utils/linear_alg_2d.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+using types::operator""_r;
+
 
 InsetOrderOptimizer::InsetOrderOptimizer(
     const SliceDataStorage& storage,
@@ -94,7 +101,7 @@ void InsetOrderOptimizer::optimize()
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
     const auto inset_direction = settings_.get<InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
 
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    const bool outer_to_inner = inset_direction == InsetDirection::OutsideIn;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
@@ -156,18 +163,18 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
     constexpr Ratio flow = 1.0_r;
     bool added_something = false;
 
-    ForceRetract force_retract = ForceRetract::AUTOMATIC;
+    ForceRetract force_retract = ForceRetract::Automatic;
     switch (retract_before_outer_wall)
     {
-    case RetractBeforeOuterWall::AUTOMATIC:
-        force_retract = ForceRetract::AUTOMATIC;
+    case RetractBeforeOuterWall::Automatic:
+        force_retract = ForceRetract::Automatic;
         break;
-    case RetractBeforeOuterWall::RETRACTED:
-        force_retract = ForceRetract::RETRACTED;
+    case RetractBeforeOuterWall::Retracted:
+        force_retract = ForceRetract::Retracted;
         break;
-    case RetractBeforeOuterWall::NOT_RETRACTED:
-    case RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
-        force_retract = ForceRetract::NOT_RETRACTED;
+    case RetractBeforeOuterWall::NotRetracted:
+    case RetractBeforeOuterWall::NotRetractedFromInfill:
+        force_retract = ForceRetract::NotRetracted;
         break;
     }
 
@@ -185,7 +192,7 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
         const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
-        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::AUTOMATIC;
+        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::Automatic;
         const bool scarf_seam = scarf_seam_ && is_outer_wall;
         const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
@@ -215,10 +222,10 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
             override_areas);
         added_something = true;
 
-        if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
+        if (retract_before_outer_wall == RetractBeforeOuterWall::NotRetractedFromInfill)
         {
             // Only the first should be forced, the next ones use auto
-            force_retract = ForceRetract::AUTOMATIC;
+            force_retract = ForceRetract::Automatic;
         }
     }
 
@@ -233,10 +240,10 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     Point2LL request_point;
     switch (z_seam_config_.type_)
     {
-    case EZSeamType::USER_SPECIFIED:
+    case EZSeamType::UserSpecified:
         request_point = z_seam_config_.pos_;
         break;
-    case EZSeamType::SHORTEST:
+    case EZSeamType::Shortest:
         request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
         break;
     default:
@@ -248,7 +255,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
     bool should_recalculate_closest = false;
-    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+    if (z_seam_config_.type_ == EZSeamType::UserSpecified)
     {
         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
         // since you want the seam-line to be continuous in 3D space.
@@ -264,10 +271,10 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
 
             float t, u;
-            if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+            if (linear_alg_2d::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
             {
                 const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-                const coord_t distance_sqd = vSize2(request_point - intersection);
+                const coord_t distance_sqd = types::geometry::vSize2(request_point - intersection);
                 if (distance_sqd < closest_distance_sqd)
                 {
                     closest_point = intersection;
@@ -286,7 +293,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
         {
             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-            const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
+            const coord_t distance_sqd = linear_alg_2d::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
             if (distance_sqd < closest_distance_sqd)
             {
                 closest_distance_sqd = distance_sqd;
@@ -302,24 +309,24 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     {
         // In the second case (see above) the closest point hasn't actually been calculated yet,
         // since in that case we'de need the start and end points. So do that here.
-        closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+        closest_point = linear_alg_2d::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
+    if (types::geometry::vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the start point, just use it instead.
         return closest_junction_idx;
     }
-    if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    if (types::geometry::vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the end point, just use it instead.
         return (closest_junction_idx + 1) % closed_line.junctions_.size();
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
-    const coord_t start_dist = vSize(closest_point - start_pt.p_);
-    const coord_t end_dist = vSize(closest_point - end_pt.p_);
+    const coord_t total_dist = types::geometry::vSize(end_pt.p_ - start_pt.p_);
+    const coord_t start_dist = types::geometry::vSize(closest_point - start_pt.p_);
+    const coord_t end_dist = types::geometry::vSize(closest_point - end_pt.p_);
     const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
 
     closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
@@ -425,7 +432,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                 closest_outer_wall_line[current_line] = outer_wall;
             }
         };
-        actions::dfs_depth_state(outer_wall, graph, update_nodes);
+        utils::actions::dfs_depth_state(outer_wall, graph, update_nodes);
     }
 
     // for each of the outer walls, perform a dfs until we have found an extrusion line that is
@@ -453,7 +460,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
             }
         };
 
-        actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
+        utils::actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
     }
 
     return order;
@@ -571,4 +578,4 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
 }
 
-} // namespace cura
+} // namespace curaengine

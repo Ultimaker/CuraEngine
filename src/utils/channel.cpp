@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 #ifdef ENABLE_PLUGINS
 
@@ -9,23 +9,23 @@
 
 #include "utils/resources/certificate.pem.h"
 
-namespace cura::utils
+namespace curaengine::utils
 {
 namespace details
 {
-inline constexpr static bool ALLOW_REMOTE_CHANNELS = ENABLE_REMOTE_PLUGINS;
+inline constexpr static bool allow_remote_channels = ENABLE_REMOTE_PLUGINS;
 } // namespace details
 
-std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& config)
+std::shared_ptr<grpc::Channel> createChannel(const types::ChannelSetupConfiguration& config)
 {
-    constexpr auto create_credentials = [](const ChannelSetupConfiguration& actual_config)
+    constexpr auto create_credentials = [](const types::ChannelSetupConfiguration& actual_config)
     {
         if (actual_config.host == "localhost" || actual_config.host == "127.0.0.1")
         {
             spdlog::info("Create local channel on port {}.", actual_config.port);
             return grpc::InsecureChannelCredentials();
         }
-        if (details::ALLOW_REMOTE_CHANNELS)
+        if (details::allow_remote_channels)
         {
             spdlog::info("Create local channel on port {}.", actual_config.port);
             auto creds_config = grpc::SslCredentialsOptions();
@@ -45,6 +45,6 @@ std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& co
     return grpc::CreateCustomChannel(fmt::format("{}:{}", config.host, config.port), create_credentials(config), args);
 }
 
-} // namespace cura::utils
+} // namespace curaengine::utils
 
 #endif // ENABLE_PLUGINS

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/ZigzagConnectorProcessor.h"
@@ -6,12 +6,16 @@
 #include <algorithm>
 #include <cassert>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/PointMatrix.h"
-#include "geometry/Polygon.h"
-#include "geometry/Shape.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
 
-using namespace cura;
+namespace curaengine::infill
+{
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 
 void ZigzagConnectorProcessor::registerVertex(const Point2LL& vertex)
@@ -171,7 +175,7 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point2LL>& points, bo
     addPolyline(polyline);
 }
 
-void cura::ZigzagConnectorProcessor::reset()
+void ZigzagConnectorProcessor::reset()
 {
     is_first_connector_ = true;
     first_connector_end_scanline_index_ = 0;
@@ -180,7 +184,7 @@ void cura::ZigzagConnectorProcessor::reset()
     current_connector_.clear();
 }
 
-void cura::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
+void ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
 {
     result_.emplace_back(polyline);
     for (Point2LL& p : result_.back())
@@ -188,3 +192,5 @@ void cura::ZigzagConnectorProcessor::addPolyline(const OpenPolyline& polyline)
         p = rotation_matrix_.unapply(p);
     }
 }
+
+} // namespace curaengine::infill

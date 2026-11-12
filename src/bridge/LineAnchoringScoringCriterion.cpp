@@ -1,13 +1,19 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "bridge/LineAnchoringScoringCriterion.h"
 
 #include <range/v3/algorithm/stable_sort.hpp>
 
-#include "bridge/TransformedShape.h"
-#include "utils/linearAlg2D.h"
+#include "types/geometry/TransformedShape.h"
+#include "utils/linear_alg_2d.h"
 
 
-namespace cura
+namespace curaengine::bridge
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 LineAnchoringScoringCriterion::LineAnchoringScoringCriterion(
     const std::vector<AngleDegrees>& candidates,
@@ -105,7 +111,7 @@ std::tuple<coord_t, coord_t>
             const double next_intersection_skin_area = skin_outline_intersections.front();
             const double next_intersection_supported_area = supported_regions_intersections.front();
 
-            if (is_zero(next_intersection_skin_area - next_intersection_supported_area))
+            if (utils::is_zero(next_intersection_skin_area - next_intersection_supported_area))
             {
                 next_intersection_is_skin_area = true;
                 next_intersection_is_supported_area = true;
@@ -194,7 +200,7 @@ std::tuple<coord_t, coord_t>
         last_position = next_intersection;
         inside_skin_area = next_inside_skin_area;
         inside_supported_area = next_inside_supported_area;
-    } // namespace cura
+    }
 
     return { total_bridge_length, segment_score };
 }
@@ -211,7 +217,7 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
             continue;
         }
 
-        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
+        const std::optional<coord_t> intersection = linear_alg_2d::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
         if (intersection.has_value())
         {
             intersections.push_back(intersection.value());
@@ -221,4 +227,4 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
     return intersections;
 }
 
-} // namespace cura
+} // namespace curaengine::bridge
