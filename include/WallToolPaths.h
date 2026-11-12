@@ -6,6 +6,7 @@
 
 #include "WallToolPathGenerator.h"
 #include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/section_type.h"

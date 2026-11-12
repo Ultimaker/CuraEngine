@@ -139,7 +139,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
-    calculateSeamPositions(storage);
+    seam::calculateWallsSeamPositions(storage);
 
     if (scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
@@ -724,11 +724,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             if (! raft_paths.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage_.raft_base_config;
-                const ZSeamConfig z_seam_config(
-                    EZSeamType::SHORTEST,
-                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
-                    false);
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     gcode_layer,
@@ -746,7 +741,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     wipe_dist,
                     base_extruder_nr,
                     base_extruder_nr,
-                    z_seam_config,
                     raft_paths,
                     storage.getModelBoundingBox().flatten().getMiddle());
                 wall_orderer.addToLayer();
@@ -759,6 +753,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             constexpr auto always_retract = ForceRetract::AUTOMATIC;
             constexpr auto reverse_order = false;
             constexpr OverrideAreas override_areas;
+            constexpr Shape seam_exclusion_areas;
 
             gcode_layer.addLinesByOptimizer(
                 raft_lines,
@@ -774,7 +769,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 gcode_layer.configs_storage_.raft_base_config,
                 mesh_group_settings,
                 override_areas,
-                ZSeamConfig(),
+                seam_exclusion_areas,
                 wipe_dist,
                 spiralize,
                 flow_ratio,
@@ -891,7 +886,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         if (! raft_paths.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.raft_interface_config;
-            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
             InsetOrderOptimizer wall_orderer(
                 storage,
                 gcode_layer,
@@ -909,7 +903,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 wipe_dist,
                 interface_extruder_nr,
                 interface_extruder_nr,
-                z_seam_config,
                 raft_paths,
                 storage.getModelBoundingBox().flatten().getMiddle());
             wall_orderer.addToLayer();
@@ -922,6 +915,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr auto always_retract = ForceRetract::AUTOMATIC;
         constexpr auto reverse_order = false;
         constexpr OverrideAreas override_areas;
+        constexpr Shape seam_exclusion_areas;
 
         gcode_layer.addLinesByOptimizer(
             raft_lines,
@@ -937,7 +931,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             gcode_layer.configs_storage_.raft_interface_config,
             mesh_group_settings,
             override_areas,
-            ZSeamConfig(),
+            seam_exclusion_areas,
             wipe_dist,
             spiralize,
             flow_ratio,
@@ -1062,11 +1056,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
             if (! raft_paths.empty())
             {
-                const ZSeamConfig z_seam_config(
-                    EZSeamType::SHORTEST,
-                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
-                    false);
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     gcode_layer,
@@ -1084,7 +1073,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     wipe_dist,
                     surface_extruder_nr,
                     surface_extruder_nr,
-                    z_seam_config,
                     raft_paths,
                     storage.getModelBoundingBox().flatten().getMiddle());
                 wall_orderer.addToLayer();
@@ -1097,6 +1085,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             constexpr auto always_retract = ForceRetract::AUTOMATIC;
             constexpr auto reverse_order = false;
             constexpr OverrideAreas override_areas;
+            constexpr Shape seam_exclusion_areas;
 
             if (monotonic)
             {
@@ -1122,7 +1111,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     gcode_layer.configs_storage_.raft_surface_config,
                     mesh_group_settings,
                     override_areas,
-                    ZSeamConfig(),
+                    seam_exclusion_areas,
                     wipe_dist,
                     spiralize,
                     flow_ratio,
@@ -1783,11 +1772,6 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
 
     polygons = Simplify(mesh.settings).polygon(polygons);
 
-    ZSeamConfig z_seam_config(
-        mesh.settings.get<EZSeamType>("z_seam_type"),
-        mesh.getZSeamHint(),
-        mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-        mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     const bool spiralize = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
     constexpr Ratio flow_ratio = 1.0;
     constexpr auto always_retract = ForceRetract::AUTOMATIC;
@@ -1796,13 +1780,14 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     constexpr bool scarf_seam = true;
     constexpr bool smooth_speed = true;
     constexpr OverrideAreas override_areas;
+    constexpr Shape seam_exclusion_areas;
 
     gcode_layer.addPolygonsByOptimizer(
         polygons,
         mesh_config.inset0_config,
         mesh.settings,
         override_areas,
-        z_seam_config,
+        seam_exclusion_areas,
         mesh.settings.get<coord_t>("wall_0_wipe_dist"),
         spiralize,
         flow_ratio,
@@ -1810,8 +1795,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         reverse_order,
         start_near_location,
         scarf_seam,
-        smooth_speed,
-        layer->texture_data_provider_);
+        smooth_speed);
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
@@ -1850,16 +1834,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
 
     gcode_layer.setMesh(mesh_ptr);
 
-    ZSeamConfig z_seam_config;
-    if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
-    {
-        z_seam_config = ZSeamConfig(
-            mesh.settings.get<EZSeamType>("z_seam_type"),
-            mesh.getZSeamHint(),
-            mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-            mesh.settings.get<coord_t>("wall_line_width_0") * 2);
-    }
-    PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (SliceLayerPart& part : layer.parts)
     {
         if (part.outline.empty())
@@ -1869,7 +1844,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         part_order_optimizer.addPolygon(&part);
     }
 
-    part_order_optimizer.optimize(false);
+    part_order_optimizer.optimize();
 
     for (const PathOrdering<SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
@@ -2116,6 +2091,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
                 constexpr OverrideAreas override_areas;
+                constexpr Shape seam_exclusion_areas;
                 const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
                 gcode_layer.addLinesByOptimizer(
@@ -2128,6 +2104,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     near_start_location,
                     fan_speed,
                     override_areas,
+                    seam_exclusion_areas,
                     reverse_print_direction,
                     order_requirements,
                     start_move_inwards_length,
@@ -2659,12 +2636,6 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     {
         // Main case: Optimize the insets with the InsetOrderOptimizer.
         const coord_t wall_x_wipe_dist = 0;
-        const ZSeamConfig z_seam_config(
-            mesh.settings.get<EZSeamType>("z_seam_type"),
-            mesh.getZSeamHint(),
-            mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-            mesh.settings.get<coord_t>("wall_line_width_0") * 2);
-        const Shape disallowed_areas_for_seams;
         constexpr bool scarf_seam = true;
         constexpr bool smooth_speed = true;
 
@@ -2685,13 +2656,10 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
             wall_x_wipe_dist,
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
-            z_seam_config,
             part.wall_toolpaths,
             mesh.bounding_box.flatten().getMiddle(),
-            disallowed_areas_for_seams,
             scarf_seam,
             smooth_speed,
-            mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_,
             end_infill_close_to_seam);
         result.walls_optimizer->optimize();
     }
@@ -3330,11 +3298,6 @@ void FffGcodeWriter::processSkinPrintFeature(
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
             constexpr coord_t wipe_dist = 0;
             constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
-            const ZSeamConfig z_seam_config(
-                mesh.settings.get<EZSeamType>("z_seam_type"),
-                mesh.getZSeamHint(),
-                mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-                config.getLineWidth() * 2);
             InsetOrderOptimizer wall_orderer(
                 storage,
                 gcode_layer,
@@ -3352,7 +3315,6 @@ void FffGcodeWriter::processSkinPrintFeature(
                 wipe_dist,
                 extruder_nr,
                 extruder_nr,
-                z_seam_config,
                 skin_paths,
                 mesh.bounding_box.flatten().getMiddle());
             added_something |= wall_orderer.addToLayer(retract_before_outer_wall, override_areas);
@@ -3616,30 +3578,28 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         // The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
         std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
 
+        const LayerIndex layer_nr = gcode_layer.getLayerNr();
+        Shape seam_exclusion_areas;
+        if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
+        {
+            for (SliceMeshStorage::Ptr mesh : storage.meshes)
+            {
+                for (auto& part : mesh->layers[layer_nr].parts)
+                {
+                    seam_exclusion_areas.push_back(part.print_outline);
+                }
+            }
+            if (! seam_exclusion_areas.empty())
+            {
+                coord_t min_distance = infill_extruder.settings_.get<coord_t>("support_z_seam_min_distance");
+                seam_exclusion_areas = seam_exclusion_areas.offset(min_distance, ClipperLib::jtRound);
+            }
+        }
+
         if (! wall_toolpaths.empty())
         {
             const GCodePathConfig& config = configs[0];
             constexpr coord_t wipe_dist = 0;
-            const LayerIndex layer_nr = gcode_layer.getLayerNr();
-            ZSeamConfig z_seam_config
-                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
-            Shape disallowed_area_for_seams{};
-            if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
-            {
-                for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
-                {
-                    auto& mesh = *mesh_ptr;
-                    for (auto& part : mesh.layers[layer_nr].parts)
-                    {
-                        disallowed_area_for_seams.push_back(part.print_outline);
-                    }
-                }
-                if (! disallowed_area_for_seams.empty())
-                {
-                    coord_t min_distance = infill_extruder.settings_.get<coord_t>("support_z_seam_min_distance");
-                    disallowed_area_for_seams = disallowed_area_for_seams.offset(min_distance, ClipperLib::jtRound);
-                }
-            }
 
             InsetOrderOptimizer wall_orderer(
                 storage,
@@ -3658,11 +3618,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 wipe_dist,
                 extruder_nr,
                 extruder_nr,
-                z_seam_config,
                 wall_toolpaths,
-                storage.getModelBoundingBox().flatten().getMiddle(),
-                disallowed_area_for_seams);
-            added_something |= wall_orderer.addToLayer();
+                storage.getModelBoundingBox().flatten().getMiddle());
+
+            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
+            constexpr OverrideAreas override_areas;
+            constexpr std::optional<Point2LL> near_start_location;
+            added_something |= wall_orderer.addToLayer(retract_before_outer_wall, override_areas, near_start_location, seam_exclusion_areas);
         }
 
         if (default_support_line_distance <= 0 || part.infill_area_per_combine_per_density_.empty())
@@ -3751,8 +3713,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             {
                 if ((! wall_toolpaths.empty() || ! support_polygons.empty() || ! support_lines.empty()))
                 {
-                    int layer_nr = gcode_layer.getLayerNr();
-                    if (layer_nr > (int)infill_extruder.settings_.get<size_t>("initial_bottom_layers"))
+                    if (layer_nr > infill_extruder.settings_.get<size_t>("initial_bottom_layers"))
                     {
                         // bit of subtlety here... support is being used on a spiralized model and to ensure the travel move from the end of the last spiral
                         // to the start of the support does not go through the model we have to tell the slicer what the current location of the nozzle is
@@ -3776,9 +3737,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (! support_polygons.empty())
             {
-                gcode_layer.addTravel(support_polygons[0][0]);
+                // gcode_layer.addTravel(support_polygons[0][0]);
 
-                const ZSeamConfig& z_seam_config = ZSeamConfig();
                 constexpr coord_t wall_0_wipe_dist = 0;
                 constexpr bool spiralize = false;
                 constexpr Ratio flow_ratio = 1.0_r;
@@ -3790,7 +3750,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     configs[combine_idx],
                     mesh_group_settings,
                     override_areas,
-                    z_seam_config,
+                    seam_exclusion_areas,
                     wall_0_wipe_dist,
                     spiralize,
                     flow_ratio,
@@ -3818,6 +3778,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     near_start_location,
                     fan_speed,
                     override_areas,
+                    seam_exclusion_areas,
                     alternate_layer_print_direction);
 
                 added_something = true;
@@ -3830,11 +3791,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const GCodePathConfig& config = configs[0];
                 constexpr coord_t wipe_dist = 0;
                 constexpr coord_t simplify_curvature = 0;
-                const ZSeamConfig z_seam_config(
-                    EZSeamType::SHORTEST,
-                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
-                    simplify_curvature);
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     gcode_layer,
@@ -3852,10 +3808,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     wipe_dist,
                     extruder_nr,
                     extruder_nr,
-                    z_seam_config,
                     wall_toolpaths_here,
                     storage.getModelBoundingBox().flatten().getMiddle());
-                added_something |= wall_orderer.addToLayer();
+
+                constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
+                constexpr std::optional<Point2LL> near_start_location;
+                added_something |= wall_orderer.addToLayer(retract_before_outer_wall, override_areas, near_start_location, seam_exclusion_areas);
             }
         }
     }
@@ -3967,7 +3925,6 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
     {
         const GCodePathConfig& config = current_roof_config;
         constexpr coord_t wipe_dist = 0;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
         InsetOrderOptimizer wall_orderer(
             storage,
@@ -3986,7 +3943,6 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
             wipe_dist,
             roof_extruder_nr,
             roof_extruder_nr,
-            z_seam_config,
             roof_paths,
             storage.getModelBoundingBox().flatten().getMiddle());
         wall_orderer.addToLayer();
@@ -4079,7 +4035,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     {
         const GCodePathConfig& config = gcode_layer.configs_storage_.support_bottom_config;
         constexpr coord_t wipe_dist = 0;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
         InsetOrderOptimizer wall_orderer(
             storage,
@@ -4098,7 +4053,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             wipe_dist,
             bottom_extruder_nr,
             bottom_extruder_nr,
-            z_seam_config,
             bottom_paths,
             storage.getModelBoundingBox().flatten().getMiddle());
         wall_orderer.addToLayer();

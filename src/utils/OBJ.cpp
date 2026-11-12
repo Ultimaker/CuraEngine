@@ -9,6 +9,7 @@
 #include <range/v3/algorithm/find.hpp>
 #include <spdlog/spdlog.h>
 
+#include "geometry/Shape.h"
 #include "mesh.h"
 #include "utils/Point3D.h"
 #include "utils/VoxelGrid.h"

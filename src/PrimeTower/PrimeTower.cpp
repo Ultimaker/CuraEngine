@@ -20,6 +20,7 @@
 #include "infill.h"
 #include "raft.h"
 #include "sliceDataStorage.h"
+#include "utils/linearAlg2D.h"
 
 
 namespace cura

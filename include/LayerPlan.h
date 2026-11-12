@@ -537,14 +537,13 @@ public:
      * If unset, this causes it to start near the last planned location.
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
-     * \param texture_data_provider The texture provider to be used to place the seam
      */
     void addPolygonsByOptimizer(
         const Shape& polygons,
         const GCodePathConfig& config,
         const Settings& settings,
         const OverrideAreas& override_areas = {},
-        const ZSeamConfig& z_seam_config = ZSeamConfig(),
+        const Shape& seam_exclusion_areas = {},
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio flow_ratio = 1.0_r,
@@ -552,8 +551,7 @@ public:
         bool reverse_order = false,
         const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
         bool scarf_seam = false,
-        bool smooth_speed = false,
-        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
+        bool smooth_speed = false);
 
     /*!
      * Adds infill polygons to the gcode with optimized order.
@@ -717,7 +715,6 @@ public:
      * \param flooring_config The config with which to print the wall lines
      * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
-     * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param force_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
@@ -730,7 +727,6 @@ public:
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
-        const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         double flow_ratio = 1.0,
         const ForceRetract force_retract = ForceRetract::AUTOMATIC);
@@ -764,6 +760,7 @@ public:
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const OverrideAreas& override_areas = {},
+        const Shape& seam_exclusion_areas = {},
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
         const coord_t extra_inwards_start_move_length = 0,
@@ -990,7 +987,6 @@ private:
      * \param config The config with which to print the polygon lines.
      * for each given segment (optionally nullptr).
      * \param settings The settings which should apply to these polygons added to the layer plan
-     * \param z_seam_config Optional configuration for z-seam.
      * \param wall_0_wipe_dist The distance to travel along each polygon after
      * it has been laid down, in order to wipe the start and end of the wall
      * together.
@@ -1009,7 +1005,6 @@ private:
         const std::vector<PathOrdering<const Polygon*>>& polygons,
         const GCodePathConfig& config,
         const Settings& settings,
-        const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio flow_ratio = 1.0_r,

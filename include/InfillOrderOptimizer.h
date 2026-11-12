@@ -20,6 +20,7 @@ class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;
 struct MeshPathConfigs;
+struct Ratio;
 
 /*!
  * Optimizer for infill lines ordering. When an end position is given, infill extrusions are optimized in a way that ending printing the infill

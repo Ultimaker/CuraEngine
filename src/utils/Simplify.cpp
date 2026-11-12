@@ -9,6 +9,7 @@
 #include "geometry/ClosedPolyline.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenPolyline.h"
+#include "geometry/Shape.h"
 #include "settings/Settings.h" //To load the parameters from a Settings object.
 #include "utils/ExtrusionLine.h"
 #include "utils/linearAlg2D.h" //To calculate line deviations and intersecting lines.

@@ -4,7 +4,6 @@
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
-#include <numbers>
 #include <unordered_set>
 
 #include <range/v3/algorithm/max_element.hpp>
@@ -20,17 +19,12 @@
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "path_ordering.h"
-#include "settings/EnumSettings.h" //To get the seam settings.
+#include "seam/seam.h"
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
-#include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
-#include "utils/math.h"
 #include "utils/polygonUtils.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"
-#include "utils/scoring/ExclusionAreaScoringCriterion.h"
-#include "utils/scoring/RandomScoringCriterion.h"
-#include "utils/scoring/TextureScoringCriterion.h"
 #include "utils/views/dfs.h"
 
 namespace cura
@@ -69,8 +63,7 @@ class PathOrderOptimizer
 {
 public:
     using OrderablePath = PathOrdering<Path>;
-    /* Areas defined here are not allowed to have the start the prints */
-    Shape disallowed_area_for_seams;
+
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -92,11 +85,6 @@ public:
      */
     Point2LL start_point_;
 
-    /*!
-     * Seam settings.
-     */
-    ZSeamConfig seam_config_;
-
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
     /*!
@@ -104,6 +92,8 @@ public:
      * after being used, so that it will apply only over the very first path.
      */
     bool prefer_longest_path_;
+
+    Shape seam_exclusion_areas_;
 
     /*!
      * Construct a new optimizer.
@@ -121,40 +111,44 @@ public:
      */
     PathOrderOptimizer(
         const Point2LL& start_point,
-        const ZSeamConfig seam_config = ZSeamConfig(),
+        const Shape& seam_exclusion_areas = Shape(),
         const bool detect_loops = false,
         const Shape* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Shape& disallowed_areas_for_seams = {},
-        const bool use_shortest_for_inner_walls = false,
-        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
         const bool prefer_longest_path_first = false)
         : start_point_(start_point)
-        , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
         , detect_loops_(detect_loops)
         , reverse_direction_(reverse_direction)
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
-        , disallowed_area_for_seams{ disallowed_areas_for_seams }
-        , use_shortest_for_inner_walls_(use_shortest_for_inner_walls)
-        , texture_data_provider_(texture_data_provider)
         , prefer_longest_path_(prefer_longest_path_first)
+        , seam_exclusion_areas_(seam_exclusion_areas)
     {
+    }
+
+    void addExtrusionLine(const Path& line)
+        requires std::same_as<Path, ExtrusionLine*> || std::same_as<Path, const ExtrusionLine*>
+    {
+        OrderablePath& orderable_path = paths_.emplace_back(line, line->is_closed_, line->is_outer_wall());
+        if (line->has_start_position_set_)
+        {
+            orderable_path.start_vertex_ = 0;
+        }
     }
 
     /*!
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const Path& polygon, std::optional<size_t> force_start_index = std::nullopt, const bool is_outer_wall = false)
+    void addPolygon(const Path& polygon, const bool is_outer_wall = false)
+        requires std::same_as<Path, Polygon*> || std::same_as<Path, const Polygon*> || std::same_as<Path, SliceLayerPart*> || std::same_as<Path, const SkinPart*>
+              || std::same_as<Path, const SupportInfillPart*> || std::same_as<Path, const Polyline*>
     {
         constexpr bool is_closed = true;
-        paths_.emplace_back(polygon, is_closed);
-        paths_.back().force_start_index_ = force_start_index;
-        paths_.back().is_outer_wall = is_outer_wall;
+        paths_.emplace_back(polygon, is_closed, is_outer_wall);
     }
 
     /*!
@@ -162,6 +156,7 @@ public:
      * \param polyline The polyline to optimize.
      */
     void addPolyline(const Path& polyline)
+        requires std::same_as<Path, Polyline*> || std::same_as<Path, const Polyline*> || std::same_as<Path, const OpenPolyline*>
     {
         constexpr bool is_closed = false;
         paths_.emplace_back(polyline, is_closed);
@@ -173,7 +168,7 @@ public:
      * This reorders the \ref paths field and fills their starting vertices and
      * directions.
      */
-    void optimize(bool precompute_start = true)
+    void optimize()
     {
         if (paths_.empty())
         {
@@ -200,20 +195,6 @@ public:
             }
         }
 
-        // Set actual used start point calculation strategy for each path
-        for (auto& path : paths_)
-        {
-            if (use_shortest_for_inner_walls_ && ! path.is_outer_wall)
-            {
-                path.seam_config_ = ZSeamConfig(EZSeamType::SHORTEST);
-                path.force_start_index_ = std::nullopt;
-            }
-            else
-            {
-                path.seam_config_ = seam_config_;
-            }
-        }
-
         // Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
@@ -234,24 +215,6 @@ public:
             {
                 line_bucket_grid.insert(path.converted_->front(), i);
                 line_bucket_grid.insert(path.converted_->back(), i);
-            }
-        }
-
-        // For some Z seam types the start position can be pre-computed.
-        // This is faster since we don't need to re-compute the start position at each step then.
-        if (precompute_start)
-        {
-            for (auto& path : paths_)
-            {
-                if (path.seam_config_.type_ == EZSeamType::RANDOM || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED
-                    || path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
-                {
-                    if (! path.is_closed_ || path.converted_->empty())
-                    {
-                        continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
-                    }
-                    path.start_vertex_ = findStartLocation(path, path.seam_config_.pos_);
-                }
             }
         }
 
@@ -335,18 +298,7 @@ protected:
      */
     const std::unordered_multimap<Path, Path>* order_requirements_;
 
-    /*!
-     * If true, we will compute the seam position of inner walls using a "shortest" seam configs, for inner walls that
-     * are directly following an outer wall.
-     */
-    const bool use_shortest_for_inner_walls_;
-
-    /*!
-     * The texture may contain user-provided data for semi-manual seam placement
-     */
-    const std::shared_ptr<TextureDataProvider> texture_data_provider_;
-
-    std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
+    std::vector<OrderablePath> getOptimizedOrder(const SparsePointGridInclusive<size_t>& line_bucket_grid, const size_t snap_radius)
     {
         std::vector<OrderablePath> optimized_order; // To store our result in.
 
@@ -393,12 +345,12 @@ protected:
             {
                 if (best_path->is_closed_)
                 {
-                    current_position = (*best_path->converted_)[best_path->start_vertex_]; // We end where we started.
+                    current_position = (*best_path->converted_)[*best_path->start_vertex_]; // We end where we started.
                 }
                 else
                 {
                     // Pick the other end from where we started.
-                    current_position = best_path->start_vertex_ == 0 ? best_path->converted_->back() : best_path->converted_->front();
+                    current_position = *best_path->start_vertex_ == 0 ? best_path->converted_->back() : best_path->converted_->front();
                 }
             }
         }
@@ -468,12 +420,12 @@ protected:
 
                 if (path->is_closed_)
                 {
-                    local_current_position = (*path->converted_)[path->start_vertex_]; // We end where we started.
+                    local_current_position = (*path->converted_)[*path->start_vertex_]; // We end where we started.
                 }
                 else
                 {
                     // Pick the other end from where we started.
-                    local_current_position = path->start_vertex_ == 0 ? path->converted_->back() : path->converted_->front();
+                    local_current_position = *path->start_vertex_ == 0 ? path->converted_->back() : path->converted_->front();
                 }
             }
 
@@ -490,12 +442,12 @@ protected:
                 {
                     if (path.is_closed_)
                     {
-                        current_position = (*path.converted_)[path.start_vertex_]; // We end where we started.
+                        current_position = (*path.converted_)[*path.start_vertex_]; // We end where we started.
                     }
                     else
                     {
                         // Pick the other end from where we started.
-                        current_position = path.start_vertex_ == 0 ? path.converted_->back() : path.converted_->front();
+                        current_position = *path.start_vertex_ == 0 ? path.converted_->back() : path.converted_->front();
                     }
 
                     // Add to optimized order
@@ -595,7 +547,7 @@ protected:
             reversed.back().backwards_ = ! reversed.back().backwards_;
             if (! reversed.back().is_closed_)
             {
-                reversed.back().start_vertex_ = reversed.back().converted_->size() - 1 - reversed.back().start_vertex_;
+                reversed.back().start_vertex_ = reversed.back().converted_->size() - 1 - *reversed.back().start_vertex_;
             }
         }
 
@@ -618,12 +570,13 @@ protected:
 
     OrderablePath* findBestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
-        OrderablePath* best_candidate = prefer_longest_path_ ? findLongestPath(candidate_paths) : findClosestPath(start_position, candidate_paths);
+        std::pair<OrderablePath*, size_t> start_path = prefer_longest_path_ ? findLongestPath(start_position, candidate_paths) : findClosestPath(start_position, candidate_paths);
+        start_path.first->setStartVertex(start_path.second);
         prefer_longest_path_ = false;
-        return best_candidate;
+        return start_path.first;
     }
 
-    OrderablePath* findLongestPath(const std::vector<OrderablePath*>& candidate_paths)
+    std::pair<OrderablePath*, size_t> findLongestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
         auto iterator = ranges::max_element(
             candidate_paths,
@@ -633,116 +586,70 @@ protected:
                 return path->converted_->length();
             });
 
-        return iterator == candidate_paths.end() ? nullptr : *iterator;
+        if (iterator == candidate_paths.end())
+        {
+            return std::make_pair(nullptr, 0);
+        }
+
+        return std::make_pair(*iterator, findStartLocation(*(*iterator), start_position));
     }
 
-    OrderablePath* findClosestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
+    std::pair<OrderablePath*, size_t> findClosestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
-        coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-        OrderablePath* best_candidate = nullptr;
+        struct BestStartPath
+        {
+            OrderablePath* path;
+            size_t start_vertex;
+            coord_t distance2;
+        };
+
+        std::optional<BestStartPath> best_start_path;
 
         for (OrderablePath* path : candidate_paths)
         {
             if (path->converted_->empty()) // No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
             {
-                if (best_distance2 == std::numeric_limits<coord_t>::max())
-                {
-                    best_candidate = path;
-                }
                 continue;
             }
 
-            const bool precompute_start = path->seam_config_.type_ == EZSeamType::RANDOM || path->seam_config_.type_ == EZSeamType::USER_SPECIFIED
-                                       || path->seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
-            if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
-            {
-                path->start_vertex_ = findStartLocation(*path, start_position);
-                if (! path->is_closed_) // Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
-                {
-                    path->backwards_ = path->start_vertex_ > 0;
-                }
-            }
-            const Point2LL candidate_position = (*path->converted_)[path->start_vertex_];
+            const size_t candidate_start_vertex = findStartLocation(*path, start_position);
+            const Point2LL candidate_position = (*path->converted_)[candidate_start_vertex];
             coord_t distance2 = getDirectDistance(start_position, candidate_position);
-            if (distance2 < best_distance2
+
+            if ((! best_start_path.has_value() || distance2 < best_start_path->distance2)
                 && combing_boundary_) // If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
             {
                 distance2 = getCombingDistance(start_position, candidate_position);
             }
-            if (distance2 < best_distance2) // Closer than the best candidate so far.
+
+            if (! best_start_path.has_value() || distance2 < best_start_path->distance2) // Closer than the best candidate so far.
             {
-                best_candidate = path;
-                best_distance2 = distance2;
+                best_start_path = BestStartPath{ .path = path, .start_vertex = candidate_start_vertex, .distance2 = distance2 };
             }
         }
 
-        return best_candidate;
-    }
-
-    /**
-     * @brief Analyze the positions in a path and determine the next optimal position based on a proximity criterion.
-     *
-     * This function iteratively examines positions along the given path, checking if the position is close to 3D model.
-     * Each position is specified by an index, starting with `best_pos`. If the position is close to the model according to
-     * `isVertexCloseToPolygonPath` function, the function recursively calls itself with the next position. This process is
-     * repeated until all positions have been checked or `number_of_paths_analysed` becomes equal to `path_size`.
-     * If `number_of_paths_analysed` becomes equal to `path_size`, it logs a warning and returns the current best position.
-     *
-     * @param best_pos The index of the initial position for analysis in the path.
-     * @param path An OrderablePath instance containing the path to be examined.
-     * @param number_of_paths_analysed Optionally, the initial index of paths analysed. Defaults to 0.
-     * @return The index of the next optimal position in the path sequence. May be the same as the input `best_pos`,
-     *         or may be incremented to a different location based on the proximity criterion.
-     *
-     * @note This function uses recursion to evaluate each position in the path.
-     * @note The process stops prematurely if no start path is found for the support z seam distance.
-     *       This typically happens when the distance of the support seam from the model is bigger than all the support wall points.
-     */
-
-    size_t pathIfZseamIsInDisallowedArea(size_t best_pos, const OrderablePath& path, size_t number_of_paths_analysed)
-    {
-        size_t path_size = path.converted_->size();
-        if (path_size > number_of_paths_analysed)
+        if (! best_start_path.has_value())
         {
-            if (! disallowed_area_for_seams.empty())
-            {
-                Point2LL current_candidate = (path.converted_)->at(best_pos);
-                if (disallowed_area_for_seams.inside(current_candidate, true))
-                {
-                    size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
-                    number_of_paths_analysed += 1;
-                    best_pos = pathIfZseamIsInDisallowedArea(next_best_position, path, number_of_paths_analysed);
-                }
-            }
+            return std::make_pair(candidate_paths.front(), 0);
         }
-        else
-        {
-            spdlog::warn("No start path found for support z seam distance");
-            // We can also calculate the best point to start at this point.
-            // This usually happens when the distance of support seam from model is bigger than the whole support wall points.
-        }
-        return best_pos;
-    }
 
+        return std::make_pair(best_start_path->path, best_start_path->start_vertex);
+    }
 
     /*!
-     * Find the vertex which will be the starting point of printing a polygon or
-     * polyline.
+     * If not already set, calculate the vertex which will be the starting point of printing a polygon or polyline, i.e. the one that is the closest to the given position.
+     * This will be the seam location (for polygons) or the closest endpoint (for polylines)
      *
-     * This will be the seam location (for polygons) or the closest endpoint
-     * (for polylines). Usually the seam location is some combination of being
-     * the closest point and/or being a sharp inner or outer corner.
-     * \param vertices The vertex data of a path. This will never be empty (so
-     * no need to check again) but might have size 1.
-     * \param target_pos The point that the starting vertex must be close to, if
-     * applicable.
-     * \param is_closed Whether the polygon is closed (a polygon) or not
-     * (a polyline). If the path is not closed, it will choose between the two
-     * endpoints rather than
-     * \return An index to a vertex in that path where printing must start.
+     * \param path The path for which the start position should be calculated
+     * \param target_pos The point that the starting vertex must be close to
      */
     size_t findStartLocation(const OrderablePath& path, const Point2LL& target_pos)
     {
+        if (path.start_vertex_.has_value())
+        {
+            return path.start_vertex_.value();
+        }
+
         if (! path.is_closed_)
         {
             // For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
@@ -754,98 +661,11 @@ protected:
             {
                 return path.converted_->size() - 1; // Back end is closer.
             }
-            return 0; // Front end is closer.
+            return 0;
         }
 
-        return 0;
-
-#if 0
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
-        const PointsSet& points = *path.converted_;
-
-        // ########## Step 1: define the main criteria to be applied and their weights
-        // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
-        // exactly one calculation using this criterion.
-        BestElementFinder best_candidate_finder;
-        BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = 0.05;
-
-        if (texture_data_provider_)
-        {
-            BestElementFinder::WeighedCriterion texture_criterion;
-            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider_, "seam");
-            texture_criterion.weight = 5.0;
-            main_criteria_pass.criteria.push_back(texture_criterion);
-        }
-
-        BestElementFinder::WeighedCriterion main_criterion;
-
-        if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
-        {
-            // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
-            constexpr double distance_divider = 1.0;
-            constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
-        }
-        else if (path.seam_config_.type_ == EZSeamType::SHORTEST || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED)
-        {
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
-        }
-        else if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN)
-        {
-            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
-        }
-        else if (path.seam_config_.type_ == EZSeamType::RANDOM)
-        {
-            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
-        }
-
-        if (main_criterion.criterion)
-        {
-            main_criteria_pass.criteria.push_back(main_criterion);
-        }
-        else
-        {
-            spdlog::warn("Missing main criterion calculator");
-        }
-
-        // Second criterion with higher weight to avoid overhanging areas
-        if (! overhang_areas_.empty())
-        {
-            BestElementFinder::WeighedCriterion overhang_criterion;
-            overhang_criterion.weight = 2.0;
-            overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, overhang_areas_);
-            main_criteria_pass.criteria.push_back(overhang_criterion);
-        }
-
-        best_candidate_finder.appendCriteriaPass(main_criteria_pass);
-
-        // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-        if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
-        {
-            const AABB path_bounding_box(points);
-
-            { // First fallback strategy is to take points on the back-most position
-                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
-                constexpr double outsider_delta_threshold = 0.01;
-                best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
-            }
-
-            { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
-                best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
-            }
-        }
-
-        // ########## Step 3: apply the criteria to find the vertex with the best global score
-        std::optional<size_t> best_i = best_candidate_finder.findBestElement(points.size());
-
-        if (! disallowed_area_for_seams.empty())
-        {
-            best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
-        }
-        return best_i.value_or(0);
-#endif
+        return seam::calculateShortestSeamPosition(*path.converted_, target_pos, seam_exclusion_areas_);
     }
 
     /*!

@@ -54,17 +54,14 @@ public:
         const coord_t wall_x_wipe_dist,
         const size_t wall_0_extruder_nr,
         const size_t wall_x_extruder_nr,
-        const ZSeamConfig& z_seam_config,
         const std::vector<VariableWidthLines>& paths,
         const Point2LL& model_center_point,
-        const Shape& disallowed_areas_for_seams = {},
         const bool scarf_seam = false,
         const bool smooth_speed = false,
-        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
         const bool start_width_longest_wall = false);
 
     /*! Process the paths ordering optimization. The result can be retrieved in the path_optimizer_ variable. */
-    void optimize();
+    void optimize(const std::optional<Point2LL>& near_start_location = std::nullopt, const Shape& seam_exclusion_areas = Shape());
 
     /*!
      * Adds the insets to the given layer plan.
@@ -74,7 +71,11 @@ public:
      * \param retract_before_outer_wall The retraction behavior to be applied when moving to outer walls
      * \return Whether anything was added to the layer plan.
      */
-    bool addToLayer(const RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC, const OverrideAreas& override_areas = {});
+    bool addToLayer(
+        const RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC,
+        const OverrideAreas& override_areas = {},
+        const std::optional<Point2LL>& near_start_location = std::nullopt,
+        const Shape& seam_exclusion_areas = Shape());
 
     /*!
      * Get the order constraints of the insets when printing walls per region / hole.
@@ -116,14 +117,11 @@ private:
     const coord_t wall_x_wipe_dist_;
     const size_t wall_0_extruder_nr_;
     const size_t wall_x_extruder_nr_;
-    const ZSeamConfig& z_seam_config_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
     const Point2LL model_center_point_; // Center of the model (= all meshes) axis-aligned bounding-box.
-    Shape disallowed_areas_for_seams_;
     const bool scarf_seam_;
     const bool smooth_speed_;
-    const std::shared_ptr<TextureDataProvider> texture_data_provider_;
     const bool start_width_longest_wall_;
     std::vector<ExtrusionLine> walls_to_be_added_;
     std::shared_ptr<PathOrderOptimizer<const ExtrusionLine*>> path_optimizer_;

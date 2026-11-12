@@ -343,7 +343,6 @@ void InfillOrderOptimizer::addToLayer(
             for (const std::vector<VariableWidthLines>& tool_paths : *part.paths.extrusion_lines)
             {
                 constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(EZSeamType::USER_SPECIFIED, near_start_location.value_or(mesh.getZSeamHint()));
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     layer_plan,
@@ -361,10 +360,12 @@ void InfillOrderOptimizer::addToLayer(
                     wipe_dist,
                     extruder_nr,
                     extruder_nr,
-                    z_seam_config,
                     tool_paths,
                     mesh.bounding_box.flatten().getMiddle());
-                wall_orderer.addToLayer();
+
+                constexpr RetractBeforeOuterWall retract_before_outer_wall{ RetractBeforeOuterWall::AUTOMATIC };
+                const OverrideAreas override_areas;
+                wall_orderer.addToLayer(retract_before_outer_wall, override_areas, near_start_location.value_or(mesh.getZSeamHint()));
             }
             break;
         }
@@ -454,6 +455,7 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
     }
 
     constexpr OverrideAreas override_areas;
+    constexpr Shape seam_exclusion_areas;
     layer_plan.addLinesByOptimizer(
         lines,
         mesh_config.infill_config[0],
@@ -464,6 +466,7 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
         near_start_location,
         fan_speed,
         override_areas,
+        seam_exclusion_areas,
         reverse_print_direction,
         order_requirements,
         start_move_inwards_length,
@@ -515,6 +518,7 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
     }
     else
     {
+        constexpr Shape seam_exclusion_areas;
         layer_plan.addLinesByOptimizer(
             lines,
             mesh_config.skin_support_config,
@@ -525,6 +529,7 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
             near_start_location,
             skin_support_fan_speed,
             override_areas,
+            seam_exclusion_areas,
             reverse_print_direction);
     }
 }

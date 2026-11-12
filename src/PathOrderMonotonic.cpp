@@ -41,7 +41,7 @@ void PathOrderMonotonic<PathType>::optimize()
         {
             polylines.push_back(&path);
             // Assign an invalid starting vertex to indicate we don't know the starting point yet.
-            polylines.back()->start_vertex_ = polylines.back()->converted_->size();
+            polylines.back()->start_vertex_.reset();
         }
     }
 
@@ -188,7 +188,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
 
     if (result.size() == 1)
     {
-        result[0]->start_vertex_ = result[0]->converted_->size(); // Reset start vertex as "unknown" again if it's not a string of polylines.
+        result[0]->start_vertex_.reset(); // Reset start vertex as "unknown" again if it's not a string of polylines.
     }
     return result;
 }
@@ -405,7 +405,7 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
 
         Path* closest_path = closest_next_line_iterator->second;
         setStartVertex(closest_path, closest_backwards);
-        current_pos = (*closest_path->converted_)[closest_path->converted_->size() - 1 - closest_path->start_vertex_]; // Opposite of the start vertex.
+        current_pos = (*closest_path->converted_)[closest_path->converted_->size() - 1 - *closest_path->start_vertex_]; // Opposite of the start vertex.
         reordered.push_back(*closest_path);
         pre_ordered_lines.erase(closest_next_line_iterator);
 

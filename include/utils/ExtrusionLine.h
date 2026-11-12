@@ -13,7 +13,6 @@
 
 #include "ExtrusionJunction.h"
 #include "geometry/Polygon.h"
-#include "geometry/Shape.h"
 
 namespace cura
 {
@@ -47,6 +46,11 @@ struct ExtrusionLine
      * Whether this is a closed polygonal path
      */
     bool is_closed_;
+
+    /*!
+     * Indicates whether the start position of the line has already been calculated as being the desired start position
+     */
+    bool has_start_position_set_{ false };
 
     /*!
      * The list of vertices along which this path runs.
@@ -88,33 +92,6 @@ struct ExtrusionLine
         , is_closed_(is_closed)
     {
     }
-
-    ExtrusionLine(const ExtrusionLine& other)
-        : inset_idx_(other.inset_idx_)
-        , is_odd_(other.is_odd_)
-        , is_closed_(other.is_closed_)
-        , junctions_(other.junctions_)
-    {
-    }
-
-    ExtrusionLine& operator=(ExtrusionLine&& other)
-    {
-        junctions_ = std::move(other.junctions_);
-        inset_idx_ = other.inset_idx_;
-        is_odd_ = other.is_odd_;
-        is_closed_ = other.is_closed_;
-        return *this;
-    }
-
-    ExtrusionLine& operator=(const ExtrusionLine& other)
-    {
-        junctions_ = other.junctions_;
-        inset_idx_ = other.inset_idx_;
-        is_odd_ = other.is_odd_;
-        is_closed_ = other.is_closed_;
-        return *this;
-    }
-
 
     std::vector<ExtrusionJunction>::const_iterator begin() const
     {

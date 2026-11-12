@@ -49,11 +49,29 @@ const Polyline& PathOrdering<const ExtrusionLine*>::getVertexData()
     return *cached_vertices_;
 }
 
+template<typename PathType>
+void PathOrdering<PathType>::setStartVertex(const size_t start_vertex)
+{
+    start_vertex_ = start_vertex;
+    if (! is_closed_)
+    {
+        backwards_ = start_vertex > 0;
+    }
+}
+
 template const Polyline& PathOrdering<Polygon*>::getVertexData();
 template const Polyline& PathOrdering<Polygon const*>::getVertexData();
 template const Polyline& PathOrdering<const OpenPolyline*>::getVertexData();
 template const Polyline& PathOrdering<OpenPolyline*>::getVertexData();
 template const Polyline& PathOrdering<ClosedPolyline*>::getVertexData();
 template const Polyline& PathOrdering<Polyline const*>::getVertexData();
+
+template void PathOrdering<SliceLayerPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const SkinPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const SupportInfillPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const ExtrusionLine*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const Polygon*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const Polyline*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const OpenPolyline*>::setStartVertex(const size_t start_vertex);
 
 } // namespace cura

@@ -116,13 +116,13 @@ protected:
      */
     static void optimizeClosestStartPoint(Path* path, Point2LL& current_pos)
     {
-        if (path->start_vertex_ == path->converted_->size())
+        if (! path->start_vertex_.has_value())
         {
             const coord_t dist_start = vSize2(current_pos - path->converted_->front());
             const coord_t dist_end = vSize2(current_pos - path->converted_->back());
             setStartVertex(path, dist_start >= dist_end);
         }
-        current_pos = (*path->converted_)[path->converted_->size() - 1 - path->start_vertex_]; // Opposite of the start vertex.
+        current_pos = (*path->converted_)[path->converted_->size() - 1 - *path->start_vertex_]; // Opposite of the start vertex.
     }
 
     /*!
@@ -207,7 +207,7 @@ private:
      */
     static bool canConnectToPolyline(const Point2LL& nearby_endpoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
     {
-        return found_path.val->start_vertex_ == found_path.val->converted_->size() // Don't find any line already in the string.
+        return ! found_path.val->start_vertex_.has_value() // Don't find any line already in the string.
             && vSize2(found_path.point - nearby_endpoint) < coincident_point_distance_ * coincident_point_distance_; // And only find close lines.
     }
 

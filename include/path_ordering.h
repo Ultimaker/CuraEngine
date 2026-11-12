@@ -33,11 +33,10 @@ struct PathOrdering
      * done after all of the input paths have been added, to prevent
      * invalidating the pointers.
      */
-    PathOrdering(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
+    PathOrdering(const PathType& vertices, const bool is_closed, const bool is_outer_wall = false)
         : vertices_(vertices)
-        , start_vertex_(start_vertex)
         , is_closed_(is_closed)
-        , backwards_(backwards)
+        , is_outer_wall_(is_outer_wall)
     {
     }
 
@@ -58,7 +57,7 @@ struct PathOrdering
      * If this path represents a polyline, this will always be one of the
      * endpoints of the path; either 0 or ``vertices->size() - 1``.
      */
-    size_t start_vertex_;
+    std::optional<size_t> start_vertex_;
 
     /*!
      * Whether the path should be closed at the ends or not.
@@ -74,23 +73,12 @@ struct PathOrdering
      * For a polyline it may be more efficient to print the path in
      * backwards direction, if the last vertex is closer than the first.
      */
-    bool backwards_;
-
-    /*!
-     * Force the start point of the path to be at a specific location.
-     * Will only happen if not empty, and this point is actually on the path.
-     */
-    std::optional<size_t> force_start_index_;
-
-    /*!
-     * The start point calculation strategy to be used for this path
-     */
-    ZSeamConfig seam_config_;
+    bool backwards_{ false };
 
     /*!
      * Indicates whether this path is an outer (or inner) wall
      */
-    bool is_outer_wall{ false };
+    bool is_outer_wall_;
 
     /*!
      * Get vertex data from the custom path type.
@@ -105,6 +93,8 @@ struct PathOrdering
      * for examples and where to add a new specialization.
      */
     const Polyline& getVertexData();
+
+    void setStartVertex(const size_t start_vertex);
 
 protected:
     /*!
