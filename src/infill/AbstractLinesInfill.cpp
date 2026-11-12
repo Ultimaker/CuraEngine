@@ -35,7 +35,7 @@ void AbstractLinesInfill::generateInfill(
 
     const OpenLinesSet raw_lines = generateParallelLines(line_distance, AABB(rotated_outline), z, line_width);
     const OpenLinesSet fit_lines = fitLines(raw_lines, zig_zaggify, rotated_outline);
-    OpenPolylineStitcher::stitch(fit_lines, result_polylines, result_polygons, line_width);
+    OpenPolylineStitcher::stitch(fit_lines, result_polylines, result_polygons, max_stitching_distance_.value_or(line_width));
 
     if (rotation != 0)
     {

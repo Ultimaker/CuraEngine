@@ -4,6 +4,8 @@
 #ifndef INFILL_ABSTRACTLINESINFILL_H
 #define INFILL_ABSTRACTLINESINFILL_H
 
+#include <optional>
+
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
@@ -46,7 +48,10 @@ public:
         const AngleDegrees& rotation) const;
 
 protected:
-    AbstractLinesInfill() = default;
+    explicit AbstractLinesInfill(std::optional<coord_t> max_stitching_distance = std::nullopt)
+        : max_stitching_distance_(max_stitching_distance)
+    {
+    }
 
     /*!
      * Method to be implemented by child classes to generate the raw parallel lines to be included in the infill. The generated lines should be completely filling the bounding box
@@ -61,6 +66,10 @@ protected:
     virtual OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const = 0;
 
 private:
+    // Some patterns have adjacent but separate paths that must not be joined
+    // across a hole or a concave boundary. By default, allow one line width.
+    const std::optional<coord_t> max_stitching_distance_;
+
     /*! Helper structure that contain data about the split lines to be joined */
     struct SplitLines
     {

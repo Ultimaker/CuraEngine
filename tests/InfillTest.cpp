@@ -201,11 +201,11 @@ std::vector<InfillTestParameters> generateInfillTests()
      *  - that require the SierpinskyInfillProvider class, since these test classes aren't equipped to handle that yet
      *    this can be considered a TODO for these testcases here, not in the methods themselves
      *    (these are; Cross, Cross-3D and Cubic-Subdivision)
-     *  - Gyroid, honeycomb and octagon since they don't handle the 100% infill and related cases well
+     *  - Gyroid, honeycomb, octagon and Cross Hatch since these are sparse patterns, not solid infill
      *  - Concentric and ZigZag, since they now use a method that starts from an extra infill wall, which fail these tests (TODO!)
      */
     std::vector<EFillMethod> skip_methods = { EFillMethod::CONCENTRIC, EFillMethod::ZIG_ZAG,   EFillMethod::CROSS,     EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV,
-                                              EFillMethod::GYROID,     EFillMethod::LIGHTNING, EFillMethod::HONEYCOMB, EFillMethod::OCTAGON };
+                                              EFillMethod::GYROID,     EFillMethod::LIGHTNING, EFillMethod::HONEYCOMB, EFillMethod::OCTAGON,  EFillMethod::CROSSHATCH };
 
     std::vector<EFillMethod> methods;
     for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
@@ -239,6 +239,20 @@ std::vector<InfillTestParameters> generateInfillTests()
     }
 
     return parameters_list;
+}
+
+TEST(InfillGenerationTest, CrossHatchProducesToolpaths)
+{
+    std::vector<Shape> shapes;
+    ASSERT_TRUE(readTestPolygons(POLYGON_FILENAMES, shapes));
+    for (size_t index = 0; index < shapes.size(); ++index)
+    {
+        for (const bool connect : { false, true })
+        {
+            const auto result = generateInfillToTest(InfillParameters(EFillMethod::CROSSHATCH, connect, false, 2000), index, shapes[index]);
+            EXPECT_FALSE(result.result_lines.empty() && result.result_polygons.empty());
+        }
+    }
 }
 
 class InfillTest : public testing::TestWithParam<InfillTestParameters>
