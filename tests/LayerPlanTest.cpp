@@ -233,6 +233,122 @@ public:
     }
 };
 
+TEST_F(LayerPlanTest, FractionalHeightFirstPathTravelsToLineInsteadOfLayerStartHint)
+{
+    for (const Point2LL hint : { Point2LL(0, 0), Point2LL(MM2INT(150), MM2INT(150)) })
+    {
+        settings->add("layer_start_x", std::to_string(INT2MM(hint.X)));
+        settings->add("layer_start_y", std::to_string(INT2MM(hint.Y)));
+        for (const coord_t z_offset : { coord_t{ 0 }, -MM2INT(0.1), MM2INT(0.1) })
+        {
+            LayerPlan plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000);
+            const Point2LL start(MM2INT(40), MM2INT(40));
+            const Point2LL end(MM2INT(50), MM2INT(40));
+            const LinesSet<OpenPolyline> lines{ OpenPolyline{ start, end } };
+            const GCodePathConfig config{
+                .z_offset = z_offset,
+                .type = PrintFeatureType::Support,
+                .line_width = MM2INT(0.4),
+                .layer_thickness = MM2INT(0.1),
+                .flow = 1.0_r,
+                .speed_derivatives = SpeedDerivatives{ Velocity{ 20.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
+            };
+
+            plan.addLinesByOptimizer(lines, config, SpaceFillType::Lines, false, 0, 1.0_r, start);
+
+            const auto destination = plan.getFirstTravelDestinationState();
+            ASSERT_TRUE(destination.has_value());
+            EXPECT_EQ(destination->first, start) << "A layer-start hint is not a physical nozzle position";
+        }
+    }
+}
+
+TEST_F(LayerPlanTest, FractionalSupportMayLegitimatelyStartAtOrigin)
+{
+    settings->add("layer_start_x", "150");
+    settings->add("layer_start_y", "150");
+    LayerPlan plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000);
+    const LinesSet<OpenPolyline> lines{ OpenPolyline{ Point2LL(0, 0), Point2LL(MM2INT(10), 0) } };
+    const GCodePathConfig config{
+        .z_offset = -MM2INT(0.1),
+        .type = PrintFeatureType::Support,
+        .line_width = MM2INT(0.4),
+        .layer_thickness = MM2INT(0.1),
+        .flow = 1.0_r,
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 20.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
+    };
+    plan.addLinesByOptimizer(lines, config, SpaceFillType::Lines, false, 0, 1.0_r, Point2LL(0, 0));
+    const auto destination = plan.getFirstTravelDestinationState();
+    ASSERT_TRUE(destination.has_value());
+    EXPECT_EQ(destination->first, Point2LL(0, 0));
+}
+
+TEST_F(LayerPlanTest, EmptyFractionalSupportDoesNotInventTravel)
+{
+    LayerPlan plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000);
+    const GCodePathConfig config{
+        .z_offset = -MM2INT(0.1),
+        .type = PrintFeatureType::Support,
+        .line_width = MM2INT(0.4),
+        .layer_thickness = MM2INT(0.1),
+        .flow = 1.0_r,
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 20.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
+    };
+    plan.addLinesByOptimizer(LinesSet<OpenPolyline>{}, config, SpaceFillType::Lines, false, 0, 1.0_r, Point2LL(0, 0));
+    EXPECT_FALSE(plan.getFirstTravelDestinationState().has_value());
+}
+
+TEST_F(LayerPlanTest, FractionalSupportTravelKeepsClearanceLiftAtKnownPosition)
+{
+    for (const bool retract : { false, true })
+    {
+        settings->add("retraction_enable", retract ? "true" : "false");
+        for (const bool hop : { false, true })
+        {
+            settings->add("retraction_hop_enabled", hop ? "true" : "false");
+            LayerPlan plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000);
+            const Point2LL start(MM2INT(40), MM2INT(40));
+            const Point2LL end(MM2INT(50), MM2INT(40));
+            const Point2LL next_start(MM2INT(80), MM2INT(40));
+            const Point2LL next_end(MM2INT(90), MM2INT(40));
+            const GCodePathConfig config{
+                .z_offset = -MM2INT(0.1),
+                .type = PrintFeatureType::Support,
+                .line_width = MM2INT(0.4),
+                .layer_thickness = MM2INT(0.1),
+                .flow = 1.0_r,
+                .speed_derivatives = SpeedDerivatives{ Velocity{ 20.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
+            };
+            plan.addLinesByOptimizer(LinesSet<OpenPolyline>{ OpenPolyline{ start, end } }, config, SpaceFillType::Lines, false, 0, 1.0_r, start);
+            const auto count = plan.extruder_plans_.back().paths_.size();
+            plan.addLinesByOptimizer(
+                LinesSet<OpenPolyline>{ OpenPolyline{ next_start, next_end } }, config, SpaceFillType::Lines, false, 0, 1.0_r, next_start);
+            const auto& paths = plan.extruder_plans_.back().paths_;
+            ASSERT_GT(paths.size(), count);
+            std::vector<Point3LL> travel_points;
+            for (size_t index = count; index + 1 < paths.size(); ++index)
+            {
+                const auto& travel = paths[index];
+                ASSERT_TRUE(travel.isTravelPath());
+                EXPECT_EQ(travel.z_offset, 0);
+                travel_points.insert(travel_points.end(), travel.points.begin(), travel.points.end());
+                if (! retract)
+                {
+                    EXPECT_FALSE(travel.retract);
+                    EXPECT_FALSE(travel.perform_z_hop);
+                }
+            }
+            ASSERT_GE(travel_points.size(), 2);
+            EXPECT_EQ(travel_points.front().toPoint2LL(), end);
+            EXPECT_EQ(travel_points.front().z_, 0) << "Lift at the real last position before crossing to the other support island";
+            EXPECT_EQ(travel_points.back().toPoint2LL(), next_start);
+            EXPECT_EQ(travel_points.back().z_, 0);
+            EXPECT_EQ(paths.back().z_offset, config.z_offset);
+            EXPECT_EQ(paths.back().points.back().toPoint2LL(), next_end);
+        }
+    }
+}
+
 // Test all combinations of these settings in parameterised tests.
 std::vector<std::string> retraction_enable = { "false", "true" };
 std::vector<std::string> hop_enable = { "false", "true" };
