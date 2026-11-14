@@ -56,6 +56,7 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
         bridge_angle = 22.5;
         break;
     case EFillMethod::GYROID:
+    case EFillMethod::BONE:
     case EFillMethod::CONCENTRIC:
     case EFillMethod::LIGHTNING:
     case EFillMethod::PLUGIN:
