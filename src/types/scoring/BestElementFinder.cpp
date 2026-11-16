@@ -3,6 +3,7 @@
 
 #include "types/scoring/BestElementFinder.h"
 
+#include <algorithm>
 #include <limits>
 
 #include <range/v3/view/enumerate.hpp>
