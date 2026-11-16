@@ -317,7 +317,7 @@ std::vector<Point2LL> calculateWallsSeamPosition(
         {
             for (ExtrusionLine& extrusion_line : extrusion_lines)
             {
-                if (extrusion_line.is_outer_wall() != outer_walls)
+                if (extrusion_line.is_outer_wall() != outer_walls || ! extrusion_line.is_closed_) // Only inner walls may be non-closed, so for those we can't do much
                 {
                     continue;
                 }
