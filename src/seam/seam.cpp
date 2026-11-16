@@ -208,68 +208,59 @@ BestElementFinder makeBestCandidateFinderOuterWall(
     // ## Step 1: define the main criteria to be applied and their weights
     // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
     // exactly one calculation using this criterion.
-    BestElementFinder::CriteriaPass main_criteria_pass;
-    main_criteria_pass.outsider_delta_threshold = 0.1;
-
-    if (texture_data_provider)
     {
-        BestElementFinder::WeighedCriterion texture_criterion;
-        texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider, "seam");
-        texture_criterion.weight = 5.0;
-        main_criteria_pass.criteria.push_back(texture_criterion);
+        BestElementFinder::CriteriaPass main_criteria_pass;
+        main_criteria_pass.outsider_delta_threshold = 0.1;
+
+        if (texture_data_provider)
+        {
+            BestElementFinder::WeighedCriterion texture_criterion;
+            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider, "seam");
+            texture_criterion.weight = 5.0;
+            main_criteria_pass.criteria.push_back(texture_criterion);
+        }
+
+        BestElementFinder::WeighedCriterion main_criterion;
+
+        if (force_start_index.has_value())
+        {
+            // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
+            constexpr double distance_divider = 1.0;
+            constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
+            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(force_start_index.value()), distance_type, distance_divider);
+        }
+        else if (seam_type == EZSeamType::USER_SPECIFIED)
+        {
+            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
+        }
+        else if (seam_type == EZSeamType::SHARPEST_CORNER && corner_pref != EZSeamCornerPrefType::PLUGIN)
+        {
+            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, corner_pref);
+        }
+        else if (seam_type == EZSeamType::RANDOM)
+        {
+            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
+        }
+
+        if (main_criterion.criterion)
+        {
+            main_criteria_pass.criteria.push_back(main_criterion);
+        }
+        else
+        {
+            spdlog::warn("Missing main criterion calculator");
+        }
+
+        // Second criterion with higher weight to avoid overhanging areas
+        addExclusionAreaCriterion(main_criteria_pass, points, seam_overhang_exclusion_areas);
+
+        best_candidate_finder.appendCriteriaPass(main_criteria_pass);
     }
 
-#if 0
-    {
-        BestElementFinder::WeighedCriterion alignment_criterion;
-        alignment_criterion.criterion = std::make_shared<VerticalAlignmentScoringCriterion>(points, last_layer_seams, 400);
-        alignment_criterion.weight = 0.1;
-        main_criteria_pass.criteria.push_back(alignment_criterion);
-    }
-#endif
-
-    BestElementFinder::WeighedCriterion main_criterion;
-
-    if (force_start_index.has_value())
-    {
-        // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
-        constexpr double distance_divider = 1.0;
-        constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
-        main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(force_start_index.value()), distance_type, distance_divider);
-    }
-    else if (seam_type == EZSeamType::USER_SPECIFIED)
-    {
-        main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
-    }
-    else if (seam_type == EZSeamType::SHARPEST_CORNER && corner_pref != EZSeamCornerPrefType::PLUGIN)
-    {
-        main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, corner_pref);
-    }
-    else if (seam_type == EZSeamType::RANDOM)
-    {
-        main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
-    }
-
-    if (main_criterion.criterion)
-    {
-        main_criteria_pass.criteria.push_back(main_criterion);
-    }
-    else
-    {
-        spdlog::warn("Missing main criterion calculator");
-    }
-
-    // Second criterion with higher weight to avoid overhanging areas
-    addExclusionAreaCriterion(main_criteria_pass, points, seam_overhang_exclusion_areas);
-
-    best_candidate_finder.appendCriteriaPass(main_criteria_pass);
-
-#if 1
     {
         auto alignment_criterion = std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0);
         best_candidate_finder.appendSingleCriterionPass(alignment_criterion);
     }
-#endif
 
     // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
     if (seam_type == EZSeamType::SHARPEST_CORNER)
@@ -277,13 +268,13 @@ BestElementFinder makeBestCandidateFinderOuterWall(
         const AABB path_bounding_box(points);
 
         { // First fallback strategy is to take points on the back-most position
-            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+            const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
             constexpr double outsider_delta_threshold = 0.01;
             best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
         }
 
         { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+            const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
             best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
         }
     }
