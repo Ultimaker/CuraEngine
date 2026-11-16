@@ -5,6 +5,7 @@
 #define CORNERSCORINGCRITERION_H
 
 #include <stddef.h>
+#include <vector>
 
 #include "settings/EnumSettings.h"
 #include "utils/Coord_t.h"
@@ -40,14 +41,26 @@ private:
      * calculated from two points within angle_query_distance of the query point, no matter
      * what segment this leads us to
      * \param vertex_index index of the query point
-     * \param angle_query_distance query range (default to 1mm)
+     * \param angle_query_distances query ranges, which must be positive and sorted ascending
      * \return angle between the reference point and the two sibling points, weighed to [-1.0 ; 1.0]
      */
     double cornerAngle(const size_t vertex_index, const std::vector<coord_t>& angle_query_distances) const;
 
     /*!
      * Finds a neighbour point on the path, located before or after the given reference point. The neighbour point
-     * is computed by travelling on the path and stopping when the distance has been reached, For example:
+     * is computed by travelling on the path and stopping when the distance has been reached,
+     * \param vertex_index The starting point index
+     * \param distance The distance we want to travel on the path, which may be positive to go forward
+     * or negative to go backward
+     * \return The position of the path a the given distance from the reference point
+     */
+
+    /*!
+     * Finds neighbour points on the path, located before or after the given reference point, for several
+     * distances at once, by travelling on the path only a single time. For each distance, the point is
+     * found by reaching the first vertex past the distance, then going back on the last segment. This
+     * gets rid of the mesh actual resolution and gives points that are on the path at a given physical
+     * distance. For example:
      * |------|---------|------|--------------*---|
      * H      A         B      C              N   D
      * In this case, H is the start point of the path and ABCD are the actual following points of the path.
@@ -55,11 +68,11 @@ private:
      * This approach gets rid of the mesh actual resolution and gives a neighbour point that is on the path
      * at a given physical distance.
      * \param vertex_index The starting point index
-     * \param distance The distance we want to travel on the path, which may be positive to go forward
-     * or negative to go backward
-     * \return The position of the path a the given distance from the reference point
+     * \param distances The distances to travel on the path, which must be positive and sorted ascending
+     * \param direction 1 to go forward on the path, -1 to go backward
+     * \return The positions on the path at the given distances from the reference point, in the same order
      */
-    Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
+    std::vector<Point2LL> findNeighbourPoints(const size_t vertex_index, const std::vector<coord_t>& distances, const int direction) const;
 };
 
 } // namespace cura

@@ -81,13 +81,15 @@ double CornerScoringCriterion::cornerAngle(const size_t vertex_index, const std:
         filtered_angle_query_distances.push_back(max_length);
     }
 
-#warning This is the unoptimized version, to be optimized by searching the various distances along the segments at once
+    const std::vector<Point2LL> next_points = findNeighbourPoints(vertex_index, filtered_angle_query_distances, 1);
+    const std::vector<Point2LL> previous_points = findNeighbourPoints(vertex_index, filtered_angle_query_distances, -1);
+
     double total_angle = 0.0;
     const Point2LL& here = getPoints().at(vertex_index);
-    for (const coord_t distance : filtered_angle_query_distances)
+    for (size_t i = 0; i < filtered_angle_query_distances.size(); ++i)
     {
-        const Point2LL next = findNeighbourPoint(vertex_index, distance);
-        const Point2LL previous = findNeighbourPoint(vertex_index, -distance);
+        const Point2LL& next = next_points[i];
+        const Point2LL& previous = previous_points[i];
 
         const double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
 
@@ -97,41 +99,48 @@ double CornerScoringCriterion::cornerAngle(const size_t vertex_index, const std:
     return total_angle / filtered_angle_query_distances.size();
 }
 
-Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t distance) const
+std::vector<Point2LL> CornerScoringCriterion::findNeighbourPoints(const size_t vertex_index, const std::vector<coord_t>& distances, const int direction) const
 {
-    const int direction = distance > 0 ? 1 : -1;
-    const int size_delta = distance > 0 ? -1 : 0;
-    distance = std::abs(distance);
+    const size_t points_count = getPoints().size();
+    const int size_delta = direction > 0 ? -1 : 0;
 
-    // Travel on the path until we reach the distance
+    std::vector<Point2LL> result;
+    result.reserve(distances.size());
+
+    // Travel on the path only once, and pick the points for each (ascending) distance on the way
     int actual_delta = 0;
     coord_t travelled_distance = 0;
     coord_t segment_size = 0;
-    while (travelled_distance < distance)
+    for (const coord_t distance : distances)
     {
-        actual_delta += direction;
-        segment_size = segments_sizes_[(vertex_index + actual_delta + size_delta + getPoints().size()) % getPoints().size()];
-        travelled_distance += segment_size;
+        while (travelled_distance < distance)
+        {
+            actual_delta += direction;
+            segment_size = segments_sizes_[(vertex_index + actual_delta + size_delta + points_count) % points_count];
+            travelled_distance += segment_size;
+        }
+
+        const Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + points_count) % points_count);
+
+        if (travelled_distance > distance) [[likely]]
+        {
+            // We have overtaken the required distance, go backward on the last segment
+            const size_t prev = (vertex_index + actual_delta - direction + points_count) % points_count;
+            const Point2LL& prev_pos = getPoints().at(prev);
+
+            const Point2LL vector = next_pos - prev_pos;
+            const Point2LL unit_vector = (vector * 1000) / segment_size;
+            const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
+            result.push_back(prev_pos + vector_delta / 1000);
+        }
+        else
+        {
+            // Luckily, the required distance stops exactly on an existing point
+            result.push_back(next_pos);
+        }
     }
 
-    const Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + getPoints().size()) % getPoints().size());
-
-    if (travelled_distance > distance) [[likely]]
-    {
-        // We have overtaken the required distance, go backward on the last segment
-        int prev = (vertex_index + actual_delta - direction + getPoints().size()) % getPoints().size();
-        const Point2LL& prev_pos = getPoints().at(prev);
-
-        const Point2LL vector = next_pos - prev_pos;
-        const Point2LL unit_vector = (vector * 1000) / segment_size;
-        const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
-        return prev_pos + vector_delta / 1000;
-    }
-    else
-    {
-        // Luckily, the required distance stops exactly on an existing point
-        return next_pos;
-    }
+    return result;
 }
 
 } // namespace cura
