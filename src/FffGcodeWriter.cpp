@@ -1857,10 +1857,8 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    gcode_layer.setMesh(mesh_ptr);
-
-    PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-    for (SliceLayerPart& part : layer.parts)
+    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    for (const SliceLayerPart& part : layer.parts)
     {
         if (part.outline.empty())
         {
@@ -3645,7 +3643,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 extruder_nr,
                 wall_toolpaths);
 
-            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
+            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::Automatic;
             constexpr OverrideAreas override_areas;
             constexpr std::optional<Point2LL> near_start_location;
             added_something |= wall_orderer.addToLayer(retract_before_outer_wall, override_areas, near_start_location, seam_exclusion_areas);
@@ -3834,7 +3832,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     extruder_nr,
                     wall_toolpaths_here);
 
-                constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
+                constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::Automatic;
                 constexpr std::optional<Point2LL> near_start_location;
                 added_something |= wall_orderer.addToLayer(retract_before_outer_wall, override_areas, near_start_location, seam_exclusion_areas);
             }

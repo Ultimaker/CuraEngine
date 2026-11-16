@@ -15,8 +15,9 @@
 
 #include "ExtruderTrain.h"
 #include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceMeshStorage.h"
 #include "types/AngleDegrees.h"
-#include "types/AngleRadians.h"
 #include "types/CuraViz.h"
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
@@ -406,7 +407,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
 {
     const Point2LL models_center = storage.getModelBoundingBox().flatten().getMiddle();
 
-    for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
+    for (SliceMeshStorage::Ptr& mesh : storage.meshes)
     {
         const Settings& settings = mesh->settings;
         const auto seam_type = settings.get<EZSeamType>("z_seam_type");

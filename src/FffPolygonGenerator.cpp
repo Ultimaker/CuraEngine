@@ -1234,7 +1234,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 
 void FffPolygonGenerator::generateLayersBelow(SliceDataStorage& storage)
 {
-    cura::parallel_for<size_t>(
+    curaengine::parallel_for<size_t>(
         1,
         storage.print_layer_count,
         [&](const size_t layer_idx)

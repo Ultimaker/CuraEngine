@@ -371,7 +371,7 @@ void InfillOrderOptimizer::addToLayer(
                     extruder_nr,
                     tool_paths);
 
-                constexpr RetractBeforeOuterWall retract_before_outer_wall{ RetractBeforeOuterWall::AUTOMATIC };
+                constexpr RetractBeforeOuterWall retract_before_outer_wall{ RetractBeforeOuterWall::Automatic };
                 const OverrideAreas override_areas;
                 wall_orderer.addToLayer(retract_before_outer_wall, override_areas, near_start_location.value_or(mesh.getZSeamHint()));
             }

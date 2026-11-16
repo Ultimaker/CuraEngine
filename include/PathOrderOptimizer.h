@@ -16,6 +16,7 @@
 #include <spdlog/spdlog.h>
 
 #include "PathOrdering.h"
+#include "SliceLayerPart.h"
 #include "routing/CombPath.h"
 #include "routing/LinePolygonsCrossings.h"
 #include "seam/seam.h"
@@ -144,8 +145,8 @@ public:
      * \param polygon The polygon to optimize.
      */
     void addPolygon(const Path& polygon, const bool is_outer_wall = false)
-        requires std::same_as<Path, Polygon*> || std::same_as<Path, const Polygon*> || std::same_as<Path, SliceLayerPart*> || std::same_as<Path, const SkinPart*>
-              || std::same_as<Path, const SupportInfillPart*> || std::same_as<Path, const Polyline*>
+        requires std::same_as<Path, Polygon*> || std::same_as<Path, const Polygon*> || std::same_as<Path, SliceLayerPart*> || std::same_as<Path, const SliceLayerPart*>
+              || std::same_as<Path, const SkinPart*> || std::same_as<Path, const SupportInfillPart*> || std::same_as<Path, const Polyline*>
     {
         constexpr bool is_closed = true;
         paths_.emplace_back(polygon, is_closed, is_outer_wall);

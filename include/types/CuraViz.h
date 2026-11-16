@@ -83,7 +83,7 @@ public:
 
     static void send(const std::vector<geometry::VariableWidthLines>& lines, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const ExtrusionLine& line, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::ExtrusionLine& line, const std::string& name = "", const std::string& step_name = "");
 
 private:
     /*! Convenience class that stores the message and handles its actual sending and destruction when appropriate */

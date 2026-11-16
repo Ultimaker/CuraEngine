@@ -72,6 +72,7 @@ template const Polyline& PathOrdering<ClosedPolyline*>::getVertexData();
 template const Polyline& PathOrdering<Polyline const*>::getVertexData();
 
 template void PathOrdering<SliceLayerPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const SliceLayerPart*>::setStartVertex(const size_t start_vertex);
 template void PathOrdering<const SkinPart*>::setStartVertex(const size_t start_vertex);
 template void PathOrdering<const SupportInfillPart*>::setStartVertex(const size_t start_vertex);
 template void PathOrdering<const ExtrusionLine*>::setStartVertex(const size_t start_vertex);
