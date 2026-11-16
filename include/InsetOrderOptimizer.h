@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 #include "OverrideAreas.h"
-#include "settings/ZSeamConfig.h"
+#include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 
 namespace cura
@@ -55,7 +55,6 @@ public:
         const size_t wall_0_extruder_nr,
         const size_t wall_x_extruder_nr,
         const std::vector<VariableWidthLines>& paths,
-        const Point2LL& model_center_point,
         const bool scarf_seam = false,
         const bool smooth_speed = false,
         const bool start_width_longest_wall = false);
@@ -119,7 +118,6 @@ private:
     const size_t wall_x_extruder_nr_;
     const std::vector<VariableWidthLines>& paths_;
     const LayerIndex layer_nr_;
-    const Point2LL model_center_point_; // Center of the model (= all meshes) axis-aligned bounding-box.
     const bool scarf_seam_;
     const bool smooth_speed_;
     const bool start_width_longest_wall_;

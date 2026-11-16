@@ -360,8 +360,7 @@ void InfillOrderOptimizer::addToLayer(
                     wipe_dist,
                     extruder_nr,
                     extruder_nr,
-                    tool_paths,
-                    mesh.bounding_box.flatten().getMiddle());
+                    tool_paths);
 
                 constexpr RetractBeforeOuterWall retract_before_outer_wall{ RetractBeforeOuterWall::AUTOMATIC };
                 const OverrideAreas override_areas;

@@ -52,7 +52,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const size_t wall_0_extruder_nr,
     const size_t wall_x_extruder_nr,
     const std::vector<VariableWidthLines>& paths,
-    const Point2LL& model_center_point,
     const bool scarf_seam,
     const bool smooth_speed,
     const bool start_width_longest_wall)
@@ -74,7 +73,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , wall_x_extruder_nr_(wall_x_extruder_nr)
     , paths_(paths)
     , layer_nr_(gcode_layer.getLayerNr())
-    , model_center_point_(model_center_point)
     , scarf_seam_(scarf_seam)
     , smooth_speed_(smooth_speed)
     , start_width_longest_wall_(start_width_longest_wall)

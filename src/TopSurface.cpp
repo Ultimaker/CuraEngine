@@ -178,8 +178,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             wipe_dist,
             extruder_nr,
             extruder_nr,
-            ironing_paths,
-            storage.getModelBoundingBox().flatten().getMiddle());
+            ironing_paths);
         wall_orderer.addToLayer();
         added = true;
     }

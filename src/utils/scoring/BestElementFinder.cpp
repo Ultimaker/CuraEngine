@@ -86,6 +86,15 @@ std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates
             // We have a single outsider, don't go further
             return begin->candidate_index;
         }
+
+        // Sort the remaining candidates by score, so that if the next pass doesn't differentiate them, we keep the best one from the previous pass
+        std::stable_sort(
+            begin,
+            end,
+            [](const Candidate& candidate1, const Candidate& candidate2)
+            {
+                return candidate1.score > candidate2.score;
+            });
     }
 
     return begin != end ? std::make_optional(begin->candidate_index) : std::nullopt;

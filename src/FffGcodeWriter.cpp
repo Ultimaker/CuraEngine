@@ -741,8 +741,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     wipe_dist,
                     base_extruder_nr,
                     base_extruder_nr,
-                    raft_paths,
-                    storage.getModelBoundingBox().flatten().getMiddle());
+                    raft_paths);
                 wall_orderer.addToLayer();
             }
 
@@ -903,8 +902,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 wipe_dist,
                 interface_extruder_nr,
                 interface_extruder_nr,
-                raft_paths,
-                storage.getModelBoundingBox().flatten().getMiddle());
+                raft_paths);
             wall_orderer.addToLayer();
         }
 
@@ -1073,8 +1071,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     wipe_dist,
                     surface_extruder_nr,
                     surface_extruder_nr,
-                    raft_paths,
-                    storage.getModelBoundingBox().flatten().getMiddle());
+                    raft_paths);
                 wall_orderer.addToLayer();
             }
 
@@ -2657,7 +2654,6 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             part.wall_toolpaths,
-            mesh.bounding_box.flatten().getMiddle(),
             scarf_seam,
             smooth_speed,
             end_infill_close_to_seam);
@@ -3315,8 +3311,7 @@ void FffGcodeWriter::processSkinPrintFeature(
                 wipe_dist,
                 extruder_nr,
                 extruder_nr,
-                skin_paths,
-                mesh.bounding_box.flatten().getMiddle());
+                skin_paths);
             added_something |= wall_orderer.addToLayer(retract_before_outer_wall, override_areas);
         }
         if (! skin_polygons.empty())
@@ -3618,8 +3613,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 wipe_dist,
                 extruder_nr,
                 extruder_nr,
-                wall_toolpaths,
-                storage.getModelBoundingBox().flatten().getMiddle());
+                wall_toolpaths);
 
             constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
             constexpr OverrideAreas override_areas;
@@ -3808,8 +3802,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     wipe_dist,
                     extruder_nr,
                     extruder_nr,
-                    wall_toolpaths_here,
-                    storage.getModelBoundingBox().flatten().getMiddle());
+                    wall_toolpaths_here);
 
                 constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
                 constexpr std::optional<Point2LL> near_start_location;
@@ -3943,8 +3936,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
             wipe_dist,
             roof_extruder_nr,
             roof_extruder_nr,
-            roof_paths,
-            storage.getModelBoundingBox().flatten().getMiddle());
+            roof_paths);
         wall_orderer.addToLayer();
     }
     gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
@@ -4053,8 +4045,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             wipe_dist,
             bottom_extruder_nr,
             bottom_extruder_nr,
-            bottom_paths,
-            storage.getModelBoundingBox().flatten().getMiddle());
+            bottom_paths);
         wall_orderer.addToLayer();
     }
     gcode_layer.addLinesByOptimizer(

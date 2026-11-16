@@ -20,11 +20,7 @@
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "path_ordering.h"
 #include "seam/seam.h"
-#include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/polygonUtils.h"
-#include "utils/scoring/BestElementFinder.h"
-#include "utils/scoring/CornerScoringCriterion.h"
-#include "utils/scoring/DistanceScoringCriterion.h"
 #include "utils/views/dfs.h"
 
 namespace cura

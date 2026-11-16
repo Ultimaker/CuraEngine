@@ -163,7 +163,6 @@ set(engine_SRCS # Except main.cpp.
         src/settings/PathConfigStorage.cpp
         src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
-        src/settings/ZSeamConfig.cpp
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp

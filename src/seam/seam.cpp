@@ -25,15 +25,39 @@
 namespace cura::seam
 {
 
-PointsSet makePositionCandidates(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams = {})
+size_t insertJunction(ExtrusionLine& extrusion_line, const Point2LL& position, size_t after_index)
 {
-    PointsSet points;
+    const size_t i0 = after_index;
+    const size_t i1 = (after_index + 1) % extrusion_line.size();
+    const ExtrusionJunction& junction_start = extrusion_line[i0];
+    const ExtrusionJunction& junction_end = extrusion_line[i1];
+    const Point2LL& segment_start = junction_start.p_;
+    const Point2LL& segment_end = junction_end.p_;
 
+    if (vSize2(position - segment_start) <= EPSILON_SQUARED)
+    {
+        return i0;
+    }
+    if (vSize2(position - segment_end) <= EPSILON_SQUARED)
+    {
+        return i1;
+    }
+
+    return extrusion_line.insertJunction(after_index, position);
+}
+
+void addVerticalAlignmentPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
+{
     for (const Point2LL& last_layer_seam : last_layer_seams)
     {
-        std::optional<size_t> closest_start_index;
-        coord_t closest_distance_squared;
-        Point2LL split_position;
+        struct ClosestCandidate
+        {
+            size_t start_index;
+            coord_t distance_squared;
+            Point2LL split_position;
+        };
+
+        std::optional<ClosestCandidate> closest_candidate;
 
 #warning dont forget the closed lines
         for (const auto&& [segment_index, segment] : extrusion_line | ranges::views::sliding(2) | ranges::views::enumerate)
@@ -41,35 +65,93 @@ PointsSet makePositionCandidates(ExtrusionLine& extrusion_line, const std::vecto
             const Point2LL& segment_start = segment[0].p_;
             const Point2LL& segment_end = segment[1].p_;
             const Point2LL closest_on_segment = LinearAlg2D::getClosestOnLineSegment(last_layer_seam, segment_start, segment_end);
-            if (closest_on_segment == segment_start || closest_on_segment == segment_end)
-            {
-                continue;
-            }
-
             const coord_t distance_squared = vSize2(last_layer_seam - closest_on_segment);
-            if (! closest_start_index.has_value() || distance_squared < closest_distance_squared)
+            if (! closest_candidate.has_value() || distance_squared < closest_candidate->distance_squared)
             {
-                closest_distance_squared = distance_squared;
-                closest_start_index = segment_index;
-                split_position = closest_on_segment;
+                closest_candidate = ClosestCandidate{ .start_index = segment_index, .distance_squared = distance_squared, .split_position = closest_on_segment };
             }
         }
 
-        if (closest_start_index.has_value())
+        if (closest_candidate.has_value())
         {
-            const ExtrusionJunction& junction_start = extrusion_line[closest_start_index.value()];
-            const ExtrusionJunction& junction_end = extrusion_line[closest_start_index.value() + 1];
-            const Point2LL& segment_start = junction_start.p_;
-            const Point2LL& segment_end = junction_end.p_;
-
-            if (vSize2(split_position - segment_start) <= EPSILON_SQUARED || vSize2(split_position - segment_end) <= EPSILON_SQUARED)
-            {
-                continue;
-            }
-
-#warning interpolate line width
-            extrusion_line.emplace(std::next(extrusion_line.begin(), *closest_start_index + 1), split_position, junction_start.w_, junction_start.perimeter_index_);
+            insertJunction(extrusion_line, closest_candidate->split_position, closest_candidate->start_index);
         }
+    }
+}
+
+bool addFixedPositionCandidate(
+    ExtrusionLine& extrusion_line,
+    std::optional<size_t>& force_start_index,
+    const EZSeamType z_seam_type,
+    const Point2LL& z_seam_position,
+    const Point2LL& models_center)
+{
+    if (! extrusion_line.is_closed_ || extrusion_line.size() < 3 || z_seam_type != EZSeamType::USER_SPECIFIED)
+    {
+        return false;
+    }
+
+    Point2LL request_point = z_seam_position;
+
+    // Find the 'closest' point on the polygon to the request_point.
+    Point2LL closest_point;
+    size_t closest_junction_idx = 0;
+    coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
+
+    // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
+    // since you want the seam-line to be continuous in 3D space.
+    // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
+    // and project the point along the ray from the center to the request_point.
+
+    const Point2LL ray_origin = models_center;
+    request_point = ray_origin + (request_point - ray_origin) * 10;
+
+    for (const auto& [i, junction] : extrusion_line.junctions_ | ranges::views::enumerate)
+    {
+        // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
+        const auto& next_junction = extrusion_line.junctions_[(i + 1) % extrusion_line.junctions_.size()];
+
+        float t, u;
+        if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+        {
+            const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+            const coord_t distance_sqd = vSize2(request_point - intersection);
+            if (distance_sqd < closest_distance_sqd)
+            {
+                closest_point = intersection;
+                closest_distance_sqd = distance_sqd;
+                closest_junction_idx = i;
+            }
+        }
+    }
+
+    if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
+    {
+        return false;
+    }
+
+    const auto& start_pt = extrusion_line.junctions_[closest_junction_idx];
+    const auto& end_pt = extrusion_line.junctions_[(closest_junction_idx + 1) % extrusion_line.junctions_.size()];
+    closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+    force_start_index = insertJunction(extrusion_line, closest_point, closest_junction_idx);
+    return true;
+}
+
+PointsSet makePositionCandidates(
+    ExtrusionLine& extrusion_line,
+    std::optional<size_t>& force_start_index,
+    const EZSeamType z_seam_type,
+    const Point2LL& z_seam_position,
+    const bool z_seam_on_vertex,
+    const Point2LL& models_center,
+    const std::vector<Point2LL>& last_layer_seams)
+{
+    PointsSet points;
+
+    if (! z_seam_on_vertex)
+    {
+        addVerticalAlignmentPositionCandidate(extrusion_line, last_layer_seams);
+        addFixedPositionCandidate(extrusion_line, force_start_index, z_seam_type, z_seam_position, models_center);
     }
 
     for (const ExtrusionJunction& junction : extrusion_line)
@@ -99,6 +181,7 @@ BestElementFinder makeBestCandidateFinderOuterWall(
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
     const Point2LL& target_pos,
+    std::optional<size_t>& force_start_index,
     const coord_t wall_line_width_0,
     const Shape& seam_overhang_exclusion_areas)
 {
@@ -127,16 +210,14 @@ BestElementFinder makeBestCandidateFinderOuterWall(
 
     BestElementFinder::WeighedCriterion main_criterion;
 
-    /*if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
+    if (force_start_index.has_value())
     {
         // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
         constexpr double distance_divider = 1.0;
         constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
-        main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type,
-    distance_divider);
+        main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(force_start_index.value()), distance_type, distance_divider);
     }
-    else */
-    if (seam_type == EZSeamType::SHORTEST || seam_type == EZSeamType::USER_SPECIFIED)
+    else if (seam_type == EZSeamType::USER_SPECIFIED)
     {
         main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
     }
@@ -204,22 +285,20 @@ void makeBestCandidateFinderInnerWall(BestElementFinder& best_candidate_finder, 
 }
 
 std::vector<Point2LL> calculateWallsSeamPosition(
-    const SliceDataStorage& storage,
-    const SliceMeshStorage::Ptr& mesh,
     SliceLayer& layer,
     const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
     const Point2LL& target_pos,
     const coord_t wall_line_width_0,
+    const bool z_seam_on_vertex,
+    const AngleDegrees& seam_overhang_angle,
+    const coord_t layer_height,
+    const Shape& machine_borders,
+    const Point2LL& models_center,
     const bool outer_walls)
 {
     std::vector<Point2LL> new_layer_seams;
-
-    const AngleDegrees seam_overhang_angle{ mesh->settings.get<AngleDegrees>("seam_overhang_angle") };
-    const coord_t layer_height{ mesh->settings.get<coord_t>("layer_height") };
-    const size_t wall_0_extruder_nr{ mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
-    const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(wall_0_extruder_nr) : Shape{} };
 
     for (SliceLayerPart& part : layer.parts)
     {
@@ -232,7 +311,16 @@ std::vector<Point2LL> calculateWallsSeamPosition(
                     continue;
                 }
 
-                const PointsSet points{ makePositionCandidates(extrusion_line, extrusion_line.is_outer_wall() ? layer_seams : std::vector<Point2LL>{}) };
+                std::optional<size_t> force_start_index;
+                const PointsSet points{ makePositionCandidates(
+                    extrusion_line,
+                    force_start_index,
+                    seam_type,
+                    target_pos,
+                    z_seam_on_vertex,
+                    models_center,
+                    extrusion_line.is_outer_wall() ? layer_seams : std::vector<Point2LL>{}) };
+
                 BestElementFinder best_candidate_finder;
                 Shape seam_overhang_exclusion_areas; // Don't move to inner scope, it is used as a reference in the criterion and has to remain alive long enough
                 if (outer_walls)
@@ -250,6 +338,7 @@ std::vector<Point2LL> calculateWallsSeamPosition(
                         seam_type,
                         corner_pref,
                         target_pos,
+                        force_start_index,
                         wall_line_width_0,
                         seam_overhang_exclusion_areas);
                 }
@@ -281,132 +370,63 @@ std::vector<Point2LL> calculateWallsSeamPosition(
     return new_layer_seams;
 }
 
-// std::optional<size_t> force_start;
-// if (! settings_.get<bool>("z_seam_on_vertex"))
-// {
-//     // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
-//     force_start = insertSeamPoint(line);
-// }
-
-// std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
-// {
-//     assert(closed_line.is_closed_);
-//     assert(closed_line.size() >= 3);
-//
-//     Point2LL request_point;
-//     switch (z_seam_config_.type_)
-//     {
-//     case EZSeamType::USER_SPECIFIED:
-//         request_point = z_seam_config_.pos_;
-//         break;
-//     case EZSeamType::SHORTEST:
-//         request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
-//         break;
-//     default:
-//         return std::nullopt;
-//     }
-//
-//     // Find the 'closest' point on the polygon to the request_point.
-//     Point2LL closest_point;
-//     size_t closest_junction_idx = 0;
-//     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
-//     bool should_recalculate_closest = false;
-//     if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
-//     {
-//         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
-//         // since you want the seam-line to be continuous in 3D space.
-//         // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
-//         // and project the point along the ray from the center to the request_point.
-//
-//         const Point2LL ray_origin = model_center_point_;
-//         request_point = ray_origin + (request_point - ray_origin) * 10;
-//
-//         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
-//         {
-//             // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
-//             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-//
-//             float t, u;
-//             if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
-//             {
-//                 const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-//                 const coord_t distance_sqd = vSize2(request_point - intersection);
-//                 if (distance_sqd < closest_distance_sqd)
-//                 {
-//                     closest_point = intersection;
-//                     closest_distance_sqd = distance_sqd;
-//                     closest_junction_idx = i;
-//                 }
-//             }
-//         }
-//     }
-//     if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
-//     {
-//         // If it the method isn't 'user-defined', or the attempt to do user-defined above failed
-//         // (since we don't take the center of the polygon, but of the model, there's a chance there's no intersection),
-//         // then just find the closest point on the polygon.
-//
-//         for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
-//         {
-//             const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-//             const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
-//             if (distance_sqd < closest_distance_sqd)
-//             {
-//                 closest_distance_sqd = distance_sqd;
-//                 closest_junction_idx = i;
-//             }
-//         }
-//         should_recalculate_closest = true;
-//     }
-//
-//     const auto& start_pt = closed_line.junctions_[closest_junction_idx];
-//     const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
-//     if (should_recalculate_closest)
-//     {
-//         // In the second case (see above) the closest point hasn't actually been calculated yet,
-//         // since in that case we'de need the start and end points. So do that here.
-//         closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
-//     }
-//     constexpr coord_t smallest_dist_sqd = 25;
-//     if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
-//     {
-//         // If the closest point is very close to the start point, just use it instead.
-//         return closest_junction_idx;
-//     }
-//     if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
-//     {
-//         // If the closest point is very close to the end point, just use it instead.
-//         return (closest_junction_idx + 1) % closed_line.junctions_.size();
-//     }
-//
-//     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-//     const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
-//     const coord_t start_dist = vSize(closest_point - start_pt.p_);
-//     const coord_t end_dist = vSize(closest_point - end_pt.p_);
-//     const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
-//
-//     closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
-//     return closest_junction_idx + 1;
-// }
-
 void calculateWallsSeamPositions(SliceDataStorage& storage)
 {
+    const Point2LL models_center = storage.getModelBoundingBox().flatten().getMiddle();
+
     for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
         const Settings& settings = mesh->settings;
         const auto seam_type = settings.get<EZSeamType>("z_seam_type");
+
+        if (seam_type == EZSeamType::SHORTEST)
+        {
+            // We can't calculate shortest beforehand, leave it undone for later
+            continue;
+        }
+
         const auto corner_pref = settings.get<EZSeamCornerPrefType>("z_seam_corner");
-        const Point2LL target_pos(settings.get<coord_t>("z_seam_x"), settings.get<coord_t>("z_seam_y"));
+        const Point2LL target_pos = mesh->getZSeamHint();
         const auto wall_line_width_0 = settings.get<coord_t>("wall_line_width_0");
+        const bool z_seam_on_vertex = settings.get<bool>("z_seam_on_vertex");
+        const AngleDegrees seam_overhang_angle{ settings.get<AngleDegrees>("seam_overhang_angle") };
+        const coord_t layer_height{ settings.get<coord_t>("layer_height") };
+        const size_t wall_0_extruder_nr{ settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
+        const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(static_cast<int>(wall_0_extruder_nr)) : Shape{} };
+
         std::vector<Point2LL> layer_seams;
 
         for (SliceLayer& layer : mesh->layers)
         {
             constexpr bool outer_walls = true;
-            layer_seams = calculateWallsSeamPosition(storage, mesh, layer, layer_seams, seam_type, corner_pref, target_pos, wall_line_width_0, outer_walls);
+            layer_seams = calculateWallsSeamPosition(
+                layer,
+                layer_seams,
+                seam_type,
+                corner_pref,
+                target_pos,
+                wall_line_width_0,
+                z_seam_on_vertex,
+                seam_overhang_angle,
+                layer_height,
+                machine_borders,
+                models_center,
+                outer_walls);
 
             constexpr bool not_outer_walls = false;
-            calculateWallsSeamPosition(storage, mesh, layer, layer_seams, seam_type, corner_pref, target_pos, wall_line_width_0, not_outer_walls);
+            calculateWallsSeamPosition(
+                layer,
+                layer_seams,
+                seam_type,
+                corner_pref,
+                target_pos,
+                wall_line_width_0,
+                z_seam_on_vertex,
+                seam_overhang_angle,
+                layer_height,
+                machine_borders,
+                models_center,
+                not_outer_walls);
         }
     }
 }

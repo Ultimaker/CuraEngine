@@ -5,7 +5,6 @@
 #define PATHORDER_H
 
 #include "path_ordering.h"
-#include "settings/ZSeamConfig.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
 
 namespace cura
@@ -43,11 +42,6 @@ public:
      * these parts.
      */
     const Point2LL start_point_;
-
-    /*!
-     * Seam settings.
-     */
-    ZSeamConfig seam_config_;
 
     /*!
      * Add a new polygon to be planned.
