@@ -29,6 +29,7 @@ set(TESTS_SRC_SETTINGS
 
 set(TESTS_SRC_UTILS
         AABBTest
+        ArcFitterTest
         AABB3DTest
         CoordTTest
         IntPointTest

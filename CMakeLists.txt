@@ -163,6 +163,7 @@ set(engine_SRCS # Except main.cpp.
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
+        src/utils/ArcFitter.cpp
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
