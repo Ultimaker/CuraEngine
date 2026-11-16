@@ -1,8 +1,7 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_INCLUDE_UTILS_FORMAT_FILESYSTEM_PATH_H
-#define CURAENGINE_INCLUDE_UTILS_FORMAT_FILESYSTEM_PATH_H
+#pragma once
 
 #include <cstdlib>
 #include <filesystem>
@@ -14,17 +13,17 @@ namespace fmt
 template<>
 struct formatter<std::filesystem::path> : formatter<string_view>
 {
-    static std::string USERNAME;
-    static constexpr std::string_view OBFUSCATED_STRING = "*******";
+    static std::string username;
+    static constexpr std::string_view obfuscated_string = "*******";
 
     [[nodiscard]] static std::string anonymizePath(const std::string& path)
     {
         std::string anonymized_path = path;
-        size_t pos = anonymized_path.find(USERNAME);
+        size_t pos = anonymized_path.find(username);
         while (pos != std::string::npos)
         {
-            anonymized_path.replace(pos, USERNAME.size(), OBFUSCATED_STRING);
-            pos = anonymized_path.find(USERNAME, pos + OBFUSCATED_STRING.size());
+            anonymized_path.replace(pos, username.size(), obfuscated_string);
+            pos = anonymized_path.find(username, pos + obfuscated_string.size());
         }
         return anonymized_path;
     }
@@ -37,11 +36,9 @@ struct formatter<std::filesystem::path> : formatter<string_view>
 };
 
 #ifdef _WIN32
-inline std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv("USERNAME") != nullptr ? std::getenv("USERNAME") : "";
+inline std::string fmt::formatter<std::filesystem::path>::username = std::getenv("USERNAME") != nullptr ? std::getenv("USERNAME") : "";
 #else
-inline std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv("USER") != nullptr ? std::getenv("USER") : "";
+inline std::string fmt::formatter<std::filesystem::path>::username = std::getenv("USER") != nullptr ? std::getenv("USER") : "";
 #endif
 
 } // namespace fmt
-
-#endif // CURAENGINE_INCLUDE_UTILS_FORMAT_FILESYSTEM_PATH_H

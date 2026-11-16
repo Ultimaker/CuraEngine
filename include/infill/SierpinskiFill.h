@@ -1,20 +1,28 @@
-// Copyright (c) 2017 Tim Kuipers
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
+// Copyright (c) 2026 Tim Kuipers
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_SIERPINSKI_FILL_H
-#define INFILL_SIERPINSKI_FILL_H
+#pragma once
 
 #include <list>
 
-#include "../utils/AABB.h"
+#include "types/geometry/AABB.h"
 
-namespace cura
+namespace curaengine
+{
+class SierpinskiFillTest;
+}
+
+namespace curaengine::types
+{
+class SVG;
+}
+
+namespace curaengine::infill
 {
 
 class DensityProvider;
-class SierpinskiFillTest;
-class SVG;
+
 
 /*!
  * A class for generating the Cross and Cross 3D infill patterns.
@@ -42,30 +50,30 @@ class SVG;
  * The direction of the space filling curve along each triangle is recorded:
  *
  * |\                           |\                                        .
- * |B \  AC_TO_BC               |B \   AC_TO_AB                           .
+ * |B \  AcToBc                 |B \   AcToAb                             .
  * |  ↑ \                       |  ↑ \                                    .
  * |  ↑  C\  subdivides into    |C_↑__A\                                  .
  * |  ↑   /                     |C ↑  B/                                  .
  * |  ↑ /                       |  ↑ /                                    .
- * |A /                         |A /   AB_TO_BC                           .
+ * |A /                         |A /   AbToBc                             .
  * |/                           |/                                        .
  *                                                                        .
  * |\                           |\                                        .
- * |B \  AC_TO_AB               |B \   AC_TO_BC                           .
+ * |B \  AcToAb                 |B \   AcToBc                             .
  * |    \                       |↖   \                                    .
  * |↖    C\  subdivides into    |C_↖__A\                                  .
  * |  ↖   /                     |C ↑  B/                                  .
  * |    /                       |  ↑ /                                    .
- * |A /                         |A /   AB_TO_BC                           .
+ * |A /                         |A /   AbToBc                             .
  * |/                           |/                                        .
  *                                                                        .
  * |\                           |\                                        .
- * |B \  AB_TO_BC               |B \   AC_TO_AB                           .
+ * |B \  AbToBc                 |B \   AcToAb                             .
  * |  ↗ \                       |  ↑ \                                    .
  * |↗    C\  subdivides into    |C_↑__A\                                  .
  * |      /                     |C ↗  B/                                  .
  * |    /                       |↗   /                                    .
- * |A /                         |A /   AC_TO_BC                           .
+ * |A /                         |A /   AcToBc                             .
  * |/                           |/                                        .
  *
  *
@@ -94,9 +102,9 @@ class SVG;
  *
  * === CONSTRAINTS ===
  *
- * When subdividing an AC_TO_AB or an AB_TO_BC triangle, the place where the Sierpinski curve intersects AB changes.
+ * When subdividing an AcToAb or an AbToBc triangle, the place where the Sierpinski curve intersects AB changes.
  * In order to maintain a connected Sierpinski curve, we need to subdivide the (respectively) next / previous as well.
- * A triangle is said to be constrained by a preceding AC_TO_AB triangle or a consecutive AB_TO_BC triangle
+ * A triangle is said to be constrained by a preceding AcToAb triangle or a consecutive AbToBc triangle
  * if the requested density warrants a subdivision, but the connected triangle is of a different recursion depth:
  * _______                                  .
  * \      |\                                .
@@ -194,30 +202,30 @@ class SVG;
  */
 class SierpinskiFill
 {
-    friend class SierpinskiFillTest;
+    friend class ::curaengine::SierpinskiFillTest;
 
 public:
     /*!
      * Basic constructor
      */
-    SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width, bool dithering);
+    SierpinskiFill(const DensityProvider& density_provider, const types::geometry::AABB aabb, int max_depth, const types::coord_t line_width, bool dithering);
 
     ~SierpinskiFill();
 
     /*!
      * Generate the cross pattern curve
      */
-    Polygon generateCross() const;
+    types::geometry::Polygon generateCross() const;
 
     /*!
      * Generate the Sierpinski space filling curve
      */
-    Polygon generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const;
+    types::geometry::Polygon generateCross(types::coord_t z, types::coord_t min_dist_to_side, types::coord_t pocket_size) const;
 
     /*!
      * Output the triangles to a canvas
      */
-    void debugOutput(SVG& svg);
+    void debugOutput(types::SVG& svg);
 
 protected:
     /*!
@@ -225,7 +233,7 @@ protected:
      */
     struct Edge
     {
-        Point2LL l, r; //!< The points left, resp. right of the curve.
+        types::geometry::Point2LL l, r; //!< The points left, resp. right of the curve.
     };
     /*!
      * A node in the tree of all triangles.
@@ -246,13 +254,13 @@ protected:
          */
         enum class SierpinskiDirection
         {
-            AC_TO_AB,
-            AC_TO_BC,
-            AB_TO_BC
+            AcToAb,
+            AcToBc,
+            AbToBc
         };
-        const Point2LL straight_corner_; //!< C, the 90* corner of the triangle
-        const Point2LL a_; //!< The corner closer to the start of the space filling curve
-        const Point2LL b_; //!< The corner closer to the end of the space filling curve
+        const types::geometry::Point2LL straight_corner_; //!< C, the 90* corner of the triangle
+        const types::geometry::Point2LL a_; //!< The corner closer to the start of the space filling curve
+        const types::geometry::Point2LL b_; //!< The corner closer to the end of the space filling curve
         const SierpinskiDirection dir_; //!< The (order in which) edges being crossed by the Sierpinski curve.
         const bool straight_corner_is_left_; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
         const int depth_; //!< The recursion depth at which this triangle is generated. Root is zero.
@@ -264,7 +272,13 @@ protected:
         double error_left_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
         double error_right_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
 
-        SierpinskiTriangle(Point2LL straight_corner, Point2LL a, Point2LL b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
+        SierpinskiTriangle(
+            types::geometry::Point2LL straight_corner,
+            types::geometry::Point2LL a,
+            types::geometry::Point2LL b,
+            SierpinskiDirection dir,
+            bool straight_corner_is_left,
+            int depth)
             : straight_corner_(straight_corner)
             , a_(a)
             , b_(b)
@@ -279,10 +293,10 @@ protected:
         }
         //! Constructor for the root node.
         SierpinskiTriangle()
-            : straight_corner_(no_point)
-            , a_(no_point)
-            , b_(no_point)
-            , dir_(SierpinskiDirection::AB_TO_BC)
+            : straight_corner_(types::geometry::no_point)
+            , a_(types::geometry::no_point)
+            , b_(types::geometry::no_point)
+            , dir_(SierpinskiDirection::AbToBc)
             , straight_corner_is_left_(false)
             , depth_(0)
             , requested_length_(0)
@@ -328,8 +342,8 @@ protected:
 
 
     const DensityProvider& density_provider_; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
-    AABB aabb_; //!< The square which is the basis of the subdivision of the area on which the curve is based.
-    coord_t line_width_; //!< The line width of the fill lines
+    types::geometry::AABB aabb_; //!< The square which is the basis of the subdivision of the area on which the curve is based.
+    types::coord_t line_width_; //!< The line width of the fill lines
     int max_depth_; //!< Maximum recursion depth of the fractal
 
     SierpinskiTriangle root_; //! The (root of the) tree containing all possible triangles of the subdivision.
@@ -455,7 +469,4 @@ protected:
      */
     void debugCheck(bool check_subdivision = true);
 };
-} // namespace cura
-
-
-#endif // INFILL_SIERPINSKI_FILL_H
+} // namespace curaengine::infill

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <range/v3/view/split.hpp>
@@ -7,9 +7,17 @@
 
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
+#include "RetractionAndWipeConfig.h"
+#include "TravelAntiOozing.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace gcode;
+using namespace types::geometry;
+using namespace routing;
+using namespace types;
+using namespace utils;
+
 
 struct RetractionBaseConfig
 {
@@ -158,7 +166,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, all retraction/prime during stationary
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_simple, .speed = 150.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 50.0 }, .distance = 5.0 },
@@ -177,7 +185,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -196,7 +204,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, all retraction during stationary and all prime during travel, but not enough time to prime everything
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -215,7 +223,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, all retraction during travel and all prime during stationary, but not enough time to retract everything
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 1.0 }, .distance = 2.0 },
@@ -234,7 +242,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, all retraction/prime during travel, no z-hop, extra prime volume
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -253,7 +261,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, retraction/prime 50% during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.5_r, .speed = 10.0 }, .distance = 2.0 },
@@ -273,7 +281,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     data_sets.push_back(
         AntiOozeAmountsTestCase{
             .data
-            = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+            = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                           .z_hop = { .speed = 50, .height = 0 },
                                           .travel = { .path = path_simple, .speed = 100.0 },
                                           .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.5_r, .spread_over_travel = true, .speed = 10.0 }, .distance = 2.0 },
@@ -292,7 +300,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, retraction 50% during travel, prime 100 %during stationary, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.5_r, .speed = 10.0 }, .distance = 2.0 },
@@ -310,7 +318,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Single segment, retraction 100% during stationary, prime 50 %during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_simple, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -328,7 +336,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Multi segment, all retraction/prime during stationary
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_corner, .speed = 150.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 50.0 }, .distance = 5.0 },
@@ -346,7 +354,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Multi segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 0 },
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -365,7 +373,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Multi segment, all retraction/prime during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
@@ -384,7 +392,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Multi segment, partial retraction/prime during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
-                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                                .z_hop = { .speed = 50, .height = 1000 },
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
@@ -403,7 +411,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
     // Worst-case scenario: multi segment, partial retraction/prime during travel, with z-hop, with extra prime volume
     data_sets.push_back(
         AntiOozeAmountsTestCase{
-            .data = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+            .data = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::Marlin },
                                                 .z_hop = { .speed = 50, .height = 1000 },
                                                 .travel = { .path = path_corner, .speed = 100.0 },
                                                 .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
@@ -424,4 +432,4 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
 
 INSTANTIATE_TEST_SUITE_P(MeaningfulTestParameters, AntiOozeAmountsTest, testing::ValuesIn(GetTestCases()));
 
-} // namespace cura
+} // namespace curaengine

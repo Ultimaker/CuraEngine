@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <filesystem>
@@ -6,19 +6,26 @@
 
 #include <gtest/gtest.h>
 
-#include "Application.h" // To set up a slice with settings.
-#include "Slice.h" // To set up a scene to slice.
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
-#include "slicer.h" // Starts the slicing phase that we want to test.
-#include "utils/Coord_t.h"
-#include "utils/Matrix4x3D.h" // To load STL files.
-#include "utils/polygonUtils.h" // Comparing similarity of polygons_.
+#include "Application.h"
+#include "Mesh.h"
+#include "Slice.h"
+#include "Slicer.h"
+#include "types/Coord_t.h"
+#include "types/geometry/Matrix4x3D.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
+#include "utils/polygon_utils.h"
 
-namespace cura
+namespace curaengine::types
 {
-
 class AdaptiveLayer;
+}
+
+namespace curaengine
+{
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * Integration test on the slicing phase of CuraEngine. This tests if the
@@ -85,7 +92,7 @@ TEST_F(SlicePhaseTest, Cube)
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cube_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
-    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::Middle, initial_layer_thickness);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
@@ -146,7 +153,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cylinder_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
-    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+    Slicer slicer(&cylinder_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::Middle, initial_layer_thickness);
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
@@ -173,9 +180,9 @@ TEST_F(SlicePhaseTest, Cylinder1000)
             Polygon sliced_polygon = layer.polygons_[0];
             // Due to the reduction in resolution, the final slice will not have the same vertices as the input.
             // Let's say that are allowed to be up to 1/500th of the surface area off.
-            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons_, circles), 0.002);
+            EXPECT_LE(polygon_utils::relativeHammingDistance(layer.polygons_, circles), 0.002);
         }
     }
 }
 
-} // namespace cura
+} // namespace curaengine

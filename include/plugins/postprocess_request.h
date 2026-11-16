@@ -1,0 +1,19 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#pragma once
+
+#ifdef ENABLE_PLUGINS
+#include <string>
+
+#include "cura/plugins/slots/postprocess/v0/modify.pb.h"
+#include "plugins/details/converter.h"
+
+namespace curaengine::plugins
+{
+struct postprocess_request : public details::converter<postprocess_request, ::cura::plugins::slots::postprocess::v0::modify::CallRequest, std::string>
+{
+    value_type operator()(const native_value_type& gcode) const;
+};
+} // namespace curaengine::plugins
+#endif // ENABLE_PLUGINS

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "MeshGroup.h"
@@ -21,20 +21,24 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
-#include "utils/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "Mesh.h"
+#include "types/Ratio.h"
+#include "types/SectionType.h"
+#include "types/TimeKeeper.h"
+#include "types/geometry/Matrix4x3D.h"
+#include "types/geometry/Point2F.h"
+#include "types/geometry/Point3F.h"
 #include "utils/MeshUtils.h"
-#include "utils/Point2F.h"
-#include "utils/Point3F.h" //To accept incoming meshes with floating point vertices.
-#include "utils/gettime.h"
-#include "utils/section_type.h"
 #include "utils/string.h"
 
 
 namespace fs = std::filesystem;
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 /* Custom fgets function to support Mac line-ends in Ascii STL files. OpenSCAD produces this when used on Mac */
 void* fgets_(char* ptr, size_t len, FILE* f)
@@ -130,7 +134,7 @@ void MeshGroup::finalize()
         settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
     for (const auto& [idx, mesh] : meshes | ranges::views::enumerate)
     {
-        scripta::log(fmt::format("mesh_{}", idx), mesh, SectionType::NA);
+        scripta::log(fmt::format("mesh_{}", idx), mesh, SectionType::Na);
     }
 }
 
@@ -292,7 +296,7 @@ bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
     fclose(f);
 
     buffer[5] = '\0';
-    if (stringcasecompare(buffer, "solid") == 0)
+    if (utils::stringcasecompare(buffer, "solid") == 0)
     {
         bool load_success = loadMeshSTL_ascii(mesh, filename, matrix);
         if (! load_success)
@@ -503,7 +507,7 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D&
     fclose(f);
 
     buffer[5] = '\0';
-    if (stringcasecompare(buffer, "solid") == 0)
+    if (utils::stringcasecompare(buffer, "solid") == 0)
     {
         // ASCII STL with UV coordinates not currently supported
         spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename.string());
@@ -573,7 +577,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
             const fs::path texture_filename = fs::path(filename).replace_extension("png");
             if (fs::exists(texture_filename))
             {
-                if (MeshUtils::loadTextureFromFile(mesh, texture_filename))
+                if (utils::loadTextureFromFile(mesh, texture_filename))
                 {
                     spdlog::info("Successfully loaded texture from: {}", texture_filename.string());
                 }
@@ -593,4 +597,4 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
     return load_success;
 }
 
-} // namespace cura
+} // namespace curaengine

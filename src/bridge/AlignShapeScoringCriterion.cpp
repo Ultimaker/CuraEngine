@@ -1,14 +1,20 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "bridge/AlignShapeScoringCriterion.h"
 
 #include <range/v3/numeric/accumulate.hpp>
 #include <spdlog/spdlog.h>
 
-#include "bridge/TransformedSegment.h"
-#include "bridge/TransformedShape.h"
+#include "types/geometry/TransformedSegment.h"
+#include "types/geometry/TransformedShape.h"
 
 
-namespace cura
+namespace curaengine::bridge
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 AlignShapeScoringCriterion::AlignShapeScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)
     : BridgeAngleScoringCriterion(std::move(candidates), skin_outline, supported_regions)
@@ -50,4 +56,4 @@ double AlignShapeScoringCriterion::computeScore(const TransformedShape& transfor
     return score;
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

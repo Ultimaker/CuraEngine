@@ -1,42 +1,54 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
 #include <atomic>
-#include <fstream> // ifstream.good()
-#include <map> // multimap (ordered map allowing duplicate keys)
+#include <fstream>
+#include <map>
 #include <numeric>
 
 #include <spdlog/spdlog.h>
 
+#include "Mesh.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SlicerLayer.h"
+#include "SupportLayer.h"
+#include "types/DraftShieldHeightLimitation.h"
+#include "types/EFillMethod.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/ESurfaceMode.h"
+#include "types/SlicingTolerance.h"
+
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 // clang-format off
 #include "Application.h"
-#include "ConicalOverhang.h"
+#include "utils/conical_overhang.h"
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
-#include "infill.h"
-#include "InterlockingGenerator.h"
+#include "infill/Infill.h"
+#include "interlocking/InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
-#include "MeshMaterialSplitter.h"
-#include "Mold.h"
-#include "multiVolumes.h"
-#include "PrintFeature.h"
-#include "raft.h"
-#include "skin.h"
+#include "mesh_material_splitter/MeshMaterialSplitter.h"
+#include "utils/mold.h"
+#include "utils/multi_volumes.h"
+#include "PrintFeatureType.h"
+#include "utils/raft.h"
+#include "SkinInfillAreaComputation.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
 #include "TextureDataProvider.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
-#include "support.h"
+#include "SliceDataStorage.h"
+#include "Slicer.h"
+#include "utils/area_support.h"
 #include "TopSurface.h"
 #include "TreeSupport.h"
 #include "WallsComputation.h"
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/LightningGenerator.h"
+#include "infill/lightning/LightningGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
@@ -44,25 +56,32 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
 #include "progress/ProgressStageEstimator.h"
-#include "settings/AdaptiveLayerHeights.h"
-#include "settings/types/Angle.h"
-#include "settings/types/LayerIndex.h"
+#include "types/AdaptiveLayerHeights.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
+#include "types/LayerIndex.h"
 #include "utils/algorithm.h"
-#include "utils/ThreadPool.h"
-#include "utils/gettime.h"
+#include "types/ThreadPool.h"
+#include "types/TimeKeeper.h"
 #include "utils/math.h"
-#include "PrimeTower/PrimeTower.h"
-#include "geometry/OpenPolyline.h"
-#include "utils/Simplify.h"
+#include "prime_tower/PrimeTower.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Simplify.h"
 // clang-format on
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace infill;
+using namespace infill::lightning;
+using namespace progress;
+using namespace types;
+using namespace utils;
 
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    MeshMaterialSplitter::makePaintingModifierMeshes(meshgroup);
+    mesh_material_splitter::makePaintingModifierMeshes(meshgroup);
 
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {
@@ -83,9 +102,9 @@ size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) 
     }
     switch (mesh_group_settings.get<DraftShieldHeightLimitation>("draft_shield_height_limitation"))
     {
-    case DraftShieldHeightLimitation::FULL:
+    case DraftShieldHeightLimitation::Full:
         return total_layers;
-    case DraftShieldHeightLimitation::LIMITED:
+    case DraftShieldHeightLimitation::Limited:
         return std::max(
             (coord_t)0,
             (mesh_group_settings.get<coord_t>("draft_shield_height") - mesh_group_settings.get<coord_t>("layer_height_0")) / mesh_group_settings.get<coord_t>("layer_height") + 1);
@@ -97,7 +116,7 @@ size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) 
 
 bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
-    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper);
+    Progress::messageProgressStage(Progress::Stage::Slicing, &timeKeeper);
 
     storage.model_min = meshgroup->min();
     storage.model_max = meshgroup->max();
@@ -154,22 +173,22 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             const coord_t mesh_height = mesh.max().z_;
             switch (mesh.settings_.get<SlicingTolerance>("slicing_tolerance"))
             {
-            case SlicingTolerance::MIDDLE:
+            case SlicingTolerance::Middle:
                 if (storage.model_max.z_ < initial_layer_thickness)
                 {
                     slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); // One layer if higher than half initial layer height.
                 }
                 else
                 {
-                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(utils::round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
                 }
                 break;
-            case SlicingTolerance::EXCLUSIVE:
+            case SlicingTolerance::Exclusive:
             {
                 int new_slice_layer_count = 0;
                 if (mesh_height >= initial_layer_thickness) // If less than the initial layer thickness, leave it at 0.
                 {
-                    new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                    new_slice_layer_count = static_cast<int>(utils::floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
                 }
                 if (new_slice_layer_count > 0) // If there is at least one layer already, then...
                 {
@@ -178,7 +197,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
                 break;
             }
-            case SlicingTolerance::INCLUSIVE:
+            case SlicingTolerance::Inclusive:
                 if (mesh_height < initial_layer_thickness)
                 {
                     slice_layer_count
@@ -186,7 +205,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 }
                 else
                 {
-                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(utils::ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
                 }
                 break;
             default:
@@ -221,13 +240,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         slicerList.push_back(slicer);
 
-        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
+        Progress::messageProgress(Progress::Stage::Slicing, mesh_idx + 1, meshgroup->meshes.size());
     }
 
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
     meshgroup->clear();
 
-    Mold::process(slicerList);
+    mold::process(slicerList);
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
@@ -236,13 +255,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh")
             && (! mesh.settings_.has("force_support_overhang_mesh") || ! mesh.settings_.get<bool>("force_support_overhang_mesh")))
         {
-            ConicalOverhang::apply(slicerList[mesh_idx], mesh);
+            conical_overhang::apply(slicerList[mesh_idx], mesh);
         }
     }
 
-    MultiVolumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
+    multi_volumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
 
-    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
+    Progress::messageProgressStage(Progress::Stage::Parts, &timeKeeper);
 
     if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
     {
@@ -254,7 +273,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
     {
-        InterlockingGenerator::generateInterlockingStructure(slicerList);
+        interlocking::InterlockingGenerator::generateInterlockingStructure(slicerList);
     }
 
     storage.print_layer_count = 0;
@@ -281,14 +300,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         SliceMeshStorage& meshStorage = *storage.meshes.back();
 
         // only create layer parts for normal meshes
-        const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings_, slicer);
+        const bool is_support_modifier = area_support::handleSupportModifierMesh(storage, mesh.settings_, slicer);
         if (! is_support_modifier)
         {
             createLayerParts(meshStorage, slicer);
         }
 
         // Do not add and process support _modifier_ meshes further, and ONLY skip support _modifiers_. They have been
-        // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
+        // processed in area_support::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
         // processed in a later stage, except for support mesh itself, so an exception is made for that.
         if (is_support_modifier && ! mesh.settings_.get<bool>("support_mesh"))
         {
@@ -297,7 +316,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         // check one if raft offset is needed
-        const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
+        const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Raft;
 
         // calculate the height at which each layer is actually printed (printZ)
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
@@ -332,7 +351,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             if (has_raft)
             {
                 const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-                layer.printZ += Raft::getTotalThickness() + train.settings_.get<coord_t>("raft_airgap")
+                layer.printZ += raft::getTotalThickness() + train.settings_.get<coord_t>("raft_airgap")
                               - train.settings_.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
@@ -344,7 +363,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         delete slicerList[meshIdx];
 
-        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
+        Progress::messageProgress(Progress::Stage::Parts, meshIdx + 1, slicerList.size());
     }
     return true;
 }
@@ -371,7 +390,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     ProgressStageEstimator inset_skin_progress_estimate(mesh_timings);
 
-    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper);
+    Progress::messageProgressStage(Progress::Stage::InsetSkin, &time_keeper);
     std::vector<size_t> mesh_order;
     { // compute mesh order
         std::multimap<int, size_t> order_to_mesh_indices;
@@ -387,7 +406,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for (size_t mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); ++mesh_order_idx)
     {
         processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, inset_skin_progress_estimate);
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
+        Progress::messageProgress(Progress::Stage::InsetSkin, mesh_order_idx + 1, storage.meshes.size());
     }
 
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
@@ -411,10 +430,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         return;
     }
 
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
+    Progress::messageProgressStage(Progress::Stage::Support, &time_keeper);
 
-    AreaSupport::generateOverhangAreas(storage);
-    AreaSupport::generateSupportAreas(storage);
+    area_support::generateOverhangAreas(storage);
+    area_support::generateSupportAreas(storage);
     TreeSupport tree_support_generator(storage);
     tree_support_generator.generateSupportAreas(storage);
 
@@ -423,7 +442,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // handle helpers
     storage.initializePrimeTower();
 
-    AreaSupport::generateSupportBase(storage);
+    area_support::generateSupportBase(storage);
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -448,10 +467,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     spdlog::debug("Processing gradual support");
     // generate gradual support
-    AreaSupport::generateSupportInfillFeatures(storage);
+    area_support::generateSupportInfillFeatures(storage);
 
     // Pre-compute lightning fill
-    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
+    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::Lightning)
     {
         storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
     }
@@ -494,7 +513,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
             { // progress estimation is done only in one thread so that no two threads message progress at the same time
                 size_t processed_layer_count_ = processed_layer_count.fetch_add(1, std::memory_order_relaxed);
                 double progress = progress_estimator.progress(processed_layer_count_);
-                Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+                Progress::messageProgress(Progress::Stage::InsetSkin, progress * 100, 100);
             }
             else
             {
@@ -508,7 +527,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     } guarded_progress = { inset_skin_progress_estimate };
 
     // walls
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         mesh_layer_count,
         [&](size_t layer_number)
@@ -551,7 +570,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     }
 
     guarded_progress.reset();
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         mesh_layer_count,
         [&](size_t layer_number)
@@ -576,7 +595,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
     {
         SliceLayer& layer = mesh.layers[layer_idx];
 
-        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::Surface)
         {
             // break up polygons into polylines
             // they have to be polylines, because they might break up further when doing the cutting
@@ -609,7 +628,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
             for (SliceLayerPart& other_part : other_layer.parts)
             {
-                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Surface)
                 {
                     for (SliceLayerPart& part : layer.parts)
                     { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
@@ -638,7 +657,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                         //       the infill area remains the same for combing
                     }
                 }
-                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal)
                 {
                     const Shape& own_infill_area = other_part.getOwnInfillArea();
                     OpenLinesSet cut_lines = own_infill_area.intersection(layer.open_polylines);
@@ -664,12 +683,12 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             layer.parts.back().boundaryBox.calculate(part);
         }
 
-        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal)
         {
             layer.open_polylines = new_polylines;
         }
 
-        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0))
+        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal && layer.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
         }
@@ -687,7 +706,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     SkinInfillAreaComputation::generateGradualInfill(mesh);
 
     // SubDivCube Pre-compute Octree
-    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CubicSubdiv)
     {
         const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
         const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
@@ -696,7 +715,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 
     // Pre-compute Cross Fractal
     if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D))
+        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::Cross || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::Cross3D))
     {
         const std::string cross_subdivision_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
         std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
@@ -720,7 +739,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
 
     // Pre-compute lightning fill (aka minfill, aka ribbed support vaults)
-    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::Lightning)
     {
         // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
         mesh.lightning_generator = std::make_shared<LightningGenerator>(mesh);
@@ -746,7 +765,7 @@ void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
     WallsComputation walls_computation(mesh.settings, layer_nr);
-    walls_computation.generateWalls(layer, SectionType::WALL);
+    walls_computation.generateWalls(layer, SectionType::Wall);
 }
 
 bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerIndex& layer_idx)
@@ -767,7 +786,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerInd
             continue;
         }
         SliceLayer& layer = mesh.layers[layer_idx];
-        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::Normal && layer.open_polylines.size() > 0)
         {
             return false;
         }
@@ -845,7 +864,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
  */
 void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill)
 {
-    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::Surface)
     {
         return;
     }
@@ -877,7 +896,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    const int raft_layers = Raft::getTotalExtraLayers();
+    const int raft_layers = raft::getTotalExtraLayers();
     max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); // Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         // Height of the meshes themselves.
@@ -918,8 +937,8 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
         switch (adhesion_type)
         {
-        case EPlatformAdhesion::SKIRT:
-        case EPlatformAdhesion::BRIM:
+        case EPlatformAdhesion::Skirt:
+        case EPlatformAdhesion::Brim:
         {
             const std::vector<ExtruderTrain*> skirt_brim_extruder_trains = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
             for (ExtruderTrain* train : skirt_brim_extruder_trains)
@@ -929,7 +948,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             }
             break;
         }
-        case EPlatformAdhesion::RAFT:
+        case EPlatformAdhesion::Raft:
         {
             const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
             max_print_height_per_extruder[base_extruder_nr] = std::max(-raft_layers, max_print_height_per_extruder[base_extruder_nr]); // Includes the lowest raft layer.
@@ -946,7 +965,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
     }
 
-    storage.max_print_height_order = order(max_print_height_per_extruder);
+    storage.max_print_height_order = utils::order(max_print_height_per_extruder);
     if (extruder_count >= 2)
     {
         int second_highest_extruder = storage.max_print_height_order[extruder_count - 2];
@@ -1071,14 +1090,14 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
-    if (adhesion_type == EPlatformAdhesion::RAFT)
+    if (adhesion_type == EPlatformAdhesion::Raft)
     {
-        Raft::generate(storage);
+        raft::generate(storage);
         return;
     }
 
     SkirtBrim skirt_brim(storage);
-    if (adhesion_type != EPlatformAdhesion::NONE)
+    if (adhesion_type != EPlatformAdhesion::None)
     {
         skirt_brim.generate();
     }
@@ -1101,7 +1120,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const coord_t range_random_point_dist = avg_dist_between_points / 2;
     unsigned int start_layer_nr
-        = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
+        = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::Brim) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
 
     auto hole_area = Shape();
     std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole
@@ -1158,21 +1177,21 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 
                         // 'a' is the (next) new point between p0 and p1
                         const Point2LL p0p1 = p1.p_ - p0->p_;
-                        const int64_t p0p1_size = vSize(p0p1);
+                        const int64_t p0p1_size = types::geometry::vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
                             const Point2LL p = p1.p_ - (p0p1 / 2);
-                            const double width = (p1.w_ * vSize(p1.p_ - p) + p0->w_ * vSize(p0->p_ - p)) / p0p1_size;
+                            const double width = (p1.w_ * types::geometry::vSize(p1.p_ - p) + p0->w_ * types::geometry::vSize(p0->p_ - p)) / p0p1_size;
                             result.emplace_back(p, width, p1.perimeter_index_);
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
                             const int r = rand() % (fuzziness * 2) - fuzziness;
-                            const Point2LL perp_to_p0p1 = turn90CCW(p0p1);
-                            const Point2LL fuzz = normal(perp_to_p0p1, r);
-                            const Point2LL pa = p0->p_ + normal(p0p1, p0pa_dist);
-                            const double width = (p1.w_ * vSize(p1.p_ - pa) + p0->w_ * vSize(p0->p_ - pa)) / p0p1_size;
+                            const Point2LL perp_to_p0p1 = types::geometry::turn90CCW(p0p1);
+                            const Point2LL fuzz = types::geometry::normal(perp_to_p0p1, r);
+                            const Point2LL pa = p0->p_ + types::geometry::normal(p0p1, p0pa_dist);
+                            const double width = (p1.w_ * types::geometry::vSize(p1.p_ - pa) + p0->w_ * types::geometry::vSize(p0->p_ - pa)) / p0p1_size;
                             result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
                         }
                         // p0pa_dist > p0p1_size now because we broke out of the for-loop
@@ -1210,4 +1229,4 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 }
 
 
-} // namespace cura
+} // namespace curaengine

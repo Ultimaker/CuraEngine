@@ -1,26 +1,32 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallToolPaths.h"
 
-#include <algorithm> //For std::partition_copy and std::min_element.
+#include <algorithm>
 #include <unordered_set>
 
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
 
-#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
-#include "utils/ExtrusionLineStitcher.h"
-#include "utils/Simplify.h"
-#include "utils/actions/smooth.h"
-#include "utils/polygonUtils.h"
+#include "types/actions/smooth_fn.h"
+#include "types/geometry/ExtrusionLineStitcher.h"
+#include "types/geometry/Simplify.h"
+#include "utils/beading_strategy_factory.h"
+#include "utils/polygon_utils.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace arachne;
+using namespace beading_strategy;
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 WallToolPaths::WallToolPaths(
     const Shape& outline,
@@ -48,7 +54,7 @@ WallToolPaths::WallToolPaths(
     , min_bead_width_(std::min(min_even_wall_line_width_, min_odd_wall_line_width_))
     , wall_line_width_x_(nominal_bead_width)
     , wall_distribution_count_(1)
-    , wall_transition_filter_distance_(MM2INT(100))
+    , wall_transition_filter_distance_(mmToInt(100))
     , wall_transition_filter_deviation_(nominal_bead_width / 4)
     , stitch_distance_(nominal_bead_width - 1)
     , toolpaths_generated_(false)
@@ -201,7 +207,7 @@ void WallToolPaths::generateArachne()
         return;
     }
 
-    constexpr coord_t discretization_step_size = MM2INT(0.8);
+    constexpr coord_t discretization_step_size = mmToInt(0.8);
 
     // When to split the middle wall into two:
     const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width_ - wall_line_width_0_) / wall_line_width_0_)) / 100.0;
@@ -210,7 +216,7 @@ void WallToolPaths::generateArachne()
     const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width_ / wall_line_width_x_)) / 100.0;
 
     const size_t max_bead_count = (inset_count_ < std::numeric_limits<size_t>::max() / 2) ? 2 * inset_count_ : std::numeric_limits<size_t>::max();
-    const auto beading_strat = BeadingStrategyFactory::makeStrategy(
+    const auto beading_strat = beading_strategy_factory::makeStrategy(
         bead_width_0_,
         bead_width_x_,
         wall_transition_length_,
@@ -495,4 +501,4 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpa
     return toolpaths.empty();
 }
 
-} // namespace cura
+} // namespace curaengine

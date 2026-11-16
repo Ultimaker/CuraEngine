@@ -1,8 +1,7 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef LAYERPART_H
-#define LAYERPART_H
+#pragma once
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -16,7 +15,7 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
-namespace cura
+namespace curaengine
 {
 
 class Settings;
@@ -41,6 +40,4 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-}//namespace cura
-
-#endif//LAYERPART_H
+} // namespace curaengine

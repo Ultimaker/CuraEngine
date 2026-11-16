@@ -1,10 +1,10 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <iostream> //To change the formatting of std::cerr.
-#include <signal.h> //For floating point exceptions.
+#include <iostream>
+#include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#include <sys/resource.h> //For setpriority.
+#include <sys/resource.h>
 #endif
 
 #ifdef SENTRY_URL
@@ -33,7 +33,8 @@
 
 #include "Application.h"
 
-namespace cura
+
+namespace curaengine
 {
 
 // Signal handler for a "floating point exception", which can also be integer division by zero errors.
@@ -44,7 +45,7 @@ void signal_FPE(int n)
     exit(1);
 }
 
-} // namespace cura
+} // namespace curaengine
 
 int main(int argc, char** argv)
 {
@@ -55,7 +56,7 @@ int main(int argc, char** argv)
 
 #ifndef DEBUG
     // Register the exception handling for arithmetic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
-    signal(SIGFPE, cura::signal_FPE);
+    signal(SIGFPE, curaengine::signal_FPE);
 #endif
     std::cerr << std::boolalpha;
 
@@ -91,7 +92,7 @@ int main(int argc, char** argv)
     }
 #endif
 
-    cura::Application::getInstance().run(argc, argv);
+    curaengine::Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
     if (const auto use_sentry = spdlog::details::os::getenv("USE_SENTRY"); ! use_sentry.empty() && use_sentry == "1")
