@@ -14,21 +14,29 @@
 #include <spdlog/spdlog.h>
 
 #include "ExtruderTrain.h"
-#include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
-#include "utils/CuraViz.h"
-#include "utils/linearAlg2D.h"
-#include "utils/scoring/BestElementFinder.h"
-#include "utils/scoring/CornerScoringCriterion.h"
-#include "utils/scoring/DistanceScoringCriterion.h"
-#include "utils/scoring/ExclusionAreaScoringCriterion.h"
-#include "utils/scoring/RandomScoringCriterion.h"
-#include "utils/scoring/TextureScoringCriterion.h"
-#include "utils/scoring/VerticalAlignmentScoringCriterion.h"
+#include "SliceDataStorage.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
+#include "types/CuraViz.h"
+#include "types/EZSeamCornerPrefType.h"
+#include "types/EZSeamType.h"
+#include "types/geometry/PointsSet.h"
+#include "types/scoring/BestElementFinder.h"
+#include "types/scoring/CornerScoringCriterion.h"
+#include "types/scoring/DistanceScoringCriterion.h"
+#include "types/scoring/ExclusionAreaScoringCriterion.h"
+#include "types/scoring/RandomScoringCriterion.h"
+#include "types/scoring/TextureScoringCriterion.h"
+#include "types/scoring/VerticalAlignmentScoringCriterion.h"
+#include "utils/linear_alg_2d.h"
 
 
-namespace cura::seam
+namespace curaengine::seam
 {
+using namespace types;
+using namespace types::geometry;
+using namespace types::scoring;
+using namespace utils;
 
 struct AddSplitJunctionCandidate
 {
@@ -90,11 +98,11 @@ static std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line
     }
 
     const Point2LL& split_position = best_candidate->split_position;
-    if (vSize2(split_position - best_candidate->segment_start) <= EPSILON_SQUARED)
+    if (vSize2(split_position - best_candidate->segment_start) <= epsilon_squared)
     {
         return best_candidate->start_index;
     }
-    if (vSize2(split_position - best_candidate->segment_end) <= EPSILON_SQUARED)
+    if (vSize2(split_position - best_candidate->segment_end) <= epsilon_squared)
     {
         return best_candidate->start_index + 1;
     }
@@ -110,7 +118,7 @@ static void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const
             extrusion_line,
             [&last_layer_seam](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
             {
-                const Point2LL closest_on_segment = LinearAlg2D::getClosestOnLineSegment(last_layer_seam, segment_start, segment_end);
+                const Point2LL closest_on_segment = linear_alg_2d::getClosestOnLineSegment(last_layer_seam, segment_start, segment_end);
                 return AddSplitJunctionCandidate{ .reference_position = last_layer_seam, .split_position = closest_on_segment };
             });
     }
@@ -123,7 +131,7 @@ static bool addFixedPositionCandidate(
     const Point2LL& z_seam_position,
     const Point2LL& models_center)
 {
-    if (z_seam_type != EZSeamType::USER_SPECIFIED)
+    if (z_seam_type != EZSeamType::UserSpecified)
     {
         return false;
     }
@@ -140,7 +148,7 @@ static bool addFixedPositionCandidate(
         [&ray_origin, &request_point](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
         {
             float t, u;
-            if (! LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, segment_start, segment_end, t, u))
+            if (! linear_alg_2d::segmentSegmentIntersection(ray_origin, request_point, segment_start, segment_end, t, u))
             {
                 return std::nullopt;
             }
@@ -230,15 +238,15 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
             constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
             main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(force_start_index.value()), distance_type, distance_divider);
         }
-        else if (seam_type == EZSeamType::USER_SPECIFIED)
+        else if (seam_type == EZSeamType::UserSpecified)
         {
             main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
         }
-        else if (seam_type == EZSeamType::SHARPEST_CORNER && corner_pref != EZSeamCornerPrefType::PLUGIN)
+        else if (seam_type == EZSeamType::SharpestCorner && corner_pref != EZSeamCornerPrefType::Plugin)
         {
             main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, corner_pref);
         }
-        else if (seam_type == EZSeamType::RANDOM)
+        else if (seam_type == EZSeamType::Random)
         {
             main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
         }
@@ -264,7 +272,7 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     }
 
     // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-    if (seam_type == EZSeamType::SHARPEST_CORNER)
+    if (seam_type == EZSeamType::SharpestCorner)
     {
         const AABB path_bounding_box(points);
 
@@ -403,7 +411,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const Settings& settings = mesh->settings;
         const auto seam_type = settings.get<EZSeamType>("z_seam_type");
 
-        if (seam_type == EZSeamType::SHORTEST)
+        if (seam_type == EZSeamType::Shortest)
         {
             // We can't calculate shortest beforehand, leave it undone for later
             continue;
@@ -476,4 +484,4 @@ size_t calculateShortestSeamPosition(const PointsSet& candidates, const Point2LL
     return best_candidate_finder.findBestElement(candidates.size()).value_or(0);
 }
 
-} // namespace cura::seam
+} // namespace curaengine::seam

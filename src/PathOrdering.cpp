@@ -1,0 +1,82 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "PathOrdering.h"
+
+#include "SkinPart.h"
+#include "SliceDataStorage.h"
+#include "SliceLayerPart.h"
+#include "WallToolPaths.h"
+#include "types/geometry/OpenPolyline.h"
+
+namespace curaengine
+{
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+
+template<typename PathType>
+const Polyline& PathOrdering<PathType>::getVertexData()
+{
+    return *vertices_;
+}
+
+template<>
+const Polyline& PathOrdering<const SkinPart*>::getVertexData()
+{
+    return vertices_->outline.outerPolygon();
+}
+
+template<>
+const Polyline& PathOrdering<const SliceLayerPart*>::getVertexData()
+{
+    return vertices_->outline.outerPolygon();
+}
+
+template<>
+const Polyline& PathOrdering<SliceLayerPart*>::getVertexData()
+{
+    return vertices_->outline.outerPolygon();
+}
+
+template<>
+const Polyline& PathOrdering<const SupportInfillPart*>::getVertexData()
+{
+    return vertices_->outline_.outerPolygon();
+}
+template<>
+const Polyline& PathOrdering<const ExtrusionLine*>::getVertexData()
+{
+    if (! cached_vertices_.has_value())
+    {
+        cached_vertices_ = vertices_->toPolygon();
+    }
+    return *cached_vertices_;
+}
+
+template<typename PathType>
+void PathOrdering<PathType>::setStartVertex(const size_t start_vertex)
+{
+    start_vertex_ = start_vertex;
+    if (! is_closed_)
+    {
+        backwards_ = start_vertex > 0;
+    }
+}
+
+template const Polyline& PathOrdering<Polygon*>::getVertexData();
+template const Polyline& PathOrdering<Polygon const*>::getVertexData();
+template const Polyline& PathOrdering<const OpenPolyline*>::getVertexData();
+template const Polyline& PathOrdering<OpenPolyline*>::getVertexData();
+template const Polyline& PathOrdering<ClosedPolyline*>::getVertexData();
+template const Polyline& PathOrdering<Polyline const*>::getVertexData();
+
+template void PathOrdering<SliceLayerPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const SkinPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const SupportInfillPart*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const ExtrusionLine*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const Polygon*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const Polyline*>::setStartVertex(const size_t start_vertex);
+template void PathOrdering<const OpenPolyline*>::setStartVertex(const size_t start_vertex);
+
+} // namespace curaengine

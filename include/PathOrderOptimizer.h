@@ -1,8 +1,7 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHORDEROPTIMIZER_H
-#define PATHORDEROPTIMIZER_H
+#pragma once
 
 #include <unordered_set>
 
@@ -16,15 +15,21 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
-#include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "path_ordering.h"
+#include "PathOrdering.h"
+#include "routing/CombPath.h"
+#include "routing/LinePolygonsCrossings.h"
 #include "seam/seam.h"
-#include "utils/polygonUtils.h"
-#include "utils/views/dfs.h"
+#include "types/geometry/SparsePointGridInclusive.h"
+#include "utils/actions/dfs.h"
+#include "utils/polygon_utils.h"
 
-namespace cura
+namespace curaengine
 {
+using types::operator""_mu;
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+
 
 /*!
  * Path order optimization class.
@@ -59,7 +64,6 @@ class PathOrderOptimizer
 {
 public:
     using OrderablePath = PathOrdering<Path>;
-
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -79,7 +83,7 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point2LL start_point_;
+    types::geometry::Point2LL start_point_;
 
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
@@ -109,7 +113,7 @@ public:
         const Point2LL& start_point,
         const Shape& seam_exclusion_areas = Shape(),
         const bool detect_loops = false,
-        const Shape* combing_boundary = nullptr,
+        const types::geometry::Shape* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
@@ -192,8 +196,8 @@ public:
         }
 
         // Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
-        const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
-        SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
+        const types::coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
+        types::geometry::SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
         for (const auto& [i, path] : paths_ | ranges::views::enumerate)
         {
             if (path.converted_->empty())
@@ -202,7 +206,7 @@ public:
             }
             if (path.is_closed_)
             {
-                for (const Point2LL& point : *path.converted_)
+                for (const types::geometry::Point2LL& point : *path.converted_)
                 {
                     line_bucket_grid.insert(point, i); // Store by index so that we can also mark them down in the `picked` vector.
                 }
@@ -245,7 +249,7 @@ protected:
      * than this distance together will be considered to be coincident, closing
      * that polyline into a polygon.
      */
-    constexpr static coord_t _coincident_point_distance = 10;
+    constexpr static types::coord_t _coincident_point_distance = 10;
 
     /*!
      * Bucket grid to store the locations of the combing boundary.
@@ -254,12 +258,12 @@ protected:
      * combing boundary. We only need to generate this mapping once for the
      * combing boundary, since the combing boundary can't change.
      */
-    std::unique_ptr<LocToLineGrid> combing_grid_;
+    std::unique_ptr<types::geometry::LocToLineGrid> combing_grid_;
 
     /*!
      * Boundary to avoid when making travel moves.
      */
-    const Shape* combing_boundary_;
+    const types::geometry::Shape* combing_boundary_;
 
     /*!
      * Whether to check polylines to see if they are closed, before optimizing.
@@ -298,7 +302,7 @@ protected:
     {
         std::vector<OrderablePath> optimized_order; // To store our result in.
 
-        Point2LL current_position = start_point_;
+        types::geometry::Point2LL current_position = start_point_;
 
         std::unordered_map<OrderablePath*, bool> picked(paths_.size()); // Fixed size boolean flag for whether each path is already in the optimized vector.
 
@@ -381,7 +385,7 @@ protected:
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
         // In this case two roots can share the same children nodes, but we don't want to print them twice.
         std::unordered_set<Path> visited;
-        Point2LL current_position = start_point_;
+        types::geometry::Point2LL current_position = start_point_;
 
         std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours
             = [&current_position, &num_incoming_edges, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
@@ -478,7 +482,7 @@ protected:
                 {
                     Path root = findBestPathVertices(current_position, roots);
                     roots.erase(root);
-                    actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                    utils::actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
                 }
 
                 // Add all outer walls
@@ -514,7 +518,7 @@ protected:
                 {
                     Path root_neighbour = findBestPathVertices(current_position, root_neighbours);
                     root_neighbours.erase(root_neighbour);
-                    actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                    utils::actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
                 }
             }
         }
@@ -525,7 +529,7 @@ protected:
                 Path root = findBestPathVertices(current_position, roots);
                 roots.erase(root);
 
-                actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                utils::actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
             }
         }
 
@@ -550,7 +554,7 @@ protected:
         return reversed;
     }
 
-    Path findBestPathVertices(const Point2LL& start_position, const std::unordered_set<Path>& candidate_paths)
+    Path findBestPathVertices(const types::geometry::Point2LL& start_position, const std::unordered_set<Path>& candidate_paths)
     {
         std::vector<OrderablePath*> orderable_paths;
         orderable_paths.reserve(candidate_paths.size());
@@ -564,7 +568,7 @@ protected:
         return best_candidate->vertices_;
     }
 
-    OrderablePath* findBestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
+    OrderablePath* findBestPath(const types::geometry::Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
         std::pair<OrderablePath*, size_t> start_path = prefer_longest_path_ ? findLongestPath(start_position, candidate_paths) : findClosestPath(start_position, candidate_paths);
         start_path.first->setStartVertex(start_path.second);
@@ -639,7 +643,7 @@ protected:
      * \param path The path for which the start position should be calculated
      * \param target_pos The point that the starting vertex must be close to
      */
-    size_t findStartLocation(const OrderablePath& path, const Point2LL& target_pos)
+    size_t findStartLocation(const OrderablePath& path, const types::geometry::Point2LL& target_pos)
     {
         if (path.start_vertex_.has_value())
         {
@@ -649,7 +653,7 @@ protected:
         if (! path.is_closed_)
         {
             // For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            const coord_t back_distance
+            const types::coord_t back_distance
                 = (combing_boundary_ == nullptr) ? getDirectDistance(path.converted_->back(), target_pos) : getCombingDistance(path.converted_->back(), target_pos);
             if (back_distance < getDirectDistance(path.converted_->front(), target_pos)
                 || (combing_boundary_
@@ -671,9 +675,9 @@ protected:
      * \param b Another point, to compute distance to \ref a.
      * \return The distance between the two points.
      */
-    coord_t getDirectDistance(const Point2LL& a, const Point2LL& b) const
+    types::coord_t getDirectDistance(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b) const
     {
-        return vSize2(a - b);
+        return types::geometry::vSize2(a - b);
     }
 
     /*!
@@ -686,9 +690,9 @@ protected:
      * \param b Another point, to compute distance to \ref a.
      * \return The combing distance between the two points.
      */
-    coord_t getCombingDistance(const Point2LL& a, const Point2LL& b)
+    types::coord_t getCombingDistance(const types::geometry::Point2LL& a, const types::geometry::Point2LL& b)
     {
-        if (! PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
+        if (! utils::polygon_utils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
         {
             return getDirectDistance(a, b); // No collision with any line. Just compute the direct distance then.
         }
@@ -702,21 +706,21 @@ protected:
 
         if (combing_grid_ == nullptr)
         {
-            constexpr coord_t grid_size = 2000; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
-            combing_grid_ = PolygonUtils::createLocToLineGrid(*combing_boundary_, grid_size);
+            constexpr types::coord_t grid_size = 2000; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
+            combing_grid_ = utils::polygon_utils::createLocToLineGrid(*combing_boundary_, grid_size);
         }
 
-        CombPath comb_path; // Output variable.
-        constexpr coord_t rounding_error = -25;
-        constexpr coord_t tiny_travel_threshold = 0;
+        routing::CombPath comb_path; // Output variable.
+        constexpr types::coord_t rounding_error = -25;
+        constexpr types::coord_t tiny_travel_threshold = 0;
         constexpr bool fail_on_unavoidable_obstacles = false;
-        LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
+        routing::LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
 
-        coord_t sum = 0;
-        Point2LL last_point = a;
-        for (const Point2LL& point : comb_path)
+        types::coord_t sum = 0;
+        types::geometry::Point2LL last_point = a;
+        for (const types::geometry::Point2LL& point : comb_path)
         {
-            sum += vSize(point - last_point);
+            sum += types::geometry::vSize(point - last_point);
             last_point = point;
         }
         return sum * sum; // Squared distance, for fair comparison with direct distance.
@@ -728,13 +732,11 @@ protected:
         {
             return false;
         }
-        return vSize2(path.converted_->back() - path.converted_->front()) < _coincident_point_distance * _coincident_point_distance;
+        return types::geometry::vSize2(path.converted_->back() - path.converted_->front()) < _coincident_point_distance * _coincident_point_distance;
     }
 };
 
 template<typename Path>
 const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements_;
 
-} // namespace cura
-
-#endif // PATHORDEROPTIMIZER_H
+} // namespace curaengine

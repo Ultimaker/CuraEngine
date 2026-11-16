@@ -1,23 +1,26 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SierpinskiFill.h"
 
-#include <algorithm> // swap
+#include <algorithm>
 #include <assert.h>
-#include <functional> // function
-#include <iterator> // next, prev
+#include <functional>
+#include <iterator>
 
 #include <spdlog/spdlog.h>
 
-#include "geometry/Polygon.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
-#include "utils/AABB3D.h"
-#include "utils/SVG.h"
+#include "types/SVG.h"
+#include "types/geometry/AABB3D.h"
+#include "types/geometry/Polygon.h"
 
-namespace cura
+namespace curaengine::infill
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
@@ -71,8 +74,8 @@ void SierpinskiFill::createTree()
 
     bool root_straight_corner_is_left = false;
     int root_depth = 1;
-    root_.children.emplace_back(rb, aabb_.min_, aabb_.max_, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, root_straight_corner_is_left, root_depth);
-    root_.children.emplace_back(lt, aabb_.max_, aabb_.min_, SierpinskiTriangle::SierpinskiDirection::AC_TO_AB, root_straight_corner_is_left, root_depth);
+    root_.children.emplace_back(rb, aabb_.min_, aabb_.max_, SierpinskiTriangle::SierpinskiDirection::AcToAb, root_straight_corner_is_left, root_depth);
+    root_.children.emplace_back(lt, aabb_.max_, aabb_.min_, SierpinskiTriangle::SierpinskiDirection::AcToAb, root_straight_corner_is_left, root_depth);
     for (SierpinskiTriangle& triangle : root_.children)
     {
         createTree(triangle);
@@ -96,17 +99,17 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
         switch (t.dir_)
         {
         default:
-        case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
-            first_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
-            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+        case SierpinskiTriangle::SierpinskiDirection::AbToBc:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AcToBc;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AcToAb;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
-            first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
-            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
+        case SierpinskiTriangle::SierpinskiDirection::AcToAb:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AbToBc;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AcToBc;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
-            first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
-            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+        case SierpinskiTriangle::SierpinskiDirection::AcToBc:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AbToBc;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AcToAb;
             break;
         }
         sub_root.children.emplace_back(middle, t.a_, t.straight_corner_, first_dir, ! t.straight_corner_is_left_, t.depth_ + 1);
@@ -120,11 +123,11 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 {
     Point2LL ac = triangle.straight_corner_ - triangle.a_;
-    double area = 0.5 * INT2MM2(vSize2(ac));
-    double short_length = .5 * vSizeMM(ac);
-    double long_length = .5 * vSizeMM(triangle.b_ - triangle.a_);
+    double area = 0.5 * intToMm2(types::geometry::vSize2(ac));
+    double short_length = .5 * types::geometry::vSizeMM(ac);
+    double long_length = .5 * types::geometry::vSizeMM(triangle.b_ - triangle.a_);
     triangle.area_ = area;
-    triangle.realized_length_ = (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_BC) ? long_length : short_length;
+    triangle.realized_length_ = (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AcToBc) ? long_length : short_length;
     for (SierpinskiTriangle& child : triangle.children)
     {
         createTreeStatistics(child);
@@ -142,7 +145,7 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
         triangle_aabb.include(triangle.straight_corner_);
         AABB3D triangle_aabb3d(Point3LL(triangle_aabb.min_.X, triangle_aabb.min_.Y, 0), Point3LL(triangle_aabb.max_.X, triangle_aabb.max_.Y, 1));
         double density = density_provider_(triangle_aabb3d); // The density of the square around the triangle is a rough estimate of the density of the triangle.
-        triangle.requested_length_ = density * triangle.area_ / INT2MM(line_width_);
+        triangle.requested_length_ = density * triangle.area_ / intToMm(line_width_);
     }
     else
     { // bubble total up requested_length and total_child_realized_length
@@ -212,11 +215,11 @@ bool SierpinskiFill::subdivideAll()
             // so then the range will be two long rather than one.
             std::list<SierpinskiTriangle*>::iterator begin = it;
             std::list<SierpinskiTriangle*>::iterator end = std::next(it);
-            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && end != sequence_.end())
+            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AcToAb && end != sequence_.end())
             {
                 continue; // don't subdivide these two triangles just yet, wait till next iteration
             }
-            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && begin != sequence_.begin())
+            if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AbToBc && begin != sequence_.begin())
             {
                 begin = std::prev(it);
                 assert((*begin)->depth_ == triangle.depth_ || isConstrainedBackward(it));
@@ -544,12 +547,12 @@ void SierpinskiFill::diffuseError()
 
         std::list<SierpinskiTriangle*>::iterator begin = it;
         std::list<SierpinskiTriangle*>::iterator end = std::next(it);
-        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && end != sequence_.end())
+        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AcToAb && end != sequence_.end())
         {
             pair_constrained_nodes++;
             continue; // don't subdivide these two triangles just yet, wait till next iteration
         }
-        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && begin != sequence_.begin())
+        if (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AbToBc && begin != sequence_.begin())
         {
             begin = std::prev(it);
             assert((*begin)->depth_ == triangle.depth_ || isConstrainedBackward(it));
@@ -593,7 +596,7 @@ bool SierpinskiFill::isConstrainedBackward(std::list<SierpinskiTriangle*>::itera
 {
     SierpinskiTriangle* node = *it;
     SierpinskiTriangle* prev = *std::prev(it);
-    if (it != sequence_.begin() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && prev->depth_ < node->depth_)
+    if (it != sequence_.begin() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AbToBc && prev->depth_ < node->depth_)
         return true;
     return false;
 }
@@ -601,7 +604,7 @@ bool SierpinskiFill::isConstrainedForward(std::list<SierpinskiTriangle*>::iterat
 {
     SierpinskiTriangle* node = *it;
     SierpinskiTriangle* next = *std::next(it);
-    if (std::next(it) != sequence_.end() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && next->depth_ < node->depth_)
+    if (std::next(it) != sequence_.end() && node->dir_ == SierpinskiTriangle::SierpinskiDirection::AcToAb && next->depth_ < node->depth_)
         return true;
     return false;
 }
@@ -620,15 +623,15 @@ double SierpinskiFill::getSubdivisionError(std::list<SierpinskiTriangle*>::itera
 
 void SierpinskiFill::debugOutput(SVG& svg)
 {
-    svg.write(aabb_.toPolygon(), { .surface = { SVG::Color::RED } });
+    svg.write(aabb_.toPolygon(), { .surface = { SVG::Color::Red } });
 
     // draw triangles
     for (SierpinskiTriangle* node : sequence_)
     {
         SierpinskiTriangle& triangle = *node;
-        svg.write(triangle.a_, triangle.b_, { .line = { SVG::Color::GRAY } });
-        svg.write(triangle.a_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
-        svg.write(triangle.b_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
+        svg.write(triangle.a_, triangle.b_, { .line = { SVG::Color::Gray } });
+        svg.write(triangle.a_, triangle.straight_corner_, { .line = { SVG::Color::Gray } });
+        svg.write(triangle.b_, triangle.straight_corner_, { .line = { SVG::Color::Gray } });
     }
 }
 
@@ -638,13 +641,13 @@ SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getFromEdge()
     Edge ret;
     switch (dir_)
     {
-    case SierpinskiDirection::AB_TO_BC:
+    case SierpinskiDirection::AbToBc:
         ret = Edge{ a_, b_ };
         break;
-    case SierpinskiDirection::AC_TO_AB:
+    case SierpinskiDirection::AcToAb:
         ret = Edge{ straight_corner_, a_ };
         break;
-    case SierpinskiDirection::AC_TO_BC:
+    case SierpinskiDirection::AcToBc:
         ret = Edge{ straight_corner_, a_ };
         break;
     }
@@ -660,13 +663,13 @@ SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getToEdge()
     Edge ret;
     switch (dir_)
     {
-    case SierpinskiDirection::AB_TO_BC:
+    case SierpinskiDirection::AbToBc:
         ret = Edge{ straight_corner_, b_ };
         break;
-    case SierpinskiDirection::AC_TO_AB:
+    case SierpinskiDirection::AcToAb:
         ret = Edge{ b_, a_ };
         break;
-    case SierpinskiDirection::AC_TO_BC:
+    case SierpinskiDirection::AcToBc:
         ret = Edge{ straight_corner_, b_ };
         break;
     }
@@ -708,20 +711,20 @@ Polygon SierpinskiFill::generateCross() const
         Point2LL edge_middle = triangle.a_ + triangle.b_ + triangle.straight_corner_;
         switch (triangle.dir_)
         {
-        case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
+        case SierpinskiTriangle::SierpinskiDirection::AbToBc:
             edge_middle -= triangle.a_;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
+        case SierpinskiTriangle::SierpinskiDirection::AcToAb:
             edge_middle -= triangle.straight_corner_;
             break;
-        case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
+        case SierpinskiTriangle::SierpinskiDirection::AcToBc:
             edge_middle -= triangle.a_;
             break;
         }
         ret.push_back(edge_middle / 2);
     }
 
-    double realized_length = INT2MM(ret.length());
+    double realized_length = intToMm(ret.length());
     double requested_length = root_.requested_length_;
     double error = (realized_length - requested_length) / requested_length;
     spdlog::debug("realized_length: {}, requested_length: {}  :: {}% error", realized_length, requested_length, 0.01 * static_cast<int>(10000 * error));
@@ -739,10 +742,10 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         {
             from_l = period * 2 - from_l;
         }
-        from_l = from_l * vSize(e.l - e.r) / period;
+        from_l = from_l * types::geometry::vSize(e.l - e.r) / period;
         from_l = std::max(min_dist_to_side, from_l);
-        from_l = std::min(vSize(e.l - e.r) - min_dist_to_side, from_l);
-        return e.l + normal(e.r - e.l, from_l);
+        from_l = std::min(types::geometry::vSize(e.l - e.r) - min_dist_to_side, from_l);
+        return e.l + types::geometry::normal(e.r - e.l, from_l);
     };
 
     SierpinskiTriangle* last_triangle = nullptr;
@@ -758,13 +761,13 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         Cross pattern because the other side is sliding along the straight
         sides. The steeper overhang is then only in the corner, which is deemed
         acceptable since the corners are never too sharp. */
-        const coord_t period = vSize(triangle.straight_corner_ - triangle.a_);
+        const coord_t period = types::geometry::vSize(triangle.straight_corner_ - triangle.a_);
         ret.push_back(get_edge_crossing_location(period, triangle.getFromEdge()));
 
         last_triangle = &triangle;
     }
     assert(last_triangle);
-    const coord_t period = vSize(last_triangle->straight_corner_ - last_triangle->a_);
+    const coord_t period = types::geometry::vSize(last_triangle->straight_corner_ - last_triangle->a_);
     ret.push_back(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
     if (pocket_size > 10)
@@ -787,14 +790,16 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
             Point2LL v0 = p0 - p1;
             Point2LL v1 = p2 - p1;
 
-            coord_t prod = std::abs(dot(v0, v1));
-            bool is_straight_corner = prod < sqrt(vSize(v0) * vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
+            coord_t prod = std::abs(types::geometry::dot(v0, v1));
+            bool is_straight_corner
+                = prod < sqrt(types::geometry::vSize(v0) * types::geometry::vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
             if (is_straight_corner)
             {
-                coord_t pocket_rounding
-                    = std::min(std::min(pocket_size_side, vSize(v0) / 3), vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
-                pocketed.push_back(p1 + normal(v0, pocket_rounding));
-                pocketed.push_back(p1 + normal(v1, pocket_rounding));
+                coord_t pocket_rounding = std::min(
+                    std::min(pocket_size_side, types::geometry::vSize(v0) / 3),
+                    types::geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
+                pocketed.push_back(p1 + types::geometry::normal(v0, pocket_rounding));
+                pocketed.push_back(p1 + types::geometry::normal(v1, pocket_rounding));
             }
             else
             {
@@ -846,4 +851,4 @@ void SierpinskiFill::debugCheck(bool check_subdivision)
     }
 }
 
-} // namespace cura
+} // namespace curaengine::infill

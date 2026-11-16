@@ -3,20 +3,24 @@
 
 #pragma once
 
-#include "geometry/Point2LL.h"
+#include "types/geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine
 {
 
-class PointsSet;
 class SliceDataStorage;
+
+namespace types::geometry
+{
+class PointsSet;
 class Shape;
+} // namespace types::geometry
 
 namespace seam
 {
 void calculateWallsSeamPositions(SliceDataStorage& storage);
 
-size_t calculateShortestSeamPosition(const PointsSet& candidates, const Point2LL& target_pos, const Shape& seam_exclusion_areas);
+size_t calculateShortestSeamPosition(const types::geometry::PointsSet& candidates, const types::geometry::Point2LL& target_pos, const types::geometry::Shape& seam_exclusion_areas);
 } // namespace seam
 
-} // namespace cura
+} // namespace curaengine

@@ -1,16 +1,23 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/AABB3D.h"
-#include "utils/AABB.h"
-#include "utils/Coord_t.h"
-#include "geometry/Polygon.h"
-#include <gtest/gtest.h>
+#include "types/geometry/AABB3D.h"
+
 #include <polyclipping/clipper.hpp>
 
+#include <gtest/gtest.h>
+
+#include "types/Coord_t.h"
+#include "types/geometry/AABB.h"
+#include "types/geometry/Polygon.h"
+
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+
 inline AABB3D toBox(const coord_t& x, const coord_t& y, const coord_t& z)
 {
     const Point3LL pt(x, y, z);
@@ -156,5 +163,5 @@ TEST(AABB3DTest, TestFlatten)
     EXPECT_TRUE(flat.contains(Point2LL(1, 1))) << "The flattened box should contain this point.";
     EXPECT_FALSE(flat.contains(Point2LL(-11, 3))) << "The flattened box shouldn't contain this point.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

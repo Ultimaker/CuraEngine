@@ -1,12 +1,11 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef EXTRUDER_TRAIN_H
-#define EXTRUDER_TRAIN_H
+#pragma once
 
-#include "settings/Settings.h"
+#include "Settings.h"
 
-namespace cura
+namespace curaengine
 {
 
 class ExtruderTrain
@@ -32,5 +31,4 @@ public:
     const size_t extruder_nr_;
 };
 
-} // namespace cura
-#endif // EXTRUDER_TRAIN_H
+} // namespace curaengine

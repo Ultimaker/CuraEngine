@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <google/protobuf/message.h>
@@ -8,17 +8,21 @@
 #include <gtest/gtest.h>
 
 #include "FffProcessor.h"
-#include "MockSocket.h" //To mock out the communication with the front-end.
-#include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
-#include "geometry/Polygon.h" //Create test shapes to send over the socket.
-#include "geometry/Shape.h"
-#include "settings/types/LayerIndex.h"
-#include "utils/Coord_t.h"
+#include "MockSocket.h"
+#include "communication/ArcusCommunicationPrivate.h"
+#include "types/Coord_t.h"
+#include "types/LayerIndex.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
 #include "utils/string.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace communication;
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * Test fixtures for an arcus communication class and some polygons to try
@@ -37,7 +41,6 @@ public:
     Polygon test_triangle;
     Polygon test_circle;
     Polygon test_convex_shape;
-
     Shape test_shapes; // all above polygons
 
     void SetUp() override
@@ -104,7 +107,7 @@ TEST_F(ArcusCommunicationTest, SendGCodePartTest)
     ac->sendGCodePart(test_gcode);
 
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.back().get());
+    const ::cura::proto::GCodeLayer* message = dynamic_cast<::cura::proto::GCodeLayer*>(socket->sent_messages.back().get());
     EXPECT_EQ(test_gcode, message->data());
 }
 
@@ -127,7 +130,7 @@ TEST_F(ArcusCommunicationTest, SendLayerComplete)
     constexpr coord_t layer_z = 20;
     constexpr coord_t layer_thickness = 30;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
-    const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
+    const std::shared_ptr<::cura::proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
     EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";
     EXPECT_EQ(static_cast<float>(layer_z), message->height());
     EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
@@ -139,14 +142,14 @@ TEST_F(ArcusCommunicationTest, SendProgress)
 
     ac->sendProgress(10);
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    auto* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    auto* message = dynamic_cast<::cura::proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(5), message->amount());
 
     ac->sendProgress(50);
     ASSERT_EQ(size_t(2), socket->sent_messages.size());
-    message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    message = dynamic_cast<::cura::proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(25), message->amount());
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

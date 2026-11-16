@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InsetOrderOptimizer.h"
@@ -11,7 +11,6 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
-#include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
@@ -24,15 +23,22 @@
 #include "FffGcodeWriter.h"
 #include "ForceRetract.h"
 #include "LayerPlan.h"
-#include "utils/linearAlg2D.h"
-#include "utils/views/convert.h"
-#include "utils/views/dfs.h"
+#include "types/EZSeamType.h"
+#include "types/InsetDirection.h"
+#include "types/RetractBeforeOuterWall.h"
+#include "utils/actions/dfs.h"
+#include "utils/linear_alg_2d.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+using types::operator""_r;
+
 
 InsetOrderOptimizer::InsetOrderOptimizer(
     const SliceDataStorage& storage,
@@ -85,7 +91,7 @@ void InsetOrderOptimizer::optimize(const std::optional<Point2LL>& near_start_loc
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
     const auto inset_direction = settings_.get<InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
 
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    const bool outer_to_inner = inset_direction == InsetDirection::OutsideIn;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
@@ -133,18 +139,18 @@ bool InsetOrderOptimizer::addToLayer(
     constexpr Ratio flow = 1.0_r;
     bool added_something = false;
 
-    ForceRetract force_retract = ForceRetract::AUTOMATIC;
+    ForceRetract force_retract = ForceRetract::Automatic;
     switch (retract_before_outer_wall)
     {
-    case RetractBeforeOuterWall::AUTOMATIC:
-        force_retract = ForceRetract::AUTOMATIC;
+    case RetractBeforeOuterWall::Automatic:
+        force_retract = ForceRetract::Automatic;
         break;
-    case RetractBeforeOuterWall::RETRACTED:
-        force_retract = ForceRetract::RETRACTED;
+    case RetractBeforeOuterWall::Retracted:
+        force_retract = ForceRetract::Retracted;
         break;
-    case RetractBeforeOuterWall::NOT_RETRACTED:
-    case RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
-        force_retract = ForceRetract::NOT_RETRACTED;
+    case RetractBeforeOuterWall::NotRetracted:
+    case RetractBeforeOuterWall::NotRetractedFromInfill:
+        force_retract = ForceRetract::NotRetracted;
         break;
     }
 
@@ -162,7 +168,7 @@ bool InsetOrderOptimizer::addToLayer(
         const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
-        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::AUTOMATIC;
+        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::Automatic;
         const bool scarf_seam = scarf_seam_ && is_outer_wall;
         const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
@@ -193,10 +199,10 @@ bool InsetOrderOptimizer::addToLayer(
             override_areas);
         added_something = true;
 
-        if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
+        if (retract_before_outer_wall == RetractBeforeOuterWall::NotRetractedFromInfill)
         {
             // Only the first should be forced, the next ones use auto
-            force_retract = ForceRetract::AUTOMATIC;
+            force_retract = ForceRetract::Automatic;
         }
     }
 
@@ -303,7 +309,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                 closest_outer_wall_line[current_line] = outer_wall;
             }
         };
-        actions::dfs_depth_state(outer_wall, graph, update_nodes);
+        utils::actions::dfs_depth_state(outer_wall, graph, update_nodes);
     }
 
     // for each of the outer walls, perform a dfs until we have found an extrusion line that is
@@ -331,7 +337,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
             }
         };
 
-        actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
+        utils::actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
     }
 
     return order;
@@ -449,4 +455,4 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -1,0 +1,275 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#include "types/geometry/AABB.h"
+
+#include <algorithm>
+#include <limits>
+
+#include "types/AngleRadians.h"
+#include "types/geometry/OpenLinesSet.h"
+#include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
+#include "utils/linear_alg_2d.h"
+
+namespace curaengine::types::geometry
+{
+
+using namespace types;
+using namespace utils;
+
+
+AABB::AABB()
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
+{
+}
+
+AABB::AABB(const Point2LL& min, const Point2LL& max)
+    : min_(min)
+    , max_(max)
+{
+}
+
+AABB::AABB(const std::initializer_list<Point2LL>& points)
+    : AABB()
+{
+    for (const auto& pt : points)
+    {
+        include(pt);
+    }
+}
+
+AABB::AABB(const Shape& shape)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
+{
+    calculate(shape);
+}
+
+AABB::AABB(const OpenLinesSet& lines)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
+{
+    calculate(lines);
+}
+
+AABB::AABB(const PointsSet& poly)
+    : min_(point_max, point_max)
+    , max_(point_min, point_min)
+{
+    calculate(poly);
+}
+
+Point2LL AABB::getMiddle() const
+{
+    return (min_ + max_) / 2;
+}
+
+coord_t AABB::distanceSquared(const Point2LL& p) const
+{
+    const Point2LL a = Point2LL(max_.X, min_.Y);
+    const Point2LL b = Point2LL(min_.X, max_.Y);
+    return (contains(p) ? -1 : 1)
+         * std::min(
+               { linear_alg_2d::getDist2FromLineSegment(min_, a, p),
+                 linear_alg_2d::getDist2FromLineSegment(a, max_, p),
+                 linear_alg_2d::getDist2FromLineSegment(max_, b, p),
+                 linear_alg_2d::getDist2FromLineSegment(b, min_, p) });
+}
+
+coord_t AABB::distanceSquared(const AABB& other) const
+{
+    return std::min(
+        {
+            distanceSquared(other.min_),
+            other.distanceSquared(min_),
+            distanceSquared(other.max_),
+            other.distanceSquared(max_),
+            distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
+            other.distanceSquared(Point2LL(max_.X, min_.Y)),
+            distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
+            other.distanceSquared(Point2LL(min_.X, max_.Y)),
+        });
+}
+
+void AABB::calculate(const Shape& shape)
+{
+    min_ = Point2LL(point_max, point_max);
+    max_ = Point2LL(point_min, point_min);
+    for (const Polygon& poly : shape)
+    {
+        for (const Point2LL& point : poly)
+        {
+            include(point);
+        }
+    }
+}
+
+void AABB::calculate(const OpenLinesSet& lines)
+{
+    min_ = Point2LL(point_max, point_max);
+    max_ = Point2LL(point_min, point_min);
+    for (const OpenPolyline& line : lines)
+    {
+        for (const Point2LL& point : line)
+        {
+            include(point);
+        }
+    }
+}
+
+void AABB::calculate(const PointsSet& poly)
+{
+    min_ = Point2LL(point_max, point_max);
+    max_ = Point2LL(point_min, point_min);
+    for (const Point2LL& p : poly)
+    {
+        include(p);
+    }
+}
+
+bool AABB::contains(const Point2LL& point) const
+{
+    return point.X >= min_.X && point.X <= max_.X && point.Y >= min_.Y && point.Y <= max_.Y;
+}
+
+bool AABB::contains(const AABB& other) const
+{
+    if (area() < 0)
+    {
+        return false;
+    }
+    if (other.area() < 0)
+    {
+        return true;
+    }
+    return other.min_.X >= min_.X && other.max_.X <= max_.X && other.min_.Y >= min_.Y && other.max_.Y <= max_.Y;
+}
+
+coord_t AABB::area() const
+{
+    if (max_.X < min_.X || max_.Y < min_.Y)
+    {
+        return -1;
+    } // Do the unititialized check explicitly, so there aren't any problems with over/underflow and point_max/point_min.
+    return (max_.X - min_.X) * (max_.Y - min_.Y);
+}
+
+bool AABB::hit(const AABB& other) const
+{
+    if (max_.X < other.min_.X)
+        return false;
+    if (min_.X > other.max_.X)
+        return false;
+    if (max_.Y < other.min_.Y)
+        return false;
+    if (min_.Y > other.max_.Y)
+        return false;
+    return true;
+}
+
+void AABB::include(const Point2LL& point)
+{
+    min_.X = std::min(min_.X, point.X);
+    min_.Y = std::min(min_.Y, point.Y);
+    max_.X = std::max(max_.X, point.X);
+    max_.Y = std::max(max_.Y, point.Y);
+}
+
+void AABB::include(const PointsSet& polygon)
+{
+    for (const Point2LL& point : polygon)
+    {
+        include(point);
+    }
+}
+
+void AABB::include(const AABB& other)
+{
+    // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
+    min_.X = std::min(min_.X, other.min_.X);
+    min_.Y = std::min(min_.Y, other.min_.Y);
+    max_.X = std::max(max_.X, other.max_.X);
+    max_.Y = std::max(max_.Y, other.max_.Y);
+}
+
+void AABB::expand(int dist)
+{
+    if (min_ == Point2LL(point_max, point_max) || max_ == Point2LL(point_min, point_min))
+    {
+        return;
+    }
+    min_.X -= dist;
+    min_.Y -= dist;
+    max_.X += dist;
+    max_.Y += dist;
+}
+
+Polygon AABB::toPolygon() const
+{
+    return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) }, false);
+}
+
+coord_t AABB::width() const
+{
+    return max_.X - min_.X;
+}
+
+coord_t AABB::height() const
+{
+    return max_.Y - min_.Y;
+}
+
+std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape& shape)
+{
+    if (shape[0].size() < 2)
+    {
+        return { { { 0, 0 }, { 0, 0 } }, 0.0 };
+    }
+
+    coord_t min_area = std::numeric_limits<coord_t>::max();
+    AngleRadians best_angle = 0.0;
+    AABB best_aabb = { { 0, 0 }, { 0, 0 } };
+
+    // Iterate through every edge of the polygon
+    for (auto iterator = shape[0].beginSegments(); iterator != shape[0].endSegments(); ++iterator)
+    {
+        const Point2LL& p1 = (*iterator).start;
+        const Point2LL& p2 = (*iterator).end;
+
+        const auto x_hat = p2 - p1;
+        const auto length = types::geometry::vSize(x_hat);
+
+        if (length < 5)
+        {
+            continue;
+        }
+
+        const auto y_hat = types::geometry::turn90CCW(x_hat);
+
+        AABB aabb;
+
+        // Project all points onto the local axes defined by this edge
+        for (const auto& p : shape[0])
+        {
+            Point2LL local_p = {
+                types::geometry::dot(p, x_hat) / length,
+                types::geometry::dot(p, y_hat) / length,
+            };
+            aabb.include(local_p);
+        }
+
+        coord_t area = aabb.area();
+        if (area < min_area)
+        {
+            min_area = area;
+            best_angle = types::geometry::angle_rad(x_hat);
+            best_aabb = aabb;
+        }
+    }
+
+    return { best_aabb, best_angle };
+}
+
+} // namespace curaengine::types::geometry
