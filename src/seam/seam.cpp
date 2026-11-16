@@ -101,7 +101,7 @@ std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line, const
     return extrusion_line.insertJunction(best_candidate->start_index, split_position);
 }
 
-void addVerticalAlignmentPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
+void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
 {
     for (const Point2LL& last_layer_seam : last_layer_seams)
     {
@@ -170,7 +170,7 @@ PointsSet makePositionCandidates(
 
     if (! z_seam_on_vertex)
     {
-        addVerticalAlignmentPositionCandidate(extrusion_line, last_layer_seams);
+        addCloseToSeamPositionCandidate(extrusion_line, last_layer_seams);
         addFixedPositionCandidate(extrusion_line, force_start_index, z_seam_type, z_seam_position, models_center);
     }
 
