@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 
+#include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/algorithm/rotate.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/sliding.hpp>
@@ -42,7 +43,7 @@ using SegmentEvaluator = std::function<std::optional<AddSplitJunctionCandidate>(
  * @param segment_evaluator Function called with the start and end points of each segment, which returns either nullopt if the segment is not a candidate, or the candidate data
  * @return The index of the junction at the best split position, or nullopt if no segment was a candidate
  */
-std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line, const SegmentEvaluator& segment_evaluator)
+static std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line, const SegmentEvaluator& segment_evaluator)
 {
     if (extrusion_line.size() < 3 || ! extrusion_line.is_closed_)
     {
@@ -101,7 +102,7 @@ std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line, const
     return extrusion_line.insertJunction(best_candidate->start_index, split_position);
 }
 
-void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
+static void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
 {
     for (const Point2LL& last_layer_seam : last_layer_seams)
     {
@@ -115,7 +116,7 @@ void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const std::v
     }
 }
 
-bool addFixedPositionCandidate(
+static bool addFixedPositionCandidate(
     ExtrusionLine& extrusion_line,
     std::optional<size_t>& force_start_index,
     const EZSeamType z_seam_type,
@@ -157,7 +158,7 @@ bool addFixedPositionCandidate(
     return true;
 }
 
-PointsSet makePositionCandidates(
+static PointsSet makePositionCandidates(
     ExtrusionLine& extrusion_line,
     std::optional<size_t>& force_start_index,
     const EZSeamType z_seam_type,
@@ -182,7 +183,7 @@ PointsSet makePositionCandidates(
     return points;
 }
 
-void addExclusionAreaCriterion(BestElementFinder::CriteriaPass& pass, const PointsSet& points, const Shape& exclusion_area)
+static void addExclusionAreaCriterion(BestElementFinder::CriteriaPass& pass, const PointsSet& points, const Shape& exclusion_area)
 {
     if (! exclusion_area.empty())
     {
@@ -193,7 +194,7 @@ void addExclusionAreaCriterion(BestElementFinder::CriteriaPass& pass, const Poin
     }
 }
 
-BestElementFinder makeBestCandidateFinderOuterWall(
+static BestElementFinder makeBestCandidateFinderOuterWall(
     BestElementFinder& best_candidate_finder,
     std::shared_ptr<TextureDataProvider> texture_data_provider,
     const PointsSet& points,
@@ -282,20 +283,31 @@ BestElementFinder makeBestCandidateFinderOuterWall(
     return best_candidate_finder;
 }
 
-void makeBestCandidateFinderInnerWall(BestElementFinder& best_candidate_finder, const PointsSet& points, const std::vector<Point2LL>& layer_seams)
+static void makeBestCandidateFinderInnerWall(BestElementFinder& best_candidate_finder, const PointsSet& points, const std::vector<Point2LL>& layer_seams)
 {
-#warning we should use a max distance, and in case there is no seam close enough, just dont calculate and let shortest be applied in just-in-time
+    // For inner walls, we only try to be close to an outer wall seam. If it is not the case, in the end the starting position will not be set and the 'shortest' strategy
+    // will be applied, which is the best we can do in such cases anyway.
     best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion>(points, layer_seams));
-
-    // const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
-    // const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
-    // const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
-    //
-    // const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
-    // const bool use_shortest_for_inner_walls = outer_to_inner;
 }
 
-std::vector<Point2LL> calculateWallsSeamPosition(
+/*!
+ * Checks that the given position is close enough to at least one of the seam positions of the outer walls
+ * @param position The candidate position to be checked
+ * @param layer_seams The seam positions of the outer walls
+ * @param max_distance The maximum allowed distance to any of the seam positions
+ */
+static bool isCloseToOuterWallSeam(const Point2LL& position, const std::vector<Point2LL>& layer_seams, const coord_t max_distance)
+{
+    const coord_t max_distance_squared = max_distance * max_distance;
+    return ranges::any_of(
+        layer_seams,
+        [&position, max_distance_squared](const Point2LL& seam)
+        {
+            return vSize2(position - seam) <= max_distance_squared;
+        });
+}
+
+static std::vector<Point2LL> calculateWallsSeamPosition(
     SliceLayer& layer,
     const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
@@ -307,6 +319,7 @@ std::vector<Point2LL> calculateWallsSeamPosition(
     const coord_t layer_height,
     const Shape& machine_borders,
     const Point2LL& models_center,
+    const coord_t max_inner_wall_seam_distance,
     const bool outer_walls)
 {
     std::vector<Point2LL> new_layer_seams;
@@ -359,7 +372,7 @@ std::vector<Point2LL> calculateWallsSeamPosition(
                 }
 
                 const std::optional<size_t> best_seam_candidate = best_candidate_finder.findBestElement(points.size());
-                if (best_seam_candidate.has_value())
+                if (best_seam_candidate.has_value() && (outer_walls || isCloseToOuterWallSeam(points[*best_seam_candidate], layer_seams, max_inner_wall_seam_distance)))
                 {
                     if (outer_walls)
                     {
@@ -402,6 +415,10 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const bool z_seam_on_vertex = settings.get<bool>("z_seam_on_vertex");
         const AngleDegrees seam_overhang_angle{ settings.get<AngleDegrees>("seam_overhang_angle") };
         const coord_t layer_height{ settings.get<coord_t>("layer_height") };
+        const auto wall_line_count = settings.get<size_t>("wall_line_count");
+        const auto wall_line_width_x = settings.get<coord_t>("wall_line_width_x");
+        const size_t inner_walls_count = wall_line_count > 0 ? wall_line_count - 1 : 0;
+        const coord_t max_inner_wall_seam_distance = (wall_line_width_0 / 2) + (static_cast<coord_t>(inner_walls_count) * wall_line_width_x);
         const size_t wall_0_extruder_nr{ settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
         const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(static_cast<int>(wall_0_extruder_nr)) : Shape{} };
 
@@ -422,6 +439,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 layer_height,
                 machine_borders,
                 models_center,
+                max_inner_wall_seam_distance,
                 outer_walls);
 
             constexpr bool not_outer_walls = false;
@@ -437,6 +455,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 layer_height,
                 machine_borders,
                 models_center,
+                max_inner_wall_seam_distance,
                 not_outer_walls);
         }
     }
