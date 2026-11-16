@@ -1706,20 +1706,6 @@ std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& stor
     return std::make_pair(basic_overhang, full_overhang);
 }
 
-// Shape AreaSupport::computeSeamOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const Shape& outlines)
-// {
-//     // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
-//     // which will then be empty if everything is considered supported i.r.t. the angle
-//     const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
-//     if (seam_overhang_angle < 90.0)
-//     {
-//         const Shape build_plate = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_);
-//         return build_plate.difference(get_supported_region(seam_overhang_angle));
-//     }
-//
-//     return Shape{};
-// }
-
 void detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
     const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");

@@ -2683,7 +2683,16 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
             scarf_seam,
             smooth_speed,
             end_infill_close_to_seam);
-        result.walls_optimizer->optimize();
+
+        Shape seam_exclusion_areas;
+        const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
+        if (seam_overhang_angle < 90.0 && gcode_layer.getLayerNr() > 0)
+        {
+            seam_exclusion_areas = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+                                       .difference(part.getSupportedRegion(mesh_config.inset0_config.getLayerThickness(), seam_overhang_angle));
+        }
+
+        result.walls_optimizer->optimize(std::nullopt, seam_exclusion_areas);
     }
 
     return result;

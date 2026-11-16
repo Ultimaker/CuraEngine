@@ -1239,7 +1239,7 @@ void FffPolygonGenerator::generateLayersBelow(SliceDataStorage& storage)
         storage.print_layer_count,
         [&](const size_t layer_idx)
         {
-            std::vector<std::pair<const Shape*, AABB>> all_outlines_below;
+            std::vector<std::pair<const Shape*, AABB>> all_model_outlines_below;
 
             for (const SliceMeshStorage::Ptr& mesh_below : storage.meshes)
             {
@@ -1250,7 +1250,7 @@ void FffPolygonGenerator::generateLayersBelow(SliceDataStorage& storage)
 
                 for (const SliceLayerPart& prevLayerPart : mesh_below->layers[layer_idx - 1].parts)
                 {
-                    all_outlines_below.emplace_back(&prevLayerPart.outline, prevLayerPart.outline);
+                    all_model_outlines_below.emplace_back(&prevLayerPart.outline, prevLayerPart.outline);
                 }
             }
 
@@ -1294,10 +1294,21 @@ void FffPolygonGenerator::generateLayersBelow(SliceDataStorage& storage)
 
                 for (SliceLayerPart& mesh_part : mesh->layers[layer_idx].parts)
                 {
-                    const AABB boundaryBox(mesh_part.outline);
-                    for (const auto& [outline_below, outline_bounding_box] : ranges::views::concat(all_outlines_below, all_support_outlines_below))
+                    // Model-only outlines (without support), used for the overhang speeds and seam overhang areas
+                    const AABB boundary_box(mesh_part.outline);
+                    Shape model_outlines_below;
+                    for (const auto& [outline_below, outline_bounding_box] : all_model_outlines_below)
                     {
-                        if (boundaryBox.hit(outline_bounding_box))
+                        if (boundary_box.hit(outline_bounding_box))
+                        {
+                            model_outlines_below.push_back(*outline_below);
+                        }
+                    }
+
+                    mesh_part.outlines_below = model_outlines_below;
+                    for (const auto& [outline_below, outline_bounding_box] : all_support_outlines_below)
+                    {
+                        if (boundary_box.hit(outline_bounding_box))
                         {
                             mesh_part.outlines_below.push_back(*outline_below);
                         }
@@ -1308,8 +1319,9 @@ void FffPolygonGenerator::generateLayersBelow(SliceDataStorage& storage)
                     // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
                     mesh_part.outlines_below = mesh_part.outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-                    // supported extrusion areas are the same, insetted by half the line width
-                    mesh_part.supported_extrusion_areas_below = mesh_part.outlines_below.offset(-half_outer_wall_width);
+                    // supported extrusion areas are the model-only areas below, insetted by half the line width, and again with the narrow parts removed
+                    mesh_part.supported_extrusion_areas_below = model_outlines_below.offset(-half_outer_wall_width);
+                    mesh_part.supported_extrusion_areas_below = mesh_part.supported_extrusion_areas_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
                 }
             }
         });
