@@ -3,9 +3,13 @@
 
 #include "seam/seam.h"
 
+#include <functional>
 #include <memory>
+#include <optional>
 
 #include <range/v3/algorithm/rotate.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/sliding.hpp>
 #include <spdlog/spdlog.h>
 
 #include "ExtruderTrain.h"
@@ -25,57 +29,89 @@
 namespace cura::seam
 {
 
-size_t insertJunction(ExtrusionLine& extrusion_line, const Point2LL& position, size_t after_index)
+struct AddSplitJunctionCandidate
 {
-    const size_t i0 = after_index;
-    const size_t i1 = (after_index + 1) % extrusion_line.size();
-    const ExtrusionJunction& junction_start = extrusion_line[i0];
-    const ExtrusionJunction& junction_end = extrusion_line[i1];
-    const Point2LL& segment_start = junction_start.p_;
-    const Point2LL& segment_end = junction_end.p_;
+    Point2LL reference_position;
+    Point2LL split_position;
+};
 
-    if (vSize2(position - segment_start) <= EPSILON_SQUARED)
+using SegmentEvaluator = std::function<std::optional<AddSplitJunctionCandidate>(const Point2LL&, const Point2LL&)>;
+
+/*!
+ * Evaluates all the segments of the extrusion line with the given function, and inserts a junction in the best one (the shortest distance).
+ * @param segment_evaluator Function called with the start and end points of each segment, which returns either nullopt if the segment is not a candidate, or the candidate data
+ * @return The index of the junction at the best split position, or nullopt if no segment was a candidate
+ */
+std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line, const SegmentEvaluator& segment_evaluator)
+{
+    if (extrusion_line.size() < 3 || ! extrusion_line.is_closed_)
     {
-        return i0;
-    }
-    if (vSize2(position - segment_end) <= EPSILON_SQUARED)
-    {
-        return i1;
+        return std::nullopt;
     }
 
-    return extrusion_line.insertJunction(after_index, position);
+    struct BestCandidate
+    {
+        size_t start_index;
+        Point2LL segment_start;
+        Point2LL segment_end;
+        Point2LL split_position;
+        double distance_to_ref_squared;
+    };
+
+    std::optional<BestCandidate> best_candidate;
+
+    // Extrusion lines are explicitly closed, so there is no need to loop
+    for (const auto&& [segment_index, segment] : extrusion_line | ranges::views::sliding(2) | ranges::views::enumerate)
+    {
+        const Point2LL& segment_start = segment[0].p_;
+        const Point2LL& segment_end = segment[1].p_;
+
+        const std::optional<AddSplitJunctionCandidate> candidate = segment_evaluator(segment_start, segment_end);
+        if (! candidate.has_value())
+        {
+            continue;
+        }
+
+        const double distance_to_ref_squared = vSize2(candidate->split_position - candidate->reference_position);
+        if (! best_candidate.has_value() || distance_to_ref_squared < best_candidate->distance_to_ref_squared)
+        {
+            best_candidate = BestCandidate{ .start_index = segment_index,
+                                            .segment_start = segment_start,
+                                            .segment_end = segment_end,
+                                            .split_position = candidate->split_position,
+                                            .distance_to_ref_squared = distance_to_ref_squared };
+        }
+    }
+
+    if (! best_candidate.has_value())
+    {
+        return std::nullopt;
+    }
+
+    const Point2LL& split_position = best_candidate->split_position;
+    if (vSize2(split_position - best_candidate->segment_start) <= EPSILON_SQUARED)
+    {
+        return best_candidate->start_index;
+    }
+    if (vSize2(split_position - best_candidate->segment_end) <= EPSILON_SQUARED)
+    {
+        return best_candidate->start_index + 1;
+    }
+
+    return extrusion_line.insertJunction(best_candidate->start_index, split_position);
 }
 
 void addVerticalAlignmentPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
 {
     for (const Point2LL& last_layer_seam : last_layer_seams)
     {
-        struct ClosestCandidate
-        {
-            size_t start_index;
-            coord_t distance_squared;
-            Point2LL split_position;
-        };
-
-        std::optional<ClosestCandidate> closest_candidate;
-
-#warning dont forget the closed lines
-        for (const auto&& [segment_index, segment] : extrusion_line | ranges::views::sliding(2) | ranges::views::enumerate)
-        {
-            const Point2LL& segment_start = segment[0].p_;
-            const Point2LL& segment_end = segment[1].p_;
-            const Point2LL closest_on_segment = LinearAlg2D::getClosestOnLineSegment(last_layer_seam, segment_start, segment_end);
-            const coord_t distance_squared = vSize2(last_layer_seam - closest_on_segment);
-            if (! closest_candidate.has_value() || distance_squared < closest_candidate->distance_squared)
+        insertBestNewJunction(
+            extrusion_line,
+            [&last_layer_seam](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
             {
-                closest_candidate = ClosestCandidate{ .start_index = segment_index, .distance_squared = distance_squared, .split_position = closest_on_segment };
-            }
-        }
-
-        if (closest_candidate.has_value())
-        {
-            insertJunction(extrusion_line, closest_candidate->split_position, closest_candidate->start_index);
-        }
+                const Point2LL closest_on_segment = LinearAlg2D::getClosestOnLineSegment(last_layer_seam, segment_start, segment_end);
+                return AddSplitJunctionCandidate{ .reference_position = last_layer_seam, .split_position = closest_on_segment };
+            });
     }
 }
 
@@ -86,54 +122,38 @@ bool addFixedPositionCandidate(
     const Point2LL& z_seam_position,
     const Point2LL& models_center)
 {
-    if (! extrusion_line.is_closed_ || extrusion_line.size() < 3 || z_seam_type != EZSeamType::USER_SPECIFIED)
+    if (z_seam_type != EZSeamType::USER_SPECIFIED)
     {
         return false;
     }
-
-    Point2LL request_point = z_seam_position;
-
-    // Find the 'closest' point on the polygon to the request_point.
-    Point2LL closest_point;
-    size_t closest_junction_idx = 0;
-    coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
 
     // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
     // since you want the seam-line to be continuous in 3D space.
     // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
     // and project the point along the ray from the center to the request_point.
-
     const Point2LL ray_origin = models_center;
-    request_point = ray_origin + (request_point - ray_origin) * 10;
+    const Point2LL request_point = ray_origin + (z_seam_position - ray_origin) * 10;
 
-    for (const auto& [i, junction] : extrusion_line.junctions_ | ranges::views::enumerate)
-    {
-        // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
-        const auto& next_junction = extrusion_line.junctions_[(i + 1) % extrusion_line.junctions_.size()];
-
-        float t, u;
-        if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+    const std::optional<size_t> inserted_index = insertBestNewJunction(
+        extrusion_line,
+        [&ray_origin, &request_point](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
         {
-            const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-            const coord_t distance_sqd = vSize2(request_point - intersection);
-            if (distance_sqd < closest_distance_sqd)
+            float t, u;
+            if (! LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, segment_start, segment_end, t, u))
             {
-                closest_point = intersection;
-                closest_distance_sqd = distance_sqd;
-                closest_junction_idx = i;
+                return std::nullopt;
             }
-        }
-    }
 
-    if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
+            const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+            return AddSplitJunctionCandidate{ .reference_position = request_point, .split_position = intersection };
+        });
+
+    if (! inserted_index.has_value())
     {
         return false;
     }
 
-    const auto& start_pt = extrusion_line.junctions_[closest_junction_idx];
-    const auto& end_pt = extrusion_line.junctions_[(closest_junction_idx + 1) % extrusion_line.junctions_.size()];
-    closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
-    force_start_index = insertJunction(extrusion_line, closest_point, closest_junction_idx);
+    force_start_index = inserted_index;
     return true;
 }
 
