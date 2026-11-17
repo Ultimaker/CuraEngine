@@ -333,6 +333,18 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                                                | ranges::to<std::string>();
                 prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
             }
+
+            for (const auto& mesh : mesh_group.meshes)
+            {
+                // A rough bounding box of the mesh is enough to show the skipped mesh's area on the machine, so horizontal expansion (e.g. extrusion width, brim) is not accounted for.
+                const AABB3D aabb = mesh.getAABB();
+                const double min_x = intToMm(aabb.min_.x_);
+                const double min_y = intToMm(aabb.min_.y_);
+                const double max_x = intToMm(aabb.max_.x_);
+                const double max_y = intToMm(aabb.max_.y_);
+                prefix << ";SKIP_ENABLE.BOUNDING_BOX." << mesh.mesh_id() << ":[[" << min_x << "," << max_y << "],[" << max_x << "," << max_y << "],[" << max_x << "," << min_y
+                       << "],[" << min_x << "," << min_y << "]]" << new_line_;
+            }
         }
 
         prefix << ";END_OF_HEADER" << new_line_;
