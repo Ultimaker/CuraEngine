@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InfillOrderOptimizer.h"
@@ -9,11 +9,20 @@
 #include <range/v3/algorithm/sort.hpp>
 
 #include "LayerPlan.h"
-#include "geometry/OpenLinesSet.h"
+#include "SliceMeshStorage.h"
+#include "types/EFillMethod.h"
+#include "types/EZSeamType.h"
+#include "types/InfillStartEndPreference.h"
+#include "types/geometry/OpenLinesSet.h"
 
 
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+using types::operator""_r;
+
 
 InfillOrderOptimizer::InfillOrderOptimizer()
 {
@@ -168,7 +177,7 @@ bool InfillOrderOptimizer::addToLayer(
 
     layer_plan.setIsInside(true); // going to print stuff inside print object
     std::optional<Point2LL> near_start_location;
-    if (settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::START_RANDOM)
+    if (settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::StartRandom)
     {
         srand(layer_plan.getLayerNr());
         const InfillPart& first_part = infill_parts_.front();
@@ -278,7 +287,7 @@ void InfillOrderOptimizer::addToLayer(
 {
     const bool enable_travel_optimization = settings.get<bool>("infill_enable_travel_optimization");
     constexpr Ratio flow_ratio = 1.0_r;
-    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr double fan_speed = GCodePathConfig::fan_speed_default;
     const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
     switch (part.area)
@@ -343,7 +352,7 @@ void InfillOrderOptimizer::addToLayer(
             for (const std::vector<VariableWidthLines>& tool_paths : *part.paths.extrusion_lines)
             {
                 constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(EZSeamType::USER_SPECIFIED, near_start_location.value_or(mesh.getZSeamHint()));
+                const ZSeamConfig z_seam_config(EZSeamType::UserSpecified, near_start_location.value_or(mesh.getZSeamHint()));
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     layer_plan,
@@ -440,16 +449,16 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
 {
     SpaceFillType space_fill_type;
     coord_t wipe_dist;
-    if (infill_pattern == EFillMethod::GRID || infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::TRIANGLES || infill_pattern == EFillMethod::CUBIC
-        || infill_pattern == EFillMethod::TETRAHEDRAL || infill_pattern == EFillMethod::QUARTER_CUBIC || infill_pattern == EFillMethod::CUBICSUBDIV
-        || infill_pattern == EFillMethod::LIGHTNING)
+    if (infill_pattern == EFillMethod::Grid || infill_pattern == EFillMethod::Lines || infill_pattern == EFillMethod::Triangles || infill_pattern == EFillMethod::Cubic
+        || infill_pattern == EFillMethod::Tetrahedral || infill_pattern == EFillMethod::QuarterCubic || infill_pattern == EFillMethod::CubicSubdiv
+        || infill_pattern == EFillMethod::Lightning)
     {
         space_fill_type = SpaceFillType::Lines;
         wipe_dist = settings.get<coord_t>("infill_wipe_dist");
     }
     else
     {
-        space_fill_type = (infill_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+        space_fill_type = (infill_pattern == EFillMethod::ZigZag) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
         wipe_dist = 0;
     }
 
@@ -468,7 +477,7 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
         order_requirements,
         start_move_inwards_length,
         end_move_inwards_length,
-        MendedShape(&settings, SectionType::INFILL, &infill_inner_contour));
+        MendedShape(&settings, SectionType::Infill, &infill_inner_contour));
 }
 
 void InfillOrderOptimizer::addSkinSupportLinesToLayer(
@@ -484,7 +493,7 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
     const bool enable_travel_optimization,
     const Ratio& flow_ratio) const
 {
-    const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::FAN_SPEED_DEFAULT;
+    const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::fan_speed_default;
     constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
     constexpr coord_t skin_support_wipe_dist = 0;
     constexpr OverrideAreas override_areas;
@@ -553,7 +562,7 @@ bool InfillOrderOptimizer::isCloserTo(
     {
         for (const auto& [point_index, point] : line | ranges::views::enumerate)
         {
-            const coord_t distance_squared = vSize2(point - location);
+            const coord_t distance_squared = types::geometry::vSize2(point - location);
             if (! closest_point.has_value() || distance_squared < closest_distance_squared)
             {
                 closer_found = true;
@@ -566,4 +575,4 @@ bool InfillOrderOptimizer::isCloserTo(
     return closer_found;
 }
 
-} // namespace cura
+} // namespace curaengine

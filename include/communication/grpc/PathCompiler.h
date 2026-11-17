@@ -3,18 +3,25 @@
 
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 #include "Cura.pb.h"
-#include "PrintFeature.h"
-#include "PrintSegmentAttributes.h"
+#include "PrintFeatureType.h"
+#include "PrintSegmentAttribute.h"
 #include "SliceDataStruct.h"
-#include "geometry/Point3LL.h"
-#include "settings/types/LayerIndex.h"
+#include "types/Coord_t.h"
+#include "types/LayerIndex.h"
+#include "types/Velocity.h"
+#include "types/geometry/Point3LL.h"
 
-namespace cura
+namespace curaengine
 {
-
 class ExtruderTrain;
-struct Velocity;
+}
+
+namespace curaengine::communication
+{
 
 /*
  * \brief A computation class that formats layer view data in a way that the
@@ -25,13 +32,13 @@ struct Velocity;
  */
 class PathCompiler
 {
-    using PointType = proto::PathSegment::PointType;
+    using PointType = ::cura::proto::PathSegment::PointType;
     static_assert(sizeof(PrintFeatureType) == 1, "To be compatible with the Cura frontend code PrintFeatureType needs to be of size 1");
 
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
-    LayerIndex _layer_nr{ 0 };
+    types::LayerIndex _layer_nr{ 0 };
     size_t extruder{ 0 };
-    PointType data_point_type{ proto::PathSegment::Point3D };
+    PointType data_point_type{ ::cura::proto::PathSegment::Point3D };
 
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
@@ -41,8 +48,8 @@ class PathCompiler
                                //!< the dimensionality of the point.
     std::vector<uint32_t> line_attributes; //! Indicates if the line is processed with specific settings, e.g. overhanging or bridging, the size of this vector is N.
 
-    Point3LL last_point;
-    SliceDataStruct<proto::LayerOptimized> optimized_layers;
+    types::geometry::Point3LL last_point;
+    SliceDataStruct<::cura::proto::LayerOptimized> optimized_layers;
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -53,7 +60,7 @@ public:
      */
     PathCompiler() = default;
 
-    SliceDataStruct<proto::LayerOptimized>& getOptimizedLayers()
+    SliceDataStruct<::cura::proto::LayerOptimized>& getOptimizedLayers()
     {
         return optimized_layers;
     }
@@ -63,7 +70,7 @@ public:
      * for.
      * \param new_layer_nr The new layer to switch to.
      */
-    void setLayer(const LayerIndex& new_layer_nr);
+    void setLayer(const types::LayerIndex& new_layer_nr);
 
     /*!
      * \brief Returns the current layer which data is written to.
@@ -84,7 +91,7 @@ public:
      * \param layer_nr The layer number to get the optimised layer data for.
      * \return The optimised layer data for that layer.
      */
-    proto::LayerOptimized* getOptimizedLayerById(LayerIndex::value_type layer_nr);
+    ::cura::proto::LayerOptimized* getOptimizedLayerById(types::LayerIndex::value_type layer_nr);
 
     /*!
      * \brief Special handling of the first point in an added line sequence.
@@ -93,7 +100,7 @@ public:
      * of the path this jump is marked as `PrintFeatureType::NoneType`.
      * \param from The initial point of a polygon.
      */
-    void handleInitialPoint(const Point3LL& initial_point);
+    void handleInitialPoint(const types::geometry::Point3LL& initial_point);
 
     /*!
      * \brief Transfers the currently buffered line segments to the layer
@@ -104,7 +111,7 @@ public:
     /*!
      * \brief Move the current point of this path to \p position.
      */
-    void setCurrentPosition(const Point3LL& position);
+    void setCurrentPosition(const types::geometry::Point3LL& position);
 
     /*!
      * \brief Adds a single line segment to the current path.
@@ -120,10 +127,10 @@ public:
      */
     void sendLineTo(
         const PrintFeatureType& print_feature_type,
-        const Point3LL& to,
-        const coord_t& width,
-        const coord_t& thickness,
-        const Velocity& feedrate,
+        const types::geometry::Point3LL& to,
+        const types::coord_t& width,
+        const types::coord_t& thickness,
+        const types::Velocity& feedrate,
         const PrintSegmentAttributes& print_attributes);
 
 private:
@@ -133,7 +140,7 @@ private:
      * Each point is represented as three consecutive floats. All members adding a
      * 3D point to the data should use this function.
      */
-    void addPoint3D(const Point3LL& point);
+    void addPoint3D(const types::geometry::Point3LL& point);
 
     /*!
      * \brief Implements the functionality of adding a single 2D line segment to
@@ -150,11 +157,11 @@ private:
      */
     void addLineSegment(
         const PrintFeatureType& print_feature_type,
-        const Point3LL& point,
-        const coord_t& width,
-        const coord_t& thickness,
-        const Velocity& velocity,
+        const types::geometry::Point3LL& point,
+        const types::coord_t& width,
+        const types::coord_t& thickness,
+        const types::Velocity& velocity,
         const PrintSegmentAttributes& print_attributes);
 };
 
-} // namespace cura
+} // namespace curaengine::communication

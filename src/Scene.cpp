@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Scene.h"
@@ -7,13 +7,18 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "FffProcessor.h" //To start a slice.
-#include "communication/Communication.h" //To flush g-code and layer view when we're done.
+#include "FffProcessor.h"
+#include "Mesh.h"
+#include "SliceDataStorage.h"
+#include "communication/Communication.h"
 #include "progress/Progress.h"
-#include "sliceDataStorage.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace progress;
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
 
 Scene::Scene()
 {
@@ -75,7 +80,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     }
     if (empty)
     {
-        Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
+        Progress::messageProgress(Progress::Stage::Finish, 1, 1); // 100% on this meshgroup
         spdlog::info("Total time elapsed {}", std::chrono::duration<double>(time_keeper_total.restart()));
         return;
     }
@@ -86,10 +91,10 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
         return;
     }
 
-    Progress::messageProgressStage(Progress::Stage::EXPORT, &fff_processor->time_keeper);
+    Progress::messageProgressStage(Progress::Stage::Export, &fff_processor->time_keeper);
     fff_processor->gcode_writer.writeGCode(storage, fff_processor->time_keeper);
 
-    Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
+    Progress::messageProgress(Progress::Stage::Finish, 1, 1); // 100% on this meshgroup
     Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {}\n", std::chrono::duration<double>(time_keeper_total.restart()));
 }
@@ -100,4 +105,4 @@ void Scene::appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group)
     mesh_groups.push_back(mesh_group);
 }
 
-} // namespace cura
+} // namespace curaengine

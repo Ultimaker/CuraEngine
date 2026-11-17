@@ -1,0 +1,121 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#pragma once
+
+#include "types/geometry/Polygon.h"
+#include "types/geometry/SquareGrid.h"
+
+namespace curaengine::infill::lightning
+{
+
+/*!
+ * 2D field that maintains locations which need to be supported for Lightning
+ * Infill.
+ *
+ * This field contains a set of "cells", spaced out in a grid. Each cell
+ * maintains how far it is removed from the edge, which is used to determine
+ * how it gets supported by Lightning Infill.
+ */
+class LightningDistanceField
+{
+public:
+    /*!
+     * Construct a new field to calculate Lightning Infill with.
+     * \param radius The radius of influence that an infill line is expected to
+     * support in the layer above.
+     * \param current_outline The total infill area on this layer.
+     * \param current_overhang The overhang that needs to be supported on this
+     * layer.
+     */
+    LightningDistanceField(const types::coord_t& radius, const types::geometry::Shape& current_outline, const types::geometry::Shape& current_overhang);
+
+    /*!
+     * Gets the next unsupported location to be supported by a new branch.
+     * \param p Output variable for the next point to support.
+     * \return ``true`` if successful, or ``false`` if there are no more points
+     * to consider.
+     */
+    bool tryGetNextPoint(types::geometry::Point2LL* p) const;
+
+    /*!
+     * Update the distance field with a newly added branch.
+     *
+     * The branch is a line extending from \p to_node to \p added_leaf . This
+     * function updates the grid cells so that the distance field knows how far
+     * off it is from being supported by the current pattern. Grid points are
+     * updated with sampling points spaced out by the supporting radius along
+     * the line.
+     * \param to_node The node endpoint of the newly added branch.
+     * \param added_leaf The location of the leaf of the newly added branch,
+     * drawing a straight line to the node.
+     */
+    void update(const types::geometry::Point2LL& to_node, const types::geometry::Point2LL& added_leaf);
+
+protected:
+    using GridPoint = types::geometry::SquareGrid::GridPoint;
+
+    /*!
+     * Spacing between grid points to consider supporting.
+     */
+    types::coord_t cell_size_;
+
+    /*!
+     * Grid points to consider supporting, with each point maintaining its
+     * distance to the nearest support point.
+     */
+    types::geometry::SquareGrid grid_;
+
+    /*!
+     * The radius of the area of the layer above supported by a point on a
+     * branch of a tree.
+     */
+    types::coord_t supporting_radius_;
+
+    /*!
+     * The total infill area on the current layer.
+     */
+    const types::geometry::Shape& current_outline_;
+
+    /*!
+     * The overhang that gets introduced on this layer, which the infill will
+     * need to support.
+     */
+    const types::geometry::Shape& current_overhang_;
+
+    /*!
+     * Represents a small discrete area of infill that needs to be supported.
+     */
+    struct UnsupCell
+    {
+        /*!
+         * The position of the center of this cell.
+         */
+        types::geometry::Point2LL loc_;
+
+        /*!
+         * How far this cell is removed from the ``current_outline`` polygon,
+         * the edge of the infill area.
+         */
+        types::coord_t dist_to_boundary_;
+
+        UnsupCell(types::geometry::SquareGrid::GridPoint loc, types::coord_t dist_to_boundary)
+            : loc_(loc)
+            , dist_to_boundary_(dist_to_boundary)
+        {
+        }
+    };
+
+    /*!
+     * Cells which still need to be supported at some point.
+     */
+    std::list<UnsupCell> unsupported_points_;
+
+    /*!
+     * Links the unsupported points to a grid point, so that we can quickly look
+     * up the cell belonging to a certain position in the grid.
+     */
+    std::unordered_map<types::geometry::SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid_;
+};
+
+} // namespace curaengine::infill::lightning

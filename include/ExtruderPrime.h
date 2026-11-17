@@ -1,10 +1,9 @@
-// Copyright (c) 2023 UltiMaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef EXTRUDERPRIME_H
-#define EXTRUDERPRIME_H
+#pragma once
 
-namespace cura
+namespace curaengine
 {
 
 enum class ExtruderPrime
@@ -14,5 +13,4 @@ enum class ExtruderPrime
     Prime, // Do an actual prime
 };
 
-} // namespace cura
-#endif // EXTRUDERPRIME_H
+} // namespace curaengine

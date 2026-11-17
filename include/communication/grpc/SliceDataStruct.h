@@ -4,10 +4,10 @@
 #ifndef SLICEDATASTRUCT_H
 #define SLICEDATASTRUCT_H
 
-#include <memory> //To store pointers to slice data.
+#include <cstddef>
 #include <unordered_map> //To store the slice data by layer.
 
-namespace cura
+namespace curaengine::communication
 {
 
 /*!
@@ -36,6 +36,6 @@ public:
     std::unordered_map<int, T> slice_data;
 };
 
-} // namespace cura
+} // namespace curaengine::communication
 
 #endif // SLICEDATASTRUCT_H

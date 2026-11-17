@@ -1,11 +1,13 @@
-#ifndef CERTIFICATE_H
-#define CERTIFICATE_H
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#pragma once
 
 // FIXME: Move out of the source code even though this is the public key
 
 #include <string_view>
 
-namespace cura::utils::resources
+namespace curaengine::utils::resources
 {
 constexpr std::string_view certificate =
     R"#(-----BEGIN CERTIFICATE-----
@@ -44,6 +46,4 @@ c3dQRszg9OTAyUwNKQEAuZ9II/cCpLyE+GbnqRdkErHgO7kiKQ==
 -----END CERTIFICATE-----
 )#";
 
-} // namespace cura::utils::resources
-
-#endif // CERTIFICATE_H
+} // namespace curaengine::utils::resources

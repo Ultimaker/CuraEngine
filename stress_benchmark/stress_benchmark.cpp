@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <csignal>
@@ -20,15 +20,23 @@
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
+#include "Settings.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
 #include "WallsComputation.h"
-#include "geometry/OpenPolyline.h"
-#include "geometry/Polygon.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "settings/Settings.h"
-#include "sliceDataStorage.h"
+#include "types/geometry/OpenPolyline.h"
+#include "types/geometry/Polygon.h"
 
+
+namespace curaengine
+{
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 constexpr std::string_view USAGE = R"(Stress Benchmark.
 
@@ -55,7 +63,7 @@ struct Resource
         return wkt_file.stem().string();
     }
 
-    std::vector<cura::Shape> polygons() const
+    std::vector<Shape> polygons() const
     {
         using point_type = boost::geometry::model::d2::point_xy<double>;
         using polygon_type = boost::geometry::model::polygon<point_type>;
@@ -73,25 +81,25 @@ struct Resource
 
         boost::geometry::read_wkt(buffer.str(), boost_polygons);
 
-        std::vector<cura::Shape> polygons;
+        std::vector<Shape> polygons;
 
         for (const auto& boost_polygon : boost_polygons)
         {
-            cura::Shape polygon;
+            Shape polygon;
 
-            cura::Polygon outer;
+            Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.push_back(cura::Point2LL(point.x(), point.y()));
+                outer.push_back(Point2LL(point.x(), point.y()));
             }
             polygon.push_back(outer);
 
             for (const auto& hole : boost_polygon.inners())
             {
-                cura::Polygon inner;
+                Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.push_back(cura::Point2LL(point.x(), point.y()));
+                    inner.push_back(Point2LL(point.x(), point.y()));
                 }
                 polygon.push_back(inner);
             }
@@ -101,9 +109,9 @@ struct Resource
         return polygons;
     }
 
-    cura::Settings settings() const
+    Settings settings() const
     {
-        cura::Settings settings;
+        Settings settings;
         std::ifstream file{ settings_file };
         if (! file)
         {
@@ -146,16 +154,16 @@ std::vector<Resource> getResources()
 
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
-    cura::SliceLayer layer;
-    for (const cura::Shape& shape : shapes)
+    SliceLayer layer;
+    for (const Shape& shape : shapes)
     {
         layer.parts.emplace_back();
-        cura::SliceLayerPart& part = layer.parts.back();
+        SliceLayerPart& part = layer.parts.back();
         part.outline.push_back(shape);
     }
-    cura::LayerIndex layer_idx(100);
-    cura::WallsComputation walls_computation(settings, layer_idx);
-    walls_computation.generateWalls(&layer, cura::SectionType::WALL);
+    LayerIndex layer_idx(100);
+    WallsComputation walls_computation(settings, layer_idx);
+    walls_computation.generateWalls(&layer, SectionType::Wall);
     exit(EXIT_SUCCESS);
 }
 
@@ -218,7 +226,7 @@ void createAndWriteJson(const std::filesystem::path& out_file, double stress_lev
     file.close();
 }
 
-int main(int argc, const char** argv)
+int runStressBenchmark(int argc, const char** argv)
 {
     constexpr bool show_help = true;
     constexpr std::string_view version = "0.1.0";
@@ -245,6 +253,7 @@ int main(int argc, const char** argv)
             handleChildProcess(shapes, settings);
             return EXIT_SUCCESS;
         }
+
         else
         {
             pid_t waiter_pid = fork();
@@ -259,6 +268,7 @@ int main(int argc, const char** argv)
                 kill(engine_pid, SIGKILL);
                 return EXIT_SUCCESS;
             }
+
             else
             {
                 int status;
@@ -277,4 +287,11 @@ int main(int argc, const char** argv)
 
     createAndWriteJson(std::filesystem::path{ args.at("-o").asString() }, stress_level, fmt::format("Crashes in: {}", fmt::join(extra_infos, ", ")), resources.size());
     return EXIT_SUCCESS;
+}
+
+} // namespace curaengine
+
+int main(int argc, const char** argv)
+{
+    return curaengine::runStressBenchmark(argc, argv);
 }

@@ -1,12 +1,11 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SLICE_H
-#define SLICE_H
+#pragma once
 
-#include "Scene.h" //To store the scene to slice.
+#include "Scene.h"
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -58,6 +57,4 @@ private:
     Slice& operator=(const Slice& other) = delete;
 };
 
-} // namespace cura
-
-#endif // SLICE_H
+} // namespace curaengine

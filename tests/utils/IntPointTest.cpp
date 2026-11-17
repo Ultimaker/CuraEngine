@@ -1,15 +1,29 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
 
-#include "geometry/Point2LL.h"
-#include "geometry/Point3Matrix.h"
-#include "geometry/PointMatrix.h"
+#include "types/geometry/Point2LL.h"
+#include "types/geometry/Point3Matrix.h"
+#include "types/geometry/PointMatrix.h"
+#include "types/geometry/PointsSet.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
+
+TEST(IntPointTest, TestConstantBoundaries)
+{
+    static_assert(point_min == std::numeric_limits<coord_t>::min());
+    static_assert(point_max == std::numeric_limits<coord_t>::max());
+    static_assert(no_index == std::numeric_limits<size_t>::max());
+    EXPECT_EQ(no_point.X, point_min);
+    EXPECT_EQ(no_point.Y, point_min);
+}
+
 TEST(IntPointTest, TestRotationMatrix)
 {
     PointMatrix rot2d(90);
@@ -32,5 +46,5 @@ TEST(IntPointTest, TestSize)
     ASSERT_LE(sizeof(coord_t), sizeof(int64_t));
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

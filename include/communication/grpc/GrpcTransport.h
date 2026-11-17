@@ -7,8 +7,10 @@
 #include <condition_variable>
 #include <google/protobuf/message.h>
 #include <grpcpp/grpcpp.h>
+#include <memory>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <thread>
 
 #include <agrpc/asio_grpc.hpp>
@@ -18,7 +20,7 @@
 
 #include "Cura.grpc.pb.h"
 
-namespace cura
+namespace curaengine::communication
 {
 
 /*!
@@ -52,13 +54,13 @@ public:
      * Blocks until a message has been received and returns it
      * @return The received message
      */
-    std::optional<proto::CuraClientMessage> takeNextMessage();
+    std::optional<::cura::proto::CuraClientMessage> takeNextMessage();
 
     /*! Gently stop the communication with the remote gRPC server */
     void stop();
 
 private:
-    using RPC = agrpc::ClientRPC<&proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
+    using RPC = agrpc::ClientRPC<&::cura::proto::CuraEngineCommunication::Stub::PrepareAsyncCommunicate>;
 
     // Channels are used as asynchronous producer/consumer queue. If their buffer happen to be full, they will block until the message can be finally added,
     // so there is no data loss anyway, but the buffer size should be fine-tuned to be large enough to allow a smooth messages stream without overwhelming the memory.
@@ -75,16 +77,16 @@ private:
     boost::asio::awaitable<void> handleSendingMessages(RPC& rpc);
 
     std::shared_ptr<grpc::Channel> channel_; //!< The gPRC communication channel
-    std::unique_ptr<proto::CuraEngineCommunication::Stub> stub_; //!< The object that connects the channel with the protobuf service
+    std::unique_ptr<::cura::proto::CuraEngineCommunication::Stub> stub_; //!< The object that connects the channel with the protobuf service
     agrpc::GrpcContext grpc_context_; //!< The asio-gRPC event pump that runs the data transmission and waking up of coroutines
     std::thread grpc_thread_; //!< The thread in which the gRPC communication is processed
     std::mutex active_context_mutex_; //!< Mutex around the client_context_ variable
     grpc::ClientContext* client_context_{ nullptr }; //!< The context that contains the current connection to the server
     std::atomic<bool> running_{ true }; //!< Indicates that the gRPC client is running, or supposed to
     //!< The asynchronous producer/consumer queue containing the messages to be sent
-    boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<proto::CuraEngineMessage>)> send_queue_;
+    boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<::cura::proto::CuraEngineMessage>)> send_queue_;
     //!< The asynchronous producer/consumer queue containing the received messages
-    boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<proto::CuraClientMessage>)> receive_queue_;
+    boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<::cura::proto::CuraClientMessage>)> receive_queue_;
 };
 
-} // namespace cura
+} // namespace curaengine::communication

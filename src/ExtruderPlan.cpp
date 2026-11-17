@@ -1,15 +1,21 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "ExtruderPlan.h"
 
 #include <range/v3/algorithm/any_of.hpp>
 
-#include "gcode_export/gcodeExport.h"
+#include "FanSpeedLayerTimeSettings.h"
+#include "SliceMeshStorage.h"
+#include "gcode/GCodeExport.h"
 
-
-namespace cura
+namespace curaengine
 {
+using namespace gcode;
+using namespace types::geometry;
+using namespace routing;
+using namespace types;
+using namespace utils;
 ExtruderPlan::ExtruderPlan(
     const size_t extruder,
     const LayerIndex layer_nr,
@@ -164,7 +170,7 @@ coord_t ExtruderPlan::calculateMaxOverhangLength() const
             {
                 if (current_position.has_value())
                 {
-                    current_overhang_length += vSize(position.toPoint2LL() - current_position.value());
+                    current_overhang_length += types::geometry::vSize(position.toPoint2LL() - current_position.value());
                 }
                 current_position = position.toPoint2LL();
             }
@@ -177,4 +183,4 @@ coord_t ExtruderPlan::calculateMaxOverhangLength() const
     return std::max(max_overhang_length, current_overhang_length);
 }
 
-} // namespace cura
+} // namespace curaengine

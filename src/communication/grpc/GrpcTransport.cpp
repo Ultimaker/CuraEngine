@@ -16,13 +16,12 @@
 #include <boost/asio/use_future.hpp>
 #include <spdlog/spdlog.h>
 
-#include "settings/types/LayerIndex.h"
+#include "types/LayerIndex.h"
 
 
 using namespace std::chrono_literals;
-
-namespace cura
-{
+namespace curaengine::communication
+namespace proto = ::cura::proto;
 
 GrpcTransport::GrpcTransport(const std::string& endpoint, const grpc::ChannelArguments& arguments)
     : channel_(grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments))
@@ -188,4 +187,4 @@ void GrpcTransport::stop()
 }
 
 
-} // namespace cura
+} // namespace curaengine::communication

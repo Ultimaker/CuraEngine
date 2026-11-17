@@ -1,0 +1,42 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#pragma once
+
+#include <optional>
+
+#include "Settings.h"
+#include "types/SectionType.h"
+#include "types/geometry/Shape.h"
+
+namespace curaengine::types::geometry
+{
+/*!
+ * \brief A MendedShape is a wrapper class for a Shape,
+ *   so we can't forget to 'prepare' the shape for those algorithm(s) that need that.
+ *
+ * Some algorithms (well, just one at the moment, SkeletalTrapezoidation) needs polygons that
+ * - don't (near) self-intersect,
+ * - don't have any colinear segments,
+ * - don't have any degenerate vertices,
+ * - ... etc.
+ * When this is forgotten, it can _sometimes_ produce crashes, especially in more complicated models;
+ * since this doesn't always happen (or even in the majority of cases), it can slip by our QA process.
+ * This class will make it so we can't forget that anymore, since the typesystem will remind people.
+ *
+ * (Previously basically all of its code was in WallToolPaths instead.)
+ */
+class MendedShape
+{
+public:
+    MendedShape() = default;
+    MendedShape(const Settings* settings, const types::SectionType section_type, const Shape* shape);
+    const Shape& getShape() const;
+
+protected:
+    const Settings* settings_{ nullptr };
+    const types::SectionType section_type_{};
+    const Shape* shape_{ nullptr };
+    std::optional<Shape> mended_shape_;
+};
+} // namespace curaengine::types::geometry

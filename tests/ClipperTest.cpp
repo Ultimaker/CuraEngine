@@ -1,21 +1,26 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "utils/Coord_t.h"
 #include <cmath>
-#include <gtest/gtest.h>
 #include <polyclipping/clipper.hpp>
+
+#include <gtest/gtest.h>
+
+#include "types/Coord_t.h"
 
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
-#include "utils/SVG.h"
-#include "geometry/Polygon.h"
 #include <cstdlib>
+
+#include "types/SVG.h"
+#include "types/geometry/Polygon.h"
 #endif // TEST_INFILL_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types;
+using namespace utils;
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test
 {
@@ -79,12 +84,12 @@ public:
 
     static Paths intersectPolylines(const Paths& outlines, const Paths& polylines);
 
-    static coord_t sq(coord_t i)
+    static types::coord_t sq(types::coord_t i)
     {
         return i * i;
     };
 
-    static coord_t calculateLength(const Paths& polylines);
+    static types::coord_t calculateLength(const Paths& polylines);
 
     static void outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename);
 };
@@ -103,7 +108,7 @@ DISABLED_ClipperTest::Paths DISABLED_ClipperTest::intersectPolylines(const Paths
 
 DISABLED_ClipperTest::coord_t DISABLED_ClipperTest::calculateLength(const Paths& polylines)
 {
-    coord_t polyline_length = 0;
+    types::coord_t polyline_length = 0;
     for (const Path& path : polylines)
     {
         const Point* last = nullptr;
@@ -145,14 +150,14 @@ void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylin
     Polygons lines_after;
     lines_after.set(intersected);
     SVG svg(filename, AABB(outs));
-    svg.writePolygons(outs, SVG::Color::BLACK);
+    svg.writePolygons(outs, SVG::Color::Black);
     svg.nextLayer();
-    svg.writePolylines(lines_after, SVG::Color::RED);
+    svg.writePolylines(lines_after, SVG::Color::Red);
     svg.nextLayer();
-    svg.writePolylines(lines, SVG::Color::GREEN);
+    svg.writePolylines(lines, SVG::Color::Green);
 #endif // TEST_INFILL_SVG_OUTPUT
 }
 
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

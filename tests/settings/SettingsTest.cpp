@@ -1,31 +1,34 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "settings/Settings.h" //The class under test.
+#include "Settings.h"
 
 #include <cmath>
-#include <memory> //For shared_ptr.
+#include <memory>
 #include <numbers>
 
 #include <gtest/gtest.h>
 
-#include "Application.h" //To test extruder train settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/EnumSettings.h"
-#include "settings/FlowTempGraph.h"
-#include "settings/types/Angle.h"
-#include "settings/types/Duration.h"
-#include "settings/types/LayerIndex.h"
-#include "settings/types/Ratio.h"
-#include "settings/types/Temperature.h"
-#include "settings/types/Velocity.h"
-#include "utils/Coord_t.h"
-#include "utils/Matrix4x3D.h" //Testing matrix transformation settings.
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
+#include "types/Coord_t.h"
+#include "types/Duration.h"
+#include "types/EFillMethod.h"
+#include "types/LayerIndex.h"
+#include "types/Ratio.h"
+#include "types/Temperature.h"
+#include "types/Velocity.h"
+#include "types/geometry/Matrix4x3D.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using namespace types::geometry;
+using namespace types;
+using namespace utils;
 
 /*
  * A test fixture with an empty settings object to test with.
@@ -166,24 +169,6 @@ TEST_F(SettingsTest, AddSettingDuration)
     EXPECT_DOUBLE_EQ(Duration{ 0 }, settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
 }
 
-TEST_F(SettingsTest, AddSettingFlowTempGraph)
-{
-    settings.add("test_setting", "[[1.50, 10.1],[ 25.1,40.4 ], [26.5,75], [50 , 100.10]]"); // Try various spacing and radixes.
-    const auto flow_temp_graph = settings.get<FlowTempGraph>("test_setting");
-
-    double stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, true);
-    EXPECT_DOUBLE_EQ(75.0 + (100.10 - 75.0) * (30.5 - 26.5) / (50.0 - 26.5), stored_temperature) << "Interpolate between low and high value.";
-
-    stored_temperature = flow_temp_graph.getTemp(1, 200.0, true);
-    EXPECT_DOUBLE_EQ(10.1, stored_temperature) << "Flow too low - Return lower temperature in the graph.";
-
-    stored_temperature = flow_temp_graph.getTemp(80, 200.0, true);
-    EXPECT_DOUBLE_EQ(100.1, stored_temperature) << "Flow too high - Return higher temperature in the graph.";
-
-    stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, false);
-    EXPECT_DOUBLE_EQ(200.0, stored_temperature);
-}
-
 TEST_F(SettingsTest, AddSettingFMatrix3x3)
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); // Try various spacing and radixes.
@@ -259,14 +244,14 @@ TEST_F(SettingsTest, LimitToExtruder)
 TEST_F(SettingsTest, PluginExtendedEnum)
 {
     settings.add("infill_type", "PLUGIN::plugin_1::MOZAIC");
-    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::PLUGIN);
+    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::Plugin);
 }
 
 TEST_F(SettingsTest, EnumStringSwitch)
 {
     settings.add("infill_type", "lightning");
-    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::LIGHTNING);
+    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::Lightning);
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 
-#include <boost/uuid/random_generator.hpp> //For generating a UUID.
-#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/cfg/helpers.h>
@@ -25,14 +25,19 @@
 #ifdef ENABLE_GRPC_COMMUNICATION
 #include "communication/grpc/GrpcCommunication.h" //To connect to Cura's gRPC service.
 #endif
-#include "communication/command_line/CommandLine.h" //To use the command line to slice stuff.
-#include "communication/emscripten/EmscriptenCommunication.h" // To use Emscripten to slice stuff.
+#include "communication/CommandLine.h"
+#include "communication/EmscriptenCommunication.h"
 #include "progress/Progress.h"
-#include "utils/ThreadPool.h"
-#include "utils/string.h" //For stringcasecompare.
+#include "types/ThreadPool.h"
+#include "utils/string.h"
 
-namespace cura
+namespace curaengine
 {
+using namespace communication;
+using namespace progress;
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
 
 Application::Application()
     : instance_uuid_(boost::uuids::to_string(boost::uuids::random_generator()()))
@@ -200,7 +205,7 @@ void Application::printHeader() const
 void Application::printLicense() const
 {
     fmt::print("\n");
-    fmt::print("Copyright (C) 2024 Ultimaker\n");
+    fmt::print("Copyright (C) 2026 UltiMaker\n");
     fmt::print("\n");
     fmt::print("This program is free software: you can redistribute it and/or modify\n");
     fmt::print("it under the terms of the GNU Affero General Public License as published by\n");
@@ -256,7 +261,7 @@ void Application::run(const size_t argc, char** argv)
         {
             slice();
         }
-        else if (stringcasecompare(argv[1], "help") == 0)
+        else if (utils::stringcasecompare(argv[1], "help") == 0)
         {
             printHelp();
         }
@@ -314,4 +319,4 @@ void Application::startThreadPool(int nworkers)
     thread_pool_ = new ThreadPool(nthreads);
 }
 
-} // namespace cura
+} // namespace curaengine

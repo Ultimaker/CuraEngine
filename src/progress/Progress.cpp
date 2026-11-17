@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "progress/Progress.h"
@@ -10,13 +10,16 @@
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get the communication channel to send progress through.
-#include "communication/Communication.h" //To send progress through the communication channel.
-#include "utils/gettime.h"
+#include "Application.h"
+#include "communication/Communication.h"
+#include "types/TimeKeeper.h"
 
-namespace cura
+namespace curaengine::progress
 {
-std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
+std::array<double, n_progress_stages> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;
 std::optional<LayerIndex> Progress::first_skipped_layer{};
 
@@ -29,7 +32,7 @@ double Progress::calcOverallProgress(Stage stage, double stage_progress)
 void Progress::init()
 {
     double accumulated_time = 0;
-    for (size_t stage = 0; stage < N_PROGRESS_STAGES; stage++)
+    for (size_t stage = 0; stage < n_progress_stages; stage++)
     {
         accumulated_times.at(static_cast<size_t>(stage)) = accumulated_time;
         accumulated_time += times.at(static_cast<size_t>(stage));
@@ -56,7 +59,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
             time_keeper->restart();
         }
 
-        if (static_cast<int>(stage) < static_cast<int>(Stage::FINISH))
+        if (static_cast<int>(stage) < static_cast<int>(Stage::Finish))
         {
             spdlog::info("Starting {}...", names.at(static_cast<size_t>(stage)));
         }
@@ -80,10 +83,10 @@ void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t tota
             first_skipped_layer.reset();
         }
 
-        messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
+        messageProgress(Stage::Export, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
 
         time_keeper.logRegisteredTimes(fmt::format("Layer export [{}]", layer_nr));
     }
 }
 
-} // namespace cura
+} // namespace curaengine::progress

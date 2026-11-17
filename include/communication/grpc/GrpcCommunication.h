@@ -1,16 +1,20 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GRPCCOMMUNICATION_H
-#define GRPCCOMMUNICATION_H
+#pragma once
 
-#ifdef BUILD_TESTS
-#include <gtest/gtest_prod.h>
-#endif
-#include <memory> //For unique_ptr and shared_ptr.
+#include <memory>
+#include <string>
+#include <vector>
 
+#include "Cura.pb.h"
 #include "SliceDataStruct.h"
 #include "communication/Communication.h" //The class we're implementing.
+#include "types/Coord_t.h"
+#include "types/Duration.h"
+#include "types/LayerIndex.h"
+#include "types/Velocity.h"
+#include "types/geometry/Point3LL.h"
 
 namespace google::protobuf
 {
@@ -22,7 +26,7 @@ class RepeatedPtrField;
 } // namespace google::protobuf
 
 // Forward declarations to speed up compilation.
-namespace cura
+namespace curaengine
 {
 
 class Settings;
@@ -30,11 +34,10 @@ class Scene;
 class MeshGroup;
 class Mesh;
 class Slice;
-class Polygon;
-class GrpcTransport;
-class PathCompiler;
 
-namespace proto
+} // namespace curaengine
+
+namespace cura::proto
 {
 
 class SettingList;
@@ -44,7 +47,13 @@ class Object;
 class Layer;
 class Slice;
 
-} // namespace proto
+} // namespace cura::proto
+
+namespace curaengine::communication
+{
+namespace proto = ::cura::proto;
+class GrpcTransport;
+class PathCompiler;
 
 /*
  * \brief Communication class that connects via gRPC to Cura's front-end.
@@ -82,7 +91,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    void sendCurrentPosition(const Point3LL& position) override;
+    void sendCurrentPosition(const types::geometry::Point3LL& position) override;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
@@ -109,7 +118,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) override;
+    void sendLayerComplete(const types::LayerIndex::value_type& layer_nr, const types::coord_t& z, const types::coord_t& thickness) override;
 
     /*
      * \brief Send a line to the front-end to display in layer view.
@@ -125,10 +134,10 @@ public:
      */
     void sendLineTo(
         const PrintFeatureType& type,
-        const Point3LL& to,
-        const coord_t& line_width,
-        const coord_t& line_thickness,
-        const Velocity& velocity,
+        const types::geometry::Point3LL& to,
+        const types::coord_t& line_width,
+        const types::coord_t& line_thickness,
+        const types::Velocity& velocity,
         const PrintSegmentAttributes& print_attributes) override;
 
     /*
@@ -144,7 +153,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Send progress to Cura.
@@ -162,7 +171,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    void setLayerForSend(const LayerIndex::value_type& layer_nr) override;
+    void setLayerForSend(const types::LayerIndex::value_type& layer_nr) override;
 
     /*
      * \brief Slice the next scene that the front-end wants us to slice.
@@ -213,6 +222,4 @@ private:
     SliceDataStruct<proto::Layer> sliced_layers;
 };
 
-} // namespace cura
-
-#endif // GRPCCOMMUNICATION_H
+} // namespace curaengine::communication

@@ -27,20 +27,24 @@
 #include "Cura.pb.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 #include "Slice.h" //To process slices.
 #include "communication/grpc/GrpcTransport.h"
 #include "communication/grpc/PathCompiler.h"
 #include "communication/grpc/SliceDataStruct.h" //To store sliced layer data.
-#include "plugins/slots.h"
-#include "settings/types/LayerIndex.h" //To point to layers.
-#include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "plugins/Slots.h"
+#include "types/LayerIndex.h" //To point to layers.
+#include "types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "types/geometry/Point2F.h"
 #include "utils/MeshUtils.h"
-#include "utils/Point3F.h"
+#include "types/geometry/Point3F.h"
 #include "utils/channel.h"
 
-namespace cura
+namespace curaengine::communication
 {
+using namespace types;
+using namespace types::geometry;
+using namespace utils;
 
 GrpcCommunication::GrpcCommunication()
 {
@@ -74,7 +78,7 @@ bool GrpcCommunication::connect(const std::string& endpoint)
 
 void GrpcCommunication::sendGCodePart(const std::string& gcode_part)
 {
-    const std::string message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_part);
+    const std::string message_str = plugins::slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_part);
     if (message_str.empty())
     {
         return;
@@ -109,7 +113,7 @@ std::shared_ptr<Slice> GrpcCommunication::makeSlice(const proto::Slice& slice_me
     for (const auto& plugin : slice_message.engine_plugins())
     {
         const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
-        slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+        plugins::slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
 #ifdef SENTRY_URL
         sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
 #endif
@@ -340,7 +344,7 @@ void GrpcCommunication::sliceNext()
         return;
     }
 
-    slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(current_slice_->scene);
+    plugins::slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(current_slice_->scene);
     Application::getInstance().current_slice_ = current_slice_;
 
     spdlog::info("Start actual slicing.");
@@ -454,4 +458,4 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
     mesh.finish();
 }
 
-} // namespace cura
+} // namespace curaengine::communication

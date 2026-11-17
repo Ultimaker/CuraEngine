@@ -4,10 +4,13 @@
 #include "communication/grpc/PathCompiler.h"
 
 #include "ExtruderTrain.h"
-#include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "types/Velocity.h" //To send to layer view how fast stuff is printing.
 
-namespace cura
+namespace curaengine::communication
 {
+namespace proto = ::cura::proto;
+using namespace types;
+using namespace types::geometry;
 
 void PathCompiler::setLayer(const LayerIndex& new_layer_nr)
 {
@@ -148,4 +151,4 @@ void PathCompiler::addLineSegment(
     line_attributes.push_back(static_cast<uint32_t>(print_attributes.value()));
 }
 
-}; // namespace cura
+} // namespace curaengine::communication

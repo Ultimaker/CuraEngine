@@ -1,20 +1,29 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FFF_POLYGON_GENERATOR_H
-#define FFF_POLYGON_GENERATOR_H
+#pragma once
 
-#include "settings/types/LayerIndex.h"
-#include "utils/NoCopy.h"
+#include "types/LayerIndex.h"
+#include "types/NoCopy.h"
 
-namespace cura
+namespace curaengine::progress
+{
+class ProgressStageEstimator;
+}
+
+namespace curaengine::types
+{
+class TimeKeeper;
+}
+
+namespace curaengine
 {
 
 class MeshGroup;
-class ProgressStageEstimator;
+
 class SliceDataStorage;
 class SliceMeshStorage;
-class TimeKeeper;
+
 
 /*!
  * Primary stage in Fused Filament Fabrication processing: Polygons are generated.
@@ -24,7 +33,7 @@ class TimeKeeper;
  *
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public NoCopy
+class FffPolygonGenerator : public types::NoCopy
 {
 public:
     /*!
@@ -34,18 +43,18 @@ public:
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
      */
-    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, TimeKeeper& timeKeeper);
+    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, types::TimeKeeper& timeKeeper);
 
 private:
     /*!
      * \brief Helper function to get the actual height of the draft shield.
      *
      * The draft shield is the height of the print if we've set the draft shield
-     * limitation to FULL. Otherwise the height is set to the height limit
+     * limitation to Full. Otherwise the height is set to the height limit
      * setting. If the draft shield is disabled, the height is always 0.
      *
      * \param total_layers The total number of layers in the print (the height
-     * of the draft shield if the limit is FULL.
+     * of the draft shield if the limit is Full.
      * \return The actual height of the draft shield.
      */
     size_t getDraftShieldLayerCount(const size_t total_layers) const;
@@ -59,7 +68,7 @@ private:
      *
      * \return Whether the process succeeded (always true).
      */
-    bool sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
+    bool sliceModel(MeshGroup* object, types::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, support area polygons, etc.
@@ -67,7 +76,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
-    void slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    void slices2polygons(SliceDataStorage& storage, types::TimeKeeper& timeKeeper);
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill
@@ -81,7 +90,7 @@ private:
         SliceDataStorage& storage,
         const size_t mesh_order_idx,
         const std::vector<size_t>& mesh_order,
-        ProgressStageEstimator& inset_skin_progress_estimate);
+        progress::ProgressStageEstimator& inset_skin_progress_estimate);
 
     /*!
      * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
@@ -108,7 +117,7 @@ private:
      *
      * \return Whether or not the layer is empty
      */
-    bool isEmptyLayer(SliceDataStorage& storage, const LayerIndex& layer_idx);
+    bool isEmptyLayer(SliceDataStorage& storage, const types::LayerIndex& layer_idx);
 
     /*!
      * \brief Remove all bottom layers which are empty.
@@ -146,7 +155,7 @@ private:
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
+    void processSkinsAndInfill(SliceMeshStorage& mesh, const types::LayerIndex layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.
@@ -173,6 +182,4 @@ private:
     void processFuzzyWalls(SliceMeshStorage& mesh);
 };
 
-} // namespace cura
-
-#endif // FFF_POLYGON_GENERATOR_H
+} // namespace curaengine
