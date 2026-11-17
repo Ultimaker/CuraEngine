@@ -20,8 +20,10 @@
 
 
 using namespace std::chrono_literals;
+namespace proto = cura::proto;
+
 namespace curaengine::communication
-namespace proto = ::cura::proto;
+{
 
 GrpcTransport::GrpcTransport(const std::string& endpoint, const grpc::ChannelArguments& arguments)
     : channel_(grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments))

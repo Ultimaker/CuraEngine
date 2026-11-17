@@ -35,16 +35,16 @@
 #include "plugins/Slots.h"
 #include "types/LayerIndex.h" //To point to layers.
 #include "types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "types/geometry/Matrix4x3D.h"
 #include "types/geometry/Point2F.h"
-#include "utils/MeshUtils.h"
 #include "types/geometry/Point3F.h"
+#include "utils/MeshUtils.h"
 #include "utils/channel.h"
 
 namespace curaengine::communication
 {
 using namespace types;
 using namespace types::geometry;
-using namespace utils;
 
 GrpcCommunication::GrpcCommunication()
 {
@@ -452,7 +452,7 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
         mesh.addFace(verts[0], verts[1], verts[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
     }
 
-    MeshUtils::loadTextureFromString(object_message.texture(), mesh);
+    utils::loadTextureFromString(object_message.texture(), mesh);
 
     mesh.mesh_name_ = object_message.name();
     mesh.finish();
