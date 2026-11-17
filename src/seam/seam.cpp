@@ -268,7 +268,7 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     }
 
     {
-        auto alignment_criterion = std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0);
+        auto alignment_criterion = std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4);
         best_candidate_finder.appendSingleCriterionPass(alignment_criterion);
     }
 
