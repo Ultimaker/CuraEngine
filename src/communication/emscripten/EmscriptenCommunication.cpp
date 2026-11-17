@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef __EMSCRIPTEN__
-#include "communication/EmscriptenCommunication.h"
+#include "communication/emscripten/EmscriptenCommunication.h"
 
 #include <emscripten.h>
 #include <rapidjson/document.h>
@@ -19,7 +19,7 @@
 #include "Slice.h"
 #include "utils/string.h"
 
-namespace curaengine::communication
+namespace curaengine::communication::emscripten
 {
 using namespace types;
 
@@ -142,6 +142,6 @@ void EmscriptenCommunication::sendPrintInformation(const std::vector<Duration>& 
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::emscripten
 
 #endif // __EMSCRIPTEN__

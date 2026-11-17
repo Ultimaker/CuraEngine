@@ -20,7 +20,7 @@
 
 #include "Cura.grpc.pb.h"
 
-namespace curaengine::communication
+namespace curaengine::communication::grpc
 {
 
 /*!
@@ -34,7 +34,7 @@ public:
      * @param endpoint The endpoint to connect to, which should be something like "127.0.0.1:49674"
      * @param arguments Extra arguments to be used for the channel
      */
-    GrpcTransport(const std::string& endpoint, const grpc::ChannelArguments& arguments);
+    GrpcTransport(const std::string& endpoint, const ::grpc::ChannelArguments& arguments);
 
     /*!
      * Makes sures the communication channel is properly connected and start the messages receiving and sending thread
@@ -76,12 +76,12 @@ private:
     /*! Secondary coroutine that handles the sending of messages when there are some available */
     boost::asio::awaitable<void> handleSendingMessages(RPC& rpc);
 
-    std::shared_ptr<grpc::Channel> channel_; //!< The gPRC communication channel
+    std::shared_ptr<::grpc::Channel> channel_; //!< The gPRC communication channel
     std::unique_ptr<::cura::proto::CuraEngineCommunication::Stub> stub_; //!< The object that connects the channel with the protobuf service
     agrpc::GrpcContext grpc_context_; //!< The asio-gRPC event pump that runs the data transmission and waking up of coroutines
     std::thread grpc_thread_; //!< The thread in which the gRPC communication is processed
     std::mutex active_context_mutex_; //!< Mutex around the client_context_ variable
-    grpc::ClientContext* client_context_{ nullptr }; //!< The context that contains the current connection to the server
+    ::grpc::ClientContext* client_context_{ nullptr }; //!< The context that contains the current connection to the server
     std::atomic<bool> running_{ true }; //!< Indicates that the gRPC client is running, or supposed to
     //!< The asynchronous producer/consumer queue containing the messages to be sent
     boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<::cura::proto::CuraEngineMessage>)> send_queue_;
@@ -89,4 +89,4 @@ private:
     boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::optional<::cura::proto::CuraClientMessage>)> receive_queue_;
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc

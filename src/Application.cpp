@@ -25,15 +25,14 @@
 #ifdef ENABLE_GRPC_COMMUNICATION
 #include "communication/grpc/GrpcCommunication.h" //To connect to Cura's gRPC service.
 #endif
-#include "communication/CommandLine.h"
-#include "communication/EmscriptenCommunication.h"
+#include "communication/command_line/CommandLine.h"
+#include "communication/emscripten/EmscriptenCommunication.h"
 #include "progress/Progress.h"
 #include "types/ThreadPool.h"
 #include "utils/string.h"
 
 namespace curaengine
 {
-using namespace communication;
 using namespace progress;
 using namespace types;
 using namespace types::geometry;
@@ -108,7 +107,7 @@ void Application::connect()
         }
     }
 
-    auto grpc_communication = std::make_shared<GrpcCommunication>();
+    auto grpc_communication = std::make_shared<communication::grpc::GrpcCommunication>();
     if (! grpc_communication->connect(endpoint))
     {
         spdlog::error("Failed to connect to Cura gRPC service at {}", endpoint);
@@ -229,9 +228,9 @@ void Application::slice()
         arguments.emplace_back(argv_[argument_index]);
     }
 #ifdef __EMSCRIPTEN__
-    communication_ = std::make_shared<EmscriptenCommunication>(arguments);
+    communication_ = std::make_shared<communication::emscripten::EmscriptenCommunication>(arguments);
 #else
-    communication_ = std::make_shared<CommandLine>(arguments);
+    communication_ = std::make_shared<communication::command_line::CommandLine>(arguments);
 #endif
 }
 

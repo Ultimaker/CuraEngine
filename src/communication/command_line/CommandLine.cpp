@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "communication/CommandLine.h"
+#include "communication/command_line/CommandLine.h"
 
 #include <cerrno>
 #include <cstring>
@@ -37,7 +37,7 @@
 
 namespace fs = std::filesystem;
 
-namespace curaengine::communication
+namespace curaengine::communication::command_line
 {
 using namespace types::geometry;
 using namespace types;
@@ -742,4 +742,4 @@ std::string CommandLine::findDefinitionFile(const std::string& definition_id, co
     return {};
 }
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::command_line

@@ -12,14 +12,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Communication.h"
+#include "communication/Communication.h"
 
 namespace curaengine
 {
 class Settings;
 }
 
-namespace curaengine::communication
+namespace curaengine::communication::command_line
 {
 
 
@@ -208,4 +208,4 @@ private:
     static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::command_line

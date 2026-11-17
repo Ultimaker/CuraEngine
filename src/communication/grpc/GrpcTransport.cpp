@@ -22,11 +22,11 @@
 using namespace std::chrono_literals;
 namespace proto = cura::proto;
 
-namespace curaengine::communication
+namespace curaengine::communication::grpc
 {
 
-GrpcTransport::GrpcTransport(const std::string& endpoint, const grpc::ChannelArguments& arguments)
-    : channel_(grpc::CreateCustomChannel(endpoint, grpc::InsecureChannelCredentials(), arguments))
+GrpcTransport::GrpcTransport(const std::string& endpoint, const ::grpc::ChannelArguments& arguments)
+    : channel_(::grpc::CreateCustomChannel(endpoint, ::grpc::InsecureChannelCredentials(), arguments))
     , stub_(proto::CuraEngineCommunication::NewStub(channel_))
     , send_queue_(grpc_context_.get_executor(), send_channel_buffer_size)
     , receive_queue_(grpc_context_.get_executor(), receive_channel_buffer_size)
@@ -159,8 +159,8 @@ boost::asio::awaitable<void> GrpcTransport::runStream()
     // Spawns the read and write coroutines independently and wait until they are both completed
     co_await (handleIncomingMessages(rpc) && handleSendingMessages(rpc));
 
-    const grpc::Status status = co_await rpc.finish(use_awaitable);
-    if (! status.ok() && status.error_code() != grpc::StatusCode::CANCELLED)
+    const ::grpc::Status status = co_await rpc.finish(use_awaitable);
+    if (! status.ok() && status.error_code() != ::grpc::StatusCode::CANCELLED)
     {
         spdlog::warn("Cura gRPC stream ended unexpectedly: {}", status.error_message());
     }
@@ -189,4 +189,4 @@ void GrpcTransport::stop()
 }
 
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc

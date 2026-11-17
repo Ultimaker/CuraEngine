@@ -41,8 +41,10 @@
 #include "utils/MeshUtils.h"
 #include "utils/channel.h"
 
-namespace curaengine::communication
+
+namespace curaengine::communication::grpc
 {
+
 using namespace types;
 using namespace types::geometry;
 
@@ -60,7 +62,7 @@ bool GrpcCommunication::connect(const std::string& endpoint)
 {
     spdlog::info("Connecting to Cura gRPC service at {}", endpoint);
 
-    grpc::ChannelArguments arguments;
+    ::grpc::ChannelArguments arguments;
     arguments.SetMaxReceiveMessageSize(500 * 1024 * 1024);
     arguments.SetMaxSendMessageSize(500 * 1024 * 1024);
     grpc_transport_ = std::make_unique<GrpcTransport>(endpoint, arguments);
@@ -458,4 +460,4 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
     mesh.finish();
 }
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc

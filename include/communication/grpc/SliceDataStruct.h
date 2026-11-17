@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <unordered_map> //To store the slice data by layer.
 
-namespace curaengine::communication
+namespace curaengine::communication::grpc
 {
 
 /*!
@@ -36,6 +36,6 @@ public:
     std::unordered_map<int, T> slice_data;
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc
 
 #endif // SLICEDATASTRUCT_H

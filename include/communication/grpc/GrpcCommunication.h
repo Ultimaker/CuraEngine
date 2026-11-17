@@ -49,7 +49,7 @@ class Slice;
 
 } // namespace cura::proto
 
-namespace curaengine::communication
+namespace curaengine::communication::grpc
 {
 namespace proto = ::cura::proto;
 class GrpcTransport;
@@ -222,4 +222,4 @@ private:
     SliceDataStruct<proto::Layer> sliced_layers;
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc

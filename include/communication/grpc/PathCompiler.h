@@ -20,7 +20,7 @@ namespace curaengine
 class ExtruderTrain;
 }
 
-namespace curaengine::communication
+namespace curaengine::communication::grpc
 {
 
 /*
@@ -164,4 +164,4 @@ private:
         const PrintSegmentAttributes& print_attributes);
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc

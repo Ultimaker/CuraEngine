@@ -132,8 +132,8 @@ set(engine_SRCS # Except main.cpp.
         src/bridge/BridgeAngleScoringCriterion.cpp
         src/bridge/AlignShapeScoringCriterion.cpp
 
-        src/communication/CommandLine.cpp
-        src/communication/EmscriptenCommunication.cpp
+        src/communication/command_line/CommandLine.cpp
+        src/communication/emscripten/EmscriptenCommunication.cpp
 
         src/gcode/GCodeExport.cpp
         src/gcode/FixedGCodePart.cpp

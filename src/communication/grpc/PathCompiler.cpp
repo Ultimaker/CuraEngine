@@ -6,7 +6,7 @@
 #include "ExtruderTrain.h"
 #include "types/Velocity.h" //To send to layer view how fast stuff is printing.
 
-namespace curaengine::communication
+namespace curaengine::communication::grpc
 {
 namespace proto = ::cura::proto;
 using namespace types;
@@ -151,4 +151,4 @@ void PathCompiler::addLineSegment(
     line_attributes.push_back(static_cast<uint32_t>(print_attributes.value()));
 }
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::grpc

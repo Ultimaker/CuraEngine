@@ -4,9 +4,9 @@
 #pragma once
 #ifdef __EMSCRIPTEN__
 
-#include "communication/CommandLine.h"
+#include "communication/command_line/CommandLine.h"
 
-namespace curaengine::communication
+namespace curaengine::communication::emscripten
 {
 
 /**
@@ -51,6 +51,6 @@ public:
     void sendPrintInformation(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::emscripten
 
 #endif // __EMSCRIPTEN__
