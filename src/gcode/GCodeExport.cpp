@@ -336,7 +336,8 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
             for (const auto& mesh : mesh_group.meshes)
             {
-                // A rough bounding box of the mesh is enough to show the skipped mesh's area on the machine, so horizontal expansion (e.g. extrusion width, brim) is not accounted for.
+                // A rough bounding box of the mesh is enough to show the skipped mesh's area on the machine, so horizontal expansion (e.g. extrusion width, brim) is not accounted
+                // for.
                 const AABB3D aabb = mesh.getAABB();
                 const double min_x = intToMm(aabb.min_.x_);
                 const double min_y = intToMm(aabb.min_.y_);
