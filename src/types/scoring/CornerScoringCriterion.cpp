@@ -3,6 +3,8 @@
 
 #include "types/scoring/CornerScoringCriterion.h"
 
+#include <algorithm>
+#include <cstdlib>
 #include <numbers>
 
 #include <range/v3/algorithm/find_if.hpp>
@@ -73,7 +75,7 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
     const bool convex = corner_angle > 0;
 
     // Ignore very small angles, we cannot consider them as anyhow sharp
-    constexpr AngleDegrees min_sharp_angle{ 18.0 };
+    constexpr double min_sharp_angle{ 18.0 }; // degrees
     constexpr double min_angle_score{ min_sharp_angle / 180.0 };
     const double angle_weighted{ std::max(0.0, inverse_lerp(min_angle_score, 1.0, std::abs(corner_angle))) };
 
