@@ -2710,7 +2710,7 @@ void LayerPlan::addLinesInGivenOrder(
         }
         else
         {
-            if (config.z_offset != 0)
+            if (config.z_offset != 0 && last_planned_position_.has_value())
             {
                 // Make sure we don't travel at fractional height
                 addTravel(getLastPlannedPositionOrStartingPosition());

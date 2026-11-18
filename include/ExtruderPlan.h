@@ -42,6 +42,7 @@ class ExtruderPlan
     friend class LayerPlan;
 #ifdef BUILD_TESTS
     friend class ExtruderPlanPathsParameterizedTest;
+    FRIEND_TEST(LayerPlanTest, FractionalSupportTravelKeepsClearanceLiftAtKnownPosition);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
