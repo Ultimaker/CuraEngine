@@ -31,7 +31,7 @@ public:
     /*
      * \brief Casts a double to an AngleDegrees instance.
      */
-    constexpr AngleDegrees(const double value)
+    AngleDegrees(const double value)
         : value_{ std::fmod(std::fmod(value, 360) + 360, 360) }
     {
     }
@@ -39,7 +39,7 @@ public:
     /*
      * \brief Casts the AngleDegrees instance to a double.
      */
-    constexpr operator double() const
+    operator double() const
     {
         return value_;
     }
