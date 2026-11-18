@@ -5,6 +5,7 @@
 #include <atomic>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <numeric>
 
 #include <spdlog/spdlog.h>
@@ -146,7 +147,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     // variable layers
-    AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
+    std::unique_ptr<AdaptiveLayerHeights> adaptive_layer_heights;
     const bool use_variable_layer_heights = mesh_group_settings.get<bool>("adaptive_layer_height_enabled");
 
     if (use_variable_layer_heights)
@@ -155,8 +156,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights
-            = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
+        adaptive_layer_heights = std::make_unique<AdaptiveLayerHeights>(
+            layer_thickness,
+            variable_layer_height_max_variation,
+            variable_layer_height_variation_step,
+            adaptive_threshold,
+            meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -226,7 +231,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
         std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
-        if (adaptive_layer_heights != nullptr)
+        if (adaptive_layer_heights)
         {
             adaptive_layer_height_values = adaptive_layer_heights->getLayers();
         }
