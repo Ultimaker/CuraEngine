@@ -55,7 +55,7 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
     {
         const Point2LL& here = getPoints().at(i);
         const Point2LL& next = getPoints().at((i + 1) % getPoints().size());
-        const coord_t segment_size = types::geometry::vSize(next - here);
+        const coord_t segment_size = vSize(next - here);
         segments_sizes_[i] = segment_size;
         total_length_ += segment_size;
     }
@@ -63,11 +63,18 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
 
 double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 {
-    const double corner_angle = cornerAngle(candidate_index, { 100, 1000 });
+    const double corner_angle = cornerAngle(candidate_index, { 100, 5000 });
+
     // angles < 0 are concave (left turning)
     // angles > 0 are convex (right turning)
+    const bool convex = corner_angle > 0;
 
-    return corner_angle > 0 ? convex_angle_score_ * corner_angle : concave_angle_score_ * (-corner_angle);
+    // Ignore very small angles, we cannot consider them as anyhow sharp
+    constexpr AngleDegrees min_sharp_angle{ 18.0 };
+    constexpr double min_angle_score{ min_sharp_angle / 180.0 };
+    const double angle_weighted{ std::max(0.0, inverse_lerp(min_angle_score, 1.0, std::abs(corner_angle))) };
+
+    return convex ? convex_angle_score_ * angle_weighted : concave_angle_score_ * angle_weighted;
 }
 
 double CornerScoringCriterion::cornerAngle(const size_t vertex_index, const std::vector<coord_t>& angle_query_distances) const
