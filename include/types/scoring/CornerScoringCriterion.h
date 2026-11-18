@@ -3,10 +3,12 @@
 
 #pragma once
 
+#include <cstddef>
 #include <vector>
 
 #include "types/Coord_t.h"
 #include "types/EZSeamCornerPrefType.h"
+#include "types/geometry/Point2D.h"
 #include "types/scoring/PositionBasedScoringCriterion.h"
 
 namespace curaengine::types::geometry
@@ -17,7 +19,6 @@ class PointsSet;
 namespace curaengine::types::scoring
 {
 
-
 /*!
  * Criterion that will give a score according to whether the point is creating a corner or lies on a flat line.
  * Depending on the given preference, concave or convex corners may get a higher score.
@@ -25,16 +26,22 @@ namespace curaengine::types::scoring
 class CornerScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
+    struct SegmentData
+    {
+        coord_t size;
+        types::geometry::Point2D direction;
+    };
+
     const types::EZSeamCornerPrefType corner_preference_;
     double concave_angle_score_{ 0.0 };
     double convex_angle_score_{ 0.0 };
-    std::vector<coord_t> segments_sizes_;
+    std::vector<SegmentData> segments_data_;
     coord_t total_length_{ 0 };
 
 public:
     explicit CornerScoringCriterion(const types::geometry::PointsSet& points, const types::EZSeamCornerPrefType corner_preference);
 
-    virtual double computeScore(const size_t candidate_index) const override;
+    double computeScore(const size_t candidate_index) const override;
 
 private:
     /*!
@@ -75,7 +82,17 @@ private:
      * \param direction 1 to go forward on the path, -1 to go backward
      * \return The positions on the path at the given distances from the reference point, in the same order
      */
-    std::vector<types::geometry::Point2LL> findNeighbourPoints(const size_t vertex_index, const std::vector<types::coord_t>& distances, const int direction) const;
+    std::vector<types::geometry::Point2LL> findNeighbourPoints(const size_t vertex_index, const std::vector<types::coord_t>& distances, const ptrdiff_t direction) const;
+
+    /*!
+     * Computes a valid index on a circular list, from a base index and a signed offset. Unlike a raw
+     * modulo on unsigned values, this stays correct for negative offsets, whatever their magnitude.
+     * \param base The reference index, which must be lower than count
+     * \param delta The signed offset to apply to the reference index
+     * \param count The number of elements in the circular list, which must be strictly positive
+     * \return The index in [0 ; count[ that is delta elements away from base
+     */
+    static inline size_t wrapIndex(const size_t base, const ptrdiff_t delta, const size_t count);
 };
 
 } // namespace curaengine::types::scoring

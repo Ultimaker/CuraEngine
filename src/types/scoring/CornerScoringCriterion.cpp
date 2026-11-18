@@ -8,6 +8,7 @@
 #include <range/v3/algorithm/find_if.hpp>
 
 #include "types/geometry/PointsSet.h"
+#include "types/geometry/conversions/Point2D_Point2LL.h"
 #include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 
@@ -22,7 +23,7 @@ using namespace utils;
 CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
     : PositionBasedScoringCriterion(points)
     , corner_preference_(corner_preference)
-    , segments_sizes_(points.size())
+    , segments_data_(points.size())
 {
     switch (corner_preference_)
     {
@@ -55,8 +56,10 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
     {
         const Point2LL& here = getPoints().at(i);
         const Point2LL& next = getPoints().at((i + 1) % getPoints().size());
-        const coord_t segment_size = vSize(next - here);
-        segments_sizes_[i] = segment_size;
+        const Point2LL vector = next - here;
+        const coord_t segment_size = vSize(vector);
+        segments_data_[i].size = segment_size;
+        segments_data_[i].direction = conversions::toPoint2D(vector).vNormalized().value_or(Point2D());
         total_length_ += segment_size;
     }
 }
@@ -111,39 +114,38 @@ double CornerScoringCriterion::cornerAngle(const size_t vertex_index, const std:
     return total_angle / filtered_angle_query_distances.size();
 }
 
-std::vector<Point2LL> CornerScoringCriterion::findNeighbourPoints(const size_t vertex_index, const std::vector<coord_t>& distances, const int direction) const
+std::vector<Point2LL> CornerScoringCriterion::findNeighbourPoints(const size_t vertex_index, const std::vector<coord_t>& distances, const ptrdiff_t direction) const
 {
     const size_t points_count = getPoints().size();
-    const int size_delta = direction > 0 ? -1 : 0;
+
+    // Segment i goes from point i to point i + 1, so when going forward the segment we just crossed starts one point before the current one
+    const ptrdiff_t segment_offset = direction > 0 ? -1 : 0;
 
     std::vector<Point2LL> result;
     result.reserve(distances.size());
 
     // Travel on the path only once, and pick the points for each (ascending) distance on the way
-    int actual_delta = 0;
+    ptrdiff_t actual_delta = 0;
     coord_t travelled_distance = 0;
-    coord_t segment_size = 0;
+    const SegmentData* segment_data;
     for (const coord_t distance : distances)
     {
         while (travelled_distance < distance)
         {
             actual_delta += direction;
-            segment_size = segments_sizes_[(vertex_index + actual_delta + size_delta + points_count) % points_count];
-            travelled_distance += segment_size;
+            segment_data = &segments_data_[wrapIndex(vertex_index, actual_delta + segment_offset, points_count)];
+            travelled_distance += segment_data->size;
         }
 
-        const Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + points_count) % points_count);
+        const Point2LL& next_pos = getPoints().at(wrapIndex(vertex_index, actual_delta, points_count));
 
         if (travelled_distance > distance) [[likely]]
         {
             // We have overtaken the required distance, go backward on the last segment
-            const size_t prev = (vertex_index + actual_delta - direction + points_count) % points_count;
+            const size_t prev = wrapIndex(vertex_index, actual_delta - direction, points_count);
             const Point2LL& prev_pos = getPoints().at(prev);
-
-            const Point2LL vector = next_pos - prev_pos;
-            const Point2LL unit_vector = (vector * 1000) / segment_size;
-            const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
-            result.push_back(prev_pos + vector_delta / 1000);
+            const Point2D vector_delta{ segment_data->direction * static_cast<double>(direction) * (segment_data->size - (travelled_distance - distance)) };
+            result.push_back(prev_pos + conversions::toPoint2LL(vector_delta));
         }
         else
         {
@@ -153,6 +155,13 @@ std::vector<Point2LL> CornerScoringCriterion::findNeighbourPoints(const size_t v
     }
 
     return result;
+}
+
+size_t CornerScoringCriterion::wrapIndex(const size_t base, const ptrdiff_t delta, const size_t count)
+{
+    const auto signed_count = static_cast<ptrdiff_t>(count);
+    const ptrdiff_t index = (static_cast<ptrdiff_t>(base) + delta) % signed_count;
+    return static_cast<size_t>(index < 0 ? index + signed_count : index);
 }
 
 } // namespace curaengine::types::scoring
