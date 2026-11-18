@@ -218,7 +218,7 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     // exactly one calculation using this criterion.
     {
         BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = 0.1;
+        main_criteria_pass.outsider_delta_threshold = 0.05;
 
         if (texture_data_provider)
         {
