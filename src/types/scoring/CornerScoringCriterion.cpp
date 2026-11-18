@@ -66,7 +66,7 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
 
 double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 {
-    const double corner_angle = cornerAngle(candidate_index, { 100, 5000 });
+    const double corner_angle = cornerAngle(candidate_index, { 100, 1000 });
 
     // angles < 0 are concave (left turning)
     // angles > 0 are convex (right turning)
