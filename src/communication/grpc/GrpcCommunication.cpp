@@ -411,6 +411,7 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
     constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
     constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
     const size_t face_count = object_message.vertices().size() / bytes_per_face;
+    const bool has_valid_uv = object_message.uv_coordinates().size() >= face_count * bytes_per_uv;
 
     if (face_count <= 0)
     {
@@ -433,17 +434,15 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
 
     for (size_t face = 0; face < face_count; face++)
     {
-        const std::string data = object_message.vertices().substr(face * bytes_per_face, bytes_per_face);
-        const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
-        const std::string uv_coordinates_str = object_message.uv_coordinates().empty() ? "" : object_message.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
-        const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
+        const Point3F* float_vertices = reinterpret_cast<const Point3F*>(object_message.vertices().data() + face * bytes_per_face);
+        const Point2F* uv_coordinates_data = has_valid_uv ? reinterpret_cast<const Point2F*>(object_message.uv_coordinates().data() + face * bytes_per_uv) : nullptr;
 
-        Point3LL verts[3];
+        std::array<Point3LL, 3> verts;
         verts[0] = matrix.apply(float_vertices[0].toPoint3d());
         verts[1] = matrix.apply(float_vertices[1].toPoint3d());
         verts[2] = matrix.apply(float_vertices[2].toPoint3d());
 
-        std::optional<Point2F> uv_coordinates[3];
+        std::array<std::optional<Point2F>, 3> uv_coordinates;
         if (uv_coordinates_data)
         {
             uv_coordinates[0] = uv_coordinates_data[0];
