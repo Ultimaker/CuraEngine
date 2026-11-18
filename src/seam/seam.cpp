@@ -208,6 +208,7 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     const std::vector<Point2LL>& layer_below_seams,
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
+    const double z_seam_alignment_weight,
     const Point2LL& target_pos,
     const std::optional<size_t>& force_start_index,
     const coord_t wall_line_width_0,
@@ -218,7 +219,7 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     // exactly one calculation using this criterion.
     {
         BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = 0.05;
+        main_criteria_pass.outsider_delta_threshold = z_seam_alignment_weight;
 
         if (texture_data_provider)
         {
@@ -259,9 +260,6 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
 
         // Second criterion with higher weight to avoid overhanging areas
         addExclusionAreaCriterion(main_criteria_pass, points, seam_overhang_exclusion_areas);
-
-        // constexpr double alignment_weight{ 0.2 };
-        // main_criteria_pass.appendCriterion(std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4), alignment_weight);
 
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
     }
@@ -317,6 +315,7 @@ static std::vector<Point2LL> calculateWallsSeamPosition(
     const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
+    const double z_seam_alignment_weight,
     const Point2LL& target_pos,
     const coord_t wall_line_width_0,
     const bool z_seam_on_vertex,
@@ -366,6 +365,7 @@ static std::vector<Point2LL> calculateWallsSeamPosition(
                         layer_seams,
                         seam_type,
                         corner_pref,
+                        z_seam_alignment_weight,
                         target_pos,
                         force_start_index,
                         wall_line_width_0,
@@ -415,6 +415,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         }
 
         const auto corner_pref = settings.get<EZSeamCornerPrefType>("z_seam_corner");
+        const auto z_seam_alignment_weight = settings.get<double>("z_seam_alignment_weight");
         const Point2LL target_pos = mesh->getZSeamHint();
         const auto wall_line_width_0 = settings.get<coord_t>("wall_line_width_0");
         const bool z_seam_on_vertex = settings.get<bool>("z_seam_on_vertex");
@@ -437,6 +438,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 layer_seams,
                 seam_type,
                 corner_pref,
+                z_seam_alignment_weight,
                 target_pos,
                 wall_line_width_0,
                 z_seam_on_vertex,
@@ -453,6 +455,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 layer_seams,
                 seam_type,
                 corner_pref,
+                z_seam_alignment_weight,
                 target_pos,
                 wall_line_width_0,
                 z_seam_on_vertex,
