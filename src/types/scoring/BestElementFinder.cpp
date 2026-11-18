@@ -16,6 +16,11 @@ namespace curaengine::types::scoring
 
 using namespace types;
 
+void BestElementFinder::CriteriaPass::appendCriterion(const std::shared_ptr<ScoringCriterion>& criterion, const double weight)
+{
+    criteria.emplace_back(criterion, weight);
+}
+
 void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold)
 {
     WeighedCriterion weighed_criterion;

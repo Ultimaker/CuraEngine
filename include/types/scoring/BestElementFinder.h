@@ -61,6 +61,11 @@ public:
          * This value will be ignored for the last pass.
          */
         double outsider_delta_threshold{ 0.0 };
+
+        /*!
+         * Convenience method to add a criterion
+         */
+        void appendCriterion(const std::shared_ptr<ScoringCriterion>& criterion, const double weight = 1.0);
     };
 
 private:

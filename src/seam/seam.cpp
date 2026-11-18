@@ -196,10 +196,8 @@ static void addExclusionAreaCriterion(BestElementFinder::CriteriaPass& pass, con
 {
     if (! exclusion_area.empty())
     {
-        BestElementFinder::WeighedCriterion overhang_criterion;
-        overhang_criterion.weight = 2.0;
-        overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, exclusion_area);
-        pass.criteria.push_back(overhang_criterion);
+        constexpr double overhang_exclusion_weight{ 2.0 };
+        pass.appendCriterion(std::make_shared<ExclusionAreaScoringCriterion>(points, exclusion_area), overhang_exclusion_weight);
     }
 }
 
@@ -211,7 +209,7 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
     const Point2LL& target_pos,
-    std::optional<size_t>& force_start_index,
+    const std::optional<size_t>& force_start_index,
     const coord_t wall_line_width_0,
     const Shape& seam_overhang_exclusion_areas)
 {
@@ -220,14 +218,12 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     // exactly one calculation using this criterion.
     {
         BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = 0.1;
+        main_criteria_pass.outsider_delta_threshold = 0.2;
 
         if (texture_data_provider)
         {
-            BestElementFinder::WeighedCriterion texture_criterion;
-            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider, "seam");
-            texture_criterion.weight = 5.0;
-            main_criteria_pass.criteria.push_back(texture_criterion);
+            constexpr double texture_weight{ 5.0 };
+            main_criteria_pass.appendCriterion(std::make_shared<TextureScoringCriterion>(points, texture_data_provider, "seam"), texture_weight);
         }
 
         BestElementFinder::WeighedCriterion main_criterion;
@@ -264,13 +260,13 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
         // Second criterion with higher weight to avoid overhanging areas
         addExclusionAreaCriterion(main_criteria_pass, points, seam_overhang_exclusion_areas);
 
+        // constexpr double alignment_weight{ 0.2 };
+        // main_criteria_pass.appendCriterion(std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4), alignment_weight);
+
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
     }
 
-    {
-        auto alignment_criterion = std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4);
-        best_candidate_finder.appendSingleCriterionPass(alignment_criterion);
-    }
+    best_candidate_finder.appendSingleCriterionPass(std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4));
 
     // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
     if (seam_type == EZSeamType::SharpestCorner)
