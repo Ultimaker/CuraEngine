@@ -36,6 +36,8 @@ class Settings;
 class SliceMeshStorage
 {
 public:
+    using Ptr = std::shared_ptr<SliceMeshStorage>;
+
     Settings& settings;
     std::vector<SliceLayer> layers;
     std::string mesh_name;

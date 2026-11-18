@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "types/scoring/PositionBasedScoringCriterion.h"
 
 namespace curaengine::types::geometry
@@ -28,8 +30,11 @@ public:
         YOnly, // Only difference on Y coordinate
     };
 
+    static constexpr DistanceType default_distance_type{ DistanceType::Euclidian };
+    static constexpr double default_distance_divider{ 20.0 };
+
 private:
-    const types::geometry::Point2LL& target_pos_;
+    const std::vector<types::geometry::Point2LL> target_positions_;
     const DistanceType distance_type_;
 
     /*!
@@ -41,9 +46,15 @@ private:
 public:
     explicit DistanceScoringCriterion(
         const types::geometry::PointsSet& points,
-        const types::geometry::Point2LL& target_pos,
-        DistanceType distance_type = DistanceType::Euclidian,
-        const double distance_divider = 20.0);
+        const types::geometry::Point2LL& target_position,
+        const DistanceType distance_type = default_distance_type,
+        const double distance_divider = default_distance_divider);
+
+    explicit DistanceScoringCriterion(
+        const types::geometry::PointsSet& points,
+        const std::vector<types::geometry::Point2LL>& target_positions,
+        const DistanceType distance_type = default_distance_type,
+        const double distance_divider = default_distance_divider);
 
     virtual double computeScore(const types::geometry::Point2LL& candidate_position) const override;
 };

@@ -5,6 +5,7 @@
 
 #include "PathOrdering.h"
 #include "types/ZSeamConfig.h"
+#include "utils/polygon_utils.h"
 
 namespace curaengine
 {

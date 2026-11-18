@@ -173,7 +173,6 @@ private:
         comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     types::geometry::Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     types::geometry::AABB bridge_wall_mask_bb_; //!< Cached bounding box for the above value.
-    types::geometry::Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
 
     types::geometry::Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air above
     types::geometry::Shape flooring_mask_; //!< The regions of a layer part where the walls are exposed to the air below
@@ -358,18 +357,6 @@ public:
      * \param polys The unsupported areas of the part currently being processed that will require bridges.
      */
     void setBridgeWallMask(const types::geometry::Shape& polys);
-
-    /*!
-     * Set seam_overhang_mask.
-     *
-     * \param polys The overhung areas of the part currently being processed that will require modified print settings w.r.t. seams
-     */
-    void setSeamOverhangMask(const types::geometry::Shape& polys);
-
-    /*!
-     * Get the seam overhang mask, which contains the areas where we don't want to place the seam because they are overhanding
-     */
-    const types::geometry::Shape& getSeamOverhangMask() const;
 
     /*!
      * Set roofing_mask.
@@ -564,14 +551,13 @@ public:
      * If unset, this causes it to start near the last planned location.
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
-     * \param texture_data_provider The texture provider to be used to place the seam
      */
     void addPolygonsByOptimizer(
         const types::geometry::Shape& polygons,
         const GCodePathConfig& config,
         const Settings& settings,
         const OverrideAreas& override_areas = {},
-        const types::ZSeamConfig& z_seam_config = types::ZSeamConfig(),
+        const types::geometry::Shape& seam_exclusion_areas = {},
         types::coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const types::Ratio flow_ratio = 1.0_r,
@@ -579,8 +565,7 @@ public:
         bool reverse_order = false,
         const std::optional<types::geometry::Point2LL> start_near_location = std::optional<types::geometry::Point2LL>(),
         bool scarf_seam = false,
-        bool smooth_speed = false,
-        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
+        bool smooth_speed = false);
 
     /*!
      * Adds infill polygons to the gcode with optimized order.
@@ -744,7 +729,6 @@ public:
      * \param flooring_config The config with which to print the wall lines
      * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
-     * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param force_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
@@ -757,7 +741,6 @@ public:
         const GCodePathConfig& roofing_config,
         const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
-        const types::ZSeamConfig& z_seam_config = types::ZSeamConfig(),
         types::coord_t wall_0_wipe_dist = 0,
         double flow_ratio = 1.0,
         const ForceRetract force_retract = ForceRetract::Automatic);
@@ -791,6 +774,7 @@ public:
         const std::optional<types::geometry::Point2LL> near_start_location = std::optional<types::geometry::Point2LL>(),
         const double fan_speed = GCodePathConfig::fan_speed_default,
         const OverrideAreas& override_areas = {},
+        const Shape& seam_exclusion_areas = {},
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const types::geometry::Polyline*, const types::geometry::Polyline*>& order_requirements
         = PathOrderOptimizer<const types::geometry::Polyline*>::no_order_requirements_,
@@ -1019,7 +1003,6 @@ private:
      * \param config The config with which to print the polygon lines.
      * for each given segment (optionally nullptr).
      * \param settings The settings which should apply to these polygons added to the layer plan
-     * \param z_seam_config Optional configuration for z-seam.
      * \param wall_0_wipe_dist The distance to travel along each polygon after
      * it has been laid down, in order to wipe the start and end of the wall
      * together.
@@ -1038,7 +1021,6 @@ private:
         const std::vector<PathOrdering<const types::geometry::Polygon*>>& polygons,
         const GCodePathConfig& config,
         const Settings& settings,
-        const types::ZSeamConfig& z_seam_config = types::ZSeamConfig(),
         types::coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const types::Ratio flow_ratio = 1.0_r,

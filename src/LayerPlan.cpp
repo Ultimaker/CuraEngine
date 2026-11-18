@@ -839,7 +839,7 @@ void LayerPlan::addPolygonsByOptimizer(
     const GCodePathConfig& config,
     const Settings& settings,
     const OverrideAreas& override_areas,
-    const ZSeamConfig& z_seam_config,
+    const Shape& seam_exclusion_areas,
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio flow_ratio,
@@ -847,8 +847,7 @@ void LayerPlan::addPolygonsByOptimizer(
     bool reverse_order,
     const std::optional<Point2LL> start_near_location,
     bool scarf_seam,
-    bool smooth_speed,
-    const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+    bool smooth_speed)
 {
     if (polygons.empty())
     {
@@ -860,21 +859,14 @@ void LayerPlan::addPolygonsByOptimizer(
     constexpr bool reverse_direction = false;
     const std::unordered_multimap<const Polygon*, const Polygon*>& order_requirements = PathOrderOptimizer<const Polygon*>::no_order_requirements_;
     constexpr bool group_outer_walls = false;
-    const Shape disallowed_areas_for_seams = {}; // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
-    constexpr bool use_shortest_for_inner_walls = false;
-    const Shape overhang_areas = Shape(); // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     PathOrderOptimizer<const Polygon*> orderOptimizer(
         start_near_location.value_or(getLastPlannedPositionOrStartingPosition()),
-        z_seam_config,
+        seam_exclusion_areas,
         detect_loops,
         combing_boundary,
         reverse_direction,
         order_requirements,
-        group_outer_walls,
-        disallowed_areas_for_seams,
-        use_shortest_for_inner_walls,
-        overhang_areas,
-        texture_data_provider);
+        group_outer_walls);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(&polygons[poly_idx]);
@@ -885,7 +877,6 @@ void LayerPlan::addPolygonsByOptimizer(
         orderOptimizer.paths_,
         config,
         settings,
-        z_seam_config,
         wall_0_wipe_dist,
         spiralize,
         flow_ratio,
@@ -910,11 +901,11 @@ void LayerPlan::addInfillPolygonsByOptimizer(
         return;
     }
 
-    const ZSeamConfig seam_config = ZSeamConfig();
+    const Shape seam_exclusion_areas;
     constexpr bool detect_loops = false;
     constexpr Shape* combing_boundary = nullptr;
     PathOrderOptimizer<const Polygon*>
-        orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), seam_config, detect_loops, combing_boundary, reverse_print_direction);
+        orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), seam_exclusion_areas, detect_loops, combing_boundary, reverse_print_direction);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(&polygons[poly_idx]);
@@ -923,7 +914,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 
     if (! add_extra_inwards_move)
     {
-        addTravel(orderOptimizer.paths_[0].vertices_->at(orderOptimizer.paths_[0].start_vertex_));
+        addTravel(orderOptimizer.paths_[0].vertices_->at(orderOptimizer.paths_[0].start_vertex_.value_or(0)));
         addPolygonsInGivenOrder(orderOptimizer.paths_, config, settings);
         return;
     }
@@ -932,7 +923,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
     for (const PathOrdering<const Polygon*>& ordered_polygon : orderOptimizer.paths_)
     {
         const Polygon& polygon = *ordered_polygon.vertices_;
-        const size_t start_index = ordered_polygon.start_vertex_;
+        const size_t start_index = ordered_polygon.start_vertex_.value_or(0);
 
         ClosedPolyline split_polygon(polygon);
         split_polygon.shiftVerticesToStartPoint(start_index);
@@ -2269,13 +2260,12 @@ void LayerPlan::addWalls(
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
-    const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
     const ForceRetract force_retract)
 {
     // TODO: Deprecated in favor of ExtrusionJunction version below.
-    PathOrderOptimizer<const Polygon*> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<const Polygon*> orderOptimizer(getLastPlannedPositionOrStartingPosition());
     for (const Polygon& polygon : walls)
     {
         orderOptimizer.addPolygon(&polygon);
@@ -2283,7 +2273,17 @@ void LayerPlan::addWalls(
     orderOptimizer.optimize();
     for (const PathOrdering<const Polygon*>& path : orderOptimizer.paths_)
     {
-        addWall(*path.vertices_, path.start_vertex_, settings, default_config, roofing_config, flooring_config, bridge_config, wall_0_wipe_dist, flow_ratio, force_retract);
+        addWall(
+            *path.vertices_,
+            path.start_vertex_.value_or(0),
+            settings,
+            default_config,
+            roofing_config,
+            flooring_config,
+            bridge_config,
+            wall_0_wipe_dist,
+            flow_ratio,
+            force_retract);
     }
 }
 
@@ -2478,6 +2478,7 @@ void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const OverrideAreas& override_areas,
+    const Shape& seam_exclusion_areas,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
@@ -2507,10 +2508,11 @@ void LayerPlan::addLinesByOptimizer(
         // simplify boundary to cut down processing time
         boundary = Simplify(mmToInt(0.1), mmToInt(0.1), 0).polygon(boundary);
     }
+
     constexpr bool detect_loops = true;
     PathOrderOptimizer<const Polyline*> order_optimizer(
         near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
-        ZSeamConfig(),
+        seam_exclusion_areas,
         detect_loops,
         &boundary,
         reverse_print_direction,
@@ -2579,10 +2581,12 @@ void LayerPlan::addLinesByOptimizer(
         // simplify boundary to cut down processing time
         boundary = Simplify(mmToInt(0.1), mmToInt(0.1), 0).polygon(boundary);
     }
+
+    const Shape seam_exclusion_areas;
     constexpr bool detect_loops = false; // We already know which lines are closed
     PathOrderOptimizer<const Polyline*> order_optimizer(
         near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
-        ZSeamConfig(),
+        seam_exclusion_areas,
         detect_loops,
         &boundary,
         reverse_print_direction,
@@ -2638,7 +2642,7 @@ void LayerPlan::addLinesInGivenOrder(
             continue;
         }
 
-        size_t start_idx = path.start_vertex_;
+        size_t start_idx = path.start_vertex_.value_or(0);
         assert(start_idx == 0 || start_idx == raw_polyline.size() - 1 || path.is_closed_);
         Point2LL start = raw_polyline[start_idx];
 
@@ -2771,7 +2775,7 @@ void LayerPlan::addLinesInGivenOrder(
             {
                 const PathOrdering<const Polyline*>& next_path = lines[order_idx + 1];
                 const Polyline& next_polygon = *next_path.vertices_;
-                const size_t next_start = next_path.start_vertex_;
+                const size_t next_start = next_path.start_vertex_.value_or(0);
                 const Point2LL& next_p0 = next_polygon[next_start];
                 if (types::geometry::vSize2(next_p0 - p1) <= line_width * line_width * 4)
                 {
@@ -2806,7 +2810,6 @@ void LayerPlan::addPolygonsInGivenOrder(
     const std::vector<PathOrdering<const Polygon*>>& polygons,
     const GCodePathConfig& config,
     const Settings& settings,
-    const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio flow_ratio,
@@ -2824,7 +2827,7 @@ void LayerPlan::addPolygonsInGivenOrder(
         {
             addPolygon(
                 *iterator->vertices_,
-                iterator->start_vertex_,
+                iterator->start_vertex_.value_or(0),
                 iterator->backwards_,
                 settings,
                 config,
@@ -4509,16 +4512,6 @@ void LayerPlan::setBridgeWallMask(const Shape& polys)
     bridge_wall_mask_bb_ = AABB(polys);
 }
 
-void LayerPlan::setSeamOverhangMask(const Shape& polys)
-{
-    seam_overhang_mask_ = polys;
-}
-
-const Shape& LayerPlan::getSeamOverhangMask() const
-{
-    return seam_overhang_mask_;
-}
-
 void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
@@ -4539,6 +4532,7 @@ template void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const OverrideAreas& override_areas,
+    const Shape& seam_exclusion_areas,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
@@ -4556,6 +4550,7 @@ template void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const OverrideAreas& override_areas,
+    const Shape& seam_exclusion_areas,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,

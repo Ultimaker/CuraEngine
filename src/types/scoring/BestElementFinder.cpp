@@ -3,6 +3,7 @@
 
 #include "types/scoring/BestElementFinder.h"
 
+#include <algorithm>
 #include <limits>
 
 #include <range/v3/view/enumerate.hpp>
@@ -14,6 +15,11 @@ namespace curaengine::types::scoring
 {
 
 using namespace types;
+
+void BestElementFinder::CriteriaPass::appendCriterion(const std::shared_ptr<ScoringCriterion>& criterion, const double weight)
+{
+    criteria.emplace_back(criterion, weight);
+}
 
 void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold)
 {
@@ -88,6 +94,15 @@ std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates
             // We have a single outsider, don't go further
             return begin->candidate_index;
         }
+
+        // Sort the remaining candidates by score, so that if the next pass doesn't differentiate them, we keep the best one from the previous pass
+        std::stable_sort(
+            begin,
+            end,
+            [](const Candidate& candidate1, const Candidate& candidate2)
+            {
+                return candidate1.score > candidate2.score;
+            });
     }
 
     return begin != end ? std::make_optional(begin->candidate_index) : std::nullopt;

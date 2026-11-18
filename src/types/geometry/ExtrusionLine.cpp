@@ -4,9 +4,11 @@
 #include "types/geometry/ExtrusionLine.h"
 
 #include <algorithm>
+#include <iterator>
 
 #include "types/geometry/Simplify.h"
 #include "utils/linear_alg_2d.h"
+#include "utils/math.h"
 
 namespace curaengine::types::geometry
 {
@@ -61,6 +63,21 @@ bool ExtrusionLine::shorterThan(const coord_t check_length) const
         p0 = &p1;
     }
     return true;
+}
+
+size_t ExtrusionLine::insertJunction(const size_t after_index, const Point2LL& position)
+{
+    const size_t insert_index = (after_index + 1) % size();
+    const ExtrusionJunction& junction_before = junctions_[after_index];
+    const ExtrusionJunction& junction_after = junctions_[insert_index];
+
+    const coord_t extrusion_size = vSize(junction_after.p_ - junction_before.p_);
+    const coord_t before_to_position = vSize(position - junction_before.p_);
+    const double position_factor = inverse_lerp(coord_t{ 0 }, extrusion_size, before_to_position);
+    const coord_t width = lerp(junction_before.w_, junction_after.w_, position_factor);
+
+    emplace(std::next(begin(), insert_index), position, width, junction_before.perimeter_index_);
+    return insert_index;
 }
 
 } // namespace curaengine::types::geometry
