@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 /* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
@@ -12,13 +13,13 @@ namespace curaengine
 class Mesh;
 class Slicer;
 
-void carveMultipleVolumes(std::vector<Slicer*>& meshes);
+void carveMultipleVolumes(std::vector<std::shared_ptr<Slicer>>& meshes);
 
 /*!
  * Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.
  * This generates some overlap in dual extrusion, for better bonding in touching parts.
  */
-void generateMultipleVolumesOverlap(std::vector<Slicer*>& meshes);
+void generateMultipleVolumesOverlap(std::vector<std::shared_ptr<Slicer>>& meshes);
 
 namespace utils::multi_volumes
 {
@@ -35,7 +36,7 @@ namespace utils::multi_volumes
  * \param[in,out] volumes The outline data of each mesh
  * \param meshes The meshes which contain the settings for each volume
  */
-void carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes);
+void carveCuttingMeshes(std::vector<std::shared_ptr<Slicer>>& volumes, std::vector<Mesh>& meshes);
 } // namespace utils::multi_volumes
 
 } // namespace curaengine

@@ -226,7 +226,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         return true; // This is NOT an error state!
     }
 
-    std::vector<Slicer*> slicerList;
+    std::vector<Slicer::Ptr> slicerList;
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
@@ -240,10 +240,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
 
-        Slicer* slicer
-            = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness);
-
-        slicerList.push_back(slicer);
+        slicerList.push_back(std::make_shared<Slicer>(
+            &mesh,
+            layer_thickness,
+            slice_layer_count,
+            use_variable_layer_heights,
+            adaptive_layer_height_values,
+            slicing_tolerance,
+            initial_layer_thickness));
 
         Progress::messageProgress(Progress::Stage::Slicing, mesh_idx + 1, meshgroup->meshes.size());
     }
@@ -285,7 +289,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
-        Slicer* slicer = slicerList[meshIdx];
+        const Slicer::Ptr& slicer = slicerList[meshIdx];
         if (mesh.isModelMesh())
         {
             storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
@@ -297,7 +301,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        Slicer* slicer = slicerList[meshIdx];
+        const Slicer::Ptr& slicer = slicerList[meshIdx];
         const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
@@ -366,7 +370,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
         }
 
-        delete slicerList[meshIdx];
+        slicerList[meshIdx].reset();
 
         Progress::messageProgress(Progress::Stage::Parts, meshIdx + 1, slicerList.size());
     }

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 namespace curaengine
@@ -32,7 +33,7 @@ namespace utils::mold
  * \param layer_height The overall layer height used (used to compute an
  * offset from the mold angle).
  */
-void process(std::vector<Slicer*>& slicer_list);
+void process(std::vector<std::shared_ptr<Slicer>>& slicer_list);
 } // namespace utils::mold
 
 } // namespace curaengine

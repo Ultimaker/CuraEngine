@@ -15,6 +15,8 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
+#include <memory>
+
 namespace curaengine
 {
 
@@ -38,6 +40,6 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  * \param mesh The mesh of which to split the layers into parts.
  * \param slicer The slicer to get the layers from.
  */
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
+void createLayerParts(SliceMeshStorage& mesh, const std::shared_ptr<Slicer>& slicer);
 
 } // namespace curaengine

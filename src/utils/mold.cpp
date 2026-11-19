@@ -23,7 +23,7 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-void process(std::vector<Slicer*>& slicer_list)
+void process(std::vector<Slicer::Ptr>& slicer_list)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     { // check whether we even need to process molds
