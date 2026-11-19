@@ -36,7 +36,7 @@ void Slice::compute()
         {
             extruder.settings_.setParent(&scene.current_mesh_group->settings);
         }
-        scene.processMeshGroup(*mesh_group);
+        scene.processMeshGroup(mesh_group);
     }
 
     // Finalize the processor. This adds the end g-code and reports statistics.

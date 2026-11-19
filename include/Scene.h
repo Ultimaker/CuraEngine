@@ -67,7 +67,7 @@ public:
      * \brief Generate the 3D printing instructions to print a given mesh group.
      * \param mesh_group The mesh group to slice.
      */
-    void processMeshGroup(MeshGroup& mesh_group);
+    void processMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group);
 
     /*!
      * Append a mesh group to this scene and registers its settings parent

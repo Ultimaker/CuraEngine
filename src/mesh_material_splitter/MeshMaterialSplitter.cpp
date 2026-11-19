@@ -778,7 +778,7 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
  * @param meshgroup The group containing the meshes to be processed
  * @return The list of mesh generation data for meshes that contain relevant information
  */
-std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* meshgroup)
+std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup::Ptr& meshgroup)
 {
     std::vector<MeshGeneratorData> result;
 
@@ -822,7 +822,7 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
     return result;
 }
 
-void makePaintingModifierMeshes(MeshGroup* meshgroup)
+void makePaintingModifierMeshes(const MeshGroup::Ptr& meshgroup)
 {
     const std::vector<MeshGeneratorData> mesh_generation_data = makeInitialMeshesGenerationData(meshgroup);
     size_t delta_iterations = 0;

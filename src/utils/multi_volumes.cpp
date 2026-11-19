@@ -4,6 +4,7 @@
 #include "utils/multi_volumes.h"
 
 #include <algorithm>
+#include <deque>
 
 #include "Application.h"
 #include "Mesh.h"
@@ -22,11 +23,11 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-void carveMultipleVolumes(std::vector<Slicer::Ptr>& volumes)
+void carveMultipleVolumes(std::deque<Slicer::Ptr>& volumes)
 {
     // Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
     const bool alternate_carve_order = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("alternate_carve_order");
-    std::vector<Slicer::Ptr> ranked_volumes = volumes;
+    std::deque<Slicer::Ptr> ranked_volumes = volumes;
     std::stable_sort(
         ranked_volumes.begin(),
         ranked_volumes.end(),
@@ -73,7 +74,7 @@ void carveMultipleVolumes(std::vector<Slicer::Ptr>& volumes)
 
 // Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.
 // This generates some overlap in dual extrusion, for better bonding in touching parts.
-void generateMultipleVolumesOverlap(std::vector<Slicer::Ptr>& volumes)
+void generateMultipleVolumesOverlap(std::deque<Slicer::Ptr>& volumes)
 {
     if (volumes.size() < 2)
     {
@@ -115,7 +116,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer::Ptr>& volumes)
 namespace utils::multi_volumes
 {
 
-void carveCuttingMeshes(std::vector<Slicer::Ptr>& volumes, std::vector<Mesh>& meshes)
+void carveCuttingMeshes(std::deque<Slicer::Ptr>& volumes, std::vector<Mesh>& meshes)
 {
     // Modifier mesh that change the extruder are treated differently: their volume is removed from regular meshes, then they are intersected with them, and the remainder
     // is subsequently treated as a regular mesh

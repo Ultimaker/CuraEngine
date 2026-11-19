@@ -62,7 +62,7 @@ const std::string Scene::getAllSettingsString() const
     return output.str();
 }
 
-void Scene::processMeshGroup(MeshGroup& mesh_group)
+void Scene::processMeshGroup(const MeshGroup::Ptr& mesh_group)
 {
     FffProcessor* fff_processor = FffProcessor::getInstance();
     fff_processor->time_keeper.restart();
@@ -70,7 +70,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     TimeKeeper time_keeper_total;
 
     bool empty = true;
-    for (Mesh& mesh : mesh_group.meshes)
+    for (Mesh& mesh : mesh_group->meshes)
     {
         if (mesh.isModelMesh())
         {
@@ -86,7 +86,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     }
 
     SliceDataStorage storage;
-    if (! fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
+    if (! fff_processor->polygon_generator.generateAreas(storage, mesh_group, fff_processor->time_keeper))
     {
         return;
     }

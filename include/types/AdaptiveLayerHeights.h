@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "types/AdaptiveLayer.h"
@@ -50,7 +51,7 @@ public:
         const types::coord_t variation,
         const types::coord_t step_size,
         const types::coord_t threshold,
-        const MeshGroup* meshgroup);
+        const std::shared_ptr<MeshGroup>& meshgroup);
 
 private:
     /*!
@@ -90,7 +91,7 @@ private:
     std::vector<double> face_slopes_;
     std::vector<int> face_min_z_values_;
     std::vector<int> face_max_z_values_;
-    const MeshGroup* meshgroup_;
+    std::shared_ptr<MeshGroup> meshgroup_;
 
     /*!
      * Calculate the allowed layer heights depending on variation and step input

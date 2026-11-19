@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <deque>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -28,6 +29,9 @@
 #include "utils/conical_overhang.h"
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
+
+#include <range/v3/view/enumerate.hpp>
+
 #include "infill/Infill.h"
 #include "interlocking/InterlockingGenerator.h"
 #include "layerPart.h"
@@ -80,7 +84,7 @@ using namespace types;
 using namespace utils;
 
 
-bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
+bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, const MeshGroup::Ptr& meshgroup, TimeKeeper& timeKeeper)
 {
     mesh_material_splitter::makePaintingModifierMeshes(meshgroup);
 
@@ -115,7 +119,7 @@ size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) 
     }
 }
 
-bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
+bool FffPolygonGenerator::sliceModel(const MeshGroup::Ptr& meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
     Progress::messageProgressStage(Progress::Stage::Slicing, &timeKeeper);
 
@@ -125,7 +129,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     spdlog::info("Slicing model...");
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = meshgroup->settings;
 
     // regular layers
     int slice_layer_count = 0; // Use signed int because we need to subtract the initial layer in a calculation temporarily.
@@ -156,12 +160,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = std::make_unique<AdaptiveLayerHeights>(
-            layer_thickness,
-            variable_layer_height_max_variation,
-            variable_layer_height_variation_step,
-            adaptive_threshold,
-            meshgroup);
+        adaptive_layer_heights
+            = std::make_unique<AdaptiveLayerHeights>(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -226,7 +226,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         return true; // This is NOT an error state!
     }
 
-    std::vector<Slicer::Ptr> slicerList;
+    std::deque<Slicer::Ptr> slicers;
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
@@ -240,14 +240,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
 
-        slicerList.push_back(std::make_shared<Slicer>(
-            &mesh,
-            layer_thickness,
-            slice_layer_count,
-            use_variable_layer_heights,
-            adaptive_layer_height_values,
-            slicing_tolerance,
-            initial_layer_thickness));
+        slicers.push_back(
+            std::make_shared<
+                Slicer>(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness));
 
         Progress::messageProgress(Progress::Stage::Slicing, mesh_idx + 1, meshgroup->meshes.size());
     }
@@ -255,41 +250,38 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
     meshgroup->clear();
 
-    mold::process(slicerList);
+    mold::process(slicers);
 
-    const Scene& scene = Application::getInstance().current_slice_->scene;
-    for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
+    for (const auto& [mesh_idx, mesh] : meshgroup->meshes | ranges::views::enumerate)
     {
-        const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
         if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh")
             && (! mesh.settings_.has("force_support_overhang_mesh") || ! mesh.settings_.get<bool>("force_support_overhang_mesh")))
         {
-            conical_overhang::apply(slicerList[mesh_idx], mesh);
+            conical_overhang::apply(slicers[mesh_idx], mesh);
         }
     }
 
-    multi_volumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
+    multi_volumes::carveCuttingMeshes(slicers, meshgroup->meshes);
 
     Progress::messageProgressStage(Progress::Stage::Parts, &timeKeeper);
 
-    if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
+    if (mesh_group_settings.get<bool>("carve_multiple_volumes"))
     {
-        carveMultipleVolumes(slicerList);
+        carveMultipleVolumes(slicers);
     }
 
-    generateMultipleVolumesOverlap(slicerList);
+    generateMultipleVolumesOverlap(slicers);
 
 
-    if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
+    if (mesh_group_settings.get<bool>("interlocking_enable"))
     {
-        interlocking::InterlockingGenerator::generateInterlockingStructure(slicerList);
+        interlocking::InterlockingGenerator::generateInterlockingStructure(slicers);
     }
 
     storage.print_layer_count = 0;
-    for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
+    for (const auto& [mesh_idx, mesh] : meshgroup->meshes | ranges::views::enumerate)
     {
-        const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
-        const Slicer::Ptr& slicer = slicerList[meshIdx];
+        const Slicer::Ptr& slicer = slicers[mesh_idx];
         if (mesh.isModelMesh())
         {
             storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
@@ -297,12 +289,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     storage.support.supportLayers.resize(storage.print_layer_count);
 
-    storage.meshes.reserve(
-        slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
-    for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
+    const size_t mesh_count = slicers.size();
+    storage.meshes.reserve(mesh_count); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
+    for (unsigned int meshIdx = 0; ! slicers.empty(); meshIdx++)
     {
-        const Slicer::Ptr& slicer = slicerList[meshIdx];
-        const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+        const Slicer::Ptr slicer = slicers.front();
+        slicers.pop_front();
+        const Mesh& mesh = meshgroup->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         storage.meshes.push_back(std::make_shared<SliceMeshStorage>(&meshgroup->meshes[meshIdx], slicer->layers.size())); // new mesh in storage had settings from the Mesh
@@ -370,9 +363,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
         }
 
-        slicerList[meshIdx].reset();
-
-        Progress::messageProgress(Progress::Stage::Parts, meshIdx + 1, slicerList.size());
+        Progress::messageProgress(Progress::Stage::Parts, meshIdx + 1, mesh_count);
     }
     return true;
 }

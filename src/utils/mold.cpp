@@ -3,6 +3,7 @@
 
 #include "utils/mold.h"
 
+#include <deque>
 #include <numbers>
 
 #include "Application.h"
@@ -23,7 +24,7 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-void process(std::vector<Slicer::Ptr>& slicer_list)
+void process(std::deque<Slicer::Ptr>& slicer_list)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     { // check whether we even need to process molds
