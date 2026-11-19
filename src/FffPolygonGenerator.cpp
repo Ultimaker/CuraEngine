@@ -244,6 +244,9 @@ bool FffPolygonGenerator::sliceModel(const MeshGroup::Ptr& meshgroup, TimeKeeper
             std::make_shared<
                 Slicer>(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness));
 
+        // The raw mesh data is no longer needed once it has been sliced, free it right away to lower the peak memory usage.
+        mesh.clear();
+
         Progress::messageProgress(Progress::Stage::Slicing, mesh_idx + 1, meshgroup->meshes.size());
     }
 
