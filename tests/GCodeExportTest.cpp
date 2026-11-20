@@ -72,7 +72,7 @@ public:
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice_ = std::make_shared<Slice>();
         Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
-        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.mesh_groups.front();
+        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.getMeshGroups().front();
 
         mock_communication = std::make_shared<MockCommunication>();
         Application::getInstance().communication_ = mock_communication;

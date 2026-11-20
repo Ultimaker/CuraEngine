@@ -28,7 +28,7 @@ void Slice::compute()
     }
 #endif
 
-    for (std::shared_ptr<MeshGroup>& mesh_group : scene.mesh_groups)
+    for (const std::shared_ptr<MeshGroup>& mesh_group : scene.getMeshGroups())
     {
         mesh_group->finalize();
         scene.current_mesh_group = mesh_group;
@@ -46,7 +46,7 @@ void Slice::compute()
 void Slice::reset()
 {
     scene.extruders.clear();
-    scene.mesh_groups.clear();
+    scene.clearMeshGroups();
     scene.settings = Settings();
 }
 

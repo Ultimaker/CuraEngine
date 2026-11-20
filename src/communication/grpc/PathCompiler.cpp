@@ -67,37 +67,25 @@ void PathCompiler::flushPathSegments()
         return; // Nothing to do.
     }
 
-    // proto::LayerOptimized* proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
     proto::LayerOptimized* proto_layer = getOptimizedLayerById(_layer_nr);
 
     proto::PathSegment* path_segment = proto_layer->add_path_segment();
     path_segment->set_extruder(extruder);
     path_segment->set_point_type(data_point_type);
 
-    std::string line_type_data;
-    line_type_data.append(reinterpret_cast<const char*>(line_types.data()), line_types.size() * sizeof(PrintFeatureType));
-    line_types.clear();
-    path_segment->set_line_type(line_type_data);
+    const auto pack_data = []<typename T>(std::vector<T>& data_vector) -> std::string
+    {
+        std::string string_data;
+        string_data.append(reinterpret_cast<const char*>(data_vector.data()), data_vector.size() * sizeof(T));
+        data_vector.clear();
+        return string_data;
+    };
 
-    std::string polygon_data;
-    polygon_data.append(reinterpret_cast<const char*>(points.data()), points.size() * sizeof(float));
-    points.clear();
-    path_segment->set_points(polygon_data);
-
-    std::string line_width_data;
-    line_width_data.append(reinterpret_cast<const char*>(line_widths.data()), line_widths.size() * sizeof(float));
-    line_widths.clear();
-    path_segment->set_line_width(line_width_data);
-
-    std::string line_thickness_data;
-    line_thickness_data.append(reinterpret_cast<const char*>(line_thicknesses.data()), line_thicknesses.size() * sizeof(float));
-    line_thicknesses.clear();
-    path_segment->set_line_thickness(line_thickness_data);
-
-    std::string line_velocity_data;
-    line_velocity_data.append(reinterpret_cast<const char*>(line_velocities.data()), line_velocities.size() * sizeof(float));
-    line_velocities.clear();
-    path_segment->set_line_feedrate(line_velocity_data);
+    path_segment->set_line_type(pack_data(line_types));
+    path_segment->set_points(pack_data(points));
+    path_segment->set_line_width(pack_data(line_widths));
+    path_segment->set_line_thickness(pack_data(line_thicknesses));
+    path_segment->set_line_feedrate(pack_data(line_velocities));
 
     for (const uint32_t line_attribute : line_attributes)
     {

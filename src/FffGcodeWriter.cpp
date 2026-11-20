@@ -98,7 +98,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     gcode.setSliceUUID(slice_uuid);
 
     Scene& scene = Application::getInstance().current_slice_->scene;
-    if (scene.current_mesh_group == scene.mesh_groups.front()) // First mesh group.
+    if (scene.isCurrentMeshGroupFirst()) // First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
         gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
@@ -108,7 +108,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetractionAndWipe(storage);
 
-    if (scene.current_mesh_group == scene.mesh_groups.front())
+    if (scene.isCurrentMeshGroupFirst())
     {
         auto should_prime_extruder = gcode.initializeExtruderTrains(storage, start_extruder_nr);
 
@@ -1609,7 +1609,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     // set the initial extruder of this meshgroup
     Scene& scene = Application::getInstance().current_slice_->scene;
     size_t start_extruder;
-    if (scene.current_mesh_group == scene.mesh_groups.front())
+    if (scene.isCurrentMeshGroupFirst())
     { // first meshgroup
         start_extruder = getStartExtruder(storage);
     }

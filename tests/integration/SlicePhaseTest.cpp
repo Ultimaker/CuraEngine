@@ -41,7 +41,7 @@ class SlicePhaseTest : public testing::Test
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice_ = std::make_shared<Slice>();
         Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
-        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.mesh_groups.front();
+        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.getMeshGroups().front();
 
         // And a few settings that we want to default.
         Scene& scene = Application::getInstance().current_slice_->scene;
@@ -81,7 +81,7 @@ class SlicePhaseTest : public testing::Test
 TEST_F(SlicePhaseTest, Cube)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    MeshGroup::Ptr& mesh_group = scene.mesh_groups.back();
+    const MeshGroup::Ptr& mesh_group = scene.getMeshGroups().back();
 
     const Matrix4x3D transformation;
     // Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
@@ -141,7 +141,7 @@ TEST_F(SlicePhaseTest, Cube)
 TEST_F(SlicePhaseTest, Cylinder1000)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    MeshGroup::Ptr& mesh_group = scene.mesh_groups.back();
+    const MeshGroup::Ptr& mesh_group = scene.getMeshGroups().back();
 
     const Matrix4x3D transformation;
     // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.

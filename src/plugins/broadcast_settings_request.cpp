@@ -31,7 +31,7 @@ broadcast_settings_request::value_type broadcast_settings_request::operator()(co
     }
 
     auto* object_settings = message.mutable_object_settings();
-    for (const auto& mesh_group : scene.mesh_groups)
+    for (const auto& mesh_group : scene.getMeshGroups())
     {
         std::unordered_map<std::string, std::string> mesh_group_settings;
         for (const auto& [setting_name, setting_value] : mesh_group->settings.getRawSettings())

@@ -17,24 +17,24 @@
 
 #include <chrono>
 #include <google/protobuf/message.h>
-#include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
+#include <unordered_map>
 
 #include <fmt/format.h>
 #include <spdlog/details/os.h>
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get and set the current slice command.
+#include "Application.h"
 #include "Cura.pb.h"
 #include "ExtruderTrain.h"
-#include "FffProcessor.h" //To start a slice.
+#include "FffProcessor.h"
 #include "PrintFeatureType.h"
-#include "Slice.h" //To process slices.
+#include "Slice.h"
 #include "communication/grpc/GrpcTransport.h"
 #include "communication/grpc/PathCompiler.h"
-#include "communication/grpc/SliceDataStruct.h" //To store sliced layer data.
+#include "communication/grpc/SliceDataStruct.h"
 #include "plugins/Slots.h"
-#include "types/LayerIndex.h" //To point to layers.
-#include "types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "types/LayerIndex.h"
+#include "types/Velocity.h"
 #include "types/geometry/Matrix4x3D.h"
 #include "types/geometry/Point2F.h"
 #include "types/geometry/Point3F.h"
@@ -63,8 +63,9 @@ bool GrpcCommunication::connect(const std::string& endpoint)
     spdlog::info("Connecting to Cura gRPC service at {}", endpoint);
 
     ::grpc::ChannelArguments arguments;
-    arguments.SetMaxReceiveMessageSize(500 * 1024 * 1024);
-    arguments.SetMaxSendMessageSize(500 * 1024 * 1024);
+    constexpr int max_message_size = 500 * 1024 * 1024;
+    arguments.SetMaxReceiveMessageSize(max_message_size);
+    arguments.SetMaxSendMessageSize(max_message_size);
     grpc_transport_ = std::make_unique<GrpcTransport>(endpoint, arguments);
 
     if (! grpc_transport_->connect())
@@ -100,7 +101,6 @@ std::shared_ptr<Slice> GrpcCommunication::makeSlice(const proto::Slice& slice_me
     sentry_value_set_by_key(user, "id", sentry_value_new_string(slice_message.sentry_id().c_str()));
     if (slice_message.has_user_name())
     {
-        spdlog::debug("Setting Sentry user to {}", slice_message.user_name());
         sentry_value_set_by_key(user, "username", sentry_value_new_string(slice_message.user_name().c_str()));
     }
     sentry_set_user(user);
@@ -131,7 +131,7 @@ std::shared_ptr<Slice> GrpcCommunication::makeSlice(const proto::Slice& slice_me
     for (const proto::SettingExtruder& setting_extruder : slice_message.limit_to_extruder())
     {
         const int32_t extruder_nr = setting_extruder.extruder(); // Cast from proto::int to int32_t!
-        if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
+        if (extruder_nr < 0 || extruder_nr >= static_cast<int32_t>(extruder_count))
         {
             // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
             continue;
@@ -173,13 +173,13 @@ bool GrpcCommunication::hasSlice()
                 return false;
             }
 
-            if (current_slice_->scene.mesh_groups.empty())
+            if (current_slice_->scene.getMeshGroups().empty())
             {
                 spdlog::error("Received object message without a mesh group.");
                 return false;
             }
 
-            readObjectMessage(message->object(), current_slice_->scene.extruders, *current_slice_->scene.mesh_groups.back());
+            readObjectMessage(message->object(), current_slice_->scene.extruders, *current_slice_->scene.getMeshGroups().back());
         }
     }
 
@@ -201,7 +201,6 @@ void GrpcCommunication::sendSliceUUID(const std::string& slice_uuid) const
 void GrpcCommunication::sendFinishedSlicing() const
 {
     grpc_transport_->sendMessage(proto::SlicingFinished());
-    spdlog::debug("Sent slicing finished message.");
 }
 
 void GrpcCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness)
@@ -229,7 +228,7 @@ void GrpcCommunication::sendOptimizedLayerData()
     SliceDataStruct<proto::LayerOptimized>& data = path_compiler->getOptimizedLayers();
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
-    if (data.sliced_objects < Application::getInstance().current_slice_->scene.mesh_groups.size()) // Nothing to send.
+    if (data.sliced_objects < Application::getInstance().current_slice_->scene.getMeshGroups().size()) // Nothing to send.
     {
         return;
     }
@@ -237,7 +236,6 @@ void GrpcCommunication::sendOptimizedLayerData()
 
     for (auto& entry : data.slice_data) // Note: This is in no particular order!
     {
-        spdlog::debug("Sending layer data for layer {} of {}.", entry.first, data.slice_data.size());
         grpc_transport_->sendMessage(std::move(entry.second)); // Send the actual layers.
     }
 
@@ -249,8 +247,6 @@ void GrpcCommunication::sendOptimizedLayerData()
 
 void GrpcCommunication::sendPrintInformation(const std::vector<Duration>& time_estimates, const PrintInformation& print_information) const
 {
-    spdlog::debug("Sending print information.");
-
     proto::PrintTimeMaterialEstimates message;
 
     message.set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
@@ -300,8 +296,6 @@ void GrpcCommunication::sendPrintInformation(const std::vector<Duration>& time_e
     proto::InitialExtruder initial_extruder_message;
     initial_extruder_message.set_extruder_nr(print_information.initial_extruder_nr.value_or(0));
     grpc_transport_->sendMessage(std::move(initial_extruder_message));
-
-    spdlog::debug("Done sending print information.");
 }
 
 void GrpcCommunication::sendProgress(double progress) const
@@ -312,7 +306,7 @@ void GrpcCommunication::sendProgress(double progress) const
         return;
     }
 
-    const size_t mesh_groups_count = Application::getInstance().current_slice_->scene.mesh_groups.size();
+    const size_t mesh_groups_count = Application::getInstance().current_slice_->scene.getMeshGroups().size();
     proto::Progress message;
     double progress_all_objects = progress / mesh_groups_count;
     progress_all_objects += path_compiler->getOptimizedLayers().sliced_objects * (1.0 / mesh_groups_count);
@@ -340,7 +334,7 @@ void GrpcCommunication::sliceNext()
         return;
     }
 
-    if (current_slice_->scene.mesh_groups.empty())
+    if (current_slice_->scene.getMeshGroups().empty())
     {
         spdlog::error("Cannot slice, scene has no mesh groups.");
         return;

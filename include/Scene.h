@@ -28,11 +28,6 @@ public:
     std::unordered_map<std::string, ExtruderTrain*> limit_to_extruder;
 
     /*
-     * \brief The mesh groups in the scene.
-     */
-    std::vector<std::shared_ptr<MeshGroup>> mesh_groups;
-
-    /*
      * \brief The extruders in the scene.
      */
     std::vector<ExtruderTrain> extruders;
@@ -75,7 +70,32 @@ public:
      */
     void appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group);
 
+    /*! Remove all the mesh groups from this scene */
+    void clearMeshGroups();
+
+    /*! Get all the mesh groups of this scene */
+    const std::vector<std::shared_ptr<MeshGroup>>& getMeshGroups() const;
+
+    /*!
+     * Get the mesh group at the given index
+     * @param index The index of the mesh group, which must be valid
+     */
+    const std::shared_ptr<MeshGroup>& getMeshGroup(const size_t index) const;
+
+    /*! Check whether the mesh group currently being processed is the first one of the scene */
+    bool isCurrentMeshGroupFirst() const;
+
+    /*!
+     * Get the mesh group that comes right before the given one
+     * @param mesh_group A mesh group of this scene
+     * @return The previous mesh group, or nullptr if the given one is the first one or is not part of the scene
+     */
+    std::shared_ptr<MeshGroup> getPreviousMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group) const;
+
 private:
+    /* \brief The mesh groups in the scene. */
+    std::vector<std::shared_ptr<MeshGroup>> mesh_groups_;
+
     /*
      * \brief You are not allowed to copy the scene.
      */

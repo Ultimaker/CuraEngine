@@ -89,7 +89,7 @@ public:
     {
         Application::getInstance().current_slice_ = std::make_shared<Slice>();
         Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
-        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.mesh_groups.front();
+        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.getMeshGroups().front();
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice_->scene.current_mesh_group->settings;
