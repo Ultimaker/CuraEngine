@@ -16,7 +16,7 @@ namespace curaengine::communication::emscripten
  * This class extends the CommandLine class and provides specific implementations
  * for sending progress and handling slice information in an Emscripten environment.
  */
-class EmscriptenCommunication : public CommandLine
+class EmscriptenCommunication : public command_line::CommandLine
 {
 private:
     std::string progress_handler_; ///< Handler for progress messages.
