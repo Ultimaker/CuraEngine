@@ -171,7 +171,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     else
     {
         // Current bed temperature is the one of the previous group
-        auto iterator = ranges::find(scene.mesh_groups, scene.current_mesh_group);
+        const auto iterator = ranges::find(scene.mesh_groups, scene.current_mesh_group);
         bed_temperature_ = (*(iterator - 1))->settings.get<Temperature>("material_bed_temperature");
     }
 }
