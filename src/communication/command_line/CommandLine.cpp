@@ -112,6 +112,7 @@ void CommandLine::sliceNext()
 
     Application::getInstance().current_slice_ = std::make_shared<Slice>();
     auto slice = Application::getInstance().current_slice_;
+    slice->scene.mesh_groups.emplace_back(std::make_shared<MeshGroup>());
 
     size_t mesh_group_index = 0;
     Settings* last_settings = &slice->scene.settings;
