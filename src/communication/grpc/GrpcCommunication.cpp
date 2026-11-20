@@ -429,13 +429,11 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
     for (size_t face = 0; face < face_count; face++)
     {
         const Point3F* float_vertices = reinterpret_cast<const Point3F*>(object_message.vertices().data() + face * bytes_per_face);
+        const std::array<Point3LL, 3> vertices{ matrix.apply(float_vertices[0].toPoint3d()),
+                                                matrix.apply(float_vertices[1].toPoint3d()),
+                                                matrix.apply(float_vertices[2].toPoint3d()) };
+
         const Point2F* uv_coordinates_data = has_valid_uv ? reinterpret_cast<const Point2F*>(object_message.uv_coordinates().data() + face * bytes_per_uv) : nullptr;
-
-        std::array<Point3LL, 3> verts;
-        verts[0] = matrix.apply(float_vertices[0].toPoint3d());
-        verts[1] = matrix.apply(float_vertices[1].toPoint3d());
-        verts[2] = matrix.apply(float_vertices[2].toPoint3d());
-
         std::array<std::optional<Point2F>, 3> uv_coordinates;
         if (uv_coordinates_data)
         {
@@ -444,7 +442,7 @@ void GrpcCommunication::readObjectMessage(const proto::Object& object_message, c
             uv_coordinates[2] = uv_coordinates_data[2];
         }
 
-        mesh.addFace(verts[0], verts[1], verts[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
+        mesh.addFace(vertices[0], vertices[1], vertices[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
     }
 
     utils::loadTextureFromString(object_message.texture(), mesh);
