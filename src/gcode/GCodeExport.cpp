@@ -336,7 +336,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
             }
 
-            for (const auto& mesh : mesh_group.meshes)
+            for (const auto& mesh : mesh_group->meshes)
             {
                 // A rough bounding box of the mesh is enough to show the skipped mesh's area on the machine, so horizontal expansion (e.g. extrusion width, brim) is not accounted
                 // for.
