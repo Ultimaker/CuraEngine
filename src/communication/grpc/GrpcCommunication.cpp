@@ -173,13 +173,13 @@ bool GrpcCommunication::hasSlice()
                 return false;
             }
 
-            if (current_slice_->scene.mesh_groups.empty())
+            if (current_slice_->scene.getMeshGroups().empty())
             {
                 spdlog::error("Received object message without a mesh group.");
                 return false;
             }
 
-            readObjectMessage(message->object(), current_slice_->scene.extruders, *current_slice_->scene.mesh_groups.back());
+            readObjectMessage(message->object(), current_slice_->scene.extruders, *current_slice_->scene.getMeshGroups().back());
         }
     }
 
@@ -228,7 +228,7 @@ void GrpcCommunication::sendOptimizedLayerData()
     SliceDataStruct<proto::LayerOptimized>& data = path_compiler->getOptimizedLayers();
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
-    if (data.sliced_objects < Application::getInstance().current_slice_->scene.mesh_groups.size()) // Nothing to send.
+    if (data.sliced_objects < Application::getInstance().current_slice_->scene.getMeshGroups().size()) // Nothing to send.
     {
         return;
     }
@@ -306,7 +306,7 @@ void GrpcCommunication::sendProgress(double progress) const
         return;
     }
 
-    const size_t mesh_groups_count = Application::getInstance().current_slice_->scene.mesh_groups.size();
+    const size_t mesh_groups_count = Application::getInstance().current_slice_->scene.getMeshGroups().size();
     proto::Progress message;
     double progress_all_objects = progress / mesh_groups_count;
     progress_all_objects += path_compiler->getOptimizedLayers().sliced_objects * (1.0 / mesh_groups_count);
@@ -334,7 +334,7 @@ void GrpcCommunication::sliceNext()
         return;
     }
 
-    if (current_slice_->scene.mesh_groups.empty())
+    if (current_slice_->scene.getMeshGroups().empty())
     {
         spdlog::error("Cannot slice, scene has no mesh groups.");
         return;

@@ -112,7 +112,7 @@ void CommandLine::sliceNext()
 
     Application::getInstance().current_slice_ = std::make_shared<Slice>();
     auto slice = Application::getInstance().current_slice_;
-    slice->scene.mesh_groups.emplace_back(std::make_shared<MeshGroup>());
+    slice->scene.appendMeshGroup(std::make_shared<MeshGroup>());
 
     size_t mesh_group_index = 0;
     Settings* last_settings = &slice->scene.settings;
@@ -133,7 +133,7 @@ void CommandLine::sliceNext()
             {
                 if (argument.starts_with("--next")) // Starts with "--next".
                 {
-                    slice->scene.mesh_groups.emplace_back(std::make_shared<MeshGroup>());
+                    slice->scene.appendMeshGroup(std::make_shared<MeshGroup>());
 
                     try
                     {
@@ -141,7 +141,7 @@ void CommandLine::sliceNext()
 
                         mesh_group_index++;
                         FffProcessor::getInstance()->time_keeper.restart();
-                        last_settings = &slice->scene.mesh_groups[mesh_group_index]->settings;
+                        last_settings = &slice->scene.getMeshGroup(mesh_group_index)->settings;
                     }
                     catch (...)
                     {
@@ -270,14 +270,14 @@ void CommandLine::sliceNext()
 
                     const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(*slice->scene.mesh_groups[mesh_group_index], argument, transformation, last_extruder->settings_))
+                    if (! loadMeshIntoMeshGroup(*slice->scene.getMeshGroup(mesh_group_index), argument, transformation, last_extruder->settings_))
                     {
                         spdlog::error("Failed to load model: {} (error number {})", argument, errno);
                         exit(1);
                     }
                     else
                     {
-                        last_settings = &slice->scene.mesh_groups[mesh_group_index]->meshes.back().settings_;
+                        last_settings = &slice->scene.getMeshGroup(mesh_group_index)->meshes.back().settings_;
                     }
                     break;
                 }
@@ -306,7 +306,7 @@ void CommandLine::sliceNext()
                 }
                 case 'g':
                 {
-                    last_settings = &slice->scene.mesh_groups[mesh_group_index]->settings;
+                    last_settings = &slice->scene.getMeshGroup(mesh_group_index)->settings;
                     break;
                 }
                 /* ... falls through ... */
@@ -426,14 +426,14 @@ void CommandLine::sliceNext()
                         const auto& model_name = key;
                         for (const auto& [setting_key, setting_value] : values)
                         {
-                            slice->scene.mesh_groups[mesh_group_index]->settings.add(setting_key, setting_value);
+                            slice->scene.getMeshGroup(mesh_group_index)->settings.add(setting_key, setting_value);
                         }
 
-                        const auto transformation = slice->scene.mesh_groups[mesh_group_index]->settings.get<Matrix4x3D>("mesh_rotation_matrix");
-                        const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index]->settings.get<size_t>("extruder_nr");
+                        const auto transformation = slice->scene.getMeshGroup(mesh_group_index)->settings.get<Matrix4x3D>("mesh_rotation_matrix");
+                        const auto extruder_nr = slice->scene.getMeshGroup(mesh_group_index)->settings.get<size_t>("extruder_nr");
 
                         if (! loadMeshIntoMeshGroup(
-                                *slice->scene.mesh_groups[mesh_group_index],
+                                *slice->scene.getMeshGroup(mesh_group_index),
                                 settings_folder / model_name,
                                 transformation,
                                 slice->scene.extruders[extruder_nr].settings_))

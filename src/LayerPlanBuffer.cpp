@@ -632,7 +632,7 @@ void LayerPlanBuffer::insertTempCommands()
             for (size_t extruder_idx = 0; extruder_idx < scene.extruders.size(); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
                 const Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_idx].settings_;
-                if (scene.current_mesh_group == scene.mesh_groups.front()) // First mesh group.
+                if (scene.isCurrentMeshGroupFirst()) // First mesh group.
                 {
                     // override values from GCodeExport::setInitialTemps
                     // the first used extruder should be set to the required temp in the start gcode
