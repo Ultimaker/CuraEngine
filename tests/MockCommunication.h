@@ -21,7 +21,7 @@ namespace curaengine
 class MockCommunication : public communication::Communication
 {
 public:
-    MOCK_CONST_METHOD0(hasSlice, bool());
+    MOCK_METHOD0(hasSlice, bool());
     MOCK_CONST_METHOD1(sendProgress, void(double progress));
     MOCK_METHOD3(sendLayerComplete, void(const types::LayerIndex::value_type& layer_nr, const types::coord_t& z, const types::coord_t& thickness));
     MOCK_METHOD6(

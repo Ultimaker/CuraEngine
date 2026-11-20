@@ -13,6 +13,7 @@
 #include <regex>
 
 #include <fmt/chrono.h>
+#include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -109,7 +110,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     current_extruder_ = start_extruder;
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
+    const std::shared_ptr<MeshGroup>& mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords_ = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
@@ -155,7 +156,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
 
     estimate_calculator_.setFirmwareDefaults(mesh_group->settings);
 
-    if (mesh_group == scene.mesh_groups.begin())
+    if (mesh_group == scene.getMeshGroups().front())
     {
         if (! scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
         {
@@ -170,7 +171,8 @@ void GCodeExport::preSetup(const size_t start_extruder)
     else
     {
         // Current bed temperature is the one of the previous group
-        bed_temperature_ = (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature");
+        const auto previous_mesh_group = scene.getPreviousMeshGroup(scene.current_mesh_group);
+        bed_temperature_ = previous_mesh_group->settings.get<Temperature>("material_bed_temperature");
     }
 }
 
@@ -277,7 +279,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         }
 
         prefix << ";PRINT.TIME:" << static_cast<int>(print_time) << new_line_;
-        prefix << ";PRINT.GROUPS:" << Application::getInstance().current_slice_->scene.mesh_groups.size() << new_line_;
+        prefix << ";PRINT.GROUPS:" << Application::getInstance().current_slice_->scene.getMeshGroups().size() << new_line_;
 
         if (total_bounding_box_.min_.x_ > total_bounding_box_.max_.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
         {
@@ -315,13 +317,13 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                    << new_line_;
         }
 
-        for (const auto& mesh_group : Application::getInstance().current_slice_->scene.mesh_groups)
+        for (const auto& mesh_group : Application::getInstance().current_slice_->scene.getMeshGroups())
         {
-            if (! mesh_group.getSkipMeshEnabled())
+            if (! mesh_group->getSkipMeshEnabled())
             {
                 continue;
             }
-            for (const auto& mesh : mesh_group.meshes)
+            for (const auto& mesh : mesh_group->meshes)
             {
                 using ranges::to;
                 const auto sanitized_mesh_name = mesh.mesh_name_
@@ -334,7 +336,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                 prefix << ";SKIP_ENABLE.MESH_NAME." << mesh.mesh_id() << ":" << sanitized_mesh_name << new_line_;
             }
 
-            for (const auto& mesh : mesh_group.meshes)
+            for (const auto& mesh : mesh_group->meshes)
             {
                 // A rough bounding box of the mesh is enough to show the skipped mesh's area on the machine, so horizontal expansion (e.g. extrusion width, brim) is not accounted
                 // for.
@@ -874,7 +876,7 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
     const bool material_print_temp_prepend = scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend");
     const bool material_print_temp_wait = scene.current_mesh_group->settings.get<bool>("material_print_temp_wait");
 
-    if (! material_print_temp_prepend && (scene.current_mesh_group == scene.mesh_groups.begin()))
+    if (! material_print_temp_prepend && (scene.isCurrentMeshGroupFirst()))
     {
         // Nozzle initial temperatures are handled by start GCode, ignore
         return;

@@ -8,7 +8,7 @@ namespace curaengine
 
 enum class PrintFeatureType : unsigned char
 {
-    NoneType = 0, // used to mark unspecified jumps in polygons. libArcus depends on it
+    NoneType = 0, // used to mark unspecified jumps in polygons. The Protobuf messages depend on it.
     OuterWall = 1,
     InnerWall = 2,
     Skin = 3,

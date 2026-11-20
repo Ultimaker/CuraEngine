@@ -21,7 +21,7 @@
 #include "SliceDataStorage.h"
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
-#include "arcus/MockCommunication.h"
+#include "MockCommunication.h"
 #include "types/geometry/OpenPolyline.h"
 #include "types/geometry/Polygon.h"
 #include "utils/linear_alg_2d.h"
@@ -65,7 +65,8 @@ public:
 
     SliceDataStorage* setUpStorage()
     {
-        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>();
+        Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
 
         // Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice_->scene.settings;
