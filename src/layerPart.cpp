@@ -87,7 +87,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     }
 }
 
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
+void createLayerParts(SliceMeshStorage& mesh, const Slicer::Ptr& slicer)
 {
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);

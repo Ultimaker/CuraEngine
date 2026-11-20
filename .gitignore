@@ -14,6 +14,11 @@ Trash/*
 output/*
 callgrind/*
 
+## Personal environment activation script (e.g. for conan)
+.conan-env.sh
+.conan-env.ps1
+.conan-env.bat
+
 ## Building result.
 build/
 tests/build/
@@ -75,3 +80,6 @@ conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
 build/*
+
+## The build skill lives in a folder named build
+!/.github/skills/build/

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -38,7 +39,7 @@ namespace utils::area_support
  * \return Whether the mesh is used up in support and no normal mesh
  * processing is needed.
  */
-bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer);
+bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const std::shared_ptr<Slicer>& slicer);
 
 /*!
  * \brief Generate the overhang areas for all models.

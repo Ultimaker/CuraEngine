@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <memory>
+
 namespace curaengine
 {
 
@@ -22,7 +24,7 @@ namespace utils::conical_overhang
  * \param[in,out] slicer The slice data.
  * \param mesh The mesh to get the settings from.
  */
-void apply(Slicer* slicer, const Mesh& mesh);
+void apply(const std::shared_ptr<Slicer>& slicer, const Mesh& mesh);
 } // namespace utils::conical_overhang
 
 } // namespace curaengine

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -34,6 +35,8 @@ class Mesh;
 class Slicer
 {
 public:
+    using Ptr = std::shared_ptr<Slicer>;
+
     std::vector<SlicerLayer> layers;
 
     const Mesh* mesh = nullptr; //!< The sliced mesh

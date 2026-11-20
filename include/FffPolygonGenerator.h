@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "types/LayerIndex.h"
 #include "types/NoCopy.h"
 
@@ -43,7 +45,7 @@ public:
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
      */
-    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, types::TimeKeeper& timeKeeper);
+    bool generateAreas(SliceDataStorage& storage, const std::shared_ptr<MeshGroup>& object, types::TimeKeeper& timeKeeper);
 
 private:
     /*!
@@ -68,7 +70,7 @@ private:
      *
      * \return Whether the process succeeded (always true).
      */
-    bool sliceModel(MeshGroup* object, types::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
+    bool sliceModel(const std::shared_ptr<MeshGroup>& object, types::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, support area polygons, etc.

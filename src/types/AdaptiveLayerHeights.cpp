@@ -23,7 +23,12 @@ namespace curaengine::types
 using namespace types::geometry;
 using namespace utils;
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
+AdaptiveLayerHeights::AdaptiveLayerHeights(
+    const coord_t base_layer_height,
+    const coord_t variation,
+    const coord_t step_size,
+    const coord_t threshold,
+    const MeshGroup::Ptr& meshgroup)
     : base_layer_height_{ base_layer_height }
     , max_variation_{ variation }
     , step_size_{ step_size }

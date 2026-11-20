@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <deque>
+#include <memory>
 #include <unordered_set>
 #include <vector>
 
@@ -57,7 +59,7 @@ public:
     /*!
      * Generate an interlocking structure between each two adjacent meshes.
      */
-    static void generateInterlockingStructure(std::vector<Slicer*>& volumes);
+    static void generateInterlockingStructure(std::deque<std::shared_ptr<Slicer>>& volumes);
 
 protected:
     /*!
