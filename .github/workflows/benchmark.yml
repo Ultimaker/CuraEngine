@@ -44,7 +44,7 @@ jobs:
     if: >-
       needs.check_actor.outputs.proceed == 'true' &&
       needs.find-ticket-packages.result == 'success'
-    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
+    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@CURA-13380
     with:
       conan_extra_args: "-c tools.build:skip_test=False -o \"curaengine/*:enable_benchmarks=True\""
       benchmark_cmd: "benchmark/benchmarks --benchmark_format=json --benchmark_out=benchmark_result.json"
@@ -55,4 +55,5 @@ jobs:
       alert_threshold: "150%"
       alert_comment_cc_users: "@jellespijker, @wawanbreton, @casperlamboo, @HellAholic"
       package_overrides: ${{ needs.find-ticket-packages.outputs.package_overrides || '' }}
+      cura_workflows_branch: CURA-13380
     secrets: inherit
