@@ -22,10 +22,11 @@ using namespace types;
 using namespace types::geometry;
 using namespace utils;
 
-CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
+CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference, const AngleDegrees& min_sharp_angle)
     : PositionBasedScoringCriterion(points)
     , corner_preference_(corner_preference)
     , segments_data_(points.size())
+    , min_sharp_angle_(min_sharp_angle)
 {
     switch (corner_preference_)
     {
@@ -75,8 +76,7 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
     const bool convex = corner_angle > 0;
 
     // Ignore very small angles, we cannot consider them as anyhow sharp
-    constexpr double min_sharp_angle{ 18.0 }; // degrees
-    constexpr double min_angle_score{ min_sharp_angle / 180.0 };
+    const double min_angle_score{ min_sharp_angle_ / 180.0 };
     const double angle_weighted{ std::max(0.0, inverse_lerp(min_angle_score, 1.0, std::abs(corner_angle))) };
 
     return convex ? convex_angle_score_ * angle_weighted : concave_angle_score_ * angle_weighted;

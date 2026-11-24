@@ -37,9 +37,10 @@ private:
     double convex_angle_score_{ 0.0 };
     std::vector<SegmentData> segments_data_;
     coord_t total_length_{ 0 };
+    const AngleDegrees min_sharp_angle_;
 
 public:
-    explicit CornerScoringCriterion(const types::geometry::PointsSet& points, const types::EZSeamCornerPrefType corner_preference);
+    explicit CornerScoringCriterion(const types::geometry::PointsSet& points, const types::EZSeamCornerPrefType corner_preference, const AngleDegrees& min_sharp_angle);
 
     double computeScore(const size_t candidate_index) const override;
 
