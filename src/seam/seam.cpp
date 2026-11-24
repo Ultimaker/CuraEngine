@@ -167,10 +167,11 @@ static SeamCorner makeCornerFromCluster(
  * @param min_vertex_turn Vertices turning by less than this angle (radians) are considered as straight (dead band), so they never belong to a corner and they end the current one
  * @param max_radius Two consecutive turning vertices belong to the same corner only if the radius of the arc between them is lower than this value. This radius is estimated by the
  * length of the segment between them divided by their average turning angle, so the tolerance adapts to the resolution of the path
+ * @param max_sharp_turn A vertex that turns by more than this angle is a very sharp corner by itself, so it is never aggregated with any other vertex and always makes a single
+ * corner, even if the vertices around it turn in the same direction
  * @param max_turn_jump A vertex belongs to the current corner only if its turning angle does not differ by more than this value from the one predicted by the curvature
  * of the corner built so far. It separates a sharp turn from the smooth rounding that precedes or follows it, even if they turn in the same direction
  * @param max_corner_length A corner that extends over more than this length along the path is considered as too flat, and is discarded as a whole
- * @param min_corner_turn Corners with a total turn lower than this angle (radians) are discarded, and it is the lower bound of the angle score
  * @param length_penalty_reference Length at which the score of a corner is halved, favoring short corners. Disabled if <= 0
  * @return The corners, in the order they are met on the path
  */
@@ -179,6 +180,7 @@ static std::vector<SeamCorner> findSeamCorners(
     const AngleRadians& min_vertex_turn,
     const double max_radius,
     const AngleRadians& max_turn_jump,
+    const AngleRadians& max_sharp_turn,
     const double max_corner_length,
     const double length_penalty_reference)
 {
@@ -192,8 +194,9 @@ static std::vector<SeamCorner> findSeamCorners(
     struct Vertex
     {
         double turn_angle;
-        double local_length; // Average length of the two adjacent segments, so the distance over which the turn happens
+        double local_length; // Length over which the turn happens, which is the shortest adjacent segment so that a long straight edge doesn't dilute the curvature
         bool is_turning;
+        bool is_sharp; // True if the turn is so sharp that this vertex is a corner by itself
         bool is_linked_to_next; // True if the segment that goes to the next vertex can be part of the same corner
     };
 
@@ -215,8 +218,9 @@ static std::vector<SeamCorner> findSeamCorners(
         const double dot = Point2D::dot(segments[prev].direction, segments[i].direction);
         const double turn_angle = std::atan2(cross, dot);
         vertices[i] = Vertex{ .turn_angle = turn_angle,
-                              .local_length = (segments[prev].length + segments[i].length) / 2.0,
+                              .local_length = std::min(segments[prev].length, segments[i].length),
                               .is_turning = std::abs(turn_angle) >= min_vertex_turn,
+                              .is_sharp = std::abs(turn_angle) > max_sharp_turn,
                               .is_linked_to_next = false };
     }
 
@@ -225,11 +229,12 @@ static std::vector<SeamCorner> findSeamCorners(
         const Vertex& vertex = vertices[i];
         const Vertex& next_vertex = vertices[(i + 1) % points_count];
 
-        // The segment can be a piece of the same corner if it is an arc between two turns in the same direction, whose radius is small enough. The cluster that is being built
-        // may still refuse it later, if the turn of the next vertex is not what the cluster predicts
+        // The segment can be a piece of the same corner if it is an arc between two turns in the same direction, whose radius is small enough. Very sharp vertices are never
+        // linked, so that they are always alone. The cluster that is being built may still refuse the segment later, if the turn of the next vertex is not what the cluster
+        // predicts
         const double average_turn = (std::abs(vertex.turn_angle) + std::abs(next_vertex.turn_angle)) / 2.0;
-        vertices[i].is_linked_to_next
-            = vertex.is_turning && next_vertex.is_turning && sign(vertex.turn_angle) == sign(next_vertex.turn_angle) && segments[i].length <= max_radius * average_turn;
+        vertices[i].is_linked_to_next = vertex.is_turning && next_vertex.is_turning && ! vertex.is_sharp && ! next_vertex.is_sharp
+                                     && sign(vertex.turn_angle) == sign(next_vertex.turn_angle) && segments[i].length <= max_radius * average_turn;
     }
 
     // ## Step 2: start the walk just after a segment that is not linked, so that no corner is split by the start of the loop
@@ -597,7 +602,7 @@ static bool isCloseToOuterWallSeam(const Point2LL& position, const std::vector<P
         });
 }
 
-static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const SliceMeshStorage::Ptr& mesh)
+static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const SliceMeshStorage::Ptr& mesh, const double concave_angle_weight, const double convex_angle_weight)
 {
     std::vector<std::vector<SeamCorner>> seam_corners(mesh->layers.size()); // Good-enough seam candidates, per layer
 
@@ -655,40 +660,35 @@ static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const
                     // All lengths are in micrometers, all angles in radians
                     const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } }; // 1°, below this a turn is considered as straight
                     constexpr double max_radius = 2000.0; // Arcs flatter than a 2 mm radius are not corners
-                    const AngleRadians max_turn_jump{ AngleDegrees{ 40.0 } }; // Turns that differ by more than 40° between two vertices are separate corners
+                    const AngleRadians max_turn_jump{ AngleDegrees{ 40.0 } }; // A vertex whose turn differs by more than 20° from what the corner predicts starts a new corner
+                    const AngleRadians max_sharp_turn{ AngleDegrees{ 50.0 } }; // A vertex that turns by more than 40° is a corner by itself
                     constexpr double max_corner_length = 3500.0; // A 2 mm radius quarter turn is about 3.1 mm, anything longer is too flat
                     constexpr double length_penalty_reference = 2000.0; // A corner spread over 2 mm gets half the score of a perfectly sharp one
 
-                    const std::vector<SeamCorner> corners = findSeamCorners(points, min_vertex_turn, max_radius, max_turn_jump, max_corner_length, length_penalty_reference);
+                    std::vector<SeamCorner> corners
+                        = findSeamCorners(points, min_vertex_turn, max_radius, max_turn_jump, max_sharp_turn, max_corner_length, length_penalty_reference);
 
-                    CuraViz::send(extrusion_line, "extrusion");
-                    for (const SeamCorner& corner : corners)
+                    if (layer.printZ == 20000)
                     {
-                        if (std::abs(corner.score) > 0.25)
+                        CuraViz::send(extrusion_line, "extrusion");
+                    }
+                    for (SeamCorner& corner : corners)
+                    {
+                        // angles > 0 are concave (left turning)
+                        // angles < 0 are convex (right turning)
+                        const bool convex = corner.score < 0;
+                        corner.score *= convex ? convex_angle_weight : concave_angle_weight;
+                        if (layer.printZ == 20000)
                         {
-                            SeamCorner& layer_seam_corner = layer_seam_corners.emplace_back(corner);
-                            layer_seam_corner.extrusion_line = &extrusion_line;
-                            layer_seam_corner.layer_index = layer_index;
                             CuraViz::send(corner.position, fmt::format("corner_{}_{}", layer_index, corner.score));
                         }
-                    }
 
-                    if (! corners.empty())
-                    {
-                        static int send_corners = 0;
-                        constexpr int send_island_index = 200;
-                        if (send_corners <= send_island_index)
+                        if (std::abs(corner.score) > 0.1)
                         {
+                            SeamCorner& layer_seam_corner = layer_seam_corners.emplace_back(std::move(corner));
+                            layer_seam_corner.extrusion_line = &extrusion_line;
+                            layer_seam_corner.layer_index = layer_index;
                         }
-                        for (const SeamCorner& corner : corners)
-                        {
-                            if (send_corners <= send_island_index && std::abs(corner.score) > 0.25)
-                            {
-                                spdlog::info(corner.score);
-                            }
-                        }
-
-                        send_corners++;
                     }
                 }
             }
@@ -803,7 +803,7 @@ struct SeamCornersString
  * @param root_nodes The root nodes of the corners graph
  * @return The best string, or nullopt if there is no root node. If several strings have the same score, the first found is returned
  */
-static std::optional<SeamCornersString> findBestStringFromCornersTree(const std::vector<std::shared_ptr<SeamCornerNode>>& root_nodes)
+static std::optional<SeamCornersString> findBestStringFromCornersTree(const std::vector<std::shared_ptr<SeamCornerNode>>& root_nodes, const double z_seam_alignment_weight)
 {
     // Gather all the nodes that can be reached from the root nodes, without any recursion
     std::vector<const SeamCornerNode*> nodes;
@@ -949,11 +949,139 @@ static void applySeamCorner(const SeamCorner& corner)
     extrusion_line.has_start_position_set_ = true;
 }
 
+/*!
+ * Finds the position of an extrusion line that is the closest to one of the given seams, and returns the index of the junction at this position. If the position is not
+ * on an existing junction, a new one is inserted, unless it is requested to stick to the existing junctions.
+ * @param extrusion_line The closed extrusion line to search a position in
+ * @param seams The positions of the seams (typically the ones of the layer below or above) that the line should be aligned with
+ * @param max_distance The maximum distance between the seam and the position found on the line
+ * @param z_seam_on_vertex If true, the position is always on an existing junction, otherwise it is the closest point of the line
+ * @return The index of the junction, or nullopt if no position of the line is close enough to a seam
+ */
+static std::optional<size_t> findJunctionCloseToSeams(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& seams, const coord_t max_distance, const bool z_seam_on_vertex)
+{
+    const coord_t max_distance_squared = max_distance * max_distance;
+
+    if (z_seam_on_vertex)
+    {
+        // Closed lines are explicitly closed, so the last junction is the same as the first one
+        const size_t unique_junctions_count
+            = extrusion_line.size() > 1 && extrusion_line.front().p_ == extrusion_line.back().p_ ? extrusion_line.size() - 1 : extrusion_line.size();
+
+        std::optional<size_t> best_index;
+        coord_t best_distance_squared = max_distance_squared;
+        for (size_t junction_index = 0; junction_index < unique_junctions_count; ++junction_index)
+        {
+            for (const Point2LL& seam : seams)
+            {
+                const coord_t distance_squared = vSize2(extrusion_line[junction_index].p_ - seam);
+                if (distance_squared <= best_distance_squared)
+                {
+                    best_index = junction_index;
+                    best_distance_squared = distance_squared;
+                }
+            }
+        }
+
+        return best_index;
+    }
+
+    return insertBestNewJunction(
+        extrusion_line,
+        [&seams, max_distance_squared](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
+        {
+            // For this segment, keep the seam that is the closest to it, if there is any close enough
+            std::optional<AddSplitJunctionCandidate> best_candidate;
+            coord_t best_distance_squared = max_distance_squared;
+            for (const Point2LL& seam : seams)
+            {
+                const Point2LL closest_on_segment = linear_alg_2d::getClosestOnLineSegment(seam, segment_start, segment_end);
+                const coord_t distance_squared = vSize2(closest_on_segment - seam);
+                if (distance_squared <= best_distance_squared)
+                {
+                    best_candidate = AddSplitJunctionCandidate{ .reference_position = seam, .split_position = closest_on_segment };
+                    best_distance_squared = distance_squared;
+                }
+            }
+            return best_candidate;
+        });
+}
+
+/*!
+ * Sets the seam of the outer walls of a layer that don't have any, by projecting the seams of another layer onto them. The walls that already have a seam are not changed.
+ * @param source_layer The layer that holds the seams to be projected
+ * @param target_layer The layer whose outer walls without seam will get one, if a seam of the source layer is close enough
+ * @param max_distance The maximum distance between the projected seam and the new seam position
+ * @param z_seam_on_vertex Whether the new seam has to be on an existing junction
+ */
+static void projectSeamsOnLayer(const SliceLayer& source_layer, SliceLayer& target_layer, const coord_t max_distance, const bool z_seam_on_vertex)
+{
+    std::vector<Point2LL> seams;
+    for (const SliceLayerPart& part : source_layer.parts)
+    {
+        for (const VariableWidthLines& extrusion_lines : part.wall_toolpaths)
+        {
+            for (const ExtrusionLine& extrusion_line : extrusion_lines)
+            {
+                if (extrusion_line.is_outer_wall() && extrusion_line.is_closed_ && extrusion_line.has_start_position_set_ && ! extrusion_line.empty())
+                {
+                    seams.push_back(extrusion_line.front().p_);
+                }
+            }
+        }
+    }
+
+    if (seams.empty())
+    {
+        return;
+    }
+
+    for (SliceLayerPart& part : target_layer.parts)
+    {
+        for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
+        {
+            for (ExtrusionLine& extrusion_line : extrusion_lines)
+            {
+                if (! extrusion_line.is_outer_wall() || ! extrusion_line.is_closed_ || extrusion_line.has_start_position_set_)
+                {
+                    continue;
+                }
+
+                if (const std::optional<size_t> start_index = findJunctionCloseToSeams(extrusion_line, seams, max_distance, z_seam_on_vertex))
+                {
+                    extrusion_line.setStartJunction(start_index.value());
+                    extrusion_line.has_start_position_set_ = true;
+                }
+            }
+        }
+    }
+}
+
+/*!
+ * Gives a seam to the outer walls that don't have any yet, by propagating the existing seams from layer to layer, first from the bottom to the top, and then from the top to
+ * the bottom. The walls that cannot be reached because no seam is close enough are left unchanged.
+ */
+static void propagateSeamsAcrossLayers(SliceMeshStorage::Ptr& mesh, const coord_t max_distance, const bool z_seam_on_vertex)
+{
+    std::vector<SliceLayer>& layers = mesh->layers;
+
+    for (size_t layer_index = 1; layer_index < layers.size(); ++layer_index)
+    {
+        projectSeamsOnLayer(layers[layer_index - 1], layers[layer_index], max_distance, z_seam_on_vertex);
+    }
+
+    for (size_t layer_index = layers.size(); layer_index-- > 1;)
+    {
+        projectSeamsOnLayer(layers[layer_index], layers[layer_index - 1], max_distance, z_seam_on_vertex);
+    }
+}
+
 static void calculateWallsSeamPosition(
     SliceMeshStorage::Ptr& mesh,
     const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
-    const EZSeamCornerPrefType corner_pref,
+    const double concave_angle_weight,
+    const double convex_angle_weight,
     const double z_seam_alignment_weight,
     const Point2LL& target_pos,
     const coord_t wall_line_width_0,
@@ -965,8 +1093,8 @@ static void calculateWallsSeamPosition(
     const coord_t max_inner_wall_seam_distance,
     const bool outer_walls)
 {
-    std::vector<std::vector<SeamCorner>> remaining_seam_corners = makeSeamCandidatesAcrossLayers(mesh);
-    const coord_t max_alignment_distance = wall_line_width_0 * 4;
+    std::vector<std::vector<SeamCorner>> remaining_seam_corners = makeSeamCandidatesAcrossLayers(mesh, concave_angle_weight, convex_angle_weight);
+    const coord_t max_alignment_distance = wall_line_width_0 * 4; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
 
     // Each loop applies the best string to the extrusion lines. Since an extrusion line can have only one seam, the corners of the lines that have been done are removed, which
     // cuts or discards some of the remaining strings. Rebuilding the strings from the remaining corners is the simplest way to get the new valid ones. Each loop removes at
@@ -974,7 +1102,7 @@ static void calculateWallsSeamPosition(
     while (true)
     {
         const std::vector<std::shared_ptr<SeamCornerNode>> seam_corners_tree = makeSeamCornerTree(remaining_seam_corners, max_alignment_distance);
-        const std::optional<SeamCornersString> best_string = findBestStringFromCornersTree(seam_corners_tree);
+        const std::optional<SeamCornersString> best_string = findBestStringFromCornersTree(seam_corners_tree, z_seam_alignment_weight);
 
         if (! best_string.has_value())
         {
@@ -998,6 +1126,9 @@ static void calculateWallsSeamPosition(
                 });
         }
     }
+
+    // The layers that have no corner to align with don't have seams yet, so get them from the neighbour layers
+    propagateSeamsAcrossLayers(mesh, max_alignment_distance, z_seam_on_vertex);
 }
 
 #if 0
@@ -1152,6 +1283,40 @@ static std::vector<Point2LL> calculateWallsSeamPosition(
 }
 #endif
 
+std::tuple<double, double> makeConcaveConvexCornersWeights(const EZSeamCornerPrefType corner_preference)
+{
+    double concave_angle_weight{ 1.0 };
+    double convex_angle_weight{ 1.0 };
+
+    switch (corner_preference)
+    {
+    case EZSeamCornerPrefType::ZSeamCornerPrefInner:
+        // Give advantage to concave corners. More advantage for sharper corners.
+        concave_angle_weight = 1.0;
+        convex_angle_weight = 0.0;
+        break;
+    case EZSeamCornerPrefType::ZSeamCornerPrefOuter:
+        // Give advantage to convex corners. More advantage for sharper corners.
+        concave_angle_weight = 0.0;
+        convex_angle_weight = 1.0;
+        break;
+    case EZSeamCornerPrefType::ZSeamCornerPrefAny:
+        // Still give sharper corners more advantage.
+        concave_angle_weight = 1.0;
+        convex_angle_weight = 1.0;
+        break;
+    case EZSeamCornerPrefType::ZSeamCornerPrefWeighted:
+        // Give sharper corners some advantage, but concave sharper corners even more.
+        concave_angle_weight = 1.0;
+        convex_angle_weight = 0.5;
+        break;
+    case EZSeamCornerPrefType::Plugin:
+        break;
+    }
+
+    return { concave_angle_weight, convex_angle_weight };
+}
+
 void calculateWallsSeamPositions(SliceDataStorage& storage)
 {
     const Point2LL models_center = storage.getModelBoundingBox().flatten().getMiddle();
@@ -1168,6 +1333,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         }
 
         const auto corner_pref = settings.get<EZSeamCornerPrefType>("z_seam_corner");
+        const auto [concave_angle_weight, convex_angle_weight] = makeConcaveConvexCornersWeights(corner_pref);
         const auto z_seam_alignment_weight = settings.get<double>("z_seam_alignment_weight");
         const Point2LL target_pos = mesh->getZSeamHint();
         const auto wall_line_width_0 = settings.get<coord_t>("wall_line_width_0");
@@ -1181,6 +1347,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const size_t wall_0_extruder_nr{ settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
         const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(static_cast<int>(wall_0_extruder_nr)) : Shape{} };
 
+
         std::vector<Point2LL> layer_seams;
 
         // for (SliceLayer& layer : mesh->layers)
@@ -1190,7 +1357,8 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 mesh,
                 layer_seams,
                 seam_type,
-                corner_pref,
+                concave_angle_weight,
+                convex_angle_weight,
                 z_seam_alignment_weight,
                 target_pos,
                 wall_line_width_0,
