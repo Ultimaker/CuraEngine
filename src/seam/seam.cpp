@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <range/v3/algorithm/any_of.hpp>
+#include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -792,15 +793,20 @@ struct SeamCornersString
 {
     std::shared_ptr<SeamCornerNode> root_node;
     std::vector<size_t> corners_path; // When reaching nodes that have multiple children, this is the index of the child this path moves to
-    double total_score{ 0.0 }; // Sum of the absolute scores of all the corners of the string, each one being weighted by the link that goes to it from the corner below
+    double total_score{ 0.0 }; // Score of the string, which depends on the alignment weight. See findBestStringFromCornersTree()
 };
 
 /*!
  * Finds the best vertical string of corners, which is the path that goes from one of the root nodes up to a node that has no corner above, and that has the highest total
- * score. The score of the root corner counts fully, then the score of each next corner is weighted by the link that goes to it, so that well aligned corners count more. The graph
- * can contain a huge number of paths, so they are not listed. Instead, the best path from each node to the top is calculated once from the top to the bottom, and reused by all the
- * paths that join this node.
+ * score. With S the sum of the absolute scores of the corners of the string, and N the number of corners, the total score of a string is S / N^(1 - alignment weight). When the
+ * alignment weight is 1, this is the sum, which favors long strings. When it is 0, this is the average of the scores, so the length doesn't matter. The alignment weight also
+ * tells how much the links count: the score of a corner is multiplied by the weight of the link that goes to it from the corner below (so that well aligned corners count more),
+ * but this influence fades to nothing when the alignment weight goes to 0. The score of the root corner always counts fully.
+ * The graph can contain a huge number of paths, so they are not listed. Instead, since the strings go up one layer at a time, the length of a string is determined by its
+ * first and last layers. So the best path from each node to each of the layers it can end at is calculated once from the top to the bottom, and reused by all the paths that
+ * join this node.
  * @param root_nodes The root nodes of the corners graph
+ * @param z_seam_alignment_weight The importance of the alignment, between 0 and 1
  * @return The best string, or nullopt if there is no root node. If several strings have the same score, the first found is returned
  */
 static std::optional<SeamCornersString> findBestStringFromCornersTree(const std::vector<std::shared_ptr<SeamCornerNode>>& root_nodes, const double z_seam_alignment_weight)
@@ -841,43 +847,74 @@ static std::optional<SeamCornersString> findBestStringFromCornersTree(const std:
             return node1->seam_corner->layer_index > node2->seam_corner->layer_index;
         });
 
+    const double alignment_weight = std::clamp(z_seam_alignment_weight, 0.0, 1.0);
+
+    // The best path from a node to the top, for a given layer where the path ends. All the paths go up one layer at a time, so the end layer also gives the length of the path
     struct BestPath
     {
-        double score_above; // Weighted sum of the absolute scores of the corners of the best path that goes from this node to the top, this node excluded
+        size_t end_layer; // The layer of the last corner of the path
+        double score_above; // Weighted sum of the absolute scores of the corners of the best path to this end layer, this node excluded
         size_t child_index; // The index, in the corners above, of the child that this best path goes through
     };
 
-    std::unordered_map<const SeamCornerNode*, BestPath> best_paths;
+    std::unordered_map<const SeamCornerNode*, std::vector<BestPath>> best_paths;
     best_paths.reserve(nodes.size());
 
     for (const SeamCornerNode* node : nodes)
     {
-        BestPath best_path{ .score_above = 0.0, .child_index = 0 };
+        std::vector<BestPath> node_best_paths;
+
+        if (node->seam_corners_above.empty())
+        {
+            node_best_paths.push_back(BestPath{ .end_layer = node->seam_corner->layer_index, .score_above = 0.0, .child_index = 0 });
+        }
 
         for (const auto& [child_index, link] : node->seam_corners_above | ranges::views::enumerate)
         {
-            const double score_through_child = link.weight * std::abs(link.node->seam_corner->score) + best_paths.at(link.node.get()).score_above;
-            if (child_index == 0 || score_through_child > best_path.score_above)
+            // The influence of the link fades when we don't care about the alignment
+            const double link_weight = 1.0 - alignment_weight * (1.0 - link.weight);
+            const double child_score = link_weight * std::abs(link.node->seam_corner->score);
+
+            for (const BestPath& child_best_path : best_paths.at(link.node.get()))
             {
-                best_path = BestPath{ .score_above = score_through_child, .child_index = child_index };
+                const double score_through_child = child_score + child_best_path.score_above;
+
+                // There are few possible end layers per node, so a linear search is fine
+                auto same_end = ranges::find(node_best_paths, child_best_path.end_layer, &BestPath::end_layer);
+                if (same_end == node_best_paths.end())
+                {
+                    node_best_paths.push_back(BestPath{ .end_layer = child_best_path.end_layer, .score_above = score_through_child, .child_index = child_index });
+                }
+                else if (score_through_child > same_end->score_above)
+                {
+                    *same_end = BestPath{ .end_layer = child_best_path.end_layer, .score_above = score_through_child, .child_index = child_index };
+                }
             }
         }
 
-        best_paths.emplace(node, best_path);
+        best_paths.emplace(node, std::move(node_best_paths));
     }
 
-    // Select the best root, which has no link that goes to it, so its own score is not weighted
-    const auto root_total_score = [&best_paths](const SeamCornerNode& root_node)
-    {
-        return std::abs(root_node.seam_corner->score) + best_paths.at(&root_node).score_above;
-    };
-
+    // Select the best root and the best end layer for it. The root has no link that goes to it, so its own score is not weighted
     std::shared_ptr<SeamCornerNode> best_root_node;
+    size_t best_end_layer = 0;
+    double best_total_score = 0.0;
+
     for (const std::shared_ptr<SeamCornerNode>& root_node : root_nodes)
     {
-        if (! best_root_node || root_total_score(*root_node) > root_total_score(*best_root_node))
+        const size_t root_layer = root_node->seam_corner->layer_index;
+
+        for (const BestPath& best_path : best_paths.at(root_node.get()))
         {
-            best_root_node = root_node;
+            const double corners_count = static_cast<double>(best_path.end_layer - root_layer + 1);
+            const double total_score = (std::abs(root_node->seam_corner->score) + best_path.score_above) / std::pow(corners_count, 1.0 - alignment_weight);
+
+            if (! best_root_node || total_score > best_total_score)
+            {
+                best_root_node = root_node;
+                best_end_layer = best_path.end_layer;
+                best_total_score = total_score;
+            }
         }
     }
 
@@ -886,12 +923,13 @@ static std::optional<SeamCornersString> findBestStringFromCornersTree(const std:
         return std::nullopt;
     }
 
-    // Build the string by following the best children from the root
-    SeamCornersString best_string{ .root_node = best_root_node, .corners_path = {}, .total_score = root_total_score(*best_root_node) };
+    // Build the string by following the best children from the root, towards the best end layer
+    SeamCornersString best_string{ .root_node = best_root_node, .corners_path = {}, .total_score = best_total_score };
 
     for (const SeamCornerNode* node = best_root_node.get(); ! node->seam_corners_above.empty();)
     {
-        const size_t child_index = best_paths.at(node).child_index;
+        const std::vector<BestPath>& node_best_paths = best_paths.at(node);
+        const size_t child_index = ranges::find(node_best_paths, best_end_layer, &BestPath::end_layer)->child_index;
 
         // The path only stores the choices that are made at the nodes that have multiple children
         if (node->seam_corners_above.size() > 1)
