@@ -22,6 +22,7 @@
 
 using namespace std::chrono_literals;
 namespace proto = cura::proto;
+namespace ba = boost::asio;
 
 namespace curaengine::communication::grpc
 {
@@ -42,7 +43,7 @@ bool GrpcTransport::connect()
         grpc_thread_ = std::thread(
             [this]
             {
-                boost::asio::co_spawn(grpc_context_, runStream(), boost::asio::detached);
+                ba::co_spawn(grpc_context_, runStream(), ba::detached);
                 grpc_context_.run();
             });
     }
@@ -93,14 +94,14 @@ bool GrpcTransport::sendMessage(google::protobuf::Message&& message)
     }
 
     // Push the envelope to the queue and wait until it has been actually added (but not yet written)
-    const auto [send_error] = send_queue_.async_send(boost::system::error_code{}, std::move(envelope), boost::asio::as_tuple(boost::asio::use_future)).get();
+    const auto [send_error] = send_queue_.async_send(boost::system::error_code{}, std::move(envelope), ba::as_tuple(ba::use_future)).get();
 
     return ! send_error;
 }
 
 std::optional<proto::CuraClientMessage> GrpcTransport::takeNextMessage()
 {
-    auto [receive_error, received_message] = receive_queue_.async_receive(boost::asio::as_tuple(boost::asio::use_future)).get();
+    auto [receive_error, received_message] = receive_queue_.async_receive(ba::as_tuple(ba::use_future)).get();
     if (receive_error)
     {
         return std::nullopt;
@@ -109,12 +110,12 @@ std::optional<proto::CuraClientMessage> GrpcTransport::takeNextMessage()
     return std::move(received_message);
 }
 
-boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
+ba::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
 {
     while (true)
     {
         proto::CuraClientMessage incoming_message;
-        if (! co_await rpc.read(incoming_message, boost::asio::use_awaitable))
+        if (! co_await rpc.read(incoming_message, ba::use_awaitable))
         {
             if (receive_queue_.is_open()) // Means the communication channel was not intentionally closed
             {
@@ -124,7 +125,7 @@ boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
             co_return;
         }
 
-        const auto [queue_error] = co_await receive_queue_.async_send(boost::system::error_code{}, std::move(incoming_message), boost::asio::as_tuple(boost::asio::use_awaitable));
+        const auto [queue_error] = co_await receive_queue_.async_send(boost::system::error_code{}, std::move(incoming_message), ba::as_tuple(ba::use_awaitable));
         if (queue_error)
         {
             // The queue has been closed, which means we should stop
@@ -133,18 +134,18 @@ boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
     }
 }
 
-boost::asio::awaitable<void> GrpcTransport::handleSendingMessages(RPC& rpc)
+ba::awaitable<void> GrpcTransport::handleSendingMessages(RPC& rpc)
 {
     while (true)
     {
-        auto [queue_error, outgoing_message] = co_await send_queue_.async_receive(boost::asio::as_tuple(boost::asio::use_awaitable));
+        auto [queue_error, outgoing_message] = co_await send_queue_.async_receive(ba::as_tuple(ba::use_awaitable));
         if (queue_error)
         {
             // The queue has been closed, which means we should stop
             co_return;
         }
 
-        if (! co_await rpc.write(outgoing_message, boost::asio::use_awaitable))
+        if (! co_await rpc.write(outgoing_message, ba::use_awaitable))
         {
             if (send_queue_.is_open()) // Means the communication channel was not intentionally closed
             {
@@ -156,10 +157,10 @@ boost::asio::awaitable<void> GrpcTransport::handleSendingMessages(RPC& rpc)
     }
 }
 
-boost::asio::awaitable<void> GrpcTransport::runStream()
+ba::awaitable<void> GrpcTransport::runStream()
 {
-    using boost::asio::use_awaitable;
-    using namespace boost::asio::experimental::awaitable_operators;
+    using ba::use_awaitable;
+    using namespace ba::experimental::awaitable_operators;
 
     RPC rpc{ grpc_context_ };
     {
