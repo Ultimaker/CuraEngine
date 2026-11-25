@@ -4,16 +4,20 @@
 #pragma once
 
 #ifdef ENABLE_PLUGINS
-#include "Cura.pb.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.pb.h"
 #include "plugins/details/converter.h"
+
+namespace curaengine
+{
+class Scene;
+}
 
 namespace curaengine::plugins
 {
 struct broadcast_settings_request
-    : public details::converter<broadcast_settings_request, ::cura::plugins::slots::broadcast::v0::BroadcastServiceSettingsRequest, ::cura::proto::Slice>
+    : public details::converter<broadcast_settings_request, ::cura::plugins::slots::broadcast::v0::BroadcastServiceSettingsRequest, ::curaengine::Scene>
 {
-    value_type operator()(const native_value_type& slice_message) const;
+    value_type operator()(const native_value_type& scene) const;
 };
 } // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

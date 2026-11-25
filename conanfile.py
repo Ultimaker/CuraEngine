@@ -19,7 +19,7 @@ class CuraEngineConan(ConanFile):
     author = "UltiMaker"
     url = "https://github.com/Ultimaker/CuraEngine"
     description = "Powerful, fast and robust engine for converting 3D models into g-code instructions for 3D printers. It is part of the larger open source project Cura."
-    topics = ("cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation", "3D-printing")
+    topics = ("cura", "protobuf", "gcode", "c++", "curaengine", "grpc", "gcode-generation", "3D-printing")
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
@@ -27,7 +27,7 @@ class CuraEngineConan(ConanFile):
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
-        "enable_arcus": [True, False],
+        "enable_grpc_communication": [True, False],
         "enable_benchmarks": [True, False],
         "enable_extensive_warnings": [True, False],
         "enable_plugins": [True, False],
@@ -36,7 +36,7 @@ class CuraEngineConan(ConanFile):
         "with_curaviz": [True, False],
     }
     default_options = {
-        "enable_arcus": True,
+        "enable_grpc_communication": True,
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
         "enable_plugins": True,
@@ -91,10 +91,8 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         super().configure()
 
-        if self.options.enable_arcus or self.options.enable_plugins or self.options.with_curaviz:
+        if self.options.enable_grpc_communication or self.options.enable_plugins or self.options.with_curaviz:
             self.options["protobuf"].shared = False
-        if self.options.enable_arcus:
-            self.options["arcus"].shared = True
         # ARM64 Windows: Disable tbbproxy (not available on ARM64 platforms)
         if self.settings.os == "Windows" and self.settings.arch == "armv8":
             self.options["onetbb"].tbbproxy = False
@@ -121,7 +119,7 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.8.3")
             self.test_requires("docopt.cpp/0.6.3")
-        if self.options.enable_plugins:
+        if self.options.enable_plugins or self.options.enable_grpc_communication:
             self.tool_requires("protobuf/6.33.5")
 
     def requirements(self):
@@ -132,9 +130,8 @@ class CuraEngineConan(ConanFile):
             if req.startswith("onetbb/") and self.settings.arch == "wasm" and self.settings.os == "Emscripten":
                 continue
             self.requires(req)
-        if self.options.enable_arcus:
-            for req in self.conan_data["requirements_arcus"]:
-                self.requires(req)
+        if self.options.enable_grpc_communication:
+            self.requires("asio-grpc/3.7.0")
         if self.options.enable_plugins:
             self.requires("neargye-semver/0.3.0")
             for req in self.conan_data["requirements_plugins"]:
@@ -164,7 +161,7 @@ class CuraEngineConan(ConanFile):
 
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["CURA_ENGINE_HASH"] = self.conan_data["commit"]
-        tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
+        tc.variables["ENABLE_GRPC_COMMUNICATION"] = self.options.enable_grpc_communication
         tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings

@@ -9,7 +9,7 @@
 #include "RetractionConfig.h"
 #include "Slice.h"
 #include "WipeScriptConfig.h"
-#include "arcus/MockCommunication.h"
+#include "MockCommunication.h"
 #include "gcode/GCodePart.h"
 #include "types/Coord_t.h"
 #include "types/Date.h"
@@ -70,7 +70,10 @@ public:
         gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>();
+        Application::getInstance().current_slice_->scene.appendMeshGroup(std::make_shared<MeshGroup>());
+        Application::getInstance().current_slice_->scene.current_mesh_group = Application::getInstance().current_slice_->scene.getMeshGroups().front();
+
         mock_communication = std::make_shared<MockCommunication>();
         Application::getInstance().communication_ = mock_communication;
     }
@@ -230,7 +233,7 @@ public:
         gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = std::make_shared<Slice>(0);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>();
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)

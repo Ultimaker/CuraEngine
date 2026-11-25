@@ -18,9 +18,8 @@ class Slice
 public:
     /*
      * \brief Creates a new Slice instance.
-     * \param num_mesh_groups How many mesh groups to allocate memory for.
      */
-    Slice(const size_t num_mesh_groups);
+    Slice();
 
     /*
      * \brief The scene that must be sliced.

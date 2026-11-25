@@ -12,14 +12,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Communication.h"
+#include "communication/Communication.h"
 
 namespace curaengine
 {
 class Settings;
 }
 
-namespace curaengine::communication
+namespace curaengine::communication::command_line
 {
 
 
@@ -48,7 +48,7 @@ public:
     /*
      * \brief Test if there are any more slices to be made.
      */
-    bool hasSlice() const override;
+    bool hasSlice() override;
 
     /*
      * \brief Send the current position.
@@ -208,4 +208,4 @@ private:
     static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::command_line

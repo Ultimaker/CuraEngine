@@ -4,9 +4,9 @@
 #pragma once
 #ifdef __EMSCRIPTEN__
 
-#include "communication/CommandLine.h"
+#include "communication/command_line/CommandLine.h"
 
-namespace curaengine::communication
+namespace curaengine::communication::emscripten
 {
 
 /**
@@ -16,7 +16,7 @@ namespace curaengine::communication
  * This class extends the CommandLine class and provides specific implementations
  * for sending progress and handling slice information in an Emscripten environment.
  */
-class EmscriptenCommunication : public CommandLine
+class EmscriptenCommunication : public command_line::CommandLine
 {
 private:
     std::string progress_handler_; ///< Handler for progress messages.
@@ -51,6 +51,6 @@ public:
     void sendPrintInformation(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 };
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::emscripten
 
 #endif // __EMSCRIPTEN__

@@ -3,6 +3,8 @@
 
 #include "Scene.h"
 
+#include <algorithm>
+
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
@@ -20,14 +22,8 @@ using namespace types;
 using namespace types::geometry;
 using namespace utils;
 
-Scene::Scene(const size_t num_mesh_groups)
-    : mesh_groups(num_mesh_groups)
-    , current_mesh_group(mesh_groups.begin())
+Scene::Scene()
 {
-    for (MeshGroup& mesh_group : mesh_groups)
-    {
-        mesh_group.settings.setParent(&settings);
-    }
 }
 
 const std::string Scene::getAllSettingsString() const
@@ -41,7 +37,7 @@ const std::string Scene::getAllSettingsString() const
         output << " -e" << extruder_nr << extruders[extruder_nr].settings_.getAllSettingsString();
     }
 
-    for (size_t mesh_group_index = 0; mesh_group_index < mesh_groups.size(); mesh_group_index++)
+    for (size_t mesh_group_index = 0; mesh_group_index < mesh_groups_.size(); mesh_group_index++)
     {
         if (mesh_group_index == 0)
         {
@@ -53,13 +49,13 @@ const std::string Scene::getAllSettingsString() const
         }
 
         // Per-mesh-group settings.
-        const MeshGroup& mesh_group = mesh_groups[mesh_group_index];
-        output << mesh_group.settings.getAllSettingsString();
+        const MeshGroup::Ptr& mesh_group = mesh_groups_[mesh_group_index];
+        output << mesh_group->settings.getAllSettingsString();
 
         // Per-object settings.
-        for (size_t mesh_index = 0; mesh_index < mesh_group.meshes.size(); mesh_index++)
+        for (size_t mesh_index = 0; mesh_index < mesh_group->meshes.size(); mesh_index++)
         {
-            const Mesh& mesh = mesh_group.meshes[mesh_index];
+            const Mesh& mesh = mesh_group->meshes[mesh_index];
             output << " -e" << mesh.settings_.get<size_t>("extruder_nr") << " -l \"" << mesh_index << "\"" << mesh.settings_.getAllSettingsString();
         }
     }
@@ -103,6 +99,42 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     Progress::messageProgress(Progress::Stage::Finish, 1, 1); // 100% on this meshgroup
     Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {}\n", std::chrono::duration<double>(time_keeper_total.restart()));
+}
+
+void Scene::appendMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group)
+{
+    mesh_group->settings.setParent(&settings);
+    mesh_groups_.push_back(mesh_group);
+}
+
+void Scene::clearMeshGroups()
+{
+    mesh_groups_.clear();
+}
+
+const std::vector<std::shared_ptr<MeshGroup>>& Scene::getMeshGroups() const
+{
+    return mesh_groups_;
+}
+
+const std::shared_ptr<MeshGroup>& Scene::getMeshGroup(const size_t index) const
+{
+    return mesh_groups_.at(index);
+}
+
+bool Scene::isCurrentMeshGroupFirst() const
+{
+    return ! mesh_groups_.empty() && mesh_groups_.front() == current_mesh_group;
+}
+
+std::shared_ptr<MeshGroup> Scene::getPreviousMeshGroup(const std::shared_ptr<MeshGroup>& mesh_group) const
+{
+    const auto iterator = std::find(mesh_groups_.begin(), mesh_groups_.end(), mesh_group);
+    if (iterator == mesh_groups_.end() || iterator == mesh_groups_.begin())
+    {
+        return nullptr;
+    }
+    return *(iterator - 1);
 }
 
 } // namespace curaengine

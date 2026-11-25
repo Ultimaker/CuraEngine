@@ -1,7 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "communication/CommandLine.h"
+#include "communication/command_line/CommandLine.h"
 
 #include <cerrno>
 #include <cstring>
@@ -37,7 +37,7 @@
 
 namespace fs = std::filesystem;
 
-namespace curaengine::communication
+namespace curaengine::communication::command_line
 {
 using namespace types::geometry;
 using namespace types;
@@ -81,7 +81,7 @@ void CommandLine::setLayerForSend(const LayerIndex::value_type&)
 {
 }
 
-bool CommandLine::hasSlice() const
+bool CommandLine::hasSlice()
 {
     return ! arguments_.empty();
 }
@@ -110,18 +110,9 @@ void CommandLine::sliceNext()
 {
     FffProcessor::getInstance()->time_keeper.restart();
 
-    // Count the number of mesh groups to slice for.
-    size_t num_mesh_groups = 1;
-    for (size_t argument_index = 2; argument_index < arguments_.size(); argument_index++)
-    {
-        if (arguments_[argument_index].starts_with("--next")) // Starts with "--next".
-        {
-            num_mesh_groups++;
-        }
-    }
-
-    Application::getInstance().current_slice_ = std::make_shared<Slice>(num_mesh_groups);
+    Application::getInstance().current_slice_ = std::make_shared<Slice>();
     auto slice = Application::getInstance().current_slice_;
+    slice->scene.appendMeshGroup(std::make_shared<MeshGroup>());
 
     size_t mesh_group_index = 0;
     Settings* last_settings = &slice->scene.settings;
@@ -142,13 +133,15 @@ void CommandLine::sliceNext()
             {
                 if (argument.starts_with("--next")) // Starts with "--next".
                 {
+                    slice->scene.appendMeshGroup(std::make_shared<MeshGroup>());
+
                     try
                     {
                         spdlog::info("Loaded from disk in {}", FffProcessor::getInstance()->time_keeper.restart());
 
                         mesh_group_index++;
                         FffProcessor::getInstance()->time_keeper.restart();
-                        last_settings = &slice->scene.mesh_groups[mesh_group_index].settings;
+                        last_settings = &slice->scene.getMeshGroup(mesh_group_index)->settings;
                     }
                     catch (...)
                     {
@@ -277,14 +270,14 @@ void CommandLine::sliceNext()
 
                     const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument, transformation, last_extruder->settings_))
+                    if (! loadMeshIntoMeshGroup(*slice->scene.getMeshGroup(mesh_group_index), argument, transformation, last_extruder->settings_))
                     {
                         spdlog::error("Failed to load model: {} (error number {})", argument, errno);
                         exit(1);
                     }
                     else
                     {
-                        last_settings = &slice->scene.mesh_groups[mesh_group_index].meshes.back().settings_;
+                        last_settings = &slice->scene.getMeshGroup(mesh_group_index)->meshes.back().settings_;
                     }
                     break;
                 }
@@ -313,7 +306,7 @@ void CommandLine::sliceNext()
                 }
                 case 'g':
                 {
-                    last_settings = &slice->scene.mesh_groups[mesh_group_index].settings;
+                    last_settings = &slice->scene.getMeshGroup(mesh_group_index)->settings;
                     break;
                 }
                 /* ... falls through ... */
@@ -433,14 +426,14 @@ void CommandLine::sliceNext()
                         const auto& model_name = key;
                         for (const auto& [setting_key, setting_value] : values)
                         {
-                            slice->scene.mesh_groups[mesh_group_index].settings.add(setting_key, setting_value);
+                            slice->scene.getMeshGroup(mesh_group_index)->settings.add(setting_key, setting_value);
                         }
 
-                        const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
-                        const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
+                        const auto transformation = slice->scene.getMeshGroup(mesh_group_index)->settings.get<Matrix4x3D>("mesh_rotation_matrix");
+                        const auto extruder_nr = slice->scene.getMeshGroup(mesh_group_index)->settings.get<size_t>("extruder_nr");
 
                         if (! loadMeshIntoMeshGroup(
-                                &slice->scene.mesh_groups[mesh_group_index],
+                                *slice->scene.getMeshGroup(mesh_group_index),
                                 settings_folder / model_name,
                                 transformation,
                                 slice->scene.extruders[extruder_nr].settings_))
@@ -485,7 +478,6 @@ void CommandLine::sliceNext()
     try
     {
 #endif // DEBUG
-        slice->scene.mesh_groups[mesh_group_index].finalize();
         spdlog::info("Loaded from disk in {}\n", FffProcessor::getInstance()->time_keeper.restart());
 
         // Start slicing.
@@ -751,4 +743,4 @@ std::string CommandLine::findDefinitionFile(const std::string& definition_id, co
     return {};
 }
 
-} // namespace curaengine::communication
+} // namespace curaengine::communication::command_line
