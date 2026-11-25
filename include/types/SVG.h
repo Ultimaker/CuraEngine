@@ -156,6 +156,7 @@ public:
         {
             return LineAttributes(ColorObject(), 0.0);
         }
+
         bool isDisplayed() const override
         {
             return ElementAttributes::isDisplayed() && width > 0.0;

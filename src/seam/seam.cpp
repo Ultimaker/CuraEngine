@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "seam/seam.h"
-#include "seam/seam_corners.h"
 
 #include <cmath>
 #include <fstream>
@@ -26,6 +25,7 @@
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceMeshStorage.h"
+#include "seam/seam_corners.h"
 #include "types/AngleDegrees.h"
 #include "types/CuraViz.h"
 #include "types/EZSeamCornerPrefType.h"
@@ -149,16 +149,12 @@ static SeamCorner makeCornerFromCluster(
     return corner;
 }
 
-std::vector<SeamCorner> findSeamCorners(
-    const PointsSet& points,
-    const AngleRadians& min_vertex_turn,
-    const double max_radius,
-    const AngleRadians& max_turn_jump,
-    const AngleRadians& max_sharp_turn,
-    const double max_sharp_link_distance,
-    const double max_corner_length,
-    const double length_penalty_reference)
+std::vector<SeamCorner>
+    findSeamCorners(const PointsSet& points, const AngleRadians& min_vertex_turn, const double max_radius, const AngleRadians& max_sharp_turn, const double max_sharp_link_distance)
 {
+    constexpr double quarter_turn_margin = 1.1;
+    const double max_corner_length = max_radius * std::numbers::pi / 2.0 * quarter_turn_margin; // A quarter turn of radius max_radius, anything longer is too flat
+    const double length_penalty_reference = max_radius; // A corner spread over max_radius gets half the score of a perfectly sharp one
     const size_t points_count = points.size();
     if (points_count < 3)
     {
@@ -283,7 +279,7 @@ std::vector<SeamCorner> findSeamCorners(
             // which means that a new corner begins
             const double cluster_curvature = cluster.total_abs_turn / cluster.total_local_length;
             const double predicted_turn = cluster_curvature * vertex.local_length;
-            starts_new_cluster = std::abs(std::abs(vertex.turn_angle) - predicted_turn) > max_turn_jump;
+            starts_new_cluster = std::abs(std::abs(vertex.turn_angle) - predicted_turn) > max_sharp_turn;
         }
 
         if (starts_new_cluster)
@@ -637,14 +633,11 @@ static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const
                     // All lengths are in micrometers, all angles in radians
                     const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } }; // 1°, below this a turn is considered as straight
                     constexpr double max_radius = 2000.0; // Arcs flatter than a 2 mm radius are not corners
-                    const AngleRadians max_turn_jump{ AngleDegrees{ 50.0 } }; // A vertex whose turn differs by more than 50° from what the corner predicts starts a new corner
-                    const AngleRadians max_sharp_turn{ AngleDegrees{ 50.0 } }; // A vertex that turns by more than 50° is a corner by itself, unless it is very close to its neighbor
+                    const AngleRadians max_sharp_turn{ AngleDegrees{
+                        50.0 } }; // A vertex that turns by more than 50° is a corner by itself, unless it is very close to its neighbor
                     const double max_sharp_link_distance = static_cast<double>(wall_line_width_0) * 1.0; // Corners closer than a line width cannot be told apart
-                    constexpr double max_corner_length = 3500.0; // A 2 mm radius quarter turn is about 3.1 mm, anything longer is too flat
-                    constexpr double length_penalty_reference = 2000.0; // A corner spread over 2 mm gets half the score of a perfectly sharp one
 
-                    std::vector<SeamCorner> corners
-                        = findSeamCorners(points, min_vertex_turn, max_radius, max_turn_jump, max_sharp_turn, max_sharp_link_distance, max_corner_length, length_penalty_reference);
+                    std::vector<SeamCorner> corners = findSeamCorners(points, min_vertex_turn, max_radius, max_sharp_turn, max_sharp_link_distance);
 
                     static SVG svg("/tmp/seam_polygons.svg", AABB(Point2LL(0, 0), Point2LL(400000, 400000)), 0.001);
                     if (layer.printZ == 20400)

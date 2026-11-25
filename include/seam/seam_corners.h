@@ -42,23 +42,18 @@ struct SeamCorner
  * @param max_radius Two consecutive turning vertices belong to the same corner only if the radius of the arc between them is lower than this value. This radius is estimated by the
  * length of the segment between them divided by their average turning angle, so the tolerance adapts to the resolution of the path
  * @param max_sharp_turn A vertex that turns by more than this angle is a very sharp corner by itself, so it is never aggregated with any other vertex and always makes a single
- * corner, even if the vertices around it turn in the same direction
+ * corner, even if the vertices around it turn in the same direction. It is also the maximum difference between the turning angle of a vertex and the one predicted by the curvature
+ * of the corner built so far, above which the vertex starts a new corner (this separates a sharp turn from the smooth rounding that precedes or follows it)
  * @param max_sharp_link_distance A very sharp vertex can still be aggregated with the vertex next to it if the segment between them is shorter than this distance, because corners that
  * are closer than the width of an extrusion line cannot be told apart when printing (this is typically the case of a chamfer, that is made of two vertices turning in the same direction)
- * @param max_turn_jump A vertex belongs to the current corner only if its turning angle does not differ by more than this value from the one predicted by the curvature
- * of the corner built so far. It separates a sharp turn from the smooth rounding that precedes or follows it, even if they turn in the same direction
- * @param max_corner_length A corner that extends over more than this length along the path is considered as too flat, and is discarded as a whole
- * @param length_penalty_reference Length at which the score of a corner is halved, favoring short corners. Disabled if <= 0
+ * The length of a corner is limited to a quarter turn of radius max_radius (with a small margin), and the score of a corner is halved when its length equals max_radius
  * @return The corners, in the order they are met on the path
  */
 std::vector<SeamCorner> findSeamCorners(
     const types::geometry::PointsSet& points,
     const types::AngleRadians& min_vertex_turn,
     const double max_radius,
-    const types::AngleRadians& max_turn_jump,
     const types::AngleRadians& max_sharp_turn,
-    const double max_sharp_link_distance,
-    const double max_corner_length,
-    const double length_penalty_reference);
+    const double max_sharp_link_distance);
 
 } // namespace curaengine::seam

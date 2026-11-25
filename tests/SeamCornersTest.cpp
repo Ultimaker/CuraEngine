@@ -4,7 +4,9 @@
 #include "seam/seam_corners.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -21,8 +23,11 @@
 #include <range/v3/view/enumerate.hpp>
 
 #include "types/AngleDegrees.h"
+#include "types/SVG.h"
+#include "types/geometry/AABB.h"
 #include "types/geometry/Point2D.h"
 #include "types/geometry/PointsSet.h"
+#include "types/geometry/Polygon.h"
 #include "types/geometry/conversions/Point2D_Point2LL.h"
 
 namespace curaengine::seam
@@ -55,11 +60,8 @@ constexpr double default_wall_line_width = 400.0;
 // The thresholds are the same as the ones that are used in makeSeamCandidatesAcrossLayers(), which have to be kept in sync
 const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } };
 constexpr double max_radius = 2000.0;
-const AngleRadians max_turn_jump{ AngleDegrees{ 50.0 } };
 const AngleRadians max_sharp_turn{ AngleDegrees{ 50.0 } };
 constexpr double max_sharp_link_distance_factor = 1.0; // Multiplied by the line width
-constexpr double max_corner_length = 3500.0;
-constexpr double length_penalty_reference = 2000.0;
 
 // The corners that have a lower absolute score (once weighted by the corner type) are not kept as seam candidates. The weights are the ones of the "weighted" corner preference
 constexpr double concave_angle_weight = 1.0;
@@ -67,6 +69,15 @@ constexpr double convex_angle_weight = 0.5;
 constexpr double min_corner_score = 0.1;
 
 // ################################################## Corners calculation ##################################################
+
+/*!
+ * Gets a numeric value from an environment variable, which allows to try other values without compiling
+ */
+double getEnvironmentValue(const char* name, const double default_value)
+{
+    const char* value = std::getenv(name);
+    return value != nullptr ? std::stod(value) : default_value;
+}
 
 /*!
  * Calculates the corners of the polygon, without any filtering
@@ -77,11 +88,8 @@ std::vector<SeamCorner> findRawCorners(const PointsSet& polygon, const double wa
         polygon,
         min_vertex_turn,
         max_radius,
-        max_turn_jump,
         max_sharp_turn,
-        wall_line_width * max_sharp_link_distance_factor,
-        max_corner_length,
-        length_penalty_reference);
+        wall_line_width * max_sharp_link_distance_factor);
 }
 
 /*!
@@ -117,6 +125,25 @@ std::vector<Point2D> toPositions(const std::vector<SeamCorner>& corners)
 double toDegrees(const double radians)
 {
     return radians * 180.0 / std::numbers::pi;
+}
+
+/*!
+ * Describes the corners, to be shown when a test fails
+ */
+std::string describeCorners(const std::vector<SeamCorner>& corners)
+{
+    std::string description = fmt::format("{} corners:", corners.size());
+    for (const SeamCorner& corner : corners)
+    {
+        description += fmt::format(
+            "\n  ({:.3f}, {:.3f}) mm, turn {:.1f} deg, extent {} um, score {:.3f}",
+            corner.position.X / svg_unit_micrometers,
+            corner.position.Y / svg_unit_micrometers,
+            toDegrees(corner.turn),
+            corner.extent,
+            corner.score);
+    }
+    return description;
 }
 
 std::string formatPosition(const Point2D& position)
@@ -408,6 +435,56 @@ std::vector<std::vector<Point2D>> splitExpectedCornersPerPolygon(const SeamSvg& 
     return expected_corners;
 }
 
+/*!
+ * The result of the comparison of the calculated corners with the expected ones, for a single polygon
+ */
+struct CornersReport
+{
+    PointsSet polygon;
+    std::vector<Point2D> proper_corners; // The calculated corners that match an expected one
+    std::vector<Point2D> missing_corners; // The expected corners that have no calculated one
+    std::vector<Point2D> extra_corners; // The calculated corners that have no expected one
+};
+
+/*!
+ * Writes an SVG file that shows the result of the comparison, with the same bounding box and scale as the SVG files that are used as test cases: the polygons are in gray, the
+ * proper corners in green, the missing corners in red, and the extra corners in blue
+ */
+void writeReportSvg(const std::filesystem::path& filepath, const std::vector<CornersReport>& reports)
+{
+    constexpr double line_width_mm = 0.1;
+    constexpr double marker_radius_mm = 0.05;
+
+    SVG svg(filepath.string(), AABB(Point2LL(0, 0), Point2LL(static_cast<coord_t>(svg_bed_size_micrometers), static_cast<coord_t>(svg_bed_size_micrometers))), 1.0 / svg_unit_micrometers);
+
+    for (const CornersReport& report : reports)
+    {
+        Polygon polygon;
+        for (const Point2LL& point : report.polygon)
+        {
+            polygon.push_back(point);
+        }
+        svg.write(polygon, { .line = SVG::LineAttributes{ SVG::Color::Gray, line_width_mm } });
+    }
+
+    // The corners are written after all the polygons, so that they are never hidden by them
+    for (const CornersReport& report : reports)
+    {
+        for (const Point2D& corner : report.proper_corners)
+        {
+            svg.write(toPoint2LL(corner), SVG::VerticesAttributes{ SVG::Color::Green, marker_radius_mm });
+        }
+        for (const Point2D& corner : report.missing_corners)
+        {
+            svg.write(toPoint2LL(corner), SVG::VerticesAttributes{ SVG::Color::Red, marker_radius_mm });
+        }
+        for (const Point2D& corner : report.extra_corners)
+        {
+            svg.write(toPoint2LL(corner), SVG::VerticesAttributes{ SVG::Color::Blue, marker_radius_mm });
+        }
+    }
+}
+
 // ################################################## Synthetic polygons ##################################################
 
 double cross(const Point2D& a, const Point2D& b)
@@ -578,7 +655,7 @@ void expectOneCornerPerPolygonCorner(
     const double expected_turn_degrees,
     const double extra_tolerance = 0.0)
 {
-    ASSERT_EQ(corners.size(), synthetic_polygon.corner_centers.size());
+    ASSERT_EQ(corners.size(), synthetic_polygon.corner_centers.size()) << describeCorners(corners);
 
     for (const auto& [corner_index, center] : synthetic_polygon.corner_centers | ranges::views::enumerate)
     {
@@ -660,9 +737,14 @@ TEST_P(SeamCornersSvgTest, CalculatedCornersMatchTheExpectedOnes)
     const double wall_line_width = getWallLineWidth(GetParam());
     const std::vector<std::vector<Point2D>> expected_corners_per_polygon = splitExpectedCornersPerPolygon(seam_svg);
 
+    std::vector<CornersReport> reports;
+
     for (const auto& [polygon_index, polygon] : seam_svg.polygons | ranges::views::enumerate)
     {
         SCOPED_TRACE(fmt::format("Polygon {} ({} points)", polygon_index, polygon.size()));
+
+        CornersReport& report = reports.emplace_back();
+        report.polygon = polygon;
 
         const std::vector<SeamCorner> calculated_seam_corners = calculateCorners(polygon, wall_line_width);
         const std::vector<Point2D> calculated_corners = toPositions(calculated_seam_corners);
@@ -673,6 +755,10 @@ TEST_P(SeamCornersSvgTest, CalculatedCornersMatchTheExpectedOnes)
 
         for (const auto& [expected_index, expected] : expected_corners | ranges::views::enumerate)
         {
+            if (! pairing.expected_matched[expected_index])
+            {
+                report.missing_corners.push_back(expected);
+            }
             EXPECT_TRUE(pairing.expected_matched[expected_index]) << "The expected corner at " << formatPosition(expected) << " has no calculated corner within " << matching_radius
                                                                   << " micrometers";
         }
@@ -680,10 +766,41 @@ TEST_P(SeamCornersSvgTest, CalculatedCornersMatchTheExpectedOnes)
         for (const auto& [calculated_index, calculated] : calculated_corners | ranges::views::enumerate)
         {
             const SeamCorner& seam_corner = calculated_seam_corners[calculated_index];
+            (pairing.calculated_matched[calculated_index] ? report.proper_corners : report.extra_corners).push_back(calculated);
             EXPECT_TRUE(pairing.calculated_matched[calculated_index])
                 << "The calculated corner at " << formatPosition(calculated) << " has no expected corner within " << matching_radius << " micrometers (turn "
                 << toDegrees(seam_corner.turn) << " deg, extent " << seam_corner.extent << " micrometers, score " << seam_corner.score << ")";
         }
+    }
+    const std::filesystem::path report_file = std::filesystem::temp_directory_path() / fmt::format("{}_corners_report.svg", GetParam().stem().string());
+    writeReportSvg(report_file, reports);
+    fmt::print("The report of the corners was written to {}: green are the proper corners, red the missing ones, and blue the extra ones\n", report_file.string());
+}
+
+// Shows the calculated corners of a polygon of the SVG file, which is given by the SEAM_DUMP_POLYGON environment variable. Remove the "DISABLED_" prefix to see it
+TEST_P(SeamCornersSvgTest, DISABLED_DumpCorners)
+{
+    const SeamSvg seam_svg = loadSeamSvg(GetParam());
+    ASSERT_TRUE(seam_svg.error.empty()) << seam_svg.error;
+
+    const size_t polygon_index = static_cast<size_t>(getEnvironmentValue("SEAM_DUMP_POLYGON", 0.0));
+    ASSERT_LT(polygon_index, seam_svg.polygons.size());
+    fmt::print("{}\n", describeCorners(findRawCorners(seam_svg.polygons[polygon_index], getWallLineWidth(GetParam()))));
+}
+
+// Shows the number of corners that are found in each polygon of the SVG file. Remove the "DISABLED_" prefix to see it
+TEST_P(SeamCornersSvgTest, DISABLED_CornersCountSurvey)
+{
+    const SeamSvg seam_svg = loadSeamSvg(GetParam());
+    ASSERT_TRUE(seam_svg.error.empty()) << seam_svg.error;
+
+    const double wall_line_width = getWallLineWidth(GetParam());
+    for (const auto& [polygon_index, polygon] : seam_svg.polygons | ranges::views::enumerate)
+    {
+        const auto start = std::chrono::steady_clock::now();
+        const size_t raw_count = findRawCorners(polygon, wall_line_width).size();
+        const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+        fmt::print("polygon {} ({} points): {} corners, {} kept as candidates, {} us\n", polygon_index, polygon.size(), raw_count, calculateCorners(polygon, wall_line_width).size(), duration.count());
     }
 }
 
@@ -914,9 +1031,30 @@ TEST(SeamCornersSyntheticTest, ChamfersCloserThanTheLineWidthAreSingleCorners)
                 }
                 else
                 {
-                    EXPECT_EQ(corners.size(), 8);
+                    EXPECT_EQ(corners.size(), 8) << describeCorners(corners);
                 }
             }
+        }
+    }
+}
+
+// Shows how many corners are found for chamfers of increasing sizes. Remove the "DISABLED_" prefix to see it
+TEST(SeamCornersSyntheticTest, DISABLED_ChamferSizeSurvey)
+{
+    for (const double first_turn : { 45.0, 60.0 })
+    {
+        for (const double gap : { 100.0, 200.0, 300.0, 400.0, 500.0, 700.0, 1000.0, 1500.0, 2000.0, 3000.0, 4000.0, 6000.0 })
+        {
+            const SyntheticPolygon rectangle = makeRectangle(
+                40000.0,
+                30000.0,
+                [first_turn, gap](Turtle& turtle)
+                {
+                    turtle.turn(first_turn);
+                    turtle.forward(gap);
+                    turtle.turn(90.0 - first_turn);
+                });
+            fmt::print("first turn {}, gap {} um: {} corners\n", first_turn, gap, findRawCorners(rectangle.polygon, default_wall_line_width).size());
         }
     }
 }
@@ -938,12 +1076,12 @@ TEST(SeamCornersSyntheticTest, SharpCornerBetweenTwoRoundedOnesIsAlone)
             });
 
         const std::vector<SeamCorner> corners = findRawCorners(rectangle.polygon, default_wall_line_width);
-        EXPECT_EQ(corners.size(), 12);
+        EXPECT_EQ(corners.size(), 12) << describeCorners(corners);
 
         for (const Point2D& center : rectangle.corner_centers)
         {
             const std::vector<SeamCorner> corners_near = getCornersNear(corners, center, 2000.0);
-            ASSERT_EQ(corners_near.size(), 3) << "Wrong number of corners near " << formatPosition(center);
+            ASSERT_EQ(corners_near.size(), 3) << "Wrong number of corners near " << formatPosition(center) << "\n" << describeCorners(corners_near);
 
             const auto sharpest = std::max_element(
                 corners_near.begin(),
@@ -1008,10 +1146,10 @@ TEST(SeamCornersSyntheticTest, NoiseOnStraightEdgesIsNotKeptAsCorners)
     }
 
     const std::vector<SeamCorner> corners = calculateCorners(noisy_polygon, default_wall_line_width);
-    ASSERT_EQ(corners.size(), 4);
+    ASSERT_EQ(corners.size(), 4) << describeCorners(corners);
     for (const Point2D& center : rectangle.corner_centers)
     {
-        EXPECT_EQ(getCornersNear(corners, center, 400.0).size(), 1) << "Wrong number of corners near " << formatPosition(center);
+        EXPECT_EQ(getCornersNear(corners, center, 400.0).size(), 1) << "Wrong number of corners near " << formatPosition(center) << "\n" << describeCorners(corners);
     }
 }
 
