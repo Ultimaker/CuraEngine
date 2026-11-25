@@ -8,6 +8,7 @@
 #include <fstream>
 #include <utility>
 
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
@@ -92,48 +93,64 @@ bool GrpcTransport::sendMessage(google::protobuf::Message&& message)
     }
 
     // Push the envelope to the queue and wait until it has been actually added (but not yet written)
-    send_queue_.async_send(boost::system::error_code{}, std::move(envelope), boost::asio::use_future).get();
+    const auto [send_error] = send_queue_.async_send(boost::system::error_code{}, std::move(envelope), boost::asio::as_tuple(boost::asio::use_future)).get();
 
-    return true;
+    return ! send_error;
 }
 
 std::optional<proto::CuraClientMessage> GrpcTransport::takeNextMessage()
 {
-    return receive_queue_.async_receive(boost::asio::use_future).get();
+    auto [receive_error, received_message] = receive_queue_.async_receive(boost::asio::as_tuple(boost::asio::use_future)).get();
+    if (receive_error)
+    {
+        return std::nullopt;
+    }
+
+    return std::move(received_message);
 }
 
 boost::asio::awaitable<void> GrpcTransport::handleIncomingMessages(RPC& rpc)
 {
-    while (running_)
+    while (true)
     {
-        proto::CuraClientMessage message;
-        if (! co_await rpc.read(message, boost::asio::use_awaitable))
+        proto::CuraClientMessage incoming_message;
+        if (! co_await rpc.read(incoming_message, boost::asio::use_awaitable))
         {
-            if (running_)
+            if (receive_queue_.is_open()) // Means the communication channel was not intentionally closed
             {
                 spdlog::error("Error when reading incoming gRPC message");
             }
+            shutdown();
             co_return;
         }
 
-        co_await receive_queue_.async_send(boost::system::error_code{}, std::move(message), boost::asio::use_awaitable);
+        const auto [queue_error] = co_await receive_queue_.async_send(boost::system::error_code{}, std::move(incoming_message), boost::asio::as_tuple(boost::asio::use_awaitable));
+        if (queue_error)
+        {
+            // The queue has been closed, which means we should stop
+            co_return;
+        }
     }
 }
 
 boost::asio::awaitable<void> GrpcTransport::handleSendingMessages(RPC& rpc)
 {
-    while (running_)
+    while (true)
     {
-        std::optional<proto::CuraEngineMessage> message = co_await send_queue_.async_receive(boost::asio::use_awaitable);
-        if (! message.has_value())
+        auto [queue_error, outgoing_message] = co_await send_queue_.async_receive(boost::asio::as_tuple(boost::asio::use_awaitable));
+        if (queue_error)
         {
-            // Empty message means we should stop
+            // The queue has been closed, which means we should stop
             co_return;
         }
 
-        if (! co_await rpc.write(*message, boost::asio::use_awaitable))
+        if (! co_await rpc.write(outgoing_message, boost::asio::use_awaitable))
         {
-            spdlog::error("Error when sending gRPC message");
+            if (send_queue_.is_open()) // Means the communication channel was not intentionally closed
+            {
+                spdlog::error("Error when sending gRPC message");
+            }
+            shutdown();
             co_return;
         }
     }
@@ -153,11 +170,15 @@ boost::asio::awaitable<void> GrpcTransport::runStream()
     if (! co_await rpc.start(*stub_, use_awaitable))
     {
         spdlog::error("Error when starting gRPC streaming");
+        shutdown();
         co_return;
     }
 
     // Spawns the read and write coroutines independently and wait until they are both completed
     co_await (handleIncomingMessages(rpc) && handleSendingMessages(rpc));
+
+    // Make sure everything is stopped and unblocked, whatever the reason why the coroutines have ended
+    shutdown();
 
     const ::grpc::Status status = co_await rpc.finish(use_awaitable);
     if (! status.ok() && status.error_code() != ::grpc::StatusCode::CANCELLED)
@@ -166,20 +187,26 @@ boost::asio::awaitable<void> GrpcTransport::runStream()
     }
 }
 
-void GrpcTransport::stop()
+void GrpcTransport::shutdown()
 {
-    // Notify the send loop to gently stop by adding an empty message
-    send_queue_.async_send(boost::system::error_code{}, std::nullopt, boost::asio::detached);
+    // Close the queues first, which wakes up any waiting coroutine and marks the stop as intentional
+    send_queue_.close();
+    receive_queue_.close();
 
-    // Notify the read loop to gently stop by setting running to false and cancelling the client context
-    running_ = false;
+    // Then cancel the pending read/write operations. The context is forgotten afterwards, since the RPC object that owns it is about to be destroyed
     {
         std::lock_guard<std::mutex> lock(active_context_mutex_);
         if (client_context_)
         {
             client_context_->TryCancel();
+            client_context_ = nullptr;
         }
     }
+}
+
+void GrpcTransport::stop()
+{
+    shutdown();
 
     // Wait until send and read loops have completed
     if (grpc_thread_.joinable())
