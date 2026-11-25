@@ -19,7 +19,7 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-void apply(Slicer* slicer, const Mesh& mesh)
+void apply(const Slicer::Ptr& slicer, const Mesh& mesh)
 {
     const AngleRadians angle = mesh.settings_.get<AngleRadians>("conical_overhang_angle");
     const double max_hole_area = mesh.settings_.get<double>("conical_overhang_hole_size");

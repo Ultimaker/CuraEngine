@@ -70,6 +70,11 @@ void Mesh::clear()
     faces_.clear();
     vertices_.clear();
     vertex_hash_map_.clear();
+
+    // Clear methods actually keep the memory allocated, force clearing it
+    faces_.shrink_to_fit();
+    vertices_.shrink_to_fit();
+    vertex_hash_map_.rehash(0);
 }
 
 void Mesh::finish()

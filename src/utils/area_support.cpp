@@ -63,7 +63,7 @@ using namespace utils;
 namespace utils::area_support
 {
 
-bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
+bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer::Ptr& slicer)
 {
     const bool is_anti_overhang_mesh = mesh_settings.get<bool>("anti_overhang_mesh");
     const bool is_support_mesh = mesh_settings.get<bool>("support_mesh");

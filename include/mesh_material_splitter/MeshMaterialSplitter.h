@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <memory>
+
 namespace curaengine
 {
 
@@ -16,7 +18,7 @@ namespace mesh_material_splitter
  * Generate modifier mesh based user-painted texture data, either for multi-material or support customization
  * @param meshgroup The group to take the sliced meshes from and add the modifier meshes to
  */
-void makePaintingModifierMeshes(MeshGroup* meshgroup);
+void makePaintingModifierMeshes(const std::shared_ptr<MeshGroup>& meshgroup);
 
 } // namespace mesh_material_splitter
 

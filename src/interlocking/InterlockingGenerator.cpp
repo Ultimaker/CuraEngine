@@ -4,6 +4,7 @@
 #include "interlocking/InterlockingGenerator.h"
 
 #include <algorithm>
+#include <deque>
 
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
@@ -28,7 +29,7 @@ using namespace utils;
 
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
 
-void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
+void InterlockingGenerator::generateInterlockingStructure(std::deque<Slicer::Ptr>& volumes)
 {
     Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const PointMatrix rotation(global_settings.get<AngleDegrees>("interlocking_orientation"));

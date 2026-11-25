@@ -1,5 +1,4 @@
-
-﻿---
+---
 name: code-review
 description: Repository-specific guidance for reviewing pull requests in CuraEngine.
 ---
