@@ -14,6 +14,7 @@
 #include <vector>
 
 #include <range/v3/algorithm/any_of.hpp>
+#include <range/v3/algorithm/contains.hpp>
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/drop_last.hpp>
@@ -21,7 +22,9 @@
 #include <range/v3/view/sliding.hpp>
 #include <spdlog/spdlog.h>
 
+#include "Application.h"
 #include "ExtruderTrain.h"
+#include "Slice.h"
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceMeshStorage.h"
@@ -30,6 +33,7 @@
 #include "types/CuraViz.h"
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
+#include "types/OBJ.h"
 #include "types/SVG.h"
 #include "types/geometry/Point2D.h"
 #include "types/geometry/PointsSet.h"
@@ -68,53 +72,210 @@ struct Segment
     Point2D direction; // Normalized direction
 };
 
-/*! A group of consecutive vertices that keep turning in the same direction, and thus form a single corner. Vertices are designated by their rank in the walk order */
-struct Cluster
+/*! The data of a closed path that is needed to find its corners */
+struct PathData
 {
-    size_t first_rank;
-    size_t last_rank;
-    double total_turn{ 0.0 };
-    double total_abs_turn{ 0.0 };
-    double total_local_length{ 0.0 }; // Sum of the local length of the vertices, used to know the curvature of the cluster
-    double weighted_position{ 0.0 };
+    std::vector<Point2D> positions;
+    std::vector<Segment> segments; // Segment i goes from vertex i to vertex i + 1
+    std::vector<double> turns; // Signed turn of each vertex, positive is a left turn, which is concave
 };
 
-/*!
- * Converts a cluster of turning vertices into a corner
- * @param cluster The cluster to be converted
- * @param points The points of the path
- * @param segments The segments of the path, segment i going from point i to point i + 1
- * @param arc_position The arc length position along the path of each vertex in walk order, plus the total length at the end
- * @param start The index of the point that is the first in walk order
- * @param min_corner_turn See findSeamCorners()
- * @param length_penalty_reference See findSeamCorners()
- * @return The corner, or nullopt if the total turn of the cluster is too low
- */
-static SeamCorner makeCornerFromCluster(
-    const Cluster& cluster,
-    const PointsSet& points,
-    const std::vector<Segment>& segments,
-    const std::vector<double>& arc_position,
-    const size_t start,
-    const double length_penalty_reference)
+/*! A fillet is an arc of circle that is prolonged by its two tangents, which is how a rounded corner looks like */
+struct Fillet
 {
-    const size_t count = points.size();
+    Point2D tangent_in; // Where the arc starts
+    Point2D direction_in;
+    Point2D tangent_out; // Where the arc ends
+    Point2D direction_out;
+    Point2D center;
+    double radius;
+    double turn; // Signed turn of the arc
+};
 
-    // Position along the path where half of the turning angle is behind and half is ahead
-    const double center_position = cluster.weighted_position / cluster.total_abs_turn;
+/*! The result of fitting a fillet on a group of consecutive vertices */
+struct FilletFit
+{
+    double turn; // Total signed turn of the vertices
+    double residual; // Maximum distance between the path and the fillet
+    size_t nearest_vertex; // Start of the segment that contains the point of the path that is the closest to the apex of the fillet
+    double nearest_distance; // Distance of that point to the start of the segment
+};
 
-    size_t rank = cluster.first_rank;
-    while (rank < cluster.last_rank && arc_position[rank + 1] < center_position)
+static double cross(const Point2D& a, const Point2D& b)
+{
+    return a.x() * b.y() - a.y() * b.x();
+}
+
+static Point2D rotated(const Point2D& vector, const double angle)
+{
+    const double cosine = std::cos(angle);
+    const double sine = std::sin(angle);
+    return Point2D(vector.x() * cosine - vector.y() * sine, vector.x() * sine + vector.y() * cosine);
+}
+
+static double distanceToRay(const Point2D& point, const Point2D& origin, const Point2D& direction)
+{
+    const Point2D vector = point - origin;
+    return Point2D::dot(vector, direction) <= 0.0 ? vector.vSize() : std::abs(cross(direction, vector));
+}
+
+static double distanceToFillet(const Fillet& fillet, const Point2D& point)
+{
+    double distance = std::min(distanceToRay(point, fillet.tangent_in, -fillet.direction_in), distanceToRay(point, fillet.tangent_out, fillet.direction_out));
+
+    if (fillet.radius > 0.0)
     {
-        ++rank;
+        const Point2D from_center = point - fillet.center;
+        const Point2D start = fillet.tangent_in - fillet.center;
+        double angle = std::atan2(cross(start, from_center), Point2D::dot(start, from_center)) * sign(fillet.turn);
+        if (angle < 0.0)
+        {
+            angle += 2.0 * std::numbers::pi;
+        }
+
+        if (angle <= std::abs(fillet.turn))
+        {
+            distance = std::min(distance, std::abs(from_center.vSize() - fillet.radius));
+        }
     }
 
-    const size_t vertex = (start + rank) % count;
-    const double distance_from_vertex = center_position - arc_position[rank];
-    const double distance_to_next_vertex = segments[vertex].length - distance_from_vertex;
+    return distance;
+}
+
+/*!
+ * Fits a fillet on a group of consecutive vertices. The two tangents of the fillet are the directions of the path at the first
+ * and last vertices of the group (the mean of the directions of the segments around them), which gives the apex. The radius is then
+ * deduced from how deep the group is from the apex.
+ * @param path The path
+ * @param first The first vertex of the group
+ * @param size The number of vertices in the group
+ * @param max_radius See findSeamCorners()
+ * @param max_deviation See findSeamCorners()
+ * @return The fit, or nullopt if the vertices cannot be described by a single fillet
+ */
+static std::optional<FilletFit> fitFillet(const PathData& path, const size_t first, const size_t size, const double max_radius, const double max_deviation)
+{
+    const size_t count = path.positions.size();
+    const size_t last = (first + size - 1) % count;
+    const size_t previous = (first + count - 1) % count;
+
+    double total_turn = 0.0;
+    for (size_t i = 0; i < size; ++i)
+    {
+        total_turn += path.turns[(first + i) % count];
+    }
+
+    if (size == 1)
+    {
+        // A single vertex is a perfectly sharp corner
+        return FilletFit{ .turn = total_turn, .residual = 0.0, .nearest_vertex = first, .nearest_distance = 0.0 };
+    }
+
+    // The tangents are the directions of the path at the first and last vertices of the group
+    const Point2D direction_in = rotated(path.segments[previous].direction, path.turns[first] / 2.0);
+    const Point2D direction_out = rotated(path.segments[last].direction, -path.turns[last] / 2.0);
+    const double arc_turn = total_turn - (path.turns[first] + path.turns[last]) / 2.0;
+
+    constexpr double max_arc_turn = std::numbers::pi - 0.1; // The tangents get parallel for a U-turn, so the apex is not defined
+    if (std::abs(arc_turn) >= max_arc_turn)
+    {
+        return std::nullopt;
+    }
+
+    // The apex is the intersection of the tangents. It must be ahead of the first vertex and behind the last one
+    const Point2D chord = path.positions[last] - path.positions[first];
+    const double determinant = cross(direction_in, direction_out);
+    const double along_in = cross(chord, direction_out) / determinant;
+    const double along_out = cross(direction_in, chord) / determinant;
+    if (along_in < -static_cast<double>(epsilon) || along_out < -static_cast<double>(epsilon))
+    {
+        return std::nullopt;
+    }
+    const Point2D apex = path.positions[first] + direction_in * std::max(along_in, 0.0);
+
+    // How deep the path is from the apex, along the bisector of the tangents, gives the radius, because the middle of an arc is at a distance of
+    // tangent_length * tan(turn / 4) from the apex
+    const Point2D bisector = (direction_out - direction_in) / (direction_out - direction_in).vSize();
+    double depth = std::numeric_limits<double>::max();
+    size_t nearest_vertex = first;
+    double nearest_distance = 0.0;
+    for (size_t i = 0; i + 1 < size; ++i)
+    {
+        const size_t vertex = (first + i) % count;
+        const Segment& segment = path.segments[vertex];
+        const Point2D to_start = path.positions[vertex] - apex;
+        const double denominator = cross(bisector, segment.direction);
+        if (std::abs(denominator) < 1e-9)
+        {
+            continue;
+        }
+        const double along_bisector = cross(to_start, segment.direction) / denominator;
+        const double along_segment = cross(to_start, bisector) / denominator;
+        if (along_bisector >= 0.0 && along_bisector < depth && along_segment >= -static_cast<double>(epsilon) && along_segment <= segment.length + static_cast<double>(epsilon))
+        {
+            depth = along_bisector;
+            nearest_vertex = vertex;
+            nearest_distance = std::clamp(along_segment, 0.0, segment.length);
+        }
+    }
+
+    if (depth == std::numeric_limits<double>::max())
+    {
+        return std::nullopt; // The bisector does not meet the path, so it is not a rounded corner
+    }
+
+    const double abs_turn = std::abs(arc_turn);
+    const double tangent_length = depth / std::tan(abs_turn / 4.0);
+    const double radius = tangent_length / std::tan(abs_turn / 2.0);
+    if (radius > max_radius)
+    {
+        return std::nullopt;
+    }
+
+    Fillet fillet{ .tangent_in = apex - direction_in * tangent_length,
+                   .direction_in = direction_in,
+                   .tangent_out = apex + direction_out * tangent_length,
+                   .direction_out = direction_out,
+                   .center = Point2D(),
+                   .radius = radius,
+                   .turn = arc_turn };
+    fillet.center = fillet.tangent_in + direction_in.rotated90CCW() * (sign(arc_turn) * radius);
+
+    // The vertices and the segments between them must stay close to the fillet
+    double residual = 0.0;
+    for (size_t i = 0; i + 1 < size; ++i)
+    {
+        const size_t vertex = (first + i) % count;
+        const Point2D& start = path.positions[vertex];
+        const Point2D end = path.positions[(vertex + 1) % count];
+        residual = std::max({ residual, distanceToFillet(fillet, start), distanceToFillet(fillet, (start + end) / 2.0), distanceToFillet(fillet, end) });
+        if (residual > max_deviation)
+        {
+            return std::nullopt;
+        }
+    }
+
+    return FilletFit{ .turn = total_turn, .residual = residual, .nearest_vertex = nearest_vertex, .nearest_distance = nearest_distance };
+}
+
+/*!
+ * Converts a group of vertices that has been fitted into a corner
+ * @param fit The fit of the vertices
+ * @param first The first vertex of the group
+ * @param size The number of vertices in the group
+ * @param points The points of the path
+ * @param path The data of the path
+ * @param length_penalty_reference Length at which the score of a corner is halved
+ */
+static SeamCorner
+    makeCornerFromFit(const FilletFit& fit, const size_t first, const size_t size, const PointsSet& points, const PathData& path, const double length_penalty_reference)
+{
+    const size_t count = points.size();
+    const size_t vertex = fit.nearest_vertex;
+    const double distance_to_next_vertex = path.segments[vertex].length - fit.nearest_distance;
 
     SeamCorner corner;
-    if (distance_from_vertex <= static_cast<double>(epsilon) || rank == cluster.last_rank)
+    if (fit.nearest_distance <= static_cast<double>(epsilon))
     {
         corner.position = points.at(vertex);
         corner.segment_index = vertex;
@@ -129,91 +290,166 @@ static SeamCorner makeCornerFromCluster(
     }
     else
     {
-        corner.position = points.at(vertex) + toPoint2LL(segments[vertex].direction * distance_from_vertex);
+        corner.position = points.at(vertex) + toPoint2LL(path.segments[vertex].direction * fit.nearest_distance);
         corner.segment_index = vertex;
         corner.on_vertex = false;
     }
 
-    const double extent = arc_position[cluster.last_rank] - arc_position[cluster.first_rank];
-    corner.turn = cluster.total_turn;
+    double extent = 0.0;
+    for (size_t i = 0; i + 1 < size; ++i)
+    {
+        extent += path.segments[(first + i) % count].length;
+    }
+    corner.turn = fit.turn;
     corner.extent = std::llrint(extent);
 
     // Angle score, from 0 for the minimum turn to 1 for a U-turn
-    const double angle_score = std::clamp((std::abs(cluster.total_turn)) / std::numbers::pi, 0.0, 1.0);
+    const double angle_score = std::clamp(std::abs(fit.turn) / std::numbers::pi, 0.0, 1.0);
 
     // Favor corners that are concentrated on a short section
     const double length_score = length_penalty_reference > 0.0 ? 1.0 / (1.0 + extent / length_penalty_reference) : 1.0;
 
-    corner.score = sign(cluster.total_turn) * angle_score * length_score;
+    corner.score = sign(fit.turn) * angle_score * length_score;
 
     return corner;
 }
 
-std::vector<SeamCorner>
-    findSeamCorners(const PointsSet& points, const AngleRadians& min_vertex_turn, const double max_radius, const AngleRadians& max_sharp_turn, const double max_sharp_link_distance)
+/*!
+ * Finds the corners in a run of consecutive turning vertices. All the vertices of the run are covered by groups, each group being
+ * a single corner. The fewest groups that fit are used, which merges the corners that are too close to be told apart.
+ * @param run_first The first vertex of the run
+ * @param run_size The number of vertices in the run
+ * @param corners [out] The corners are appended in the order of the path
+ * See findSeamCorners() for the other parameters
+ */
+static void findCornersOfRun(
+    const PointsSet& points,
+    const PathData& path,
+    const size_t run_first,
+    const size_t run_size,
+    const double max_radius,
+    const double max_deviation,
+    std::vector<SeamCorner>& corners)
 {
-    constexpr double quarter_turn_margin = 1.1;
-    const double max_corner_length = max_radius * std::numbers::pi / 2.0 * quarter_turn_margin; // A quarter turn of radius max_radius, anything longer is too flat
-    const double length_penalty_reference = max_radius; // A corner spread over max_radius gets half the score of a perfectly sharp one
+    const size_t count = path.positions.size();
+    const double max_extent = max_radius * std::numbers::pi; // Length of half a circle of the maximum radius
+
+    // The groups of vertices that can be described by a fillet, by index of their last vertex in the run
+    struct Group
+    {
+        size_t size;
+        FilletFit fit;
+    };
+    std::vector<std::vector<Group>> groups_by_end(run_size);
+
+    for (size_t start = 0; start < run_size; ++start)
+    {
+        double extent = 0.0;
+        size_t consecutive_misses = 0;
+        for (size_t size = 1; start + size <= run_size; ++size)
+        {
+            if (size > 1)
+            {
+                extent += path.segments[(run_first + start + size - 2) % count].length;
+                if (extent > max_extent)
+                {
+                    break;
+                }
+            }
+
+            const std::optional<FilletFit> fit = fitFillet(path, (run_first + start) % count, size, max_radius, max_deviation);
+            if (! fit.has_value())
+            {
+                // Adding more vertices to a group that does not fit hardly ever makes it fit again
+                if (++consecutive_misses >= 2)
+                {
+                    break;
+                }
+                continue;
+            }
+
+            consecutive_misses = 0;
+            groups_by_end[start + size - 1].push_back(Group{ .size = size, .fit = fit.value() });
+        }
+    }
+
+    // Find the covering of the run with the fewest groups, and then with the smallest deviation
+    struct Best
+    {
+        size_t group_count{ std::numeric_limits<size_t>::max() };
+        double residual{ 0.0 };
+        const Group* group{ nullptr };
+    };
+    std::vector<Best> best(run_size + 1);
+    best[0] = Best{ .group_count = 0 };
+    for (size_t end = 1; end <= run_size; ++end)
+    {
+        for (const Group& group : groups_by_end[end - 1])
+        {
+            const Best& before = best[end - group.size];
+            const size_t group_count = before.group_count + 1;
+            const double residual = before.residual + group.fit.residual;
+            if (group_count < best[end].group_count || (group_count == best[end].group_count && residual < best[end].residual))
+            {
+                best[end] = Best{ .group_count = group_count, .residual = residual, .group = &group };
+            }
+        }
+    }
+
+    std::vector<SeamCorner> run_corners;
+    for (size_t end = run_size; end > 0; end -= best[end].group->size)
+    {
+        const Group& group = *best[end].group;
+        run_corners.push_back(makeCornerFromFit(group.fit, (run_first + end - group.size) % count, group.size, points, path, max_radius));
+    }
+    corners.insert(corners.end(), run_corners.rbegin(), run_corners.rend());
+}
+
+std::vector<SeamCorner> findSeamCorners(const PointsSet& points, const AngleRadians& min_vertex_turn, const double max_radius, const double max_deviation)
+{
     const size_t points_count = points.size();
     if (points_count < 3)
     {
         return {};
     }
 
-    // ## Step 1: compute the segments, the turning angle of each vertex, and whether each vertex is linked to the next one
-    struct Vertex
-    {
-        double turn_angle;
-        double local_length; // Length over which the turn happens, which is the shortest adjacent segment so that a long straight edge doesn't dilute the curvature
-        bool is_turning;
-        bool is_sharp; // True if the turn is so sharp that this vertex is a corner by itself
-        bool is_linked_to_next; // True if the segment that goes to the next vertex can be part of the same corner
-    };
-
-    // Segment i goes from vertex i to vertex i + 1
-    std::vector<Segment> segments(points_count);
+    PathData path;
+    path.positions.reserve(points_count);
     for (size_t i = 0; i < points_count; ++i)
     {
-        const Point2D vector = toPoint2D(points.at((i + 1) % points_count) - points.at(i));
+        path.positions.push_back(toPoint2D(points.at(i)));
+    }
+
+    path.segments.resize(points_count);
+    for (size_t i = 0; i < points_count; ++i)
+    {
+        const Point2D vector = path.positions[(i + 1) % points_count] - path.positions[i];
         const double length = vector.vSize();
-        segments[i] = Segment{ .length = length, .direction = is_zero(length) ? Point2D() : vector / length };
+        path.segments[i] = Segment{ .length = length, .direction = is_zero(length) ? Point2D() : vector / length };
     }
 
-    // Positive angle is a left turn, which is concave, same convention as CornerScoringCriterion
-    std::vector<Vertex> vertices(points_count);
+    path.turns.resize(points_count);
     for (size_t i = 0; i < points_count; ++i)
     {
-        const size_t prev = (i + points_count - 1) % points_count;
-        const double cross = Point2D::dot(segments[prev].direction.rotated90CCW(), segments[i].direction);
-        const double dot = Point2D::dot(segments[prev].direction, segments[i].direction);
-        const double turn_angle = std::atan2(cross, dot);
-        vertices[i] = Vertex{ .turn_angle = turn_angle,
-                              .local_length = std::min(segments[prev].length, segments[i].length),
-                              .is_turning = std::abs(turn_angle) >= min_vertex_turn,
-                              .is_sharp = std::abs(turn_angle) > max_sharp_turn,
-                              .is_linked_to_next = false };
+        const Segment& previous = path.segments[(i + points_count - 1) % points_count];
+        path.turns[i] = std::atan2(cross(previous.direction, path.segments[i].direction), Point2D::dot(previous.direction, path.segments[i].direction));
     }
 
+    // Two consecutive vertices are linked if they turn in the same direction and are close enough to be on the same arc of the maximum radius
+    std::vector<bool> is_linked_to_next(points_count);
     for (size_t i = 0; i < points_count; ++i)
     {
-        const Vertex& vertex = vertices[i];
-        const Vertex& next_vertex = vertices[(i + 1) % points_count];
-
-        // The segment can be a piece of the same corner if it is an arc between two turns in the same direction, whose radius is small enough. Very sharp vertices are only
-        // linked to their neighbors if they are very close to them, otherwise they are always alone. The cluster that is being built may still refuse the segment later, if the
-        // turn of the next vertex is not what the cluster predicts
-        const double average_turn = (std::abs(vertex.turn_angle) + std::abs(next_vertex.turn_angle)) / 2.0;
-        const bool involves_sharp_vertex = vertex.is_sharp || next_vertex.is_sharp;
-        vertices[i].is_linked_to_next = vertex.is_turning && next_vertex.is_turning && sign(vertex.turn_angle) == sign(next_vertex.turn_angle)
-                                     && segments[i].length <= max_radius * average_turn && (! involves_sharp_vertex || segments[i].length <= max_sharp_link_distance);
+        const double turn = path.turns[i];
+        const double next_turn = path.turns[(i + 1) % points_count];
+        const bool is_turning = std::abs(turn) >= min_vertex_turn && std::abs(next_turn) >= min_vertex_turn && sign(turn) == sign(next_turn);
+        is_linked_to_next[i] = is_turning && path.segments[i].length <= max_radius * (std::abs(turn) + std::abs(next_turn)) / 2.0;
     }
 
-    // ## Step 2: start the walk just after a segment that is not linked, so that no corner is split by the start of the loop
+    // Start just after a segment that is not linked, so that no run is split by the start of the loop
     std::optional<size_t> start;
     for (size_t i = 0; i < points_count; ++i)
     {
-        if (! vertices[(i + points_count - 1) % points_count].is_linked_to_next)
+        if (! is_linked_to_next[(i + points_count - 1) % points_count])
         {
             start = i;
             break;
@@ -226,87 +462,25 @@ std::vector<SeamCorner>
         return {};
     }
 
-    // Arc length position along the path, from the start vertex. Index r is the rank of the vertex in walk order
-    std::vector<double> arc_position(points_count + 1, 0.0);
-    for (size_t r = 0; r < points_count; ++r)
-    {
-        arc_position[r + 1] = arc_position[r] + segments[(start.value() + r) % points_count].length;
-    }
-
-    // ## Step 3: walk along the path with a state machine, and generate a candidate for each valid corner
     std::vector<SeamCorner> corners;
-    const auto addCorner = [&](const Cluster& closed_cluster)
+    for (size_t rank = 0; rank < points_count;)
     {
-        corners.push_back(makeCornerFromCluster(closed_cluster, points, segments, arc_position, start.value(), length_penalty_reference));
-    };
-
-    enum class WalkState
-    {
-        Straight, // Not turning, no cluster is being built
-        Clustering, // Turning, vertices are being aggregated in the current cluster
-        TooFlat, // The current cluster is too large, its vertices are skipped until it ends
-    };
-
-    WalkState state = WalkState::Straight;
-    Cluster cluster{ .first_rank = 0, .last_rank = 0 };
-
-    const auto endCluster = [&state, &addCorner, &cluster]()
-    {
-        if (state == WalkState::Clustering)
+        const size_t vertex = (start.value() + rank) % points_count;
+        if (std::abs(path.turns[vertex]) < min_vertex_turn)
         {
-            addCorner(cluster);
-        }
-        state = WalkState::Straight;
-    };
-
-    for (size_t rank = 0; rank < points_count; ++rank)
-    {
-        const size_t vertex_index = (start.value() + rank) % points_count;
-        const Vertex& vertex = vertices[vertex_index];
-
-        if (! vertex.is_turning)
-        {
-            endCluster();
+            ++rank;
             continue;
         }
 
-        // Turning vertices that are not linked to the previous one start a new cluster, which also happens when the turning direction changes
-        bool starts_new_cluster = state == WalkState::Straight || ! vertices[(vertex_index + points_count - 1) % points_count].is_linked_to_next;
-
-        if (! starts_new_cluster && cluster.total_local_length > 0.0)
+        size_t run_end = rank;
+        while (run_end + 1 < points_count && is_linked_to_next[(start.value() + run_end) % points_count])
         {
-            // The curvature of the current cluster tells which turn we expect for this vertex. If the actual turn is too different, the direction has changed too abruptly,
-            // which means that a new corner begins
-            const double cluster_curvature = cluster.total_abs_turn / cluster.total_local_length;
-            const double predicted_turn = cluster_curvature * vertex.local_length;
-            starts_new_cluster = std::abs(std::abs(vertex.turn_angle) - predicted_turn) > max_sharp_turn;
+            ++run_end;
         }
 
-        if (starts_new_cluster)
-        {
-            endCluster();
-            state = WalkState::Clustering;
-            cluster = Cluster{ .first_rank = rank, .last_rank = rank };
-        }
-
-        if (state == WalkState::Clustering)
-        {
-            if (arc_position[rank] - arc_position[cluster.first_rank] > max_corner_length)
-            {
-                // We stay in this state until the cluster ends, so that the rest of the large arc doesn't produce a corner
-                state = WalkState::TooFlat;
-                continue;
-            }
-
-            cluster.last_rank = rank;
-            cluster.total_turn += vertex.turn_angle;
-            cluster.total_abs_turn += std::abs(vertex.turn_angle);
-            cluster.total_local_length += vertex.local_length;
-            cluster.weighted_position += arc_position[rank] * std::abs(vertex.turn_angle);
-        }
+        findCornersOfRun(points, path, vertex, run_end - rank + 1, max_radius, max_deviation, corners);
+        rank = run_end + 1;
     }
-
-    endCluster();
 
     return corners;
 }
@@ -633,18 +807,18 @@ static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const
                     // All lengths are in micrometers, all angles in radians
                     const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } }; // 1°, below this a turn is considered as straight
                     constexpr double max_radius = 2000.0; // Arcs flatter than a 2 mm radius are not corners
-                    const AngleRadians max_sharp_turn{ AngleDegrees{
-                        50.0 } }; // A vertex that turns by more than 50° is a corner by itself, unless it is very close to its neighbor
-                    const double max_sharp_link_distance = static_cast<double>(wall_line_width_0) * 1.0; // Corners closer than a line width cannot be told apart
+                    const double max_deviation
+                        = static_cast<double>(wall_line_width_0) * 0.25; // Corners that are closer than this deviation from a single rounded corner cannot be told apart
 
-                    std::vector<SeamCorner> corners = findSeamCorners(points, min_vertex_turn, max_radius, max_sharp_turn, max_sharp_link_distance);
+                    std::vector<SeamCorner> corners = findSeamCorners(points, min_vertex_turn, max_radius, max_deviation);
 
-                    static SVG svg("/tmp/seam_polygons.svg", AABB(Point2LL(0, 0), Point2LL(400000, 400000)), 0.001);
-                    if (layer.printZ == 20400)
+                    // static SVG svg("/tmp/seam_polygons.svg", AABB(Point2LL(0, 0), Point2LL(400000, 400000)), 0.001);
+                    const auto layer_z_debug = { 5000, 5200 };
+                    if (ranges::contains(layer_z_debug, layer.printZ))
                     {
                         CuraViz::send(extrusion_line, "extrusion");
 
-                        svg.write(extrusion_line.toPolygon(), { .line = SVG::LineAttributes{ SVG::Color::Red, 0.1 } });
+                        // svg.write(extrusion_line.toPolygon(), { .line = SVG::LineAttributes{ SVG::Color::Red, 0.1 } });
                         // static std::ofstream wkt_file("/tmp/seam_polygons.wkt", std::ios::app);
                         // Shape shape;
                         // shape.push_back(extrusion_line.toPolygon());
@@ -657,16 +831,16 @@ static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const
                         // angles < 0 are convex (right turning)
                         const bool convex = corner.score < 0;
                         corner.score *= convex ? convex_angle_weight : concave_angle_weight;
-                        if (layer.printZ == 20400)
+                        if (ranges::contains(layer_z_debug, layer.printZ))
                         {
                             CuraViz::send(corner.position, fmt::format("corner_{}_{}", layer_index, corner.score));
                         }
 
-                        if (std::abs(corner.score) > 0.1)
+                        if (std::abs(corner.score) > 0.15)
                         {
-                            if (layer.printZ == 20400)
+                            if (ranges::contains(layer_z_debug, layer.printZ))
                             {
-                                svg.write(corner.position, SVG::VerticesAttributes{ SVG::Color::Blue, 0.05 });
+                                // svg.write(corner.position, SVG::VerticesAttributes{ SVG::Color::Blue, 0.05 });
                             }
                             SeamCorner& layer_seam_corner = layer_seam_corners.emplace_back(std::move(corner));
                             layer_seam_corner.extrusion_line = &extrusion_line;
@@ -1170,7 +1344,19 @@ static void calculateWallsSeamPosition(
     const bool outer_walls)
 {
     std::vector<std::vector<SeamCorner>> remaining_seam_corners = makeSeamCandidatesAcrossLayers(mesh, concave_angle_weight, convex_angle_weight);
-    const coord_t max_alignment_distance = wall_line_width_0 * 4; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
+    // const coord_t max_alignment_distance = wall_line_width_0 * 4; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
+    const coord_t max_alignment_distance = 1600; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
+
+    OBJ mesh_obj("/tmp/seam.obj", 0.1);
+    mesh_obj.write(Application::getInstance().current_slice_->scene.mesh_groups.front().meshes.front());
+    for (const auto& [layer_index, corner_per_layer] : remaining_seam_corners | ranges::views::enumerate)
+    {
+        const coord_t z = mesh->layers[layer_index].printZ;
+        for (const auto& corner : corner_per_layer)
+        {
+            mesh_obj.writeSphere(Point3D(Point3LL(corner.position, z)), 0.1, SVG::Color::Red);
+        }
+    }
 
     // Each loop applies the best string to the extrusion lines. Since an extrusion line can have only one seam, the corners of the lines that have been done are removed, which
     // cuts or discards some of the remaining strings. Rebuilding the strings from the remaining corners is the simplest way to get the new valid ones. Each loop removes at

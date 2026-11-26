@@ -60,8 +60,7 @@ constexpr double default_wall_line_width = 400.0;
 // The thresholds are the same as the ones that are used in makeSeamCandidatesAcrossLayers(), which have to be kept in sync
 const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } };
 constexpr double max_radius = 2000.0;
-const AngleRadians max_sharp_turn{ AngleDegrees{ 50.0 } };
-constexpr double max_sharp_link_distance_factor = 1.0; // Multiplied by the line width
+constexpr double max_deviation_factor = 0.25; // Multiplied by the line width
 
 // The corners that have a lower absolute score (once weighted by the corner type) are not kept as seam candidates. The weights are the ones of the "weighted" corner preference
 constexpr double concave_angle_weight = 1.0;
@@ -88,8 +87,7 @@ std::vector<SeamCorner> findRawCorners(const PointsSet& polygon, const double wa
         polygon,
         min_vertex_turn,
         max_radius,
-        max_sharp_turn,
-        wall_line_width * max_sharp_link_distance_factor);
+        wall_line_width * max_deviation_factor);
 }
 
 /*!
@@ -1025,7 +1023,7 @@ TEST(SeamCornersSyntheticTest, ChamfersCloserThanTheLineWidthAreSingleCorners)
                     });
 
                 const std::vector<SeamCorner> corners = findRawCorners(rectangle.polygon, wall_line_width);
-                if (gap_ratio < 1.0 / max_sharp_link_distance_factor)
+                if (gap_ratio < 1.0)
                 {
                     expectOneCornerPerPolygonCorner(rectangle, corners, 90.0, 0.4 * gap);
                 }
