@@ -145,7 +145,7 @@ class CuraEngineConan(ConanFile):
         if self.options.with_curaviz:
             for req in self.conan_data["requirements_curaviz"]:
                 self.requires(req)
-        self.requires("clipper/6.4.2@ultimaker/stable")
+        self.requires("clipper/6.4.3@ultimaker/stable")
         self.requires("boost/1.88.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
