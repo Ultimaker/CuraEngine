@@ -25,6 +25,8 @@ class SlicedUVCoordinates;
 class TextureDataProvider
 {
 public:
+    using Ptr = std::shared_ptr<TextureDataProvider>;
+
     explicit TextureDataProvider(
         const std::shared_ptr<SlicedUVCoordinates>& uv_coordinates,
         const std::shared_ptr<Image>& texture,

@@ -180,6 +180,8 @@ private:
      * \param[in,out] mesh where the outer wall is retrieved and stored in.
      */
     void processFuzzyWalls(SliceMeshStorage& mesh);
+
+    static void generateLayersBelow(SliceDataStorage& storage);
 };
 
 } // namespace curaengine

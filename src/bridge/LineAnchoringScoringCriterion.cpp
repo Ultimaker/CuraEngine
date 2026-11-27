@@ -15,12 +15,8 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-LineAnchoringScoringCriterion::LineAnchoringScoringCriterion(
-    const std::vector<AngleDegrees>& candidates,
-    const Shape& skin_outline,
-    const Shape& supported_regions,
-    const coord_t line_width)
-    : BridgeAngleScoringCriterion(std::move(candidates), skin_outline, supported_regions)
+LineAnchoringScoringCriterion::LineAnchoringScoringCriterion(const Shape& skin_outline, const Shape& supported_regions, const coord_t line_width)
+    : BridgeAngleScoringCriterion(skin_outline, supported_regions)
     , line_width_(line_width)
 {
 }

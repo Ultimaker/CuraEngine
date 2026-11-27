@@ -8,6 +8,7 @@
 #include "types/SectionType.h"
 #include "types/geometry/ExtrusionLine.h"
 #include "types/geometry/Polygon.h"
+#include "types/geometry/Shape.h"
 
 namespace curaengine
 {

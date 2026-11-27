@@ -234,44 +234,42 @@ std::optional<AngleDegrees> bridgeAngle(
     }
 
     std::vector<AngleDegrees> angle_candidates;
-    std::optional<size_t> best_angle_index;
+    std::optional<Candidate<AngleDegrees>> best_angle; // Its element points to an element of angle_candidates
     {
         // Do a first pass to find the global angle that gives more anchored lines while bridging
         for (AngleDegrees angle = 0; angle < 180; angle += 1)
         {
             angle_candidates.push_back(angle);
         }
-        BestElementFinder best_angle_finder;
+        BestElementFinder<AngleDegrees> best_angle_finder;
 
         // First pass tries to find the angle that maximizes the number of properly bridging line, i.e. anchored on both sides
         // Give some threshold so that we keep a few candidates that are close to the best one
         constexpr double outsider_delta_threshold{ 0.05 };
-        best_angle_finder.appendSingleCriterionPass(
-            std::make_shared<LineAnchoringScoringCriterion>(angle_candidates, skin_outline, supported_regions, line_width),
-            outsider_delta_threshold);
+        best_angle_finder.appendSingleCriterionPass(std::make_shared<LineAnchoringScoringCriterion>(skin_outline, supported_regions, line_width), outsider_delta_threshold);
 
         // Second pass takes the remaining best candidates from first pass, and tries to see if some of them maximize the alignment with the outline
-        best_angle_finder.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
+        best_angle_finder.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(skin_outline, supported_regions));
 
-        best_angle_index = best_angle_finder.findBestElement(angle_candidates.size());
+        best_angle = best_angle_finder.findBestElement(angle_candidates);
     }
 
-    if (best_angle_index.has_value())
+    if (best_angle.has_value())
     {
         // The first pass give us an angle that is the best for anchoring lines, but lacks precise alignment with the bounding box.
         // Do a second pass around the best found angle to refine it, so that it looks well aligned with the model lines.
-        const double best_angle = best_angle_index.value();
+        const double best_angle_value = *best_angle->element;
         angle_candidates.clear();
-        for (double angle = best_angle - 1.0; angle <= best_angle + 1.0; angle += 0.05)
+        for (double angle = best_angle_value - 1.0; angle <= best_angle_value + 1.0; angle += 0.05)
         {
             angle_candidates.push_back(angle);
         }
-        BestElementFinder best_angle_refiner;
-        best_angle_refiner.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
-        best_angle_index = best_angle_refiner.findBestElement(angle_candidates.size());
+        BestElementFinder<AngleDegrees> best_angle_refiner;
+        best_angle_refiner.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(skin_outline, supported_regions));
+        best_angle = best_angle_refiner.findBestElement(angle_candidates);
     }
 
-    return angle_candidates.at(best_angle_index.value_or(0)) + 90;
+    return (best_angle.has_value() ? *best_angle->element : angle_candidates.front()) + 90;
 }
 /*!
  * Make the expanded ranges for the given segment

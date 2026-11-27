@@ -5,81 +5,61 @@
 
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
+
+#include "types/scoring/CriteriaPass.h"
 
 namespace curaengine::types::scoring
 {
+template<typename T>
 class ScoringCriterion;
 
 /*!
- * This class implements an algorithm to find an element amongst a list, regarding one or multiple scoring criteria. The
- * criteria are implemented by subclassing the CriterionScoring class. It is also possible to set up multiple passes of
- * criteria. Thus, if the first pass gives a few best candidates that are too close to each other, we keep only the best
- * candidates and process a second pass with different criteria, and so on until we have a single outsider, or no more
- * criteria.
+ * This class implements an algorithm to find an element amongst a list, regarding one or multiple selection passes. The
+ * passes are implemented by subclassing the CriteriaPass class, for example with scoring criteria (see
+ * WeighedScoringCriteriaPass) or by filtering the candidates (see FilteringPass). Thus, if the first pass gives a few best
+ * candidates that are too close to each other, we keep only the best candidates and process a second pass with different
+ * criteria, and so on until we have a single outsider, or no more passes.
+ *
+ * The code is in the cpp file, so this class can only be used with the types of elements that are instantiated at the end of it.
+ * \tparam T The type of the elements to be selected
  */
+template<typename T>
 class BestElementFinder
 {
 private:
-    /*!
-     * Contains the index of an element in the source list, and its calculated score
-     */
-    struct Candidate
-    {
-        size_t candidate_index;
-        double score{ 0.0 };
-    };
-
-public:
-    /*!
-     * Contains a criterion to be processed to calculate the score of an element, and the weight is has on the global
-     * score calculation.
-     */
-    struct WeighedCriterion
-    {
-        std::shared_ptr<ScoringCriterion> criterion;
-
-        /*!
-         * The weight to be given when taking this criterion into the global score. A score that contributes "normally"
-         * to the global score should have a weight of 1.0, and others should be adjusted around this value, to give
-         * them more or less influence.
-         */
-        double weight{ 1.0 };
-    };
-
-    /*!
-     * Contains multiple criteria to be processed on each element in a single pass
-     */
-    struct CriteriaPass
-    {
-        std::vector<WeighedCriterion> criteria;
-
-        /*!
-         * Once we have calculated the global scores of each element for this pass, we calculate the score difference
-         * between the best candidate and the following ones. If the following ones have a score close enough to the
-         * best, within this threshold, they will also be considered outsiders and will be run for the next pass.
-         * This value will be ignored for the last pass.
-         */
-        double outsider_delta_threshold{ 0.0 };
-    };
-
-private:
-    std::vector<CriteriaPass> criteria_;
+    std::vector<std::shared_ptr<CriteriaPass<T>>> passes_;
 
 public:
     explicit BestElementFinder() = default;
 
-    void appendCriteriaPass(const CriteriaPass& pass)
-    {
-        criteria_.push_back(pass);
-    }
+    void appendCriteriaPass(const std::shared_ptr<CriteriaPass<T>>& pass);
 
     /*!
-     * Convenience method to add a pass with a single criterion
+     * Tells whether there is no pass, in which case all the elements are always kept
      */
-    void appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold = 0.0);
+    [[nodiscard]] bool isEmpty() const;
 
-    [[nodiscard]] std::optional<size_t> findBestElement(const size_t candidates_count);
+    /*!
+     * Convenience method to add a weighed scoring pass with a single criterion
+     */
+    void appendSingleCriterionPass(std::shared_ptr<ScoringCriterion<T>> criterion, const std::optional<double>& outsider_delta_threshold = 0.0);
+
+    /*!
+     * Runs all the passes on the elements, and returns the best one
+     * \param elements The elements to select from, which have to remain alive and unchanged as long as the result is used
+     * \return The best candidate, which gives both the index of the element in the given list and a pointer to it, or nullopt if no element remains
+     */
+    [[nodiscard]] std::optional<Candidate<T>> findBestElement(const std::span<const T> elements) const;
+
+    /*!
+     * Runs all the passes on the elements, and returns all the ones that remain
+     * \param elements The elements to select from, which have to remain alive and unchanged as long as the result is used
+     * \return The remaining candidates, from the best one to the worst one. The score of each one is the one that was
+     * calculated by the last pass that calculates scores, which may not be significant if there is none
+     */
+    [[nodiscard]] std::vector<Candidate<T>> findBestElements(const std::span<const T> elements) const;
 };
 
 } // namespace curaengine::types::scoring

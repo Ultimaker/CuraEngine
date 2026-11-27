@@ -4,9 +4,15 @@
 #include "types/geometry/ExtrusionLine.h"
 
 #include <algorithm>
+#include <iterator>
+
+#include <range/v3/algorithm/rotate.hpp>
+#include <spdlog/spdlog.h>
 
 #include "types/geometry/Simplify.h"
 #include "utils/linear_alg_2d.h"
+#include "utils/math.h"
+
 
 namespace curaengine::types::geometry
 {
@@ -14,6 +20,11 @@ namespace curaengine::types::geometry
 using namespace types;
 using namespace utils;
 
+
+bool ExtrusionLine::isRotatable() const
+{
+    return ! empty() && is_closed_ && fuzzy_equal(front().w_, back().w_);
+}
 
 coord_t ExtrusionLine::length() const
 {
@@ -61,6 +72,59 @@ bool ExtrusionLine::shorterThan(const coord_t check_length) const
         p0 = &p1;
     }
     return true;
+}
+
+size_t ExtrusionLine::insertJunction(const size_t after_index, const Point2LL& position)
+{
+    const size_t insert_index = (after_index + 1) % size();
+    const ExtrusionJunction& junction_before = junctions_[after_index];
+    const ExtrusionJunction& junction_after = junctions_[insert_index];
+
+    const coord_t extrusion_size = vSize(junction_after.p_ - junction_before.p_);
+    const coord_t before_to_position = vSize(position - junction_before.p_);
+    const double position_factor = inverse_lerp(coord_t{ 0 }, extrusion_size, before_to_position);
+    const coord_t width = lerp(junction_before.w_, junction_after.w_, position_factor);
+
+    emplace(std::next(begin(), insert_index), position, width, junction_before.perimeter_index_);
+    return insert_index;
+}
+
+void ExtrusionLine::setStartJunction(const size_t new_start_junction)
+{
+    if (! is_closed_)
+    {
+        spdlog::error("Can not change the start junction of a non-closed extrusion line");
+        return;
+    }
+
+    // Closed lines are usually explicitly closed, which means that the last junction is a copy of the first one
+    const bool is_explicitly_closed = size() > 1 && front().p_ == back().p_;
+    const size_t unique_junctions_count = is_explicitly_closed ? size() - 1 : size();
+    const size_t start_index = new_start_junction % unique_junctions_count;
+
+    if (start_index == 0)
+    {
+        return;
+    }
+
+    if (is_explicitly_closed)
+    {
+        if (front().w_ != back().w_)
+        {
+            spdlog::warn("The first and last junctions of the extrusion line have different widths, the new closing junction will take the width of the new start junction");
+        }
+
+        junctions_.pop_back();
+    }
+
+    // Re-order the toolpath so that it starts with the most appropriate seam position
+    ranges::rotate(*this, std::next(begin(), start_index));
+
+    if (is_explicitly_closed)
+    {
+        // Close the line again, so that it ends where it starts
+        junctions_.push_back(junctions_.front());
+    }
 }
 
 } // namespace curaengine::types::geometry

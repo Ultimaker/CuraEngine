@@ -27,6 +27,7 @@ private:
 public:
     // Required for some std calls as a container
     using value_type = Point2LL;
+    using size_type = typename std::vector<value_type>::size_type;
     using iterator = typename std::vector<value_type>::iterator;
     using const_iterator = typename std::vector<value_type>::const_iterator;
     using reverse_iterator = typename std::vector<value_type>::reverse_iterator;
@@ -34,6 +35,9 @@ public:
 
     /*! \brief Builds an empty set */
     PointsSet() = default;
+
+    /*! \brief Builds a set with a specific size */
+    PointsSet(const size_type size);
 
     /*! \brief Creates a copy of the given points set */
     PointsSet(const PointsSet& other) = default;

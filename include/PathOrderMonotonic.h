@@ -127,13 +127,13 @@ protected:
      */
     static void optimizeClosestStartPoint(Path* path, types::geometry::Point2LL& current_pos)
     {
-        if (path->start_vertex_ == path->converted_->size())
+        if (! path->start_vertex_.has_value())
         {
             const types::coord_t dist_start = types::geometry::vSize2(current_pos - path->converted_->front());
             const types::coord_t dist_end = types::geometry::vSize2(current_pos - path->converted_->back());
             setStartVertex(path, dist_start >= dist_end);
         }
-        current_pos = (*path->converted_)[path->converted_->size() - 1 - path->start_vertex_]; // Opposite of the start vertex.
+        current_pos = (*path->converted_)[path->converted_->size() - 1 - *path->start_vertex_]; // Opposite of the start vertex.
     }
 
     /*!

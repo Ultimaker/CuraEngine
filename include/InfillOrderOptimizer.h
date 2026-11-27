@@ -13,6 +13,7 @@ namespace curaengine::types
 {
 enum class EFillMethod;
 struct MeshPathConfigs;
+struct Ratio;
 } // namespace curaengine::types
 
 namespace curaengine::types::geometry
@@ -29,7 +30,6 @@ class LayerPlan;
 class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;
-
 
 /*!
  * Optimizer for infill lines ordering. When an end position is given, infill extrusions are optimized in a way that ending printing the infill

@@ -28,15 +28,12 @@ namespace curaengine::bridge
 
 
 /*! Base class for criteria that calculate a score for a candidate bridging angle */
-class BridgeAngleScoringCriterion : public types::scoring::ScoringCriterion
+class BridgeAngleScoringCriterion : public types::scoring::ScoringCriterion<types::AngleDegrees>
 {
 public:
-    explicit BridgeAngleScoringCriterion(
-        const std::vector<types::AngleDegrees>& candidates,
-        const types::geometry::Shape& skin_outline,
-        const types::geometry::Shape& supported_regions);
+    explicit BridgeAngleScoringCriterion(const types::geometry::Shape& skin_outline, const types::geometry::Shape& supported_regions);
 
-    double computeScore(const size_t candidate_index) const override;
+    double computeScore(const types::AngleDegrees& angle) const override;
 
 protected:
     /*!
@@ -48,7 +45,6 @@ protected:
     virtual double computeScore(const types::geometry::TransformedShape& transformed_skin, const types::geometry::TransformedShape& transformed_supported_regions) const = 0;
 
 private:
-    const std::vector<types::AngleDegrees>& candidates_;
     const types::geometry::Shape& skin_outline_;
     const types::geometry::Shape& supported_regions_;
 };

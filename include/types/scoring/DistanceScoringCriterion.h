@@ -3,22 +3,23 @@
 
 #pragma once
 
-#include "types/scoring/PositionBasedScoringCriterion.h"
+#include <vector>
 
-namespace curaengine::types::geometry
-{
-class PointsSet;
-}
+#include "types/Coord_t.h"
+#include "types/geometry/Point2LL.h"
+#include "types/scoring/ScoringCriterion.h"
 
 namespace curaengine::types::scoring
 {
 
-
 /*!
- * Criterion that will give a score according to the distance from the point to a target point. Closer points will get
+ * Criterion that will give a score according to the distance from the position of the element to a target point. Closer elements will get
  * a higher score.
+ * The code is in the cpp file, so this class can only be used with the types of elements that are instantiated at the end of it.
+ * \tparam T The type of the elements that are scored, which must have a position (see getElementPosition())
  */
-class DistanceScoringCriterion : public PositionBasedScoringCriterion
+template<typename T>
+class DistanceScoringCriterion : public ScoringCriterion<T>
 {
 public:
     enum class DistanceType
@@ -28,8 +29,11 @@ public:
         YOnly, // Only difference on Y coordinate
     };
 
+    static constexpr DistanceType default_distance_type{ DistanceType::Euclidian };
+    static constexpr double default_distance_divider{ 20.0 };
+
 private:
-    const types::geometry::Point2LL& target_pos_;
+    const std::vector<types::geometry::Point2LL> target_positions_;
     const DistanceType distance_type_;
 
     /*!
@@ -40,12 +44,27 @@ private:
 
 public:
     explicit DistanceScoringCriterion(
-        const types::geometry::PointsSet& points,
-        const types::geometry::Point2LL& target_pos,
-        DistanceType distance_type = DistanceType::Euclidian,
-        const double distance_divider = 20.0);
+        const types::geometry::Point2LL& target_position,
+        const DistanceType distance_type = default_distance_type,
+        const double distance_divider = default_distance_divider);
 
-    virtual double computeScore(const types::geometry::Point2LL& candidate_position) const override;
+    explicit DistanceScoringCriterion(
+        const std::vector<types::geometry::Point2LL>& target_positions,
+        const DistanceType distance_type = default_distance_type,
+        const double distance_divider = default_distance_divider);
+
+    double computeScore(const T& element) const override;
+
+    /*!
+     * Computes the score that an element gets when it is at the given distance of its closest target position. Elements that have a score greater than this value are closer than
+     * this distance
+     * \param distance The distance to the target position
+     * \return The score for this distance
+     */
+    double computeScoreAtDistance(const types::coord_t distance) const;
+
+private:
+    double scoreFromDistance(const double distance_mm) const;
 };
 
 } // namespace curaengine::types::scoring

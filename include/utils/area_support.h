@@ -10,14 +10,15 @@
 #include "types/Coord_t.h"
 #include "types/LayerIndex.h"
 
-namespace curaengine::types::geometry
-{
-class Polygon;
-class Shape;
-} // namespace curaengine::types::geometry
 
 namespace curaengine
 {
+
+namespace types::geometry
+{
+class Polygon;
+class Shape;
+} // namespace types::geometry
 
 class Settings;
 class SliceDataStorage;
@@ -286,7 +287,7 @@ void detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mes
  * \return A pair of basic overhang and full overhang.
  */
 std::pair<types::geometry::Shape, types::geometry::Shape>
-    computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const types::LayerIndex& layer_idx);
+    computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const types::LayerIndex& layer_idx, const types::geometry::Shape& outlines);
 
 /*!
  * \brief Adds tower pieces to the current support layer.

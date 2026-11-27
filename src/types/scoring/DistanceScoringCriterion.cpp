@@ -3,7 +3,10 @@
 
 #include "types/scoring/DistanceScoringCriterion.h"
 
-#include "types/geometry/PointsSet.h"
+#include <algorithm>
+
+#include "seam/seam_corners.h"
+#include "types/scoring/ElementPosition.h"
 
 
 namespace curaengine::types::scoring
@@ -13,33 +16,63 @@ using namespace types;
 using namespace types::geometry;
 using namespace utils;
 
-DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type, const double distance_divider)
-    : PositionBasedScoringCriterion(points)
-    , target_pos_(target_pos)
+template<typename T>
+DistanceScoringCriterion<T>::DistanceScoringCriterion(const Point2LL& target_position, const DistanceType distance_type, const double distance_divider)
+    : DistanceScoringCriterion(std::vector<Point2LL>{ target_position }, distance_type, distance_divider)
+{
+}
+
+template<typename T>
+DistanceScoringCriterion<T>::DistanceScoringCriterion(const std::vector<Point2LL>& target_positions, const DistanceType distance_type, const double distance_divider)
+    : target_positions_(target_positions)
     , distance_type_(distance_type)
     , distance_divider_(distance_divider)
 {
 }
 
-double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position) const
+template<typename T>
+double DistanceScoringCriterion<T>::computeScore(const T& element) const
 {
-    double distance = 0.0;
-    switch (distance_type_)
+    const Point2LL& candidate_position = getElementPosition(element);
+    double score{ 0.0 };
+
+    for (const Point2LL& target_pos : target_positions_)
     {
-    case DistanceType::Euclidian:
-        // Use actual (non-squared) distance to ensure a proper scoring distribution
-        distance = types::geometry::vSizeMM(candidate_position - target_pos_);
-        break;
-    case DistanceType::XOnly:
-        distance = intToMm(std::abs(candidate_position.X - target_pos_.X));
-        break;
-    case DistanceType::YOnly:
-        distance = intToMm(std::abs(candidate_position.Y - target_pos_.Y));
-        break;
+        double distance = 0.0;
+        switch (distance_type_)
+        {
+        case DistanceType::Euclidian:
+            // Use actual (non-squared) distance to ensure a proper scoring distribution
+            distance = vSizeMM(candidate_position - target_pos);
+            break;
+        case DistanceType::XOnly:
+            distance = intToMm(std::abs(candidate_position.X - target_pos.X));
+            break;
+        case DistanceType::YOnly:
+            distance = intToMm(std::abs(candidate_position.Y - target_pos.Y));
+            break;
+        }
+
+        score = std::max(score, scoreFromDistance(distance));
     }
 
-    // Use reciprocal function to normalize distance score decreasingly
-    return 1.0 / (1.0 + (distance / distance_divider_));
+    return score;
 }
+
+template<typename T>
+double DistanceScoringCriterion<T>::computeScoreAtDistance(const coord_t distance) const
+{
+    return scoreFromDistance(intToMm(distance));
+}
+
+template<typename T>
+double DistanceScoringCriterion<T>::scoreFromDistance(const double distance_mm) const
+{
+    // Use reciprocal function to normalize distance score decreasingly
+    return 1.0 / (1.0 + (distance_mm / distance_divider_));
+}
+
+template class DistanceScoringCriterion<seam::SeamCandidate>;
+template class DistanceScoringCriterion<Point2LL>;
 
 } // namespace curaengine::types::scoring

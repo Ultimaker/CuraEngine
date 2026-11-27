@@ -10,13 +10,16 @@ namespace curaengine::types::scoring
 
 /*!
  * Criterion that will give a random score whatever the element is.
+ * The code is in the cpp file, so this class can only be used with the types of elements that are instantiated at the end of it.
+ * \tparam T The type of the elements that are scored
  */
-class RandomScoringCriterion : public ScoringCriterion
+template<typename T>
+class RandomScoringCriterion : public ScoringCriterion<T>
 {
 public:
-    explicit RandomScoringCriterion();
+    explicit RandomScoringCriterion() = default;
 
-    virtual double computeScore(const size_t candidate_index) const override;
+    double computeScore(const T& element) const override;
 };
 
 } // namespace curaengine::types::scoring

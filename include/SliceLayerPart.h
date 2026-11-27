@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "SkinPart.h"
+#include "types/AngleDegrees.h"
 #include "types/geometry/AABB.h"
 #include "types/geometry/ExtrusionLine.h"
 #include "types/geometry/Shape.h"
@@ -29,6 +30,8 @@ public:
                                           //!< a cross-section of the 3D model.
     types::geometry::Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
                                           //!< Too small parts will be omitted compared to the outline.
+    types::geometry::Shape outlines_below; //!< The areas that are supported by something below and that are close enough to the part outlines.
+    types::geometry::Shape supported_extrusion_areas_below; //!< The areas where we can extrude a line that will be supported by the model (not by support) below.
     types::geometry::Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     types::geometry::Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
@@ -122,6 +125,8 @@ public:
      * \return true if there is at least one ExtrusionLine at the specified wall index, false otherwise
      */
     bool hasWallAtInsetIndex(size_t inset_idx) const;
+
+    types::geometry::Shape getSupportedRegion(const types::coord_t layer_height, const types::AngleDegrees& overhang_angle) const;
 };
 
 } // namespace curaengine

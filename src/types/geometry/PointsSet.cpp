@@ -9,6 +9,11 @@
 namespace curaengine::types::geometry
 {
 
+PointsSet::PointsSet(const size_type size)
+    : points_(size)
+{
+}
+
 PointsSet::PointsSet(const std::initializer_list<Point2LL>& initializer)
     : points_(initializer)
 {

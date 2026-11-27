@@ -22,6 +22,7 @@ namespace curaengine::types::geometry
 {
 class OpenLinesSet;
 class MixedLinesSet;
+class PointsSet;
 class Shape;
 class Polyline;
 class Point3LL;
@@ -72,6 +73,8 @@ public:
 
     static void send(const std::vector<types::geometry::Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
 
+    static void send(const types::geometry::PointsSet& points, const std::string& name = "", const std::string& step_name = "");
+
     static void send(const types::geometry::OpenLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const types::geometry::MixedLinesSet& lines_set, const std::string& name = "", const std::string& step_name = "");
@@ -79,6 +82,8 @@ public:
     static void send(const std::vector<types::geometry::MixedLinesSet>& lines_sets, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const std::vector<geometry::VariableWidthLines>& lines, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const geometry::ExtrusionLine& line, const std::string& name = "", const std::string& step_name = "");
 
 private:
     /*! Convenience class that stores the message and handles its actual sending and destruction when appropriate */

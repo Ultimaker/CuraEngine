@@ -173,6 +173,8 @@ set(engine_SRCS # Except main.cpp.
         src/progress/Progress.cpp
         src/progress/ProgressStageEstimator.cpp
 
+        src/seam/seam.cpp
+
         src/types/AdaptiveLayer.cpp
         src/types/AdaptiveLayerHeights.cpp
         src/types/MeshPathConfigs.cpp
@@ -219,10 +221,11 @@ set(engine_SRCS # Except main.cpp.
         src/types/scoring/BestElementFinder.cpp
         src/types/scoring/CornerScoringCriterion.cpp
         src/types/scoring/DistanceScoringCriterion.cpp
-        src/types/scoring/ExclusionAreaScoringCriterion.cpp
-        src/types/scoring/PositionBasedScoringCriterion.cpp
+        src/types/scoring/ExclusionAreaFilteringPass.cpp
         src/types/scoring/RandomScoringCriterion.cpp
-        src/types/scoring/TextureScoringCriterion.cpp
+        src/types/scoring/TextureFilteringPass.cpp
+        src/types/scoring/VerticalAlignmentScoringCriterion.cpp
+        src/types/scoring/WeighedScoringCriteriaPass.cpp
 
         src/types/geometry/ClosedLinesSet.cpp
         src/types/geometry/OpenLinesSet.cpp

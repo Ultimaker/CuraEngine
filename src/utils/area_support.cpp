@@ -123,7 +123,6 @@ bool handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_s
     return true;
 }
 
-
 void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
     if (total_layer_count == 0)
@@ -975,11 +974,9 @@ void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& m
     }
 
     // Fill the overhang areas with emptiness first, even if it's a support mesh, so that we can request the areas.
+    mesh.overhang_areas.resize(storage.print_layer_count);
     mesh.full_overhang_areas.resize(storage.print_layer_count);
-    for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
-    {
-        mesh.overhang_areas.emplace_back();
-    }
+    // mesh.seam_overhang_areas.resize(storage.print_layer_count);
 
     // Don't generate overhang areas for support meshes. They are dropped down automatically if desired.
     const bool is_support_modifier = mesh.settings.get<bool>("support_mesh");
@@ -1011,11 +1008,8 @@ void generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& m
         storage.print_layer_count,
         [&](const size_t layer_idx)
         {
-            std::pair<Shape, Shape> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
-            mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; // Store the results.
-            mesh.full_overhang_areas[layer_idx] = basic_and_full_overhang.second;
-            scripta::log("support_basic_overhang_area", basic_and_full_overhang.first, SectionType::Support, layer_idx);
-            scripta::log("support_full_overhang_area", basic_and_full_overhang.second, SectionType::Support, layer_idx);
+            const Shape outlines = mesh.layers[layer_idx].getOutlines();
+            std::tie(mesh.overhang_areas[layer_idx], mesh.full_overhang_areas[layer_idx]) = computeBasicAndFullOverhang(storage, mesh, layer_idx, outlines);
         });
 }
 
@@ -1662,9 +1656,8 @@ void moveUpFromModel(
  *         ^^^^^^^^^      overhang extensions
  *         ^^^^^^^^^^^^^^ overhang
  */
-std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx)
+std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx, const Shape& outlines)
 {
-    const Shape outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
 
@@ -1712,7 +1705,6 @@ std::pair<Shape, Shape> computeBasicAndFullOverhang(const SliceDataStorage& stor
 
     return std::make_pair(basic_overhang, full_overhang);
 }
-
 
 void detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {

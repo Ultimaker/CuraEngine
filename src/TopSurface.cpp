@@ -172,7 +172,6 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     if (! ironing_paths.empty())
     {
         constexpr coord_t wipe_dist = 0u;
-        const ZSeamConfig z_seam_config(EZSeamType::Shortest, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::ZSeamCornerPrefInner, false);
         InsetOrderOptimizer wall_orderer(
             storage,
             layer,
@@ -190,9 +189,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             wipe_dist,
             extruder_nr,
             extruder_nr,
-            z_seam_config,
-            ironing_paths,
-            storage.getModelBoundingBox().flatten().getMiddle());
+            ironing_paths);
         wall_orderer.addToLayer();
         added = true;
     }

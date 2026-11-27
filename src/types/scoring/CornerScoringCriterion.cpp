@@ -3,121 +3,49 @@
 
 #include "types/scoring/CornerScoringCriterion.h"
 
-#include "types/geometry/PointsSet.h"
-#include "utils/linear_alg_2d.h"
-#include "utils/math.h"
+#include <algorithm>
+#include <cmath>
 
 
 namespace curaengine::types::scoring
 {
 
 using namespace types;
-using namespace types::geometry;
-using namespace utils;
 
-CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
-    : PositionBasedScoringCriterion(points)
-    , corner_preference_(corner_preference)
-    , segments_sizes_(points.size())
+CornerScoringCriterion::CornerScoringCriterion(const EZSeamCornerPrefType corner_preference)
 {
-    // Pre-calculate the segments lengths because we are going to need them multiple times
-    for (size_t i = 0; i < points.size(); ++i)
-    {
-        const Point2LL& here = getPoints().at(i);
-        const Point2LL& next = getPoints().at((i + 1) % getPoints().size());
-        const coord_t segment_size = types::geometry::vSize(next - here);
-        segments_sizes_[i] = segment_size;
-        total_length_ += segment_size;
-    }
-}
-
-double CornerScoringCriterion::computeScore(const size_t candidate_index) const
-{
-    double corner_angle = cornerAngle(candidate_index);
-    // angles < 0 are concave (left turning)
-    // angles > 0 are convex (right turning)
-
-    double score = 0.0;
-
-    switch (corner_preference_)
+    switch (corner_preference)
     {
     case EZSeamCornerPrefType::ZSeamCornerPrefInner:
         // Give advantage to concave corners. More advantage for sharper corners.
-        score = utils::inverse_lerp(1.0, -1.0, corner_angle);
+        concave_angle_weight_ = 1.0;
+        convex_angle_weight_ = 0.0;
         break;
     case EZSeamCornerPrefType::ZSeamCornerPrefOuter:
         // Give advantage to convex corners. More advantage for sharper corners.
-        score = utils::inverse_lerp(-1.0, 1.0, corner_angle);
+        concave_angle_weight_ = 0.0;
+        convex_angle_weight_ = 1.0;
         break;
     case EZSeamCornerPrefType::ZSeamCornerPrefAny:
         // Still give sharper corners more advantage.
-        score = std::abs(corner_angle);
+        concave_angle_weight_ = 1.0;
+        convex_angle_weight_ = 1.0;
         break;
     case EZSeamCornerPrefType::ZSeamCornerPrefWeighted:
-        // Give sharper corners some advantage, but sharper concave corners even more.
-        if (corner_angle < 0)
-        {
-            score = -corner_angle;
-        }
-        else
-        {
-            score = corner_angle / 2.0;
-        }
+        // Give sharper corners some advantage, but concave sharper corners even more.
+        concave_angle_weight_ = 1.0;
+        convex_angle_weight_ = 0.5;
         break;
     case EZSeamCornerPrefType::Plugin:
         break;
     }
-
-    return score;
 }
 
-double CornerScoringCriterion::cornerAngle(size_t vertex_index, const coord_t angle_query_distance) const
+double CornerScoringCriterion::computeScore(const seam::SeamCandidate& candidate) const
 {
-    const coord_t bounded_distance = std::min(angle_query_distance, total_length_ / 2);
-    const Point2LL& here = getPoints().at(vertex_index);
-    const Point2LL next = findNeighbourPoint(vertex_index, bounded_distance);
-    const Point2LL previous = findNeighbourPoint(vertex_index, -bounded_distance);
-
-    double angle = linear_alg_2d::getAngleLeft(previous, here, next) - std::numbers::pi;
-
-    return angle / std::numbers::pi;
-}
-
-Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t distance) const
-{
-    const int direction = distance > 0 ? 1 : -1;
-    const int size_delta = distance > 0 ? -1 : 0;
-    distance = std::abs(distance);
-
-    // Travel on the path until we reach the distance
-    int actual_delta = 0;
-    coord_t travelled_distance = 0;
-    coord_t segment_size = 0;
-    while (travelled_distance < distance)
-    {
-        actual_delta += direction;
-        segment_size = segments_sizes_[(vertex_index + actual_delta + size_delta + getPoints().size()) % getPoints().size()];
-        travelled_distance += segment_size;
-    }
-
-    const Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + getPoints().size()) % getPoints().size());
-
-    if (travelled_distance > distance) [[likely]]
-    {
-        // We have overtaken the required distance, go backward on the last segment
-        int prev = (vertex_index + actual_delta - direction + getPoints().size()) % getPoints().size();
-        const Point2LL& prev_pos = getPoints().at(prev);
-
-        const Point2LL vector = next_pos - prev_pos;
-        const Point2LL unit_vector = (vector * 1000) / segment_size;
-        const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
-        return prev_pos + vector_delta / 1000;
-    }
-    else
-    {
-        // Luckily, the required distance stops exactly on an existing point
-        return next_pos;
-    }
+    // Negative scores are convex (right turning), positive ones are concave (left turning)
+    const bool convex = candidate.score < 0.0;
+    return std::min(1.0, (convex ? convex_angle_weight_ : concave_angle_weight_) * std::abs(candidate.score));
 }
 
 } // namespace curaengine::types::scoring
