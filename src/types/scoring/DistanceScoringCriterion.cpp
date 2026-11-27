@@ -5,7 +5,8 @@
 
 #include <algorithm>
 
-#include "types/geometry/PointsSet.h"
+#include "seam/seam_corners.h"
+#include "types/scoring/ElementPosition.h"
 
 
 namespace curaengine::types::scoring
@@ -15,26 +16,24 @@ using namespace types;
 using namespace types::geometry;
 using namespace utils;
 
-DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_position, const DistanceType distance_type, const double distance_divider)
-    : DistanceScoringCriterion(points, std::vector<Point2LL>{ target_position }, distance_type, distance_divider)
+template<typename T>
+DistanceScoringCriterion<T>::DistanceScoringCriterion(const Point2LL& target_position, const DistanceType distance_type, const double distance_divider)
+    : DistanceScoringCriterion(std::vector<Point2LL>{ target_position }, distance_type, distance_divider)
 {
 }
 
-DistanceScoringCriterion::DistanceScoringCriterion(
-    const PointsSet& points,
-    const std::vector<Point2LL>& target_positions,
-    const DistanceType distance_type,
-    const double distance_divider)
-    : PositionBasedScoringCriterion(points)
-    , target_positions_(target_positions)
+template<typename T>
+DistanceScoringCriterion<T>::DistanceScoringCriterion(const std::vector<Point2LL>& target_positions, const DistanceType distance_type, const double distance_divider)
+    : target_positions_(target_positions)
     , distance_type_(distance_type)
     , distance_divider_(distance_divider)
 {
 }
 
-
-double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position) const
+template<typename T>
+double DistanceScoringCriterion<T>::computeScore(const T& element) const
 {
+    const Point2LL& candidate_position = getElementPosition(element);
     double score{ 0.0 };
 
     for (const Point2LL& target_pos : target_positions_)
@@ -60,5 +59,8 @@ double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position
 
     return score;
 }
+
+template class DistanceScoringCriterion<seam::SeamCandidate>;
+template class DistanceScoringCriterion<Point2LL>;
 
 } // namespace curaengine::types::scoring

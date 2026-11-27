@@ -3,21 +3,18 @@
 
 #include "types/scoring/RandomScoringCriterion.h"
 
+#include "seam/seam_corners.h"
 #include "utils/math.h"
 
 namespace curaengine::types::scoring
 {
 
-using namespace types;
-using namespace utils;
-
-RandomScoringCriterion::RandomScoringCriterion()
-{
-}
-
-double RandomScoringCriterion::computeScore(const size_t /*candidate_index*/) const
+template<typename T>
+double RandomScoringCriterion<T>::computeScore(const T& /*element*/) const
 {
     return utils::randf<double>();
 }
+
+template class RandomScoringCriterion<seam::SeamCandidate>;
 
 } // namespace curaengine::types::scoring

@@ -12,8 +12,7 @@ namespace curaengine::types::scoring
 
 using namespace types;
 
-CornerScoringCriterion::CornerScoringCriterion(const std::vector<seam::SeamCandidate>& corners, const EZSeamCornerPrefType corner_preference)
-    : corners_(corners)
+CornerScoringCriterion::CornerScoringCriterion(const EZSeamCornerPrefType corner_preference)
 {
     switch (corner_preference)
     {
@@ -42,13 +41,11 @@ CornerScoringCriterion::CornerScoringCriterion(const std::vector<seam::SeamCandi
     }
 }
 
-double CornerScoringCriterion::computeScore(const size_t candidate_index) const
+double CornerScoringCriterion::computeScore(const seam::SeamCandidate& candidate) const
 {
-    const double corner_score = corners_.at(candidate_index).score;
-
     // Negative scores are convex (right turning), positive ones are concave (left turning)
-    const bool convex = corner_score < 0.0;
-    return std::min(1.0, (convex ? convex_angle_weight_ : concave_angle_weight_) * std::abs(corner_score));
+    const bool convex = candidate.score < 0.0;
+    return std::min(1.0, (convex ? convex_angle_weight_ : concave_angle_weight_) * std::abs(candidate.score));
 }
 
 } // namespace curaengine::types::scoring

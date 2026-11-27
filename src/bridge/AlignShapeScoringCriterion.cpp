@@ -16,8 +16,8 @@ using namespace types::geometry;
 using namespace types;
 using namespace utils;
 
-AlignShapeScoringCriterion::AlignShapeScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)
-    : BridgeAngleScoringCriterion(std::move(candidates), skin_outline, supported_regions)
+AlignShapeScoringCriterion::AlignShapeScoringCriterion(const Shape& skin_outline, const Shape& supported_regions)
+    : BridgeAngleScoringCriterion(skin_outline, supported_regions)
 {
 }
 

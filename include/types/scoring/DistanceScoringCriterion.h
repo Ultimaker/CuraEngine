@@ -5,22 +5,20 @@
 
 #include <vector>
 
-#include "types/scoring/PositionBasedScoringCriterion.h"
-
-namespace curaengine::types::geometry
-{
-class PointsSet;
-}
+#include "types/geometry/Point2LL.h"
+#include "types/scoring/ScoringCriterion.h"
 
 namespace curaengine::types::scoring
 {
 
-
 /*!
- * Criterion that will give a score according to the distance from the point to a target point. Closer points will get
+ * Criterion that will give a score according to the distance from the position of the element to a target point. Closer elements will get
  * a higher score.
+ * The code is in the cpp file, so this class can only be used with the types of elements that are instantiated at the end of it.
+ * \tparam T The type of the elements that are scored, which must have a position (see getElementPosition())
  */
-class DistanceScoringCriterion : public PositionBasedScoringCriterion
+template<typename T>
+class DistanceScoringCriterion : public ScoringCriterion<T>
 {
 public:
     enum class DistanceType
@@ -45,18 +43,16 @@ private:
 
 public:
     explicit DistanceScoringCriterion(
-        const types::geometry::PointsSet& points,
         const types::geometry::Point2LL& target_position,
         const DistanceType distance_type = default_distance_type,
         const double distance_divider = default_distance_divider);
 
     explicit DistanceScoringCriterion(
-        const types::geometry::PointsSet& points,
         const std::vector<types::geometry::Point2LL>& target_positions,
         const DistanceType distance_type = default_distance_type,
         const double distance_divider = default_distance_divider);
 
-    virtual double computeScore(const types::geometry::Point2LL& candidate_position) const override;
+    double computeScore(const T& element) const override;
 };
 
 } // namespace curaengine::types::scoring

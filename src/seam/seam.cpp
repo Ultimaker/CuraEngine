@@ -9,6 +9,7 @@
 #include <memory>
 #include <numbers>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -45,9 +46,10 @@
 #include "types/scoring/BestElementFinder.h"
 #include "types/scoring/CornerScoringCriterion.h"
 #include "types/scoring/DistanceScoringCriterion.h"
-#include "types/scoring/ExclusionAreaRankingCriterion.h"
+#include "types/scoring/ElementPosition.h"
+#include "types/scoring/ExclusionAreaFilteringPass.h"
 #include "types/scoring/RandomScoringCriterion.h"
-#include "types/scoring/TextureRankingCriterion.h"
+#include "types/scoring/TextureFilteringPass.h"
 #include "types/scoring/VerticalAlignmentScoringCriterion.h"
 #include "types/scoring/WeighedScoringCriteriaPass.h"
 #include "utils/linear_alg_2d.h"
@@ -672,216 +674,38 @@ static std::optional<SeamCandidate> makeInterJunctionsCandidate(ExtrusionLine& e
     return SeamCandidate(extrusion_line, best_candidate->start_index, split_position);
 }
 
-static void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
-{
-    for (const Point2LL& last_layer_seam : last_layer_seams)
-    {
-        insertBestNewJunction(
-            extrusion_line,
-            [&last_layer_seam](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
-            {
-                const Point2LL closest_on_segment = linear_alg_2d::getClosestOnLineSegment(last_layer_seam, segment_start, segment_end);
-                return AddSplitJunctionCandidate{ .reference_position = last_layer_seam, .split_position = closest_on_segment };
-            });
-    }
-}
-
-static bool addFixedPositionCandidate(
-    ExtrusionLine& extrusion_line,
-    std::optional<size_t>& force_start_index,
-    const EZSeamType z_seam_type,
-    const Point2LL& z_seam_position,
-    const Point2LL& models_center)
-{
-    if (z_seam_type != EZSeamType::UserSpecified)
-    {
-        return false;
-    }
-
-    // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
-    // since you want the seam-line to be continuous in 3D space.
-    // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
-    // and project the point along the ray from the center to the request_point.
-    const Point2LL ray_origin = models_center;
-    const Point2LL request_point = ray_origin + (z_seam_position - ray_origin) * 10;
-
-    const std::optional<size_t> inserted_index = insertBestNewJunction(
-        extrusion_line,
-        [&ray_origin, &request_point](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
-        {
-            float t, u;
-            if (! linear_alg_2d::segmentSegmentIntersection(ray_origin, request_point, segment_start, segment_end, t, u))
-            {
-                return std::nullopt;
-            }
-
-            const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-            return AddSplitJunctionCandidate{ .reference_position = request_point, .split_position = intersection };
-        });
-
-    if (! inserted_index.has_value())
-    {
-        return false;
-    }
-
-    force_start_index = inserted_index;
-    return true;
-}
-
-static PointsSet makePositionCandidates(
-    ExtrusionLine& extrusion_line,
-    std::optional<size_t>& force_start_index,
-    const EZSeamType z_seam_type,
-    const Point2LL& z_seam_position,
-    const bool z_seam_on_vertex,
-    const Point2LL& models_center,
-    const std::vector<Point2LL>& last_layer_seams)
-{
-    PointsSet points;
-
-    if (! z_seam_on_vertex)
-    {
-        addCloseToSeamPositionCandidate(extrusion_line, last_layer_seams);
-        addFixedPositionCandidate(extrusion_line, force_start_index, z_seam_type, z_seam_position, models_center);
-    }
-
-    for (const ExtrusionJunction& junction : extrusion_line)
-    {
-        points.push_back(junction.p_);
-    }
-
-    return points;
-}
-
-static void addExclusionAreaPass(BestElementFinder& best_candidate_finder, const PointsSet& points, const Shape& exclusion_area)
-{
-    if (! exclusion_area.empty())
-    {
-        best_candidate_finder.appendRankingCriteriaPass(std::make_shared<ExclusionAreaRankingCriterion>(points, exclusion_area));
-    }
-}
-
 /*!
  * Adds the fallback passes, which pick the back-most candidate, then the right-most one if there are still multiple candidates that are aligned on Y (e.g. cube). They are
  * used to differentiate candidates that have very similar scores (e.g. corner on a cylinder), and also to choose a position when nothing else tells which one is the best
+ * @param elements The elements that are going to be evaluated, only used to find the extents of their positions
  */
-static void appendFallbackPasses(BestElementFinder& best_candidate_finder, const PointsSet& points)
+static void appendFallbackPasses(BestElementFinder<SeamCandidate>& best_candidate_finder, const std::span<const SeamCandidate> candidates)
 {
-    const AABB path_bounding_box(points);
+    Point2LL max_position(std::numeric_limits<coord_t>::lowest(), std::numeric_limits<coord_t>::lowest());
+    for (const SeamCandidate& candidate : candidates)
+    {
+        const Point2LL& position = candidate.position;
+        max_position.X = std::max(max_position.X, position.X);
+        max_position.Y = std::max(max_position.Y, position.Y);
+    }
 
     { // First fallback strategy is to take points on the back-most position
-        const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+        const auto fallback_criterion = std::make_shared<DistanceScoringCriterion<SeamCandidate>>(max_position, DistanceScoringCriterion<SeamCandidate>::DistanceType::YOnly);
         constexpr double outsider_delta_threshold = 0.01;
         best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
     }
 
     { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-        const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+        const auto fallback_criterion = std::make_shared<DistanceScoringCriterion<SeamCandidate>>(max_position, DistanceScoringCriterion<SeamCandidate>::DistanceType::XOnly);
         best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
     }
 }
 
-static BestElementFinder makeBestCandidateFinderOuterWall(
-    BestElementFinder& best_candidate_finder,
-    std::shared_ptr<TextureDataProvider> texture_data_provider,
-    const std::vector<SeamCandidate>& corners,
-    const std::vector<Point2LL>& layer_below_seams,
-    const EZSeamType seam_type,
-    const EZSeamCornerPrefType corner_pref,
-    const double z_seam_alignment_weight,
-    const Point2LL& target_pos,
-    const std::optional<size_t>& force_start_index,
-    const coord_t wall_line_width_0,
-    const Shape& seam_overhang_exclusion_areas)
-{
-    PointsSet points(corners.size());
-    for (const auto [corner_index, corner] : corners | ranges::views::enumerate)
-    {
-        points[corner_index] = corner.position;
-    }
-
-    // ## Step 1: start with the passes that exclude the candidates that are in areas to be avoided, so that they are never selected if there are better ones
-    if (texture_data_provider)
-    {
-        best_candidate_finder.appendRankingCriteriaPass(std::make_shared<TextureRankingCriterion>(points, texture_data_provider, "seam"));
-    }
-
-    // Avoid overhanging areas
-    addExclusionAreaPass(best_candidate_finder, points, seam_overhang_exclusion_areas);
-
-    // ## Step 2: define the main criterion to be applied, depending on the selected strategy. There should be exactly one calculation using this criterion.
-    {
-        auto main_criteria_pass = std::make_shared<WeighedScoringCriteriaPass>();
-        main_criteria_pass->outsider_delta_threshold = z_seam_alignment_weight;
-
-        WeighedScoringCriteriaPass::WeighedCriterion main_criterion;
-
-        if (force_start_index.has_value())
-        {
-            // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
-            constexpr double distance_divider = 1.0;
-            constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(force_start_index.value()), distance_type, distance_divider);
-        }
-        else if (seam_type == EZSeamType::UserSpecified)
-        {
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
-        }
-        else if (seam_type == EZSeamType::SharpestCorner && corner_pref != EZSeamCornerPrefType::Plugin)
-        {
-            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(corners, corner_pref);
-            main_criteria_pass->min_score = 0.15;
-        }
-        else if (seam_type == EZSeamType::Random)
-        {
-            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
-        }
-
-        if (main_criterion.criterion)
-        {
-            main_criteria_pass->criteria.push_back(main_criterion);
-        }
-        else
-        {
-            spdlog::warn("Missing main criterion calculator");
-        }
-
-        best_candidate_finder.appendCriteriaPass(main_criteria_pass);
-    }
-
-    best_candidate_finder.appendSingleCriterionPass(std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4));
-
-    // ## Step 3: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-    if (seam_type == EZSeamType::SharpestCorner)
-    {
-        appendFallbackPasses(best_candidate_finder, points);
-    }
-
-    return best_candidate_finder;
-}
-
-static void makeBestCandidateFinderInnerWall(BestElementFinder& best_candidate_finder, const PointsSet& points, const std::vector<Point2LL>& layer_seams)
+static void makeBestCandidateFinderInnerWall(BestElementFinder<Point2LL>& best_candidate_finder, const std::vector<Point2LL>& layer_seams)
 {
     // For inner walls, we only try to be close to an outer wall seam. If it is not the case, in the end the starting position will not be set and the 'shortest' strategy
     // will be applied, which is the best we can do in such cases anyway.
-    best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion>(points, layer_seams));
-}
-
-/*!
- * Checks that the given position is close enough to at least one of the seam positions of the outer walls
- * @param position The candidate position to be checked
- * @param layer_seams The seam positions of the outer walls
- * @param max_distance The maximum allowed distance to any of the seam positions
- */
-static bool isCloseToOuterWallSeam(const Point2LL& position, const std::vector<Point2LL>& layer_seams, const coord_t max_distance)
-{
-    const coord_t max_distance_squared = max_distance * max_distance;
-    return ranges::any_of(
-        layer_seams,
-        [&position, max_distance_squared](const Point2LL& seam)
-        {
-            return vSize2(position - seam) <= max_distance_squared;
-        });
+    best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion<Point2LL>>(layer_seams));
 }
 
 std::vector<SeamCandidate> makeAllSeamCandidates(ExtrusionLine& extrusion_line)
@@ -945,48 +769,6 @@ std::vector<SeamCandidate>
     return candidates;
 }
 
-static void filterCandidatesFromTexture(std::vector<SeamCandidate>& candidates, const TextureDataProvider::Ptr& texture_data_provider)
-{
-    std::vector<uint8_t> candidates_rank(candidates.size());
-    int8_t highest_rank = -1;
-
-    for (const auto& [candidate_index, candidate] : candidates | ranges::views::enumerate)
-    {
-        std::optional<TextureArea> preference = texture_data_provider->getAreaPreference(candidate.position, "seam");
-        int8_t candidate_rank = 0;
-        if (preference.has_value())
-        {
-            switch (*preference)
-            {
-            case TextureArea::Avoid:
-                candidate_rank = -1;
-                break;
-            case TextureArea::Normal:
-                candidate_rank = 0;
-                break;
-            case TextureArea::Preferred:
-                candidate_rank = 1;
-                break;
-            }
-        }
-
-        candidates_rank[candidate_index] = candidate_rank;
-        highest_rank = std::max(highest_rank, candidate_rank);
-    }
-
-    // Keep only the candidates of the highest rank, in the same order
-    size_t kept_count = 0;
-    for (size_t i = 0; i < candidates.size(); ++i)
-    {
-        if (candidates_rank[i] == highest_rank)
-        {
-            candidates[kept_count++] = candidates[i];
-        }
-    }
-
-    candidates.erase(candidates.begin() + static_cast<std::ptrdiff_t>(kept_count), candidates.end());
-}
-
 /*!
  * Makes the areas of a part where the seam should not be placed because they are overhanging. It is empty if the machine borders are not known or if the part has no
  * supported region
@@ -1007,20 +789,44 @@ static Shape makeSeamOverhangExclusionAreas(const SliceLayerPart& part, const Sh
     return machine_borders.difference(seam_supported_region);
 }
 
-static void filterCandidatesFromOverhang(std::vector<SeamCandidate>& candidates, const Shape& overhanging_areas)
-{
-    const auto pivot = ranges::partition(
-        candidates,
-        [&overhanging_areas](const SeamCandidate& candidate)
-        {
-            return ! overhanging_areas.inside(candidate.position, true);
-        });
+/*! The finders that filter the candidates of the parts of a mesh, by layer and then by part, in the same order as the layers and parts of the mesh */
+using PartsCandidatesFinders = std::vector<std::vector<BestElementFinder<SeamCandidate>>>;
 
-    if (pivot != candidates.begin())
+/*!
+ * Makes, for each part of the mesh, the finder that keeps only the acceptable seam candidates, which are the ones that are not in an area that is avoided by the texture, nor
+ * in an overhanging area, unless all the candidates are. They are calculated only once, so that the data they depend on is not calculated again for each extrusion line
+ * @param mesh The mesh to make the finders for. The finders do not depend on it once they are made
+ * @param machine_borders The borders of the machine, used to find the overhanging areas
+ */
+static PartsCandidatesFinders
+    makePartsCandidatesFinders(const SliceMeshStorage::Ptr& mesh, const Shape& machine_borders, const coord_t layer_height, const AngleDegrees& seam_overhang_angle)
+{
+    PartsCandidatesFinders finders;
+    finders.reserve(mesh->layers.size());
+
+    for (const SliceLayer& layer : mesh->layers)
     {
-        // If there is at least one non-overhanging candidate, remove the others
-        candidates.erase(pivot, candidates.end());
+        std::vector<BestElementFinder<SeamCandidate>>& layer_finders = finders.emplace_back();
+        layer_finders.reserve(layer.parts.size());
+
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            BestElementFinder<SeamCandidate>& part_finder = layer_finders.emplace_back();
+
+            if (layer.texture_data_provider_)
+            {
+                part_finder.appendCriteriaPass(std::make_shared<TextureFilteringPass<SeamCandidate>>(layer.texture_data_provider_, "seam"));
+            }
+
+            Shape part_overhang_exclusion_area = makeSeamOverhangExclusionAreas(part, machine_borders, layer_height, seam_overhang_angle);
+            if (! part_overhang_exclusion_area.empty())
+            {
+                part_finder.appendCriteriaPass(std::make_shared<ExclusionAreaFilteringPass<SeamCandidate>>(std::move(part_overhang_exclusion_area)));
+            }
+        }
     }
+
+    return finders;
 }
 
 static std::vector<std::vector<SeamCandidate>> makeSeamCandidatesAcrossLayers(
@@ -1028,12 +834,10 @@ static std::vector<std::vector<SeamCandidate>> makeSeamCandidatesAcrossLayers(
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
     const bool z_seam_on_vertex,
-    const Shape& machine_borders,
     const Point2LL& models_center,
     const Point2LL& z_seam_position,
     const coord_t wall_line_width_0,
-    const AngleDegrees& seam_overhang_angle,
-    const coord_t layer_height)
+    const PartsCandidatesFinders& parts_candidates_finders)
 {
     std::vector<std::vector<SeamCandidate>> seam_corners(mesh->layers.size()); // Good-enough seam candidates, per layer
 
@@ -1041,8 +845,10 @@ static std::vector<std::vector<SeamCandidate>> makeSeamCandidatesAcrossLayers(
     {
         std::vector<SeamCandidate>& layer_seam_corners = seam_corners[layer_index];
 
-        for (SliceLayerPart& part : layer.parts)
+        for (auto [part_index, part] : layer.parts | ranges::views::enumerate)
         {
+            const BestElementFinder<SeamCandidate>& part_candidates_finder = parts_candidates_finders[layer_index][part_index];
+
             for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
             {
                 for (ExtrusionLine& extrusion_line : extrusion_lines)
@@ -1077,15 +883,17 @@ static std::vector<std::vector<SeamCandidate>> makeSeamCandidatesAcrossLayers(
                         continue;
                     }
 
-                    if (layer.texture_data_provider_)
+                    if (! part_candidates_finder.isEmpty())
                     {
-                        filterCandidatesFromTexture(line_seam_candidates, layer.texture_data_provider_);
-                    }
-
-                    const Shape seam_overhang_exclusion_areas = makeSeamOverhangExclusionAreas(part, machine_borders, layer_height, seam_overhang_angle);
-                    if (! seam_overhang_exclusion_areas.empty())
-                    {
-                        filterCandidatesFromOverhang(line_seam_candidates, seam_overhang_exclusion_areas);
+                        // Keep only the acceptable candidates, in the same order
+                        const std::vector<Candidate<SeamCandidate>> accepted_candidates = part_candidates_finder.findBestElements(line_seam_candidates);
+                        std::vector<SeamCandidate> kept_candidates;
+                        kept_candidates.reserve(accepted_candidates.size());
+                        for (const Candidate<SeamCandidate>& accepted_candidate : accepted_candidates)
+                        {
+                            kept_candidates.push_back(std::move(line_seam_candidates[accepted_candidate.candidate_index]));
+                        }
+                        line_seam_candidates = std::move(kept_candidates);
                     }
 
                     { // If there is a preferred candidate, only keep it and drop the rest
@@ -1144,12 +952,6 @@ struct SeamCandidatesGraph
 {
     std::vector<std::vector<SeamCandidateNode>> nodes_per_layer;
     size_t nodes_count{ 0 };
-
-    SeamCandidatesGraph() = default;
-    SeamCandidatesGraph(const SeamCandidatesGraph&) = delete;
-    SeamCandidatesGraph& operator=(const SeamCandidatesGraph&) = delete;
-    SeamCandidatesGraph(SeamCandidatesGraph&&) = default;
-    SeamCandidatesGraph& operator=(SeamCandidatesGraph&&) = default;
 };
 
 /*!
@@ -1514,13 +1316,13 @@ static void propagateSeamsAcrossLayers(SliceMeshStorage::Ptr& mesh, const coord_
 /*!
  * Sets the seam of the outer walls of a layer that don't have any, on the junction that is the best according to the fallback criteria (back-most, then right-most), while
  * still avoiding the avoided areas of the texture and the overhanging areas if possible
+ * @param layer The layer to set the seams on
+ * @param layer_candidates_finders The finders of the parts of the layer, that filter the acceptable candidates
  */
-static void setFallbackSeamsOnLayer(SliceLayer& layer, const Shape& machine_borders, const coord_t layer_height, const AngleDegrees& seam_overhang_angle)
+static void setFallbackSeamsOnLayer(SliceLayer& layer, const std::vector<BestElementFinder<SeamCandidate>>& layer_candidates_finders)
 {
-    for (SliceLayerPart& part : layer.parts)
+    for (auto [part_index, part] : layer.parts | ranges::views::enumerate)
     {
-        std::optional<Shape> seam_overhang_exclusion_areas; // Only calculated when needed
-
         for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
         {
             for (ExtrusionLine& extrusion_line : extrusion_lines)
@@ -1536,28 +1338,20 @@ static void setFallbackSeamsOnLayer(SliceLayer& layer, const Shape& machine_bord
                     continue;
                 }
 
-                PointsSet points;
+                std::vector<SeamCandidate> candidates;
+                candidates.reserve(junctions_count);
                 for (size_t junction_index = 0; junction_index < junctions_count; ++junction_index)
                 {
-                    points.push_back(extrusion_line[junction_index].p_);
+                    candidates.emplace_back(extrusion_line, junction_index);
                 }
 
-                if (! seam_overhang_exclusion_areas.has_value())
-                {
-                    seam_overhang_exclusion_areas = makeSeamOverhangExclusionAreas(part, machine_borders, layer_height, seam_overhang_angle);
-                }
+                // Start from the filters of the part, and add the fallback criteria
+                BestElementFinder<SeamCandidate> best_candidate_finder = layer_candidates_finders[part_index];
+                appendFallbackPasses(best_candidate_finder, candidates);
 
-                BestElementFinder best_candidate_finder;
-                if (layer.texture_data_provider_)
+                if (const std::optional<Candidate<SeamCandidate>> best_candidate = best_candidate_finder.findBestElement(candidates))
                 {
-                    best_candidate_finder.appendRankingCriteriaPass(std::make_shared<TextureRankingCriterion>(points, layer.texture_data_provider_, "seam"));
-                }
-                addExclusionAreaPass(best_candidate_finder, points, seam_overhang_exclusion_areas.value());
-                appendFallbackPasses(best_candidate_finder, points);
-
-                if (const std::optional<size_t> best_index = best_candidate_finder.findBestElement(points.size()))
-                {
-                    extrusion_line.setStartJunction(best_index.value());
+                    extrusion_line.setStartJunction(best_candidate->candidate_index);
                     extrusion_line.has_start_position_set_ = true;
                 }
             }
@@ -1570,13 +1364,7 @@ static void setFallbackSeamsOnLayer(SliceLayer& layer, const Shape& machine_bord
  * Going from the bottom to the top, the seams of the layer below are projected as usual, and the walls that still have no seam get one from the fallback criteria. This seam is
  * then used as a starting point by the layers above to align with it.
  */
-static void fillRemainingSeams(
-    SliceMeshStorage::Ptr& mesh,
-    const coord_t max_distance,
-    const bool z_seam_on_vertex,
-    const Shape& machine_borders,
-    const coord_t layer_height,
-    const AngleDegrees& seam_overhang_angle)
+static void fillRemainingSeams(SliceMeshStorage::Ptr& mesh, const coord_t max_distance, const bool z_seam_on_vertex, const PartsCandidatesFinders& parts_candidates_finders)
 {
     std::vector<SliceLayer>& layers = mesh->layers;
 
@@ -1587,13 +1375,12 @@ static void fillRemainingSeams(
             projectSeamsOnLayer(layers[layer_index - 1], layers[layer_index], max_distance, z_seam_on_vertex);
         }
 
-        setFallbackSeamsOnLayer(layers[layer_index], machine_borders, layer_height, seam_overhang_angle);
+        setFallbackSeamsOnLayer(layers[layer_index], parts_candidates_finders[layer_index]);
     }
 }
 
 static void calculateWallsSeamPosition(
     SliceMeshStorage::Ptr& mesh,
-    const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
     const double z_seam_alignment_weight,
@@ -1603,33 +1390,14 @@ static void calculateWallsSeamPosition(
     const AngleDegrees& seam_overhang_angle,
     const coord_t layer_height,
     const Shape& machine_borders,
-    const Point2LL& models_center,
-    const coord_t max_inner_wall_seam_distance,
-    const bool outer_walls)
+    const Point2LL& models_center)
 {
-    std::vector<std::vector<SeamCandidate>> remaining_seam_candidates = makeSeamCandidatesAcrossLayers(
-        mesh,
-        seam_type,
-        corner_pref,
-        z_seam_on_vertex,
-        machine_borders,
-        models_center,
-        target_pos,
-        wall_line_width_0,
-        seam_overhang_angle,
-        layer_height);
-    const coord_t max_alignment_distance = 1600; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
+    // The filters of the candidates, which are common to the creation of the candidates and to the fallback positions
+    const PartsCandidatesFinders parts_candidates_finders = makePartsCandidatesFinders(mesh, machine_borders, layer_height, seam_overhang_angle);
 
-    // OBJ mesh_obj("/tmp/seam.obj", 0.1);
-    // mesh_obj.write(Application::getInstance().current_slice_->scene.mesh_groups.front().meshes.front());
-    // for (const auto& [layer_index, corner_per_layer] : remaining_seam_corners | ranges::views::enumerate)
-    // {
-    // const coord_t z = mesh->layers[layer_index].printZ;
-    // for (const auto& corner : corner_per_layer)
-    // {
-    // mesh_obj.writeSphere(Point3D(Point3LL(corner.position, z)), 0.1, SVG::Color::Red);
-    // }
-    // }
+    std::vector<std::vector<SeamCandidate>> remaining_seam_candidates
+        = makeSeamCandidatesAcrossLayers(mesh, seam_type, corner_pref, z_seam_on_vertex, models_center, target_pos, wall_line_width_0, parts_candidates_finders);
+    const coord_t max_alignment_distance = 1600; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
 
     // Each loop applies the best string to the extrusion lines. Since an extrusion line can have only one seam, the corners of the lines that have been done are removed, which
     // cuts or discards some of the remaining strings. Rebuilding the strings from the remaining corners is the simplest way to get the new valid ones. Each loop removes at
@@ -1666,160 +1434,8 @@ static void calculateWallsSeamPosition(
     propagateSeamsAcrossLayers(mesh, max_alignment_distance, z_seam_on_vertex);
 
     // Some lines may still have no seam, because there was no corner nor any other seam close enough
-    fillRemainingSeams(mesh, max_alignment_distance, z_seam_on_vertex, machine_borders, layer_height, seam_overhang_angle);
+    fillRemainingSeams(mesh, max_alignment_distance, z_seam_on_vertex, parts_candidates_finders);
 }
-
-#if 0
-static std::vector<Point2LL> calculateWallsSeamPosition(
-    SliceMeshStorage::Ptr& mesh,
-    const std::vector<Point2LL>& layer_seams,
-    const EZSeamType seam_type,
-    const EZSeamCornerPrefType corner_pref,
-    const double z_seam_alignment_weight,
-    const Point2LL& target_pos,
-    const coord_t wall_line_width_0,
-    const bool z_seam_on_vertex,
-    const AngleDegrees& seam_overhang_angle,
-    const coord_t layer_height,
-    const Shape& machine_borders,
-    const Point2LL& models_center,
-    const coord_t max_inner_wall_seam_distance,
-    const bool outer_walls)
-{
-    std::vector<Point2LL> new_layer_seams;
-
-    std::vector<std::vector<SeamCorner>> seam_corners = makeSeamCandidatesAcrossLayers(mesh);
-
-    for (auto [layer_index, layer] : mesh->layers | ranges::views::enumerate)
-    {
-        std::vector<SeamCorner>& layer_seam_corners = seam_corners[layer_index];
-
-        for (SliceLayerPart& part : layer.parts)
-        {
-            for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
-            {
-                for (ExtrusionLine& extrusion_line : extrusion_lines)
-                {
-                    if (extrusion_line.is_outer_wall() != outer_walls || ! extrusion_line.is_closed_) // Only inner walls may be non-closed, so for those we can't do much
-                    {
-                        continue;
-                    }
-
-                    std::optional<size_t> force_start_index;
-                    // const PointsSet points{ makePositionCandidates(
-                    //     extrusion_line,
-                    //     force_start_index,
-                    //     seam_type,
-                    //     target_pos,
-                    //     z_seam_on_vertex,
-                    //     models_center,
-                    //     extrusion_line.is_outer_wall() ? layer_seams : std::vector<Point2LL>{}) };
-                    PointsSet points;
-                    for (const ExtrusionJunction& junction : extrusion_line | ranges::views::drop_last(1))
-                    {
-                        points.push_back(junction.p_);
-                    }
-
-                    BestElementFinder best_candidate_finder;
-                    Shape seam_overhang_exclusion_areas; // Don't move to inner scope, it is used as a reference in the criterion and has to remain alive long enough
-                    if (outer_walls)
-                    {
-                        // if (! machine_borders.empty())
-                        // {
-                        //     seam_overhang_exclusion_areas = machine_borders.difference(part.getSupportedRegion(layer_height, seam_overhang_angle));
-                        // }
-                        //
-                        // makeBestCandidateFinderOuterWall(
-                        //     best_candidate_finder,
-                        //     layer.texture_data_provider_,
-                        //     points,
-                        //     layer_seams,
-                        //     seam_type,
-                        //     corner_pref,
-                        //     z_seam_alignment_weight,
-                        //     target_pos,
-                        //     force_start_index,
-                        //     wall_line_width_0,
-                        //     seam_overhang_exclusion_areas);
-
-                        // All lengths are in micrometers, all angles in radians
-                        const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } }; // 1°, below this a turn is considered as straight
-                        constexpr double max_radius = 2000.0; // Arcs flatter than a 2 mm radius are not corners
-                        const AngleRadians max_turn_jump{ AngleDegrees{ 40.0 } }; // Turns that differ by more than 40° between two vertices are separate corners
-                        constexpr double max_corner_length = 3500.0; // A 2 mm radius quarter turn is about 3.1 mm, anything longer is too flat
-                        constexpr double length_penalty_reference = 2000.0; // A corner spread over 2 mm gets half the score of a perfectly sharp one
-
-                        const std::vector<SeamCorner> corners = findSeamCorners(points, min_vertex_turn, max_radius, max_turn_jump, max_corner_length, length_penalty_reference);
-
-                        for (const SeamCorner& corner : corners)
-                        {
-                            if (std::abs(corner.score) > 0.25)
-                            {
-                                layer_seam_corners.push_back(corner);
-                            }
-                        }
-
-                        if (! corners.empty())
-                        {
-                            static int send_corners = 0;
-                            constexpr int send_island_index = 200;
-                            if (send_corners <= send_island_index)
-                            {
-                                CuraViz::send(extrusion_line, "extrusion");
-                            }
-                            for (const SeamCorner& corner : corners)
-                            {
-                                if (send_corners <= send_island_index && std::abs(corner.score) > 0.25)
-                                {
-                                    CuraViz::send(corner.position, fmt::format("corner_{}", corner.score));
-                                    spdlog::info(corner.score);
-                                }
-                            }
-
-                            send_corners++;
-
-                            // const SeamCorner& selected_corner = corners[1 % corners.size()];
-                            // // const SeamCorner& selected_corner = *iterator;
-                            // extrusion_line.has_start_position_set_ = true;
-                            // if (selected_corner.on_vertex)
-                            // {
-                            //     extrusion_line.setStartJunction(selected_corner.segment_index);
-                            // }
-                            // else
-                            // {
-                            //     extrusion_line.insertJunction(selected_corner.segment_index, selected_corner.position);
-                            //     extrusion_line.setStartJunction(selected_corner.segment_index + 1);
-                            // }
-                            continue;
-                        }
-
-                        // spdlog::warn("No single sharp corner found");
-                    }
-                    else
-                    {
-                        makeBestCandidateFinderInnerWall(best_candidate_finder, points, layer_seams);
-                    }
-
-                    // const std::optional<size_t> best_seam_candidate = best_candidate_finder.findBestElement(points.size());
-                    // if (best_seam_candidate.has_value() && (outer_walls || isCloseToOuterWallSeam(points[*best_seam_candidate], layer_seams, max_inner_wall_seam_distance)))
-                    // {
-                    //     if (outer_walls)
-                    //     {
-                    //         new_layer_seams.push_back(points[*best_seam_candidate]);
-                    //     }
-                    //
-                    //     // Re-order the toolpath so that it starts with the most appropriate seam position
-                    //     extrusion_line.has_start_position_set_ = true;
-                    //     extrusion_line.setStartJunction(*best_seam_candidate);
-                    // }
-                }
-            }
-        }
-    }
-
-    return new_layer_seams;
-}
-#endif
 
 void calculateWallsSeamPositions(SliceDataStorage& storage)
 {
@@ -1853,10 +1469,8 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
 
         // for (SliceLayer& layer : mesh->layers)
         {
-            constexpr bool outer_walls = true;
             calculateWallsSeamPosition(
                 mesh,
-                layer_seams,
                 seam_type,
                 corner_pref,
                 z_seam_alignment_weight,
@@ -1866,9 +1480,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 seam_overhang_angle,
                 layer_height,
                 machine_borders,
-                models_center,
-                max_inner_wall_seam_distance,
-                outer_walls);
+                models_center);
 
             // constexpr bool not_outer_walls = false;
             // calculateWallsSeamPosition(
@@ -1892,13 +1504,17 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
 
 size_t calculateShortestSeamPosition(const PointsSet& candidates, const Point2LL& target_pos, const Shape& seam_exclusion_areas)
 {
-    BestElementFinder best_candidate_finder;
+    BestElementFinder<Point2LL> best_candidate_finder;
 
-    addExclusionAreaPass(best_candidate_finder, candidates, seam_exclusion_areas);
+    if (! seam_exclusion_areas.empty())
+    {
+        best_candidate_finder.appendCriteriaPass(std::make_shared<ExclusionAreaFilteringPass<Point2LL>>(seam_exclusion_areas));
+    }
 
-    best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion>(candidates, target_pos));
+    best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion<Point2LL>>(target_pos));
 
-    return best_candidate_finder.findBestElement(candidates.size()).value_or(0);
+    const std::optional<Candidate<Point2LL>> best_candidate = best_candidate_finder.findBestElement(std::span<const Point2LL>(candidates.begin(), candidates.end()));
+    return best_candidate.has_value() ? best_candidate->candidate_index : 0;
 }
 
 } // namespace curaengine::seam

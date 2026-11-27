@@ -3,40 +3,53 @@
 
 #include "types/scoring/BestElementFinder.h"
 
+#include "seam/seam_corners.h"
+#include "types/AngleDegrees.h"
+#include "types/geometry/Point2LL.h"
 #include "types/scoring/CriteriaPass.h"
-#include "types/scoring/RankingCriteriaPass.h"
 #include "types/scoring/ScoringCriterion.h"
 #include "types/scoring/WeighedScoringCriteriaPass.h"
 
 namespace curaengine::types::scoring
 {
 
-void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const std::optional<double>& outsider_delta_threshold)
+template<typename T>
+void BestElementFinder<T>::appendCriteriaPass(const std::shared_ptr<CriteriaPass<T>>& pass)
 {
-    auto criteria_pass = std::make_shared<WeighedScoringCriteriaPass>();
+    passes_.push_back(pass);
+}
+
+template<typename T>
+bool BestElementFinder<T>::isEmpty() const
+{
+    return passes_.empty();
+}
+
+template<typename T>
+void BestElementFinder<T>::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion<T>> criterion, const std::optional<double>& outsider_delta_threshold)
+{
+    auto criteria_pass = std::make_shared<WeighedScoringCriteriaPass<T>>();
     criteria_pass->outsider_delta_threshold = outsider_delta_threshold;
     criteria_pass->appendCriterion(criterion);
     appendCriteriaPass(criteria_pass);
 }
 
-void BestElementFinder::appendRankingCriteriaPass(const std::shared_ptr<RankingCriterion>& criterion)
+template<typename T>
+std::optional<Candidate<T>> BestElementFinder<T>::findBestElement(const std::span<const T> elements) const
 {
-    appendCriteriaPass(std::make_shared<RankingCriteriaPass>(criterion));
+    const std::vector<Candidate<T>> candidates = findBestElements(elements);
+    return ! candidates.empty() ? std::make_optional(candidates.front()) : std::nullopt;
 }
 
-std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates_count)
-{
-    const std::vector<Candidate> candidates = findBestElements(candidates_count);
-    return ! candidates.empty() ? std::make_optional(candidates.front().candidate_index) : std::nullopt;
-}
-
-std::vector<Candidate> BestElementFinder::findBestElements(const size_t candidates_count)
+template<typename T>
+std::vector<Candidate<T>> BestElementFinder<T>::findBestElements(const std::span<const T> elements) const
 {
     // Start by initializing the candidates list in natural order
-    std::vector<Candidate> candidates(candidates_count);
-    for (size_t i = 0; i < candidates_count; ++i)
+    std::vector<Candidate<T>> candidates;
+    candidates.reserve(elements.size());
+    for (size_t i = 0; i < elements.size(); ++i)
     {
-        candidates[i].candidate_index = i;
+        candidates.push_back(Candidate<T>{ .element = &elements[i], .candidate_index = i });
     }
 
     // Now run the passes until no candidate is left or there are no more passes
@@ -52,5 +65,9 @@ std::vector<Candidate> BestElementFinder::findBestElements(const size_t candidat
 
     return candidates;
 }
+
+template class BestElementFinder<seam::SeamCandidate>;
+template class BestElementFinder<geometry::Point2LL>;
+template class BestElementFinder<AngleDegrees>;
 
 } // namespace curaengine::types::scoring

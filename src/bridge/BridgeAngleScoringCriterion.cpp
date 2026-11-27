@@ -12,16 +12,14 @@ namespace curaengine::bridge
 using namespace types::geometry;
 using namespace types;
 
-BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)
-    : candidates_(candidates)
-    , skin_outline_(skin_outline)
+BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const Shape& skin_outline, const Shape& supported_regions)
+    : skin_outline_(skin_outline)
     , supported_regions_(supported_regions)
 {
 }
 
-double BridgeAngleScoringCriterion::computeScore(const size_t candidate_index) const
+double BridgeAngleScoringCriterion::computeScore(const AngleDegrees& angle) const
 {
-    const AngleDegrees& angle = candidates_[candidate_index];
     const PointMatrix matrix(angle);
     const TransformedShape transformed_skin(skin_outline_, matrix);
     const TransformedShape transformed_supported_regions(supported_regions_, matrix);

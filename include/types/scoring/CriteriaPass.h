@@ -10,10 +10,13 @@ namespace curaengine::types::scoring
 {
 
 /*!
- * Contains the index of an element in the source list, and its calculated score
+ * Contains an element of the source list, its index in this list, and its calculated score
+ * \tparam T The type of the elements that are processed
  */
+template<typename T>
 struct Candidate
 {
+    const T* element; // Not owned, it points to the source list, which has to remain alive and unchanged
     size_t candidate_index;
     double score{ 0.0 };
 };
@@ -21,7 +24,9 @@ struct Candidate
 /*!
  * Base class for a selection pass, which takes a list of candidates and keeps only the best ones. Passes are chained by
  * the BestElementFinder, each one working on the candidates that were kept by the previous one.
+ * \tparam T The type of the elements that are processed
  */
+template<typename T>
 class CriteriaPass
 {
 public:
@@ -35,7 +40,7 @@ public:
      * selection) can use the previous order to differentiate candidates that they consider equal.
      * \param candidates The candidates to be processed, which are replaced by the ones that are kept
      */
-    virtual void apply(std::vector<Candidate>& candidates) const = 0;
+    virtual void apply(std::vector<Candidate<T>>& candidates) const = 0;
 };
 
 } // namespace curaengine::types::scoring

@@ -8,15 +8,17 @@
 #include <vector>
 
 #include "types/scoring/CriteriaPass.h"
+#include "types/scoring/ScoringCriterion.h"
 
 namespace curaengine::types::scoring
 {
-class ScoringCriterion;
 
 /*!
  * Pass that calculates a global score for each candidate, by processing multiple scoring criteria that each have a weight.
+ * \tparam T The type of the elements that are processed
  */
-class WeighedScoringCriteriaPass : public CriteriaPass
+template<typename T>
+class WeighedScoringCriteriaPass : public CriteriaPass<T>
 {
 public:
     /*!
@@ -25,7 +27,7 @@ public:
      */
     struct WeighedCriterion
     {
-        std::shared_ptr<ScoringCriterion> criterion;
+        std::shared_ptr<ScoringCriterion<T>> criterion;
 
         /*!
          * The weight to be given when taking this criterion into the global score. A score that contributes "normally"
@@ -54,9 +56,9 @@ public:
     /*!
      * Convenience method to add a criterion
      */
-    void appendCriterion(const std::shared_ptr<ScoringCriterion>& criterion, const double weight = 1.0);
+    void appendCriterion(const std::shared_ptr<ScoringCriterion<T>>& criterion, const double weight = 1.0);
 
-    void apply(std::vector<Candidate>& candidates) const override;
+    void apply(std::vector<Candidate<T>>& candidates) const override;
 };
 
 } // namespace curaengine::types::scoring

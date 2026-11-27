@@ -7,17 +7,21 @@
 #include <cassert>
 #include <limits>
 
-#include "types/scoring/ScoringCriterion.h"
+#include "seam/seam_corners.h"
+#include "types/AngleDegrees.h"
+#include "types/geometry/Point2LL.h"
 
 namespace curaengine::types::scoring
 {
 
-void WeighedScoringCriteriaPass::appendCriterion(const std::shared_ptr<ScoringCriterion>& criterion, const double weight)
+template<typename T>
+void WeighedScoringCriteriaPass<T>::appendCriterion(const std::shared_ptr<ScoringCriterion<T>>& criterion, const double weight)
 {
     criteria.emplace_back(criterion, weight);
 }
 
-void WeighedScoringCriteriaPass::apply(std::vector<Candidate>& candidates) const
+template<typename T>
+void WeighedScoringCriteriaPass<T>::apply(std::vector<Candidate<T>>& candidates) const
 {
     // For each element, reset score, process each criterion and apply weights to get the global score
     auto best_candidate_iterator = candidates.end();
@@ -27,7 +31,7 @@ void WeighedScoringCriteriaPass::apply(std::vector<Candidate>& candidates) const
 
         for (const auto& weighed_criterion : criteria)
         {
-            const double criterion_score = weighed_criterion.criterion->computeScore(iterator->candidate_index);
+            const double criterion_score = weighed_criterion.criterion->computeScore(*iterator->element);
             assert(criterion_score >= 0.0 && criterion_score <= 1.0 && "Criterion score is out-of-bounds");
             iterator->score += criterion_score * weighed_criterion.weight;
         }
@@ -49,7 +53,7 @@ void WeighedScoringCriteriaPass::apply(std::vector<Candidate>& candidates) const
     {
         std::erase_if(
             candidates,
-            [this](const Candidate& candidate)
+            [this](const Candidate<T>& candidate)
             {
                 return ! (candidate.score > min_score.value());
             });
@@ -61,7 +65,7 @@ void WeighedScoringCriteriaPass::apply(std::vector<Candidate>& candidates) const
         const double delta_threshold = outsider_delta_threshold.value() + std::numeric_limits<double>::epsilon();
         std::erase_if(
             candidates,
-            [&best_score, &delta_threshold](const Candidate& candidate)
+            [&best_score, &delta_threshold](const Candidate<T>& candidate)
             {
                 return best_score - candidate.score > delta_threshold;
             });
@@ -71,10 +75,14 @@ void WeighedScoringCriteriaPass::apply(std::vector<Candidate>& candidates) const
     std::stable_sort(
         candidates.begin(),
         candidates.end(),
-        [](const Candidate& candidate1, const Candidate& candidate2)
+        [](const Candidate<T>& candidate1, const Candidate<T>& candidate2)
         {
             return candidate1.score > candidate2.score;
         });
 }
+
+template class WeighedScoringCriteriaPass<seam::SeamCandidate>;
+template class WeighedScoringCriteriaPass<geometry::Point2LL>;
+template class WeighedScoringCriteriaPass<AngleDegrees>;
 
 } // namespace curaengine::types::scoring

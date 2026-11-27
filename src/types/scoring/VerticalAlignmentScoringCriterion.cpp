@@ -1,11 +1,12 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "types/scoring/VerticalAlignmentScoringCriterion.h"
 
 #include <algorithm>
 
-#include "types/geometry/PointsSet.h"
+#include "seam/seam_corners.h"
+#include "types/scoring/ElementPosition.h"
 #include "utils/math.h"
 
 
@@ -15,15 +16,17 @@ namespace curaengine::types::scoring
 using namespace types::geometry;
 using namespace utils;
 
-VerticalAlignmentScoringCriterion::VerticalAlignmentScoringCriterion(const PointsSet& points, const std::vector<Point2LL>& last_layer_seams, const coord_t max_alignment_distance)
-    : PositionBasedScoringCriterion(points)
-    , last_layer_seams_(last_layer_seams)
+template<typename T>
+VerticalAlignmentScoringCriterion<T>::VerticalAlignmentScoringCriterion(const std::vector<Point2LL>& last_layer_seams, const coord_t max_alignment_distance)
+    : last_layer_seams_(last_layer_seams)
     , max_alignment_distance_(max_alignment_distance)
 {
 }
 
-double VerticalAlignmentScoringCriterion::computeScore(const Point2LL& candidate_position) const
+template<typename T>
+double VerticalAlignmentScoringCriterion<T>::computeScore(const T& element) const
 {
+    const Point2LL& candidate_position = getElementPosition(element);
     double max_position_score = 0.0;
 
     for (const Point2LL& last_layer_seam : last_layer_seams_)
@@ -34,5 +37,7 @@ double VerticalAlignmentScoringCriterion::computeScore(const Point2LL& candidate
 
     return max_position_score;
 }
+
+template class VerticalAlignmentScoringCriterion<seam::SeamCandidate>;
 
 } // namespace curaengine::types::scoring
