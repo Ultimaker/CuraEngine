@@ -21,6 +21,7 @@
 #include <range/v3/algorithm/max_element.hpp>
 #include <range/v3/algorithm/partition.hpp>
 #include <range/v3/algorithm/sort.hpp>
+#include <range/v3/algorithm/unique.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/sliding.hpp>
@@ -38,6 +39,7 @@
 #include "types/CuraViz.h"
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
+#include "types/InsetDirection.h"
 #include "types/OBJ.h"
 #include "types/SVG.h"
 #include "types/geometry/Point2D.h"
@@ -701,13 +703,6 @@ static void appendFallbackPasses(BestElementFinder<SeamCandidate>& best_candidat
     }
 }
 
-static void makeBestCandidateFinderInnerWall(BestElementFinder<Point2LL>& best_candidate_finder, const std::vector<Point2LL>& layer_seams)
-{
-    // For inner walls, we only try to be close to an outer wall seam. If it is not the case, in the end the starting position will not be set and the 'shortest' strategy
-    // will be applied, which is the best we can do in such cases anyway.
-    best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion<Point2LL>>(layer_seams));
-}
-
 std::vector<SeamCandidate> makeAllSeamCandidates(ExtrusionLine& extrusion_line)
 {
     const size_t candidates_count = extrusion_line.size() - 1;
@@ -1164,9 +1159,12 @@ static std::vector<const SeamCandidate*> getCornersOfString(const SeamCandidates
 }
 
 /*!
- * Makes the extrusion line of the given corner start at the position of this corner
+ * Inserts a junction at the position of the given candidate if it is not on an existing junction, and makes the extrusion line of the candidate start there if requested
+ * @param candidate The candidate to be applied
+ * @param set_as_start If true, the extrusion line is rotated to start at the position of the candidate, and is flagged as having its start position set. Otherwise the line is
+ * left unchanged, except for the new junction
  */
-static void applySeamCandidate(const SeamCandidate& candidate)
+static void applySeamCandidate(const SeamCandidate& candidate, const bool set_as_start)
 {
     ExtrusionLine& extrusion_line = *candidate.extrusion_line;
 
@@ -1176,8 +1174,11 @@ static void applySeamCandidate(const SeamCandidate& candidate)
         start_index = extrusion_line.insertJunction(candidate.segment_index, candidate.position);
     }
 
-    extrusion_line.setStartJunction(start_index);
-    extrusion_line.has_start_position_set_ = true;
+    if (set_as_start)
+    {
+        extrusion_line.setStartJunction(start_index);
+        extrusion_line.has_start_position_set_ = true;
+    }
 }
 
 /*!
@@ -1245,16 +1246,12 @@ static std::optional<size_t> findJunctionCloseToSeams(ExtrusionLine& extrusion_l
 }
 
 /*!
- * Sets the seam of the outer walls of a layer that don't have any, by projecting the seams of another layer onto them. The walls that already have a seam are not changed.
- * @param source_layer The layer that holds the seams to be projected
- * @param target_layer The layer whose outer walls without seam will get one, if a seam of the source layer is close enough
- * @param max_distance The maximum distance between the projected seam and the new seam position
- * @param z_seam_on_vertex Whether the new seam has to be on an existing junction
+ * Gets the seam positions of the outer walls of a layer, which are the start positions of the closed outer walls that have a seam
  */
-static void projectSeamsOnLayer(const SliceLayer& source_layer, SliceLayer& target_layer, const coord_t max_distance, const bool z_seam_on_vertex)
+static std::vector<Point2LL> collectOuterWallSeams(const SliceLayer& layer)
 {
     std::vector<Point2LL> seams;
-    for (const SliceLayerPart& part : source_layer.parts)
+    for (const SliceLayerPart& part : layer.parts)
     {
         for (const VariableWidthLines& extrusion_lines : part.wall_toolpaths)
         {
@@ -1267,6 +1264,20 @@ static void projectSeamsOnLayer(const SliceLayer& source_layer, SliceLayer& targ
             }
         }
     }
+
+    return seams;
+}
+
+/*!
+ * Sets the seam of the outer walls of a layer that don't have any, by projecting the seams of another layer onto them. The walls that already have a seam are not changed.
+ * @param source_layer The layer that holds the seams to be projected
+ * @param target_layer The layer whose outer walls without seam will get one, if a seam of the source layer is close enough
+ * @param max_distance The maximum distance between the projected seam and the new seam position
+ * @param z_seam_on_vertex Whether the new seam has to be on an existing junction
+ */
+static void projectSeamsOnLayer(const SliceLayer& source_layer, SliceLayer& target_layer, const coord_t max_distance, const bool z_seam_on_vertex)
+{
+    const std::vector<Point2LL> seams = collectOuterWallSeams(source_layer);
 
     if (seams.empty())
     {
@@ -1379,7 +1390,205 @@ static void fillRemainingSeams(SliceMeshStorage::Ptr& mesh, const coord_t max_di
     }
 }
 
-static void calculateWallsSeamPosition(
+/*!
+ * Makes the candidates that are between two junctions of the line: for each group of seams, the closest position of the line to any seam of the group, if there is one that is
+ * close enough and that is not already on a junction
+ * @param seams_groups The groups of seam positions. Using a single group with all the seams gives the closest position to any seam, using one group per seam gives the closest
+ * position to each seam
+ * @param max_distance_squared The maximum squared distance between a seam and the candidate
+ */
+static std::vector<SeamCandidate>
+    makeCandidatesBetweenJunctions(ExtrusionLine& extrusion_line, const std::span<const std::vector<Point2LL>> seams_groups, const coord_t max_distance_squared)
+{
+    std::vector<SeamCandidate> candidates;
+
+    for (const std::vector<Point2LL>& seams_group : seams_groups)
+    {
+        const std::optional<SeamCandidate> candidate = makeInterJunctionsCandidate(
+            extrusion_line,
+            [&seams_group, max_distance_squared](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
+            {
+                // For this segment, keep the seam that is the closest to it, if there is any close enough
+                std::optional<AddSplitJunctionCandidate> best_segment_candidate;
+                coord_t best_distance_squared = max_distance_squared;
+                for (const Point2LL& seam : seams_group)
+                {
+                    const Point2LL closest_on_segment = linear_alg_2d::getClosestOnLineSegment(seam, segment_start, segment_end);
+                    const coord_t distance_squared = vSize2(closest_on_segment - seam);
+                    if (distance_squared <= best_distance_squared)
+                    {
+                        best_segment_candidate = AddSplitJunctionCandidate{ .reference_position = seam, .split_position = closest_on_segment };
+                        best_distance_squared = distance_squared;
+                    }
+                }
+                return best_segment_candidate;
+            });
+
+        if (candidate.has_value() && ! candidate->on_vertex)
+        {
+            candidates.push_back(candidate.value());
+        }
+    }
+
+    return candidates;
+}
+
+/*!
+ * Inserts a junction in the extrusion line next to each of the seams, without changing the start of the line. The line is then free to start next to the seam it is the closest to
+ * @param seams_per_group One group per seam
+ * @param max_distance_squared The maximum squared distance between a seam and its new junction
+ */
+static void insertJunctionsNextToSeams(ExtrusionLine& extrusion_line, const std::vector<std::vector<Point2LL>>& seams_per_group, const coord_t max_distance_squared)
+{
+    std::vector<SeamCandidate> candidates = makeCandidatesBetweenJunctions(extrusion_line, seams_per_group, max_distance_squared);
+
+    // Inserting a junction shifts the following ones, so go from the last segment to the first one. On a same segment, insert the farthest from its start first, so that the other
+    // ones remain in the right order
+    ranges::sort(
+        candidates,
+        [&extrusion_line](const SeamCandidate& candidate1, const SeamCandidate& candidate2)
+        {
+            if (candidate1.segment_index != candidate2.segment_index)
+            {
+                return candidate1.segment_index > candidate2.segment_index;
+            }
+
+            const Point2LL& segment_start = extrusion_line[candidate1.segment_index].p_;
+            return vSize2(candidate1.position - segment_start) > vSize2(candidate2.position - segment_start);
+        });
+
+    // Candidates from different seams may be at the same position
+    const auto new_end = ranges::unique(
+        candidates,
+        [](const SeamCandidate& candidate1, const SeamCandidate& candidate2)
+        {
+            return candidate1.segment_index == candidate2.segment_index && vSize2(candidate1.position - candidate2.position) <= epsilon_squared;
+        });
+    candidates.erase(new_end, candidates.end());
+
+    for (const SeamCandidate& candidate : candidates)
+    {
+        constexpr bool set_as_start = false;
+        applySeamCandidate(candidate, set_as_start);
+    }
+}
+
+/*!
+ * Makes the extrusion line start at the position that is the closest to the seams, if it is close enough. Otherwise the start is not set
+ * @param seams The seam positions to be close to
+ * @param closest_seam_finder The finder that selects the candidate that is the closest to the seams, and rejects the ones that are too far
+ * @param z_seam_on_vertex Whether the start has to be on an existing junction
+ * @param max_distance_squared The maximum squared distance between a seam and the start of the line
+ */
+static void setStartNextToSeams(
+    ExtrusionLine& extrusion_line,
+    const std::vector<Point2LL>& seams,
+    const BestElementFinder<SeamCandidate>& closest_seam_finder,
+    const bool z_seam_on_vertex,
+    const coord_t max_distance_squared)
+{
+    std::vector<SeamCandidate> candidates = makeAllSeamCandidates(extrusion_line);
+
+    if (! z_seam_on_vertex)
+    {
+        const std::vector<SeamCandidate> candidates_between_junctions = makeCandidatesBetweenJunctions(extrusion_line, std::span(&seams, 1), max_distance_squared);
+        candidates.insert(candidates.end(), candidates_between_junctions.begin(), candidates_between_junctions.end());
+    }
+
+    if (const std::optional<Candidate<SeamCandidate>> best_candidate = closest_seam_finder.findBestElement(candidates))
+    {
+        constexpr bool set_as_start = true;
+        applySeamCandidate(*best_candidate->element, set_as_start);
+    }
+}
+
+/*!
+ * Sets the seam of the inner walls, which only try to be close to a seam of an outer wall of the same layer.
+ * - When the outer walls are printed last (inside out), the start of the inner walls is set to the position that is the closest to a seam of the outer walls. If no seam is close
+ *   enough, the start position is not set, and the 'shortest' strategy will be applied in the end, which is the best we can do in such cases anyway.
+ * - When the outer walls are printed first (outside in), the start position is never set so that the 'shortest' strategy picks the best one, but junctions are inserted next to
+ *   the seams of the outer walls so that it can find positions that are close to the end of the outer walls. This is only possible if the seams are not forced to be on junctions.
+ * @param max_inner_wall_seam_distance The maximum distance between the seam of an inner wall and the closest seam of an outer wall
+ * @param z_seam_on_vertex Whether the seam has to be on an existing junction, otherwise a new junction can be inserted at the closest point to the outer wall seam
+ * @param initial_layer_inset_direction The order of the walls of the first layer
+ * @param inset_direction The order of the walls of the other layers
+ */
+static void calculateInnerWallsSeamPosition(
+    SliceMeshStorage::Ptr& mesh,
+    const coord_t max_inner_wall_seam_distance,
+    const bool z_seam_on_vertex,
+    const InsetDirection initial_layer_inset_direction,
+    const InsetDirection inset_direction)
+{
+    if (initial_layer_inset_direction == InsetDirection::Plugin || inset_direction == InsetDirection::Plugin)
+    {
+        spdlog::warn("The inset direction is not expected to be set by a plugin, the seams of the inner walls will be ignored");
+    }
+
+    const coord_t max_distance_squared = max_inner_wall_seam_distance * max_inner_wall_seam_distance;
+
+    for (const auto& [layer_index, layer] : mesh->layers | ranges::views::enumerate)
+    {
+        const InsetDirection layer_inset_direction = layer_index == 0 ? initial_layer_inset_direction : inset_direction;
+        const bool outside_in = layer_inset_direction == InsetDirection::OutsideIn;
+
+        if (layer_inset_direction == InsetDirection::Plugin || layer_inset_direction == InsetDirection::CenterLast || (outside_in && z_seam_on_vertex))
+        {
+            continue;
+        }
+
+        const std::vector<Point2LL> seams = collectOuterWallSeams(layer);
+        if (seams.empty())
+        {
+            continue;
+        }
+
+        // Data that is shared by the lines of the layer
+        BestElementFinder<SeamCandidate> closest_seam_finder;
+        std::vector<std::vector<Point2LL>> seams_per_group;
+        if (outside_in)
+        {
+            for (const Point2LL& seam : seams)
+            {
+                seams_per_group.push_back({ seam });
+            }
+        }
+        else
+        {
+            auto distance_pass = std::make_shared<WeighedScoringCriteriaPass<SeamCandidate>>();
+            const auto distance_criterion = std::make_shared<DistanceScoringCriterion<SeamCandidate>>(seams);
+            distance_pass->appendCriterion(distance_criterion);
+            distance_pass->min_score
+                = distance_criterion->computeScoreAtDistance(max_inner_wall_seam_distance); // Candidates that are farther than the maximum distance are not accepted
+            closest_seam_finder.appendCriteriaPass(distance_pass);
+        }
+
+        for (SliceLayerPart& part : layer.parts)
+        {
+            for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
+            {
+                for (ExtrusionLine& extrusion_line : extrusion_lines)
+                {
+                    if (extrusion_line.is_outer_wall() || ! extrusion_line.isRotatable() || extrusion_line.has_start_position_set_)
+                    {
+                        continue;
+                    }
+
+                    if (outside_in)
+                    {
+                        insertJunctionsNextToSeams(extrusion_line, seams_per_group, max_distance_squared);
+                    }
+                    else
+                    {
+                        setStartNextToSeams(extrusion_line, seams, closest_seam_finder, z_seam_on_vertex, max_distance_squared);
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void calculateOuterWallsSeamPosition(
     SliceMeshStorage::Ptr& mesh,
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
@@ -1415,7 +1624,7 @@ static void calculateWallsSeamPosition(
         std::unordered_set<const ExtrusionLine*> done_extrusion_lines;
         for (const SeamCandidate* corner : getCornersOfString(best_string.value()))
         {
-            applySeamCandidate(*corner);
+            applySeamCandidate(*corner, true);
             done_extrusion_lines.insert(corner->extrusion_line);
         }
 
@@ -1458,6 +1667,8 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const bool z_seam_on_vertex = settings.get<bool>("z_seam_on_vertex");
         const AngleDegrees seam_overhang_angle{ settings.get<AngleDegrees>("seam_overhang_angle") };
         const coord_t layer_height{ settings.get<coord_t>("layer_height") };
+        const auto initial_layer_inset_direction = settings.get<InsetDirection>("initial_layer_inset_direction");
+        const auto inset_direction = settings.get<InsetDirection>("inset_direction");
         const auto wall_line_count = settings.get<size_t>("wall_line_count");
         const auto wall_line_width_x = settings.get<coord_t>("wall_line_width_x");
         const size_t inner_walls_count = wall_line_count > 0 ? wall_line_count - 1 : 0;
@@ -1465,40 +1676,20 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const size_t wall_0_extruder_nr{ settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
         const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(static_cast<int>(wall_0_extruder_nr)) : Shape{} };
 
-        std::vector<Point2LL> layer_seams;
+        calculateOuterWallsSeamPosition(
+            mesh,
+            seam_type,
+            corner_pref,
+            z_seam_alignment_weight,
+            target_pos,
+            wall_line_width_0,
+            z_seam_on_vertex,
+            seam_overhang_angle,
+            layer_height,
+            machine_borders,
+            models_center);
 
-        // for (SliceLayer& layer : mesh->layers)
-        {
-            calculateWallsSeamPosition(
-                mesh,
-                seam_type,
-                corner_pref,
-                z_seam_alignment_weight,
-                target_pos,
-                wall_line_width_0,
-                z_seam_on_vertex,
-                seam_overhang_angle,
-                layer_height,
-                machine_borders,
-                models_center);
-
-            // constexpr bool not_outer_walls = false;
-            // calculateWallsSeamPosition(
-            //     layer,
-            //     layer_seams,
-            //     seam_type,
-            //     corner_pref,
-            //     z_seam_alignment_weight,
-            //     target_pos,
-            //     wall_line_width_0,
-            //     z_seam_on_vertex,
-            //     seam_overhang_angle,
-            //     layer_height,
-            //     machine_borders,
-            //     models_center,
-            //     max_inner_wall_seam_distance,
-            //     not_outer_walls);
-        }
+        calculateInnerWallsSeamPosition(mesh, max_inner_wall_seam_distance, z_seam_on_vertex, initial_layer_inset_direction, inset_direction);
     }
 }
 

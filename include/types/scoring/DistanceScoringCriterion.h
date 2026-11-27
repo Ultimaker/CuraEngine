@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include "types/Coord_t.h"
 #include "types/geometry/Point2LL.h"
 #include "types/scoring/ScoringCriterion.h"
 
@@ -53,6 +54,17 @@ public:
         const double distance_divider = default_distance_divider);
 
     double computeScore(const T& element) const override;
+
+    /*!
+     * Computes the score that an element gets when it is at the given distance of its closest target position. Elements that have a score greater than this value are closer than
+     * this distance
+     * \param distance The distance to the target position
+     * \return The score for this distance
+     */
+    double computeScoreAtDistance(const types::coord_t distance) const;
+
+private:
+    double scoreFromDistance(const double distance_mm) const;
 };
 
 } // namespace curaengine::types::scoring

@@ -53,11 +53,23 @@ double DistanceScoringCriterion<T>::computeScore(const T& element) const
             break;
         }
 
-        // Use reciprocal function to normalize distance score decreasingly
-        score = std::max(score, 1.0 / (1.0 + (distance / distance_divider_)));
+        score = std::max(score, scoreFromDistance(distance));
     }
 
     return score;
+}
+
+template<typename T>
+double DistanceScoringCriterion<T>::computeScoreAtDistance(const coord_t distance) const
+{
+    return scoreFromDistance(intToMm(distance));
+}
+
+template<typename T>
+double DistanceScoringCriterion<T>::scoreFromDistance(const double distance_mm) const
+{
+    // Use reciprocal function to normalize distance score decreasingly
+    return 1.0 / (1.0 + (distance_mm / distance_divider_));
 }
 
 template class DistanceScoringCriterion<seam::SeamCandidate>;
