@@ -24,10 +24,7 @@ namespace curaengine::bridge
 class LineAnchoringScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
-    explicit LineAnchoringScoringCriterion(
-        const types::geometry::Shape& skin_outline,
-        const types::geometry::Shape& supported_regions,
-        const types::coord_t line_width);
+    explicit LineAnchoringScoringCriterion(const types::geometry::Shape& skin_outline, const types::geometry::Shape& supported_regions, const types::coord_t line_width);
 
 protected:
     double computeScore(const types::geometry::TransformedShape& transformed_skin, const types::geometry::TransformedShape& transformed_supported_regions) const override;

@@ -246,9 +246,7 @@ std::optional<AngleDegrees> bridgeAngle(
         // First pass tries to find the angle that maximizes the number of properly bridging line, i.e. anchored on both sides
         // Give some threshold so that we keep a few candidates that are close to the best one
         constexpr double outsider_delta_threshold{ 0.05 };
-        best_angle_finder.appendSingleCriterionPass(
-            std::make_shared<LineAnchoringScoringCriterion>(skin_outline, supported_regions, line_width),
-            outsider_delta_threshold);
+        best_angle_finder.appendSingleCriterionPass(std::make_shared<LineAnchoringScoringCriterion>(skin_outline, supported_regions, line_width), outsider_delta_threshold);
 
         // Second pass takes the remaining best candidates from first pass, and tries to see if some of them maximize the alignment with the outline
         best_angle_finder.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(skin_outline, supported_regions));
