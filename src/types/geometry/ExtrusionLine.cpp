@@ -13,12 +13,18 @@
 #include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 
+
 namespace curaengine::types::geometry
 {
 
 using namespace types;
 using namespace utils;
 
+
+bool ExtrusionLine::isRotatable() const
+{
+    return ! empty() && is_closed_ && fuzzy_equal(front().w_, back().w_);
+}
 
 coord_t ExtrusionLine::length() const
 {

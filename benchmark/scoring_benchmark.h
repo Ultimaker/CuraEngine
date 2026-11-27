@@ -8,6 +8,7 @@
 
 #include "types/geometry/PointsSet.h"
 #include "types/scoring/BestElementFinder.h"
+#include "types/scoring/WeighedScoringCriteriaPass.h"
 #include "types/scoring/CornerScoringCriterion.h"
 #include "types/scoring/DistanceScoringCriterion.h"
 
@@ -42,21 +43,21 @@ BENCHMARK_DEFINE_F(ScoringTestFixture, ScoringTest_WorstCase)(benchmark::State& 
         types::scoring::BestElementFinder best_element_finder;
 
         // Pass 1 : find corners
-        types::scoring::BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = 0.05;
+        auto main_criteria_pass = std::make_shared<types::scoring::WeighedScoringCriteriaPass>();
+        main_criteria_pass->outsider_delta_threshold = 0.05;
 
-        types::scoring::BestElementFinder::WeighedCriterion main_criterion;
+        types::scoring::WeighedScoringCriteriaPass::WeighedCriterion main_criterion;
         main_criterion.criterion = std::make_shared<types::scoring::CornerScoringCriterion>(points, types::EZSeamCornerPrefType::ZSeamCornerPrefWeighted);
-        main_criteria_pass.criteria.push_back(main_criterion);
+        main_criteria_pass->criteria.push_back(main_criterion);
 
         best_element_finder.appendCriteriaPass(main_criteria_pass);
 
         // Pass 2 : fallback to distance calculation
-        types::scoring::BestElementFinder::CriteriaPass fallback_criteria_pass;
-        types::scoring::BestElementFinder::WeighedCriterion fallback_criterion;
+        auto fallback_criteria_pass = std::make_shared<types::scoring::WeighedScoringCriteriaPass>();
+        types::scoring::WeighedScoringCriteriaPass::WeighedCriterion fallback_criterion;
         fallback_criterion.criterion = std::make_shared<types::scoring::DistanceScoringCriterion>(points, types::geometry::Point2LL(1000, 0));
 
-        fallback_criteria_pass.criteria.push_back(fallback_criterion);
+        fallback_criteria_pass->criteria.push_back(fallback_criterion);
         best_element_finder.appendCriteriaPass(fallback_criteria_pass);
 
         best_element_finder.findBestElement(points.size());

@@ -8,6 +8,7 @@
 
 #include "types/AngleRadians.h"
 #include "types/Coord_t.h"
+#include "types/geometry/ExtrusionLine.h"
 #include "types/geometry/Point2LL.h"
 
 namespace curaengine::types::geometry
@@ -20,7 +21,7 @@ namespace curaengine::seam
 {
 
 /*! A single corner found on a closed path, which can be used as a seam candidate */
-struct SeamCorner
+struct SeamCandidate
 {
     types::geometry::Point2LL position; // The position of the corner, at the center of its turning angle
     size_t segment_index; // Index of the input point that starts the segment containing the position, or of the point at the position if on_vertex is true
@@ -28,8 +29,29 @@ struct SeamCorner
     double turn; // Total signed turn in radians. Positive is left-turning (concave), negative is right-turning (convex)
     types::coord_t extent; // Length of the path section over which the turn happens, in micrometers. Zero for a perfectly sharp corner
     double score; // Score of the corner in [0 ; max(weights)], the higher the sharper
-    types::geometry::ExtrusionLine* extrusion_line{ nullptr }; // The extrusion line this corner belongs to, whose seam will be set at this corner. Not owned, it has to remain alive and in place
-    size_t layer_index{ 0 }; // The index of the layer this corner is at
+    types::geometry::ExtrusionLine* extrusion_line{ nullptr }; // The extrusion line this candidate belongs to. Not owned, it has to remain alive and in place
+    bool preferred_candidate{ false };
+
+    explicit SeamCandidate(types::geometry::ExtrusionLine& extrusion_line)
+        : extrusion_line(&extrusion_line)
+    {
+    }
+
+    SeamCandidate(types::geometry::ExtrusionLine& extrusion_line, const size_t junction_index)
+        : position(extrusion_line[junction_index].p_)
+        , segment_index(junction_index)
+        , on_vertex(true)
+        , extrusion_line(&extrusion_line)
+    {
+    }
+
+    SeamCandidate(types::geometry::ExtrusionLine& extrusion_line, const size_t junction_index, const types::geometry::Point2LL& position)
+        : position(position)
+        , segment_index(junction_index)
+        , on_vertex(false)
+        , extrusion_line(&extrusion_line)
+    {
+    }
 };
 
 /*!
@@ -43,10 +65,7 @@ struct SeamCorner
  * within this distance are merged
  * @return The corners, in the order they are met on the path
  */
-std::vector<SeamCorner> findSeamCorners(
-    const types::geometry::PointsSet& points,
-    const types::AngleRadians& min_vertex_turn,
-    const double max_radius,
-    const double max_deviation);
+std::vector<SeamCandidate>
+    findSeamCorners(const types::geometry::PointsSet& points, const types::AngleRadians& min_vertex_turn, const double max_radius, const double max_deviation);
 
 } // namespace curaengine::seam

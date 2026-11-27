@@ -13,9 +13,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include <range/v3/action/remove_if.hpp>
 #include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/algorithm/find.hpp>
+#include <range/v3/algorithm/max_element.hpp>
+#include <range/v3/algorithm/partition.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -28,6 +31,7 @@
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceMeshStorage.h"
+#include "TextureDataProvider.h"
 #include "seam/seam_corners.h"
 #include "types/AngleDegrees.h"
 #include "types/CuraViz.h"
@@ -41,10 +45,11 @@
 #include "types/scoring/BestElementFinder.h"
 #include "types/scoring/CornerScoringCriterion.h"
 #include "types/scoring/DistanceScoringCriterion.h"
-#include "types/scoring/ExclusionAreaScoringCriterion.h"
+#include "types/scoring/ExclusionAreaRankingCriterion.h"
 #include "types/scoring/RandomScoringCriterion.h"
-#include "types/scoring/TextureScoringCriterion.h"
+#include "types/scoring/TextureRankingCriterion.h"
 #include "types/scoring/VerticalAlignmentScoringCriterion.h"
+#include "types/scoring/WeighedScoringCriteriaPass.h"
 #include "utils/linear_alg_2d.h"
 #include "utils/math.h"
 
@@ -100,6 +105,40 @@ struct FilletFit
     size_t nearest_vertex; // Start of the segment that contains the point of the path that is the closest to the apex of the fillet
     double nearest_distance; // Distance of that point to the start of the segment
 };
+
+static std::tuple<double, double> makeConcaveConvexCornersWeights(const EZSeamCornerPrefType corner_preference)
+{
+    double concave_angle_weight{ 1.0 };
+    double convex_angle_weight{ 1.0 };
+
+    switch (corner_preference)
+    {
+    case EZSeamCornerPrefType::ZSeamCornerPrefInner:
+        // Give advantage to concave corners. More advantage for sharper corners.
+        concave_angle_weight = 1.0;
+        convex_angle_weight = 0.0;
+        break;
+    case EZSeamCornerPrefType::ZSeamCornerPrefOuter:
+        // Give advantage to convex corners. More advantage for sharper corners.
+        concave_angle_weight = 0.0;
+        convex_angle_weight = 1.0;
+        break;
+    case EZSeamCornerPrefType::ZSeamCornerPrefAny:
+        // Still give sharper corners more advantage.
+        concave_angle_weight = 1.0;
+        convex_angle_weight = 1.0;
+        break;
+    case EZSeamCornerPrefType::ZSeamCornerPrefWeighted:
+        // Give sharper corners some advantage, but concave sharper corners even more.
+        concave_angle_weight = 1.0;
+        convex_angle_weight = 0.5;
+        break;
+    case EZSeamCornerPrefType::Plugin:
+        break;
+    }
+
+    return { concave_angle_weight, convex_angle_weight };
+}
 
 static double cross(const Point2D& a, const Point2D& b)
 {
@@ -267,30 +306,37 @@ static std::optional<FilletFit> fitFillet(const PathData& path, const size_t fir
  * @param path The data of the path
  * @param length_penalty_reference Length at which the score of a corner is halved
  */
-static SeamCorner
-    makeCornerFromFit(const FilletFit& fit, const size_t first, const size_t size, const PointsSet& points, const PathData& path, const double length_penalty_reference)
+static SeamCandidate makeCornerFromFit(
+    const FilletFit& fit,
+    const size_t first,
+    const size_t size,
+    ExtrusionLine& line,
+    const PathData& path,
+    const double length_penalty_reference,
+    const double concave_weight,
+    const double convex_weight)
 {
-    const size_t count = points.size();
+    const size_t junctions_count = line.size() - 1;
     const size_t vertex = fit.nearest_vertex;
     const double distance_to_next_vertex = path.segments[vertex].length - fit.nearest_distance;
 
-    SeamCorner corner;
+    SeamCandidate corner(line);
     if (fit.nearest_distance <= static_cast<double>(epsilon))
     {
-        corner.position = points.at(vertex);
+        corner.position = line[vertex].p_;
         corner.segment_index = vertex;
         corner.on_vertex = true;
     }
     else if (distance_to_next_vertex <= static_cast<double>(epsilon))
     {
-        const size_t next_vertex = (vertex + 1) % count;
-        corner.position = points.at(next_vertex);
+        const size_t next_vertex = (vertex + 1) % junctions_count;
+        corner.position = line[next_vertex].p_;
         corner.segment_index = next_vertex;
         corner.on_vertex = true;
     }
     else
     {
-        corner.position = points.at(vertex) + toPoint2LL(path.segments[vertex].direction * fit.nearest_distance);
+        corner.position = line[vertex].p_ + toPoint2LL(path.segments[vertex].direction * fit.nearest_distance);
         corner.segment_index = vertex;
         corner.on_vertex = false;
     }
@@ -298,7 +344,7 @@ static SeamCorner
     double extent = 0.0;
     for (size_t i = 0; i + 1 < size; ++i)
     {
-        extent += path.segments[(first + i) % count].length;
+        extent += path.segments[(first + i) % junctions_count].length;
     }
     corner.turn = fit.turn;
     corner.extent = std::llrint(extent);
@@ -309,7 +355,11 @@ static SeamCorner
     // Favor corners that are concentrated on a short section
     const double length_score = length_penalty_reference > 0.0 ? 1.0 / (1.0 + extent / length_penalty_reference) : 1.0;
 
-    corner.score = sign(fit.turn) * angle_score * length_score;
+    // Negative turns are convex (right turning), positive ones are concave (left turning)
+    const bool convex = corner.turn < 0.0;
+    const double turning_weight = convex ? convex_weight : concave_weight;
+
+    corner.score = sign(fit.turn) * angle_score * length_score * turning_weight;
 
     return corner;
 }
@@ -323,13 +373,15 @@ static SeamCorner
  * See findSeamCorners() for the other parameters
  */
 static void findCornersOfRun(
-    const PointsSet& points,
+    ExtrusionLine& line,
     const PathData& path,
     const size_t run_first,
     const size_t run_size,
     const double max_radius,
     const double max_deviation,
-    std::vector<SeamCorner>& corners)
+    const double concave_weight,
+    const double convex_weight,
+    std::vector<SeamCandidate>& corners)
 {
     const size_t count = path.positions.size();
     const double max_extent = max_radius * std::numbers::pi; // Length of half a circle of the maximum radius
@@ -396,18 +448,25 @@ static void findCornersOfRun(
         }
     }
 
-    std::vector<SeamCorner> run_corners;
+    std::vector<SeamCandidate> run_corners;
     for (size_t end = run_size; end > 0; end -= best[end].group->size)
     {
         const Group& group = *best[end].group;
-        run_corners.push_back(makeCornerFromFit(group.fit, (run_first + end - group.size) % count, group.size, points, path, max_radius));
+        run_corners.push_back(makeCornerFromFit(group.fit, (run_first + end - group.size) % count, group.size, line, path, max_radius, concave_weight, convex_weight));
     }
     corners.insert(corners.end(), run_corners.rbegin(), run_corners.rend());
 }
 
-std::vector<SeamCorner> findSeamCorners(const PointsSet& points, const AngleRadians& min_vertex_turn, const double max_radius, const double max_deviation)
+std::vector<SeamCandidate> makeCornerSeamCandidates(ExtrusionLine& line, const coord_t wall_line_width_0, const EZSeamCornerPrefType corner_preference)
 {
-    const size_t points_count = points.size();
+    // All lengths are in micrometers, all angles in radians
+    const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } }; // 1°, below this a turn is considered as straight
+    constexpr double max_radius = 2000.0; // Arcs flatter than a 2 mm radius are not corners
+    const double max_deviation = static_cast<double>(wall_line_width_0) * 0.25; // Corners that are closer than this deviation from a single rounded corner cannot be told apart
+    const double min_score = 0.15;
+    const auto [concave_weight, convex_weight] = makeConcaveConvexCornersWeights(corner_preference);
+
+    const size_t points_count = line.size() - 1;
     if (points_count < 3)
     {
         return {};
@@ -417,7 +476,7 @@ std::vector<SeamCorner> findSeamCorners(const PointsSet& points, const AngleRadi
     path.positions.reserve(points_count);
     for (size_t i = 0; i < points_count; ++i)
     {
-        path.positions.push_back(toPoint2D(points.at(i)));
+        path.positions.push_back(toPoint2D(line[i].p_));
     }
 
     path.segments.resize(points_count);
@@ -462,7 +521,7 @@ std::vector<SeamCorner> findSeamCorners(const PointsSet& points, const AngleRadi
         return {};
     }
 
-    std::vector<SeamCorner> corners;
+    std::vector<SeamCandidate> corners;
     for (size_t rank = 0; rank < points_count;)
     {
         const size_t vertex = (start.value() + rank) % points_count;
@@ -478,9 +537,18 @@ std::vector<SeamCorner> findSeamCorners(const PointsSet& points, const AngleRadi
             ++run_end;
         }
 
-        findCornersOfRun(points, path, vertex, run_end - rank + 1, max_radius, max_deviation, corners);
+        findCornersOfRun(line, path, vertex, run_end - rank + 1, max_radius, max_deviation, concave_weight, convex_weight, corners);
         rank = run_end + 1;
     }
+
+    corners.erase(
+        ranges::remove_if(
+            corners,
+            [&min_score](SeamCandidate& candidate)
+            {
+                return std::abs(candidate.score) < min_score;
+            }),
+        corners.end());
 
     return corners;
 }
@@ -547,6 +615,61 @@ static std::optional<size_t> insertBestNewJunction(ExtrusionLine& extrusion_line
     }
 
     return extrusion_line.insertJunction(best_candidate->start_index, split_position);
+}
+
+static std::optional<SeamCandidate> makeInterJunctionsCandidate(ExtrusionLine& extrusion_line, const SegmentEvaluator& segment_evaluator)
+{
+    struct BestCandidate
+    {
+        size_t start_index;
+        Point2LL segment_start;
+        Point2LL segment_end;
+        Point2LL split_position;
+        double distance_to_ref_squared;
+    };
+
+    std::optional<BestCandidate> best_candidate;
+
+    // Extrusion lines are explicitly closed, so there is no need to loop
+    for (const auto&& [segment_index, segment] : extrusion_line | ranges::views::sliding(2) | ranges::views::enumerate)
+    {
+        const Point2LL& segment_start = segment[0].p_;
+        const Point2LL& segment_end = segment[1].p_;
+
+        const std::optional<AddSplitJunctionCandidate> candidate = segment_evaluator(segment_start, segment_end);
+        if (! candidate.has_value())
+        {
+            continue;
+        }
+
+        const double distance_to_ref_squared = vSize2(candidate->split_position - candidate->reference_position);
+        if (! best_candidate.has_value() || distance_to_ref_squared < best_candidate->distance_to_ref_squared)
+        {
+            best_candidate = BestCandidate{ .start_index = segment_index,
+                                            .segment_start = segment_start,
+                                            .segment_end = segment_end,
+                                            .split_position = candidate->split_position,
+                                            .distance_to_ref_squared = distance_to_ref_squared };
+        }
+    }
+
+    if (! best_candidate.has_value())
+    {
+        return std::nullopt;
+    }
+
+    const Point2LL& split_position = best_candidate->split_position;
+    if (vSize2(split_position - best_candidate->segment_start) <= epsilon_squared)
+    {
+        return SeamCandidate(extrusion_line, best_candidate->start_index);
+    }
+
+    if (vSize2(split_position - best_candidate->segment_end) <= epsilon_squared)
+    {
+        return SeamCandidate(extrusion_line, best_candidate->start_index + 1);
+    }
+
+    return SeamCandidate(extrusion_line, best_candidate->start_index, split_position);
 }
 
 static void addCloseToSeamPositionCandidate(ExtrusionLine& extrusion_line, const std::vector<Point2LL>& last_layer_seams)
@@ -630,19 +753,38 @@ static PointsSet makePositionCandidates(
     return points;
 }
 
-static void addExclusionAreaCriterion(BestElementFinder::CriteriaPass& pass, const PointsSet& points, const Shape& exclusion_area)
+static void addExclusionAreaPass(BestElementFinder& best_candidate_finder, const PointsSet& points, const Shape& exclusion_area)
 {
     if (! exclusion_area.empty())
     {
-        constexpr double overhang_exclusion_weight{ 2.0 };
-        pass.appendCriterion(std::make_shared<ExclusionAreaScoringCriterion>(points, exclusion_area), overhang_exclusion_weight);
+        best_candidate_finder.appendRankingCriteriaPass(std::make_shared<ExclusionAreaRankingCriterion>(points, exclusion_area));
+    }
+}
+
+/*!
+ * Adds the fallback passes, which pick the back-most candidate, then the right-most one if there are still multiple candidates that are aligned on Y (e.g. cube). They are
+ * used to differentiate candidates that have very similar scores (e.g. corner on a cylinder), and also to choose a position when nothing else tells which one is the best
+ */
+static void appendFallbackPasses(BestElementFinder& best_candidate_finder, const PointsSet& points)
+{
+    const AABB path_bounding_box(points);
+
+    { // First fallback strategy is to take points on the back-most position
+        const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+        constexpr double outsider_delta_threshold = 0.01;
+        best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+    }
+
+    { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+        const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+        best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
     }
 }
 
 static BestElementFinder makeBestCandidateFinderOuterWall(
     BestElementFinder& best_candidate_finder,
     std::shared_ptr<TextureDataProvider> texture_data_provider,
-    const PointsSet& points,
+    const std::vector<SeamCandidate>& corners,
     const std::vector<Point2LL>& layer_below_seams,
     const EZSeamType seam_type,
     const EZSeamCornerPrefType corner_pref,
@@ -652,20 +794,27 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
     const coord_t wall_line_width_0,
     const Shape& seam_overhang_exclusion_areas)
 {
-    // ## Step 1: define the main criteria to be applied and their weights
-    // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
-    // exactly one calculation using this criterion.
+    PointsSet points(corners.size());
+    for (const auto [corner_index, corner] : corners | ranges::views::enumerate)
     {
-        BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = z_seam_alignment_weight;
+        points[corner_index] = corner.position;
+    }
 
-        if (texture_data_provider)
-        {
-            constexpr double texture_weight{ 5.0 };
-            main_criteria_pass.appendCriterion(std::make_shared<TextureScoringCriterion>(points, texture_data_provider, "seam"), texture_weight);
-        }
+    // ## Step 1: start with the passes that exclude the candidates that are in areas to be avoided, so that they are never selected if there are better ones
+    if (texture_data_provider)
+    {
+        best_candidate_finder.appendRankingCriteriaPass(std::make_shared<TextureRankingCriterion>(points, texture_data_provider, "seam"));
+    }
 
-        BestElementFinder::WeighedCriterion main_criterion;
+    // Avoid overhanging areas
+    addExclusionAreaPass(best_candidate_finder, points, seam_overhang_exclusion_areas);
+
+    // ## Step 2: define the main criterion to be applied, depending on the selected strategy. There should be exactly one calculation using this criterion.
+    {
+        auto main_criteria_pass = std::make_shared<WeighedScoringCriteriaPass>();
+        main_criteria_pass->outsider_delta_threshold = z_seam_alignment_weight;
+
+        WeighedScoringCriteriaPass::WeighedCriterion main_criterion;
 
         if (force_start_index.has_value())
         {
@@ -680,7 +829,8 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
         }
         else if (seam_type == EZSeamType::SharpestCorner && corner_pref != EZSeamCornerPrefType::Plugin)
         {
-            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, corner_pref, AngleDegrees{ 18 });
+            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(corners, corner_pref);
+            main_criteria_pass->min_score = 0.15;
         }
         else if (seam_type == EZSeamType::Random)
         {
@@ -689,36 +839,22 @@ static BestElementFinder makeBestCandidateFinderOuterWall(
 
         if (main_criterion.criterion)
         {
-            main_criteria_pass.criteria.push_back(main_criterion);
+            main_criteria_pass->criteria.push_back(main_criterion);
         }
         else
         {
             spdlog::warn("Missing main criterion calculator");
         }
 
-        // Second criterion with higher weight to avoid overhanging areas
-        addExclusionAreaCriterion(main_criteria_pass, points, seam_overhang_exclusion_areas);
-
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
     }
 
     best_candidate_finder.appendSingleCriterionPass(std::make_shared<VerticalAlignmentScoringCriterion>(points, layer_below_seams, wall_line_width_0 * 4));
 
-    // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
+    // ## Step 3: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
     if (seam_type == EZSeamType::SharpestCorner)
     {
-        const AABB path_bounding_box(points);
-
-        { // First fallback strategy is to take points on the back-most position
-            const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
-            constexpr double outsider_delta_threshold = 0.01;
-            best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
-        }
-
-        { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-            const auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
-            best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
-        }
+        appendFallbackPasses(best_candidate_finder, points);
     }
 
     return best_candidate_finder;
@@ -748,14 +884,162 @@ static bool isCloseToOuterWallSeam(const Point2LL& position, const std::vector<P
         });
 }
 
-static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const SliceMeshStorage::Ptr& mesh, const double concave_angle_weight, const double convex_angle_weight)
+std::vector<SeamCandidate> makeAllSeamCandidates(ExtrusionLine& extrusion_line)
 {
-    std::vector<std::vector<SeamCorner>> seam_corners(mesh->layers.size()); // Good-enough seam candidates, per layer
-    const auto wall_line_width_0 = mesh->settings.get<coord_t>("wall_line_width_0");
+    const size_t candidates_count = extrusion_line.size() - 1;
+    std::vector<SeamCandidate> candidates;
+    candidates.reserve(candidates_count);
+
+    for (size_t junction_index = 0; junction_index < candidates_count; ++junction_index)
+    {
+        candidates.emplace_back(extrusion_line, junction_index);
+    }
+
+    return candidates;
+}
+
+std::vector<SeamCandidate>
+    makeUserSpecifiedSeamCandidates(ExtrusionLine& extrusion_line, const bool z_seam_on_vertex, const Point2LL& models_center, const Point2LL& z_seam_position)
+{
+    std::vector<SeamCandidate> candidates = makeAllSeamCandidates(extrusion_line);
+
+    if (z_seam_on_vertex)
+    {
+        return candidates;
+    }
+
+    // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
+    // since you want the seam-line to be continuous in 3D space.
+    // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
+    // and project the point along the ray from the center to the request_point.
+    const Point2LL ray_origin = models_center;
+    const Point2LL request_point = ray_origin + (z_seam_position - ray_origin) * 10;
+
+    std::optional<SeamCandidate> preferred_candidate = makeInterJunctionsCandidate(
+        extrusion_line,
+        [&ray_origin, &request_point](const Point2LL& segment_start, const Point2LL& segment_end) -> std::optional<AddSplitJunctionCandidate>
+        {
+            float t, u;
+            if (! linear_alg_2d::segmentSegmentIntersection(ray_origin, request_point, segment_start, segment_end, t, u))
+            {
+                return std::nullopt;
+            }
+
+            const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+            return AddSplitJunctionCandidate{ .reference_position = request_point, .split_position = intersection };
+        });
+
+    if (preferred_candidate.has_value())
+    {
+        if (preferred_candidate->on_vertex)
+        {
+            candidates[preferred_candidate->segment_index].preferred_candidate = true;
+        }
+        else
+        {
+            preferred_candidate->preferred_candidate = true;
+            candidates.emplace_back(*preferred_candidate);
+        }
+    }
+
+    return candidates;
+}
+
+static void filterCandidatesFromTexture(std::vector<SeamCandidate>& candidates, const TextureDataProvider::Ptr& texture_data_provider)
+{
+    std::vector<uint8_t> candidates_rank(candidates.size());
+    int8_t highest_rank = -1;
+
+    for (const auto& [candidate_index, candidate] : candidates | ranges::views::enumerate)
+    {
+        std::optional<TextureArea> preference = texture_data_provider->getAreaPreference(candidate.position, "seam");
+        int8_t candidate_rank = 0;
+        if (preference.has_value())
+        {
+            switch (*preference)
+            {
+            case TextureArea::Avoid:
+                candidate_rank = -1;
+                break;
+            case TextureArea::Normal:
+                candidate_rank = 0;
+                break;
+            case TextureArea::Preferred:
+                candidate_rank = 1;
+                break;
+            }
+        }
+
+        candidates_rank[candidate_index] = candidate_rank;
+        highest_rank = std::max(highest_rank, candidate_rank);
+    }
+
+    // Keep only the candidates of the highest rank, in the same order
+    size_t kept_count = 0;
+    for (size_t i = 0; i < candidates.size(); ++i)
+    {
+        if (candidates_rank[i] == highest_rank)
+        {
+            candidates[kept_count++] = candidates[i];
+        }
+    }
+
+    candidates.erase(candidates.begin() + static_cast<std::ptrdiff_t>(kept_count), candidates.end());
+}
+
+/*!
+ * Makes the areas of a part where the seam should not be placed because they are overhanging. It is empty if the machine borders are not known or if the part has no
+ * supported region
+ */
+static Shape makeSeamOverhangExclusionAreas(const SliceLayerPart& part, const Shape& machine_borders, const coord_t layer_height, const AngleDegrees& seam_overhang_angle)
+{
+    if (machine_borders.empty())
+    {
+        return Shape();
+    }
+
+    const Shape seam_supported_region = part.getSupportedRegion(layer_height, seam_overhang_angle);
+    if (seam_supported_region.empty())
+    {
+        return Shape();
+    }
+
+    return machine_borders.difference(seam_supported_region);
+}
+
+static void filterCandidatesFromOverhang(std::vector<SeamCandidate>& candidates, const Shape& overhanging_areas)
+{
+    const auto pivot = ranges::partition(
+        candidates,
+        [&overhanging_areas](const SeamCandidate& candidate)
+        {
+            return ! overhanging_areas.inside(candidate.position, true);
+        });
+
+    if (pivot != candidates.begin())
+    {
+        // If there is at least one non-overhanging candidate, remove the others
+        candidates.erase(pivot, candidates.end());
+    }
+}
+
+static std::vector<std::vector<SeamCandidate>> makeSeamCandidatesAcrossLayers(
+    const SliceMeshStorage::Ptr& mesh,
+    const EZSeamType seam_type,
+    const EZSeamCornerPrefType corner_pref,
+    const bool z_seam_on_vertex,
+    const Shape& machine_borders,
+    const Point2LL& models_center,
+    const Point2LL& z_seam_position,
+    const coord_t wall_line_width_0,
+    const AngleDegrees& seam_overhang_angle,
+    const coord_t layer_height)
+{
+    std::vector<std::vector<SeamCandidate>> seam_corners(mesh->layers.size()); // Good-enough seam candidates, per layer
 
     for (auto [layer_index, layer] : mesh->layers | ranges::views::enumerate)
     {
-        std::vector<SeamCorner>& layer_seam_corners = seam_corners[layer_index];
+        std::vector<SeamCandidate>& layer_seam_corners = seam_corners[layer_index];
 
         for (SliceLayerPart& part : layer.parts)
         {
@@ -763,90 +1047,70 @@ static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const
             {
                 for (ExtrusionLine& extrusion_line : extrusion_lines)
                 {
-                    if (! extrusion_line.is_outer_wall() || ! extrusion_line.is_closed_)
+                    if (! extrusion_line.is_outer_wall() || ! extrusion_line.isRotatable())
                     {
                         continue;
                     }
 
-                    // std::optional<size_t> force_start_index;
-                    // const PointsSet points{ makePositionCandidates(
-                    //     extrusion_line,
-                    //     force_start_index,
-                    //     seam_type,
-                    //     target_pos,
-                    //     z_seam_on_vertex,
-                    //     models_center,
-                    //     extrusion_line.is_outer_wall() ? layer_seams : std::vector<Point2LL>{}) };
-                    PointsSet points;
-                    for (const ExtrusionJunction& junction : extrusion_line | ranges::views::drop_last(1))
+                    std::vector<SeamCandidate> line_seam_candidates;
+
+                    switch (seam_type)
                     {
-                        points.push_back(junction.p_);
+                    case EZSeamType::Random:
+                        line_seam_candidates = makeAllSeamCandidates(extrusion_line);
+                        break;
+                    case EZSeamType::SharpestCorner:
+                        line_seam_candidates = makeCornerSeamCandidates(extrusion_line, wall_line_width_0, corner_pref);
+                        break;
+                    case EZSeamType::UserSpecified:
+                        line_seam_candidates = makeUserSpecifiedSeamCandidates(extrusion_line, z_seam_on_vertex, models_center, z_seam_position);
+                        break;
+                    case EZSeamType::Shortest:
+                    case EZSeamType::SkirtBrim:
+                    case EZSeamType::Plugin:
+                        spdlog::warn("Unexpected seam type {}", static_cast<int>(seam_type));
+                        break;
                     }
 
-                    BestElementFinder best_candidate_finder;
-                    Shape seam_overhang_exclusion_areas; // Don't move to inner scope, it is used as a reference in the criterion and has to remain alive long enough
-
-                    // if (! machine_borders.empty())
-                    // {
-                    //     seam_overhang_exclusion_areas = machine_borders.difference(part.getSupportedRegion(layer_height, seam_overhang_angle));
-                    // }
-                    //
-                    // makeBestCandidateFinderOuterWall(
-                    //     best_candidate_finder,
-                    //     layer.texture_data_provider_,
-                    //     points,
-                    //     layer_seams,
-                    //     seam_type,
-                    //     corner_pref,
-                    //     z_seam_alignment_weight,
-                    //     target_pos,
-                    //     force_start_index,
-                    //     wall_line_width_0,
-                    //     seam_overhang_exclusion_areas);
-
-                    // All lengths are in micrometers, all angles in radians
-                    const AngleRadians min_vertex_turn{ AngleDegrees{ 1 } }; // 1°, below this a turn is considered as straight
-                    constexpr double max_radius = 2000.0; // Arcs flatter than a 2 mm radius are not corners
-                    const double max_deviation
-                        = static_cast<double>(wall_line_width_0) * 0.25; // Corners that are closer than this deviation from a single rounded corner cannot be told apart
-
-                    std::vector<SeamCorner> corners = findSeamCorners(points, min_vertex_turn, max_radius, max_deviation);
-
-                    // static SVG svg("/tmp/seam_polygons.svg", AABB(Point2LL(0, 0), Point2LL(400000, 400000)), 0.001);
-                    const auto layer_z_debug = { 5000, 5200 };
-                    if (ranges::contains(layer_z_debug, layer.printZ))
+                    if (line_seam_candidates.empty())
                     {
-                        CuraViz::send(extrusion_line, "extrusion");
-
-                        // svg.write(extrusion_line.toPolygon(), { .line = SVG::LineAttributes{ SVG::Color::Red, 0.1 } });
-                        // static std::ofstream wkt_file("/tmp/seam_polygons.wkt", std::ios::app);
-                        // Shape shape;
-                        // shape.push_back(extrusion_line.toPolygon());
-                        // shape.writeWkt(wkt_file);
-                        // wkt_file << '\n';
+                        continue;
                     }
-                    for (SeamCorner& corner : corners)
-                    {
-                        // angles > 0 are concave (left turning)
-                        // angles < 0 are convex (right turning)
-                        const bool convex = corner.score < 0;
-                        corner.score *= convex ? convex_angle_weight : concave_angle_weight;
-                        if (ranges::contains(layer_z_debug, layer.printZ))
-                        {
-                            CuraViz::send(corner.position, fmt::format("corner_{}_{}", layer_index, corner.score));
-                        }
 
-                        if (std::abs(corner.score) > 0.15)
-                        {
-                            if (ranges::contains(layer_z_debug, layer.printZ))
+                    if (layer.texture_data_provider_)
+                    {
+                        filterCandidatesFromTexture(line_seam_candidates, layer.texture_data_provider_);
+                    }
+
+                    const Shape seam_overhang_exclusion_areas = makeSeamOverhangExclusionAreas(part, machine_borders, layer_height, seam_overhang_angle);
+                    if (! seam_overhang_exclusion_areas.empty())
+                    {
+                        filterCandidatesFromOverhang(line_seam_candidates, seam_overhang_exclusion_areas);
+                    }
+
+                    { // If there is a preferred candidate, only keep it and drop the rest
+                        const auto preferred_candidate = ranges::find_if(
+                            line_seam_candidates,
+                            [](const SeamCandidate& candidate)
                             {
-                                // svg.write(corner.position, SVG::VerticesAttributes{ SVG::Color::Blue, 0.05 });
-                            }
-                            SeamCorner& layer_seam_corner = layer_seam_corners.emplace_back(std::move(corner));
-                            layer_seam_corner.extrusion_line = &extrusion_line;
-                            layer_seam_corner.layer_index = layer_index;
+                                return candidate.preferred_candidate;
+                            });
+                        if (preferred_candidate != line_seam_candidates.end())
+                        {
+                            layer_seam_corners.emplace_back(std::move(*preferred_candidate));
+                            continue;
                         }
                     }
+
+                    if (seam_type == EZSeamType::Random)
+                    {
+                        // In random, pick a candidate and drop the rest
+                        const size_t chosen_candidate = rand() % line_seam_candidates.size();
+                        layer_seam_corners.emplace_back(std::move(line_seam_candidates[chosen_candidate]));
+                        continue;
+                    }
+
+                    layer_seam_corners.insert(layer_seam_corners.end(), std::make_move_iterator(line_seam_candidates.begin()), std::make_move_iterator(line_seam_candidates.end()));
                 }
             }
         }
@@ -855,99 +1119,95 @@ static std::vector<std::vector<SeamCorner>> makeSeamCandidatesAcrossLayers(const
     return seam_corners;
 }
 
-struct SeamCornerNode;
+struct SeamCandidateNode;
 
 /*! A link from a seam corner to a corner of the layer above that it could be vertically aligned with */
-struct SeamCornerLink
+struct SeamCandidateNodeChild
 {
-    std::shared_ptr<SeamCornerNode> node; // The corner above
+    const SeamCandidateNode* node; // The corner above, owned by the graph
     double weight; // 1 if the corners are perfectly aligned, down to 0 when they are as far as the maximum distance allowed for the link
 };
 
 /*! A seam corner of a layer, with the corners of the layer above that it could be vertically aligned with */
-struct SeamCornerNode
+struct SeamCandidateNode
 {
-    const SeamCorner* seam_corner; // Not owned, it points to the input corners, which have to remain alive and unchanged
-    std::vector<SeamCornerLink> seam_corners_above;
+    const SeamCandidate* seam_corner; // Not owned, it points to the input corners, which have to remain alive and unchanged
+    std::vector<SeamCandidateNodeChild> seam_corners_above;
+    size_t id; // Unique index of the node in the graph, in layer order
+    bool is_root; // True if no corner of the layer below is linked to this one, which means that a string can start here
+};
+
+/*!
+ * The nodes of all the seam corners, by layer. The nodes link to each other by their addresses, so the graph owns them and must not be copied
+ */
+struct SeamCandidatesGraph
+{
+    std::vector<std::vector<SeamCandidateNode>> nodes_per_layer;
+    size_t nodes_count{ 0 };
+
+    SeamCandidatesGraph() = default;
+    SeamCandidatesGraph(const SeamCandidatesGraph&) = delete;
+    SeamCandidatesGraph& operator=(const SeamCandidatesGraph&) = delete;
+    SeamCandidatesGraph(SeamCandidatesGraph&&) = default;
+    SeamCandidatesGraph& operator=(SeamCandidatesGraph&&) = default;
 };
 
 /*!
  * Links the seam corners of each layer to the nearby seam corners of the layer just above, which builds all the possible "strings" of vertically aligned corners.
  * A node may be linked to several corners above, and a corner of the layer above may be linked by several nodes below, so this is a graph where all
  * the paths that go upward from a node are the potential strings.
- * @param seam_corners_per_layer The seam corners of each layer, in layer order. They have to remain alive and unchanged as long as the returned nodes are used
+ * @param seam_corners_per_layer The seam corners of each layer, in layer order. They have to remain alive and unchanged as long as the returned graph is used
  * @param max_distance The maximum horizontal distance between two corners of consecutive layers to be linked. The weight of a link decreases linearly with the distance, from 1
  * for corners that are perfectly aligned to 0 for corners that are at this distance
- * @return The root nodes, which are the corners that no corner of the layer below is linked to (all the corners of the first layer, and the ones that start a new string
- * higher). All the other nodes are reachable from them, and are kept alive by them
+ * @return The graph, whose root nodes are the corners that no corner of the layer below is linked to (all the corners of the first layer, and the ones that start a new string
+ * higher)
  */
-static std::vector<std::shared_ptr<SeamCornerNode>> makeSeamCornerTree(const std::vector<std::vector<SeamCorner>>& seam_corners_per_layer, const coord_t max_distance)
+static SeamCandidatesGraph makeSeamCandidatesGraph(const std::vector<std::vector<SeamCandidate>>& seam_corners_per_layer, const coord_t max_distance)
 {
     const coord_t max_distance_squared = max_distance * max_distance;
 
-    std::vector<std::vector<std::shared_ptr<SeamCornerNode>>> nodes_per_layer;
-    nodes_per_layer.reserve(seam_corners_per_layer.size());
+    SeamCandidatesGraph graph;
+    graph.nodes_per_layer.reserve(seam_corners_per_layer.size());
 
-    for (const std::vector<SeamCorner>& layer_seam_corners : seam_corners_per_layer)
+    for (const std::vector<SeamCandidate>& layer_seam_corners : seam_corners_per_layer)
     {
-        std::vector<std::shared_ptr<SeamCornerNode>>& layer_nodes = nodes_per_layer.emplace_back();
+        std::vector<SeamCandidateNode>& layer_nodes = graph.nodes_per_layer.emplace_back();
         layer_nodes.reserve(layer_seam_corners.size());
 
-        for (const SeamCorner& seam_corner : layer_seam_corners)
+        for (const SeamCandidate& seam_corner : layer_seam_corners)
         {
-            layer_nodes.push_back(std::make_shared<SeamCornerNode>(SeamCornerNode{ .seam_corner = &seam_corner, .seam_corners_above = {} }));
+            layer_nodes.push_back(SeamCandidateNode{ .seam_corner = &seam_corner, .seam_corners_above = {}, .id = graph.nodes_count++, .is_root = true });
         }
     }
 
-    // Tells for each node whether at least one corner of the layer below is linked to it. The first layer has no layer below, so all its nodes are roots
-    std::vector<std::vector<bool>> has_parent_per_layer;
-    has_parent_per_layer.reserve(nodes_per_layer.size());
-    for (const std::vector<std::shared_ptr<SeamCornerNode>>& layer_nodes : nodes_per_layer)
-    {
-        has_parent_per_layer.emplace_back(layer_nodes.size(), false);
-    }
-
     // There is a small number of corners per layer, so a direct comparison of each corner with those of the next layer is good enough
-    for (size_t layer_index = 0; layer_index + 1 < nodes_per_layer.size(); ++layer_index)
+    for (size_t layer_index = 0; layer_index + 1 < graph.nodes_per_layer.size(); ++layer_index)
     {
-        const std::vector<std::shared_ptr<SeamCornerNode>>& layer_above_nodes = nodes_per_layer[layer_index + 1];
-        std::vector<bool>& has_parent_above = has_parent_per_layer[layer_index + 1];
+        std::vector<SeamCandidateNode>& layer_above_nodes = graph.nodes_per_layer[layer_index + 1];
 
-        for (const std::shared_ptr<SeamCornerNode>& node : nodes_per_layer[layer_index])
+        for (SeamCandidateNode& node : graph.nodes_per_layer[layer_index])
         {
-            for (const auto& [node_above_index, node_above] : layer_above_nodes | ranges::views::enumerate)
+            for (SeamCandidateNode& node_above : layer_above_nodes)
             {
-                const coord_t distance_squared = vSize2(node_above->seam_corner->position - node->seam_corner->position);
+                const coord_t distance_squared = vSize2(node_above.seam_corner->position - node.seam_corner->position);
                 if (distance_squared <= max_distance_squared)
                 {
                     const double distance = std::sqrt(static_cast<double>(distance_squared));
                     const double weight = max_distance > 0 ? 1.0 - distance / static_cast<double>(max_distance) : 1.0;
-                    node->seam_corners_above.push_back(SeamCornerLink{ .node = node_above, .weight = weight });
-                    has_parent_above[node_above_index] = true;
+                    node.seam_corners_above.push_back(SeamCandidateNodeChild{ .node = &node_above, .weight = weight });
+                    node_above.is_root = false;
                 }
             }
         }
     }
 
-    std::vector<std::shared_ptr<SeamCornerNode>> root_nodes;
-    for (const auto& [layer_index, layer_nodes] : nodes_per_layer | ranges::views::enumerate)
-    {
-        for (const auto& [node_index, node] : layer_nodes | ranges::views::enumerate)
-        {
-            if (! has_parent_per_layer[layer_index][node_index])
-            {
-                root_nodes.push_back(node);
-            }
-        }
-    }
-
-    return root_nodes;
+    return graph;
 }
 
 /*! A vertical string of seam corners, from a root node up to a node that has no corner above */
-struct SeamCornersString
+struct SeamCandidatesString
 {
-    std::shared_ptr<SeamCornerNode> root_node;
+    const SeamCandidateNode* root_node; // Owned by the graph, which has to remain alive
     std::vector<size_t> corners_path; // When reaching nodes that have multiple children, this is the index of the child this path moves to
     double total_score{ 0.0 }; // Score of the string, which depends on the alignment weight. See findBestStringFromCornersTree()
 };
@@ -956,53 +1216,16 @@ struct SeamCornersString
  * Finds the best vertical string of corners, which is the path that goes from one of the root nodes up to a node that has no corner above, and that has the highest total
  * score. With S the sum of the absolute scores of the corners of the string, and N the number of corners, the total score of a string is S / N^(1 - alignment weight). When the
  * alignment weight is 1, this is the sum, which favors long strings. When it is 0, this is the average of the scores, so the length doesn't matter. The alignment weight also
- * tells how much the links count: the score of a corner is multiplied by the weight of the link that goes to it from the corner below (so that well aligned corners count more),
- * but this influence fades to nothing when the alignment weight goes to 0. The score of the root corner always counts fully.
- * The graph can contain a huge number of paths, so they are not listed. Instead, since the strings go up one layer at a time, the length of a string is determined by its
- * first and last layers. So the best path from each node to each of the layers it can end at is calculated once from the top to the bottom, and reused by all the paths that
- * join this node.
- * @param root_nodes The root nodes of the corners graph
+ * tells how much the links count: the score of a corner is multiplied by the weight of the link that goes to it from the corner below (so that well aligned corners count
+ * more), but this influence fades to nothing when the alignment weight goes to 0. The score of the root corner always counts fully. The graph can contain a huge number of
+ * paths, so they are not listed. Instead, since the strings go up one layer at a time, the length of a string is determined by its first and last layers. So the best path from
+ * each node to each of the layers it can end at is calculated once from the top to the bottom, and reused by all the paths that join this node.
+ * @param graph The corners graph, which has to remain alive as long as the returned string is used
  * @param z_seam_alignment_weight The importance of the alignment, between 0 and 1
- * @return The best string, or nullopt if there is no root node. If several strings have the same score, the first found is returned
+ * @return The best string, or nullopt if there is no corner. If several strings have the same score, the first found is returned
  */
-static std::optional<SeamCornersString> findBestStringFromCornersTree(const std::vector<std::shared_ptr<SeamCornerNode>>& root_nodes, const double z_seam_alignment_weight)
+static std::optional<SeamCandidatesString> findBestStringFromCandidatesTree(const SeamCandidatesGraph& graph, const double z_seam_alignment_weight)
 {
-    // Gather all the nodes that can be reached from the root nodes, without any recursion
-    std::vector<const SeamCornerNode*> nodes;
-    std::unordered_set<const SeamCornerNode*> visited_nodes;
-    std::vector<const SeamCornerNode*> pending_nodes;
-
-    for (const std::shared_ptr<SeamCornerNode>& root_node : root_nodes)
-    {
-        if (visited_nodes.insert(root_node.get()).second)
-        {
-            pending_nodes.push_back(root_node.get());
-        }
-    }
-
-    while (! pending_nodes.empty())
-    {
-        const SeamCornerNode* node = pending_nodes.back();
-        pending_nodes.pop_back();
-        nodes.push_back(node);
-
-        for (const SeamCornerLink& link_above : node->seam_corners_above)
-        {
-            if (visited_nodes.insert(link_above.node.get()).second)
-            {
-                pending_nodes.push_back(link_above.node.get());
-            }
-        }
-    }
-
-    // The corners above a node are always in the next layer, so by starting from the top layer, the best path of all the corners above a node is already known when it is evaluated
-    ranges::sort(
-        nodes,
-        [](const SeamCornerNode* node1, const SeamCornerNode* node2)
-        {
-            return node1->seam_corner->layer_index > node2->seam_corner->layer_index;
-        });
-
     const double alignment_weight = std::clamp(z_seam_alignment_weight, 0.0, 1.0);
 
     // The best path from a node to the top, for a given layer where the path ends. All the paths go up one layer at a time, so the end layer also gives the length of the path
@@ -1013,63 +1236,75 @@ static std::optional<SeamCornersString> findBestStringFromCornersTree(const std:
         size_t child_index; // The index, in the corners above, of the child that this best path goes through
     };
 
-    std::unordered_map<const SeamCornerNode*, std::vector<BestPath>> best_paths;
-    best_paths.reserve(nodes.size());
+    // By node id
+    std::vector<std::vector<BestPath>> best_paths(graph.nodes_count);
 
-    for (const SeamCornerNode* node : nodes)
+    // The corners above a node are always in the next layer, so by starting from the top layer, the best path of all the corners above a node is already known when it is
+    // evaluated
+    for (size_t layer_index = graph.nodes_per_layer.size(); layer_index-- > 0;)
     {
-        std::vector<BestPath> node_best_paths;
-
-        if (node->seam_corners_above.empty())
+        for (const SeamCandidateNode& node_ref : graph.nodes_per_layer[layer_index])
         {
-            node_best_paths.push_back(BestPath{ .end_layer = node->seam_corner->layer_index, .score_above = 0.0, .child_index = 0 });
-        }
+            const SeamCandidateNode* node = &node_ref;
+            std::vector<BestPath> node_best_paths;
 
-        for (const auto& [child_index, link] : node->seam_corners_above | ranges::views::enumerate)
-        {
-            // The influence of the link fades when we don't care about the alignment
-            const double link_weight = 1.0 - alignment_weight * (1.0 - link.weight);
-            const double child_score = link_weight * std::abs(link.node->seam_corner->score);
-
-            for (const BestPath& child_best_path : best_paths.at(link.node.get()))
+            if (node->seam_corners_above.empty())
             {
-                const double score_through_child = child_score + child_best_path.score_above;
+                node_best_paths.push_back(BestPath{ .end_layer = layer_index, .score_above = 0.0, .child_index = 0 });
+            }
 
-                // There are few possible end layers per node, so a linear search is fine
-                auto same_end = ranges::find(node_best_paths, child_best_path.end_layer, &BestPath::end_layer);
-                if (same_end == node_best_paths.end())
+            for (const auto& [child_index, link] : node->seam_corners_above | ranges::views::enumerate)
+            {
+                // The influence of the link fades when we don't care about the alignment
+                const double link_weight = 1.0 - alignment_weight * (1.0 - link.weight);
+                const double child_score = link_weight * std::abs(link.node->seam_corner->score);
+
+                for (const BestPath& child_best_path : best_paths[link.node->id])
                 {
-                    node_best_paths.push_back(BestPath{ .end_layer = child_best_path.end_layer, .score_above = score_through_child, .child_index = child_index });
-                }
-                else if (score_through_child > same_end->score_above)
-                {
-                    *same_end = BestPath{ .end_layer = child_best_path.end_layer, .score_above = score_through_child, .child_index = child_index };
+                    const double score_through_child = child_score + child_best_path.score_above;
+
+                    // There are few possible end layers per node, so a linear search is fine
+                    auto same_end = ranges::find(node_best_paths, child_best_path.end_layer, &BestPath::end_layer);
+                    if (same_end == node_best_paths.end())
+                    {
+                        node_best_paths.push_back(BestPath{ .end_layer = child_best_path.end_layer, .score_above = score_through_child, .child_index = child_index });
+                    }
+                    else if (score_through_child > same_end->score_above)
+                    {
+                        *same_end = BestPath{ .end_layer = child_best_path.end_layer, .score_above = score_through_child, .child_index = child_index };
+                    }
                 }
             }
-        }
 
-        best_paths.emplace(node, std::move(node_best_paths));
+            best_paths[node->id] = std::move(node_best_paths);
+        }
     }
 
     // Select the best root and the best end layer for it. The root has no link that goes to it, so its own score is not weighted
-    std::shared_ptr<SeamCornerNode> best_root_node;
+    const SeamCandidateNode* best_root_node = nullptr;
     size_t best_end_layer = 0;
     double best_total_score = 0.0;
 
-    for (const std::shared_ptr<SeamCornerNode>& root_node : root_nodes)
+    for (const auto& [root_layer, layer_nodes] : graph.nodes_per_layer | ranges::views::enumerate)
     {
-        const size_t root_layer = root_node->seam_corner->layer_index;
-
-        for (const BestPath& best_path : best_paths.at(root_node.get()))
+        for (const SeamCandidateNode& root_node : layer_nodes)
         {
-            const double corners_count = static_cast<double>(best_path.end_layer - root_layer + 1);
-            const double total_score = (std::abs(root_node->seam_corner->score) + best_path.score_above) / std::pow(corners_count, 1.0 - alignment_weight);
-
-            if (! best_root_node || total_score > best_total_score)
+            if (! root_node.is_root)
             {
-                best_root_node = root_node;
-                best_end_layer = best_path.end_layer;
-                best_total_score = total_score;
+                continue;
+            }
+
+            for (const BestPath& best_path : best_paths[root_node.id])
+            {
+                const double corners_count = static_cast<double>(best_path.end_layer - root_layer + 1);
+                const double total_score = (std::abs(root_node.seam_corner->score) + best_path.score_above) / std::pow(corners_count, 1.0 - alignment_weight);
+
+                if (! best_root_node || total_score > best_total_score)
+                {
+                    best_root_node = &root_node;
+                    best_end_layer = best_path.end_layer;
+                    best_total_score = total_score;
+                }
             }
         }
     }
@@ -1080,11 +1315,11 @@ static std::optional<SeamCornersString> findBestStringFromCornersTree(const std:
     }
 
     // Build the string by following the best children from the root, towards the best end layer
-    SeamCornersString best_string{ .root_node = best_root_node, .corners_path = {}, .total_score = best_total_score };
+    SeamCandidatesString best_string{ .root_node = best_root_node, .corners_path = {}, .total_score = best_total_score };
 
-    for (const SeamCornerNode* node = best_root_node.get(); ! node->seam_corners_above.empty();)
+    for (const SeamCandidateNode* node = best_root_node; ! node->seam_corners_above.empty();)
     {
-        const std::vector<BestPath>& node_best_paths = best_paths.at(node);
+        const std::vector<BestPath>& node_best_paths = best_paths[node->id];
         const size_t child_index = ranges::find(node_best_paths, best_end_layer, &BestPath::end_layer)->child_index;
 
         // The path only stores the choices that are made at the nodes that have multiple children
@@ -1093,7 +1328,7 @@ static std::optional<SeamCornersString> findBestStringFromCornersTree(const std:
             best_string.corners_path.push_back(child_index);
         }
 
-        node = node->seam_corners_above[child_index].node.get();
+        node = node->seam_corners_above[child_index].node;
     }
 
     return best_string;
@@ -1104,12 +1339,12 @@ static std::optional<SeamCornersString> findBestStringFromCornersTree(const std:
  * @param string The string, as built by makeStringFromCornersTree()
  * @return The corners of the string, in the order they are met when going upward
  */
-static std::vector<const SeamCorner*> getCornersOfString(const SeamCornersString& string)
+static std::vector<const SeamCandidate*> getCornersOfString(const SeamCandidatesString& string)
 {
-    std::vector<const SeamCorner*> corners;
+    std::vector<const SeamCandidate*> corners;
 
     size_t path_index = 0;
-    for (const SeamCornerNode* node = string.root_node.get(); node != nullptr;)
+    for (const SeamCandidateNode* node = string.root_node; node != nullptr;)
     {
         corners.push_back(node->seam_corner);
 
@@ -1120,7 +1355,7 @@ static std::vector<const SeamCorner*> getCornersOfString(const SeamCornersString
 
         // The path only stores the choices that were made at the nodes that have multiple children
         const size_t child_index = node->seam_corners_above.size() > 1 ? string.corners_path[path_index++] : 0;
-        node = node->seam_corners_above[child_index].node.get();
+        node = node->seam_corners_above[child_index].node;
     }
 
     return corners;
@@ -1129,14 +1364,14 @@ static std::vector<const SeamCorner*> getCornersOfString(const SeamCornersString
 /*!
  * Makes the extrusion line of the given corner start at the position of this corner
  */
-static void applySeamCorner(const SeamCorner& corner)
+static void applySeamCandidate(const SeamCandidate& candidate)
 {
-    ExtrusionLine& extrusion_line = *corner.extrusion_line;
+    ExtrusionLine& extrusion_line = *candidate.extrusion_line;
 
-    size_t start_index = corner.segment_index;
-    if (! corner.on_vertex)
+    size_t start_index = candidate.segment_index;
+    if (! candidate.on_vertex)
     {
-        start_index = extrusion_line.insertJunction(corner.segment_index, corner.position);
+        start_index = extrusion_line.insertJunction(candidate.segment_index, candidate.position);
     }
 
     extrusion_line.setStartJunction(start_index);
@@ -1242,7 +1477,7 @@ static void projectSeamsOnLayer(const SliceLayer& source_layer, SliceLayer& targ
         {
             for (ExtrusionLine& extrusion_line : extrusion_lines)
             {
-                if (! extrusion_line.is_outer_wall() || ! extrusion_line.is_closed_ || extrusion_line.has_start_position_set_)
+                if (! extrusion_line.is_outer_wall() || ! extrusion_line.isRotatable() || extrusion_line.has_start_position_set_)
                 {
                     continue;
                 }
@@ -1277,12 +1512,15 @@ static void propagateSeamsAcrossLayers(SliceMeshStorage::Ptr& mesh, const coord_
 }
 
 /*!
- * Sets the seam of the outer walls of a layer that don't have any, on a random junction
+ * Sets the seam of the outer walls of a layer that don't have any, on the junction that is the best according to the fallback criteria (back-most, then right-most), while
+ * still avoiding the avoided areas of the texture and the overhanging areas if possible
  */
-static void setRandomSeamsOnLayer(SliceLayer& layer)
+static void setFallbackSeamsOnLayer(SliceLayer& layer, const Shape& machine_borders, const coord_t layer_height, const AngleDegrees& seam_overhang_angle)
 {
     for (SliceLayerPart& part : layer.parts)
     {
+        std::optional<Shape> seam_overhang_exclusion_areas; // Only calculated when needed
+
         for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
         {
             for (ExtrusionLine& extrusion_line : extrusion_lines)
@@ -1298,9 +1536,30 @@ static void setRandomSeamsOnLayer(SliceLayer& layer)
                     continue;
                 }
 
-                const size_t junction_index = std::min(static_cast<size_t>(randf<double>() * static_cast<double>(junctions_count)), junctions_count - 1);
-                extrusion_line.setStartJunction(junction_index);
-                extrusion_line.has_start_position_set_ = true;
+                PointsSet points;
+                for (size_t junction_index = 0; junction_index < junctions_count; ++junction_index)
+                {
+                    points.push_back(extrusion_line[junction_index].p_);
+                }
+
+                if (! seam_overhang_exclusion_areas.has_value())
+                {
+                    seam_overhang_exclusion_areas = makeSeamOverhangExclusionAreas(part, machine_borders, layer_height, seam_overhang_angle);
+                }
+
+                BestElementFinder best_candidate_finder;
+                if (layer.texture_data_provider_)
+                {
+                    best_candidate_finder.appendRankingCriteriaPass(std::make_shared<TextureRankingCriterion>(points, layer.texture_data_provider_, "seam"));
+                }
+                addExclusionAreaPass(best_candidate_finder, points, seam_overhang_exclusion_areas.value());
+                appendFallbackPasses(best_candidate_finder, points);
+
+                if (const std::optional<size_t> best_index = best_candidate_finder.findBestElement(points.size()))
+                {
+                    extrusion_line.setStartJunction(best_index.value());
+                    extrusion_line.has_start_position_set_ = true;
+                }
             }
         }
     }
@@ -1308,10 +1567,16 @@ static void setRandomSeamsOnLayer(SliceLayer& layer)
 
 /*!
  * Gives a seam to all the outer walls that still don't have any, which are the ones that have no corner to align to and no seam close enough to be projected from.
- * Going from the bottom to the top, the seams of the layer below are projected as usual, and the walls that still have no seam get a random one. This random seam is then
- * used as a starting point by the layers above to align with it.
+ * Going from the bottom to the top, the seams of the layer below are projected as usual, and the walls that still have no seam get one from the fallback criteria. This seam is
+ * then used as a starting point by the layers above to align with it.
  */
-static void fillRemainingSeams(SliceMeshStorage::Ptr& mesh, const coord_t max_distance, const bool z_seam_on_vertex)
+static void fillRemainingSeams(
+    SliceMeshStorage::Ptr& mesh,
+    const coord_t max_distance,
+    const bool z_seam_on_vertex,
+    const Shape& machine_borders,
+    const coord_t layer_height,
+    const AngleDegrees& seam_overhang_angle)
 {
     std::vector<SliceLayer>& layers = mesh->layers;
 
@@ -1322,7 +1587,7 @@ static void fillRemainingSeams(SliceMeshStorage::Ptr& mesh, const coord_t max_di
             projectSeamsOnLayer(layers[layer_index - 1], layers[layer_index], max_distance, z_seam_on_vertex);
         }
 
-        setRandomSeamsOnLayer(layers[layer_index]);
+        setFallbackSeamsOnLayer(layers[layer_index], machine_borders, layer_height, seam_overhang_angle);
     }
 }
 
@@ -1330,8 +1595,7 @@ static void calculateWallsSeamPosition(
     SliceMeshStorage::Ptr& mesh,
     const std::vector<Point2LL>& layer_seams,
     const EZSeamType seam_type,
-    const double concave_angle_weight,
-    const double convex_angle_weight,
+    const EZSeamCornerPrefType corner_pref,
     const double z_seam_alignment_weight,
     const Point2LL& target_pos,
     const coord_t wall_line_width_0,
@@ -1343,28 +1607,37 @@ static void calculateWallsSeamPosition(
     const coord_t max_inner_wall_seam_distance,
     const bool outer_walls)
 {
-    std::vector<std::vector<SeamCorner>> remaining_seam_corners = makeSeamCandidatesAcrossLayers(mesh, concave_angle_weight, convex_angle_weight);
-    // const coord_t max_alignment_distance = wall_line_width_0 * 4; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
+    std::vector<std::vector<SeamCandidate>> remaining_seam_candidates = makeSeamCandidatesAcrossLayers(
+        mesh,
+        seam_type,
+        corner_pref,
+        z_seam_on_vertex,
+        machine_borders,
+        models_center,
+        target_pos,
+        wall_line_width_0,
+        seam_overhang_angle,
+        layer_height);
     const coord_t max_alignment_distance = 1600; // Used both to link the corners of consecutive layers and to project the seams from a layer to the next one
 
-    OBJ mesh_obj("/tmp/seam.obj", 0.1);
-    mesh_obj.write(Application::getInstance().current_slice_->scene.mesh_groups.front().meshes.front());
-    for (const auto& [layer_index, corner_per_layer] : remaining_seam_corners | ranges::views::enumerate)
-    {
-        const coord_t z = mesh->layers[layer_index].printZ;
-        for (const auto& corner : corner_per_layer)
-        {
-            mesh_obj.writeSphere(Point3D(Point3LL(corner.position, z)), 0.1, SVG::Color::Red);
-        }
-    }
+    // OBJ mesh_obj("/tmp/seam.obj", 0.1);
+    // mesh_obj.write(Application::getInstance().current_slice_->scene.mesh_groups.front().meshes.front());
+    // for (const auto& [layer_index, corner_per_layer] : remaining_seam_corners | ranges::views::enumerate)
+    // {
+    // const coord_t z = mesh->layers[layer_index].printZ;
+    // for (const auto& corner : corner_per_layer)
+    // {
+    // mesh_obj.writeSphere(Point3D(Point3LL(corner.position, z)), 0.1, SVG::Color::Red);
+    // }
+    // }
 
     // Each loop applies the best string to the extrusion lines. Since an extrusion line can have only one seam, the corners of the lines that have been done are removed, which
     // cuts or discards some of the remaining strings. Rebuilding the strings from the remaining corners is the simplest way to get the new valid ones. Each loop removes at
     // least one line, so this always ends
     while (true)
     {
-        const std::vector<std::shared_ptr<SeamCornerNode>> seam_corners_tree = makeSeamCornerTree(remaining_seam_corners, max_alignment_distance);
-        const std::optional<SeamCornersString> best_string = findBestStringFromCornersTree(seam_corners_tree, z_seam_alignment_weight);
+        const SeamCandidatesGraph seam_corners_tree = makeSeamCandidatesGraph(remaining_seam_candidates, max_alignment_distance);
+        const std::optional<SeamCandidatesString> best_string = findBestStringFromCandidatesTree(seam_corners_tree, z_seam_alignment_weight);
 
         if (! best_string.has_value())
         {
@@ -1372,17 +1645,17 @@ static void calculateWallsSeamPosition(
         }
 
         std::unordered_set<const ExtrusionLine*> done_extrusion_lines;
-        for (const SeamCorner* corner : getCornersOfString(best_string.value()))
+        for (const SeamCandidate* corner : getCornersOfString(best_string.value()))
         {
-            applySeamCorner(*corner);
+            applySeamCandidate(*corner);
             done_extrusion_lines.insert(corner->extrusion_line);
         }
 
-        for (std::vector<SeamCorner>& layer_seam_corners : remaining_seam_corners)
+        for (std::vector<SeamCandidate>& layer_seam_corners : remaining_seam_candidates)
         {
             std::erase_if(
                 layer_seam_corners,
-                [&done_extrusion_lines](const SeamCorner& corner)
+                [&done_extrusion_lines](const SeamCandidate& corner)
                 {
                     return done_extrusion_lines.contains(corner.extrusion_line);
                 });
@@ -1393,7 +1666,7 @@ static void calculateWallsSeamPosition(
     propagateSeamsAcrossLayers(mesh, max_alignment_distance, z_seam_on_vertex);
 
     // Some lines may still have no seam, because there was no corner nor any other seam close enough
-    fillRemainingSeams(mesh, max_alignment_distance, z_seam_on_vertex);
+    fillRemainingSeams(mesh, max_alignment_distance, z_seam_on_vertex, machine_borders, layer_height, seam_overhang_angle);
 }
 
 #if 0
@@ -1548,40 +1821,6 @@ static std::vector<Point2LL> calculateWallsSeamPosition(
 }
 #endif
 
-std::tuple<double, double> makeConcaveConvexCornersWeights(const EZSeamCornerPrefType corner_preference)
-{
-    double concave_angle_weight{ 1.0 };
-    double convex_angle_weight{ 1.0 };
-
-    switch (corner_preference)
-    {
-    case EZSeamCornerPrefType::ZSeamCornerPrefInner:
-        // Give advantage to concave corners. More advantage for sharper corners.
-        concave_angle_weight = 1.0;
-        convex_angle_weight = 0.0;
-        break;
-    case EZSeamCornerPrefType::ZSeamCornerPrefOuter:
-        // Give advantage to convex corners. More advantage for sharper corners.
-        concave_angle_weight = 0.0;
-        convex_angle_weight = 1.0;
-        break;
-    case EZSeamCornerPrefType::ZSeamCornerPrefAny:
-        // Still give sharper corners more advantage.
-        concave_angle_weight = 1.0;
-        convex_angle_weight = 1.0;
-        break;
-    case EZSeamCornerPrefType::ZSeamCornerPrefWeighted:
-        // Give sharper corners some advantage, but concave sharper corners even more.
-        concave_angle_weight = 1.0;
-        convex_angle_weight = 0.5;
-        break;
-    case EZSeamCornerPrefType::Plugin:
-        break;
-    }
-
-    return { concave_angle_weight, convex_angle_weight };
-}
-
 void calculateWallsSeamPositions(SliceDataStorage& storage)
 {
     const Point2LL models_center = storage.getModelBoundingBox().flatten().getMiddle();
@@ -1591,14 +1830,12 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const Settings& settings = mesh->settings;
         const auto seam_type = settings.get<EZSeamType>("z_seam_type");
 
-        if (seam_type == EZSeamType::Shortest)
+        if (seam_type == EZSeamType::Shortest || seam_type == EZSeamType::Plugin || seam_type == EZSeamType::SkirtBrim)
         {
-            // We can't calculate shortest beforehand, leave it undone for later
             continue;
         }
 
         const auto corner_pref = settings.get<EZSeamCornerPrefType>("z_seam_corner");
-        const auto [concave_angle_weight, convex_angle_weight] = makeConcaveConvexCornersWeights(corner_pref);
         const auto z_seam_alignment_weight = settings.get<double>("z_seam_alignment_weight");
         const Point2LL target_pos = mesh->getZSeamHint();
         const auto wall_line_width_0 = settings.get<coord_t>("wall_line_width_0");
@@ -1612,7 +1849,6 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
         const size_t wall_0_extruder_nr{ settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ };
         const Shape machine_borders{ seam_overhang_angle < 90.0 ? storage.getMachineBorder(static_cast<int>(wall_0_extruder_nr)) : Shape{} };
 
-
         std::vector<Point2LL> layer_seams;
 
         // for (SliceLayer& layer : mesh->layers)
@@ -1622,8 +1858,7 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
                 mesh,
                 layer_seams,
                 seam_type,
-                concave_angle_weight,
-                convex_angle_weight,
+                corner_pref,
                 z_seam_alignment_weight,
                 target_pos,
                 wall_line_width_0,
@@ -1658,14 +1893,10 @@ void calculateWallsSeamPositions(SliceDataStorage& storage)
 size_t calculateShortestSeamPosition(const PointsSet& candidates, const Point2LL& target_pos, const Shape& seam_exclusion_areas)
 {
     BestElementFinder best_candidate_finder;
-    BestElementFinder::CriteriaPass pass;
 
-    auto shortest_distance_criterion = std::make_shared<DistanceScoringCriterion>(candidates, target_pos);
-    pass.criteria.push_back(BestElementFinder::WeighedCriterion(shortest_distance_criterion));
+    addExclusionAreaPass(best_candidate_finder, candidates, seam_exclusion_areas);
 
-    addExclusionAreaCriterion(pass, candidates, seam_exclusion_areas);
-
-    best_candidate_finder.appendCriteriaPass(pass);
+    best_candidate_finder.appendSingleCriterionPass(std::make_shared<DistanceScoringCriterion>(candidates, target_pos));
 
     return best_candidate_finder.findBestElement(candidates.size()).value_or(0);
 }

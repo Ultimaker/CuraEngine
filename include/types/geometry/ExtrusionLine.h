@@ -82,6 +82,8 @@ struct ExtrusionLine
         return junctions_.empty();
     }
 
+    bool isRotatable() const;
+
     ExtrusionLine(size_t inset_idx = std::numeric_limits<size_t>::max(), bool is_odd = false, bool is_closed = false)
         : inset_idx_(inset_idx)
         , is_odd_(is_odd)

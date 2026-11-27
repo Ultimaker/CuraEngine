@@ -221,11 +221,14 @@ set(engine_SRCS # Except main.cpp.
         src/types/scoring/BestElementFinder.cpp
         src/types/scoring/CornerScoringCriterion.cpp
         src/types/scoring/DistanceScoringCriterion.cpp
-        src/types/scoring/ExclusionAreaScoringCriterion.cpp
+        src/types/scoring/ExclusionAreaRankingCriterion.cpp
+        src/types/scoring/PositionBasedRankingCriterion.cpp
         src/types/scoring/PositionBasedScoringCriterion.cpp
         src/types/scoring/RandomScoringCriterion.cpp
-        src/types/scoring/TextureScoringCriterion.cpp
+        src/types/scoring/RankingCriteriaPass.cpp
+        src/types/scoring/TextureRankingCriterion.cpp
         src/types/scoring/VerticalAlignmentScoringCriterion.cpp
+        src/types/scoring/WeighedScoringCriteriaPass.cpp
 
         src/types/geometry/ClosedLinesSet.cpp
         src/types/geometry/OpenLinesSet.cpp

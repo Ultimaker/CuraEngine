@@ -81,7 +81,7 @@ double getEnvironmentValue(const char* name, const double default_value)
 /*!
  * Calculates the corners of the polygon, without any filtering
  */
-std::vector<SeamCorner> findRawCorners(const PointsSet& polygon, const double wall_line_width)
+std::vector<SeamCandidate> findRawCorners(const PointsSet& polygon, const double wall_line_width)
 {
     return findSeamCorners(
         polygon,
@@ -93,10 +93,10 @@ std::vector<SeamCorner> findRawCorners(const PointsSet& polygon, const double wa
 /*!
  * Calculates the corners of the polygon, the same way as they are kept as seam candidates in the engine
  */
-std::vector<SeamCorner> calculateCorners(const PointsSet& polygon, const double wall_line_width)
+std::vector<SeamCandidate> calculateCorners(const PointsSet& polygon, const double wall_line_width)
 {
-    std::vector<SeamCorner> kept_corners;
-    for (SeamCorner& corner : findRawCorners(polygon, wall_line_width))
+    std::vector<SeamCandidate> kept_corners;
+    for (SeamCandidate& corner : findRawCorners(polygon, wall_line_width))
     {
         const bool convex = corner.score < 0;
         corner.score *= convex ? convex_angle_weight : concave_angle_weight;
@@ -110,10 +110,10 @@ std::vector<SeamCorner> calculateCorners(const PointsSet& polygon, const double 
     return kept_corners;
 }
 
-std::vector<Point2D> toPositions(const std::vector<SeamCorner>& corners)
+std::vector<Point2D> toPositions(const std::vector<SeamCandidate>& corners)
 {
     std::vector<Point2D> positions;
-    for (const SeamCorner& corner : corners)
+    for (const SeamCandidate& corner : corners)
     {
         positions.push_back(toPoint2D(corner.position));
     }
@@ -128,10 +128,10 @@ double toDegrees(const double radians)
 /*!
  * Describes the corners, to be shown when a test fails
  */
-std::string describeCorners(const std::vector<SeamCorner>& corners)
+std::string describeCorners(const std::vector<SeamCandidate>& corners)
 {
     std::string description = fmt::format("{} corners:", corners.size());
-    for (const SeamCorner& corner : corners)
+    for (const SeamCandidate& corner : corners)
     {
         description += fmt::format(
             "\n  ({:.3f}, {:.3f}) mm, turn {:.1f} deg, extent {} um, score {:.3f}",
@@ -649,7 +649,7 @@ SyntheticPolygon makeRectangle(const double width, const double height, BuildCor
  */
 void expectOneCornerPerPolygonCorner(
     const SyntheticPolygon& synthetic_polygon,
-    const std::vector<SeamCorner>& corners,
+    const std::vector<SeamCandidate>& corners,
     const double expected_turn_degrees,
     const double extra_tolerance = 0.0)
 {
@@ -662,7 +662,7 @@ void expectOneCornerPerPolygonCorner(
         const auto closest = std::min_element(
             corners.begin(),
             corners.end(),
-            [&center](const SeamCorner& corner1, const SeamCorner& corner2)
+            [&center](const SeamCandidate& corner1, const SeamCandidate& corner2)
             {
                 return (toPoint2D(corner1.position) - center).vSize() < (toPoint2D(corner2.position) - center).vSize();
             });
@@ -675,10 +675,10 @@ void expectOneCornerPerPolygonCorner(
 /*!
  * Gets the corners that are the closest to the given position, within the given radius
  */
-std::vector<SeamCorner> getCornersNear(const std::vector<SeamCorner>& corners, const Point2D& position, const double radius)
+std::vector<SeamCandidate> getCornersNear(const std::vector<SeamCandidate>& corners, const Point2D& position, const double radius)
 {
-    std::vector<SeamCorner> corners_near;
-    for (const SeamCorner& corner : corners)
+    std::vector<SeamCandidate> corners_near;
+    for (const SeamCandidate& corner : corners)
     {
         if ((toPoint2D(corner.position) - position).vSize() <= radius)
         {
@@ -744,7 +744,7 @@ TEST_P(SeamCornersSvgTest, CalculatedCornersMatchTheExpectedOnes)
         CornersReport& report = reports.emplace_back();
         report.polygon = polygon;
 
-        const std::vector<SeamCorner> calculated_seam_corners = calculateCorners(polygon, wall_line_width);
+        const std::vector<SeamCandidate> calculated_seam_corners = calculateCorners(polygon, wall_line_width);
         const std::vector<Point2D> calculated_corners = toPositions(calculated_seam_corners);
         const std::vector<Point2D>& expected_corners = expected_corners_per_polygon[polygon_index];
 
@@ -763,7 +763,7 @@ TEST_P(SeamCornersSvgTest, CalculatedCornersMatchTheExpectedOnes)
 
         for (const auto& [calculated_index, calculated] : calculated_corners | ranges::views::enumerate)
         {
-            const SeamCorner& seam_corner = calculated_seam_corners[calculated_index];
+            const SeamCandidate& seam_corner = calculated_seam_corners[calculated_index];
             (pairing.calculated_matched[calculated_index] ? report.proper_corners : report.extra_corners).push_back(calculated);
             EXPECT_TRUE(pairing.calculated_matched[calculated_index])
                 << "The calculated corner at " << formatPosition(calculated) << " has no expected corner within " << matching_radius << " micrometers (turn "
@@ -813,7 +813,7 @@ TEST_P(SeamCornersSvgTest, CalculatedCornersAreOnSegments)
     {
         SCOPED_TRACE(fmt::format("Polygon {} ({} points)", polygon_index, polygon.size()));
 
-        for (const SeamCorner& corner : calculateCorners(polygon, wall_line_width))
+        for (const SeamCandidate& corner : calculateCorners(polygon, wall_line_width))
         {
             const Point2D position = toPoint2D(corner.position);
             const double distance = distanceToPolygon(position, polygon);
@@ -930,9 +930,9 @@ TEST(SeamCornersSyntheticTest, SharpRectangleHasFourCornersOnItsVertices)
             turtle.turn(90.0);
         });
 
-    const std::vector<SeamCorner> corners = findRawCorners(rectangle.polygon, default_wall_line_width);
+    const std::vector<SeamCandidate> corners = findRawCorners(rectangle.polygon, default_wall_line_width);
     expectOneCornerPerPolygonCorner(rectangle, corners, 90.0);
-    for (const SeamCorner& corner : corners)
+    for (const SeamCandidate& corner : corners)
     {
         EXPECT_TRUE(corner.on_vertex);
         EXPECT_EQ(corner.extent, 0);
@@ -1022,7 +1022,7 @@ TEST(SeamCornersSyntheticTest, ChamfersCloserThanTheLineWidthAreSingleCorners)
                         turtle.turn(90.0 - first_turn);
                     });
 
-                const std::vector<SeamCorner> corners = findRawCorners(rectangle.polygon, wall_line_width);
+                const std::vector<SeamCandidate> corners = findRawCorners(rectangle.polygon, wall_line_width);
                 if (gap_ratio < 1.0)
                 {
                     expectOneCornerPerPolygonCorner(rectangle, corners, 90.0, 0.4 * gap);
@@ -1073,18 +1073,18 @@ TEST(SeamCornersSyntheticTest, SharpCornerBetweenTwoRoundedOnesIsAlone)
                 turtle.arc(800.0, arc_turn, 10.0);
             });
 
-        const std::vector<SeamCorner> corners = findRawCorners(rectangle.polygon, default_wall_line_width);
+        const std::vector<SeamCandidate> corners = findRawCorners(rectangle.polygon, default_wall_line_width);
         EXPECT_EQ(corners.size(), 12) << describeCorners(corners);
 
         for (const Point2D& center : rectangle.corner_centers)
         {
-            const std::vector<SeamCorner> corners_near = getCornersNear(corners, center, 2000.0);
+            const std::vector<SeamCandidate> corners_near = getCornersNear(corners, center, 2000.0);
             ASSERT_EQ(corners_near.size(), 3) << "Wrong number of corners near " << formatPosition(center) << "\n" << describeCorners(corners_near);
 
             const auto sharpest = std::max_element(
                 corners_near.begin(),
                 corners_near.end(),
-                [](const SeamCorner& corner1, const SeamCorner& corner2)
+                [](const SeamCandidate& corner1, const SeamCandidate& corner2)
                 {
                     return std::abs(corner1.turn) < std::abs(corner2.turn);
                 });
@@ -1106,9 +1106,9 @@ TEST(SeamCornersSyntheticTest, EveryTipOfAZigzagIsACorner)
         gear.push_back(toPoint2LL(Point2D(radius * std::cos(angle), radius * std::sin(angle))));
     }
 
-    const std::vector<SeamCorner> corners = findRawCorners(gear, default_wall_line_width);
+    const std::vector<SeamCandidate> corners = findRawCorners(gear, default_wall_line_width);
     EXPECT_EQ(corners.size(), static_cast<size_t>(2 * teeth_count));
-    for (const SeamCorner& corner : corners)
+    for (const SeamCandidate& corner : corners)
     {
         EXPECT_GT(std::abs(toDegrees(corner.turn)), 40.0);
     }
@@ -1143,7 +1143,7 @@ TEST(SeamCornersSyntheticTest, NoiseOnStraightEdgesIsNotKeptAsCorners)
         }
     }
 
-    const std::vector<SeamCorner> corners = calculateCorners(noisy_polygon, default_wall_line_width);
+    const std::vector<SeamCandidate> corners = calculateCorners(noisy_polygon, default_wall_line_width);
     ASSERT_EQ(corners.size(), 4) << describeCorners(corners);
     for (const Point2D& center : rectangle.corner_centers)
     {

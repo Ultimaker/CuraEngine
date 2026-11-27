@@ -3,109 +3,54 @@
 
 #include "types/scoring/BestElementFinder.h"
 
-#include <algorithm>
-#include <limits>
-
-#include <range/v3/view/enumerate.hpp>
-#include <spdlog/spdlog.h>
-
+#include "types/scoring/CriteriaPass.h"
+#include "types/scoring/RankingCriteriaPass.h"
 #include "types/scoring/ScoringCriterion.h"
+#include "types/scoring/WeighedScoringCriteriaPass.h"
 
 namespace curaengine::types::scoring
 {
 
-using namespace types;
-
-void BestElementFinder::CriteriaPass::appendCriterion(const std::shared_ptr<ScoringCriterion>& criterion, const double weight)
+void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const std::optional<double>& outsider_delta_threshold)
 {
-    criteria.emplace_back(criterion, weight);
+    auto criteria_pass = std::make_shared<WeighedScoringCriteriaPass>();
+    criteria_pass->outsider_delta_threshold = outsider_delta_threshold;
+    criteria_pass->appendCriterion(criterion);
+    appendCriteriaPass(criteria_pass);
 }
 
-void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold)
+void BestElementFinder::appendRankingCriteriaPass(const std::shared_ptr<RankingCriterion>& criterion)
 {
-    WeighedCriterion weighed_criterion;
-    weighed_criterion.criterion = criterion;
-
-    CriteriaPass criteria_pass;
-    criteria_pass.outsider_delta_threshold = outsider_delta_threshold;
-    criteria_pass.criteria.push_back(weighed_criterion);
-    appendCriteriaPass(criteria_pass);
+    appendCriteriaPass(std::make_shared<RankingCriteriaPass>(criterion));
 }
 
 std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates_count)
 {
+    const std::vector<Candidate> candidates = findBestElements(candidates_count);
+    return ! candidates.empty() ? std::make_optional(candidates.front().candidate_index) : std::nullopt;
+}
+
+std::vector<Candidate> BestElementFinder::findBestElements(const size_t candidates_count)
+{
     // Start by initializing the candidates list in natural order
-    std::vector<Candidate> best_candidates(candidates_count);
+    std::vector<Candidate> candidates(candidates_count);
     for (size_t i = 0; i < candidates_count; ++i)
     {
-        best_candidates[i].candidate_index = i;
+        candidates[i].candidate_index = i;
     }
 
-    const auto begin = best_candidates.begin();
-    auto end = best_candidates.end();
-
-    // Now run the criteria passes until we have a single outsider or no more criteria
-    for (const auto& [pass_index, criteria_pass] : criteria_ | ranges::views::enumerate)
+    // Now run the passes until no candidate is left or there are no more passes
+    for (const auto& pass : passes_)
     {
-        // For each element, reset score, process each criterion and apply weights to get the global score
-        auto best_candidate_iterator = end;
-        for (auto iterator = begin; iterator != end; ++iterator)
+        pass->apply(candidates);
+
+        if (candidates.empty())
         {
-            iterator->score = 0.0;
-
-            for (const auto& weighed_criterion : criteria_pass.criteria)
-            {
-                const double criterion_score = weighed_criterion.criterion->computeScore(iterator->candidate_index);
-                assert(criterion_score >= 0.0 && criterion_score <= 1.0 && "Criterion score is out-of-bounds");
-                iterator->score += criterion_score * weighed_criterion.weight;
-            }
-
-            if (best_candidate_iterator == end || iterator->score > best_candidate_iterator->score)
-            {
-                best_candidate_iterator = iterator;
-            }
+            break;
         }
-
-        if (best_candidate_iterator == end)
-        {
-            // Something went wrong, we don't have a best candidate
-            return std::nullopt;
-        }
-
-        // Early out for last pass, just keep the best candidate
-        if (pass_index == criteria_.size() - 1)
-        {
-            return best_candidate_iterator->candidate_index;
-        }
-
-        // Skip candidates that have a score too far from the actual best one
-        const double best_score = best_candidate_iterator->score;
-        const double delta_threshold = criteria_pass.outsider_delta_threshold + std::numeric_limits<double>::epsilon();
-        end = std::remove_if(
-            begin,
-            end,
-            [&best_score, &delta_threshold](const Candidate& candidate)
-            {
-                return best_score - candidate.score > delta_threshold;
-            });
-
-        if (std::distance(begin, end) == 1)
-        {
-            // We have a single outsider, don't go further
-            return begin->candidate_index;
-        }
-
-        // Sort the remaining candidates by score, so that if the next pass doesn't differentiate them, we keep the best one from the previous pass
-        std::stable_sort(
-            begin,
-            end,
-            [](const Candidate& candidate1, const Candidate& candidate2)
-            {
-                return candidate1.score > candidate2.score;
-            });
     }
 
-    return begin != end ? std::make_optional(begin->candidate_index) : std::nullopt;
+    return candidates;
 }
 
 } // namespace curaengine::types::scoring
